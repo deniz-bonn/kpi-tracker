@@ -1,0 +1,14 @@
+{
+  "name": "kpi-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "npm --prefix frontend install && npm --prefix frontend run build && mkdir -p backend/public && cp -r frontend/dist/. backend/public/ && npm --prefix backend install",
+    "start": "node backend/src/db/migrate.js && node backend/src/index.js",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev"
+  }
+}
