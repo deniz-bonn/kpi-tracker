@@ -266,7 +266,7 @@ router.get('/dashboard', wrap(async (req, res) => {
 
   // Load authoritative monthly totals from AE Gesamt import
   const aeGesamtRows = await db.all(
-    `SELECT * FROM ae_gesamt_monthly WHERE monat LIKE ? ORDER BY monat`,
+    `SELECT * FROM ae_gesamt_monthly WHERE monat LIKE ${d === 'postgres' ? '$1' : '?'} ORDER BY monat`,
     [`${yr}-%`]
   );
   const aeGesamt = (monat) => aeGesamtRows.find(r => r.monat === monat) || null;

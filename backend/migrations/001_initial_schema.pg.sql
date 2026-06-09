@@ -1,6 +1,5 @@
 -- Migration 001: Complete Initial Schema (PostgreSQL)
--- Contains the full current schema including all columns added in later SQLite migrations.
--- Updated_at is managed by the application (no triggers — avoids ';' split issues in migrate.js).
+-- Full schema with all current columns. No triggers - updated_at managed by application.
 
 CREATE TABLE IF NOT EXISTS companies (
   id         SERIAL PRIMARY KEY,
