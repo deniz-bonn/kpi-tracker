@@ -225,7 +225,7 @@ export default function DealsVL() {
       )}
 
       {/* Deals-Tabelle */}
-      <div className="rounded-xl border border-gray-200 overflow-hidden">
+      <div className="rounded-xl border border-gray-200 overflow-hidden overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-[#2d2e30] text-gray-300 text-xs uppercase">
             <tr>

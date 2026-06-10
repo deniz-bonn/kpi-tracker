@@ -25,14 +25,14 @@ export default function DealModal({ title, fields, initial = {}, onSave, onClose
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-      <div className="bg-white border border-gray-200 rounded-xl w-full max-w-lg mx-4 overflow-hidden shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70">
+      <div className="bg-white border border-gray-200 rounded-t-2xl sm:rounded-xl w-full sm:max-w-lg sm:mx-4 overflow-hidden shadow-2xl">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
           <h2 className="text-sm font-semibold text-gray-800">{title}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg leading-none">&times;</button>
         </div>
 
-        <div className="px-5 py-4 space-y-3 max-h-[70vh] overflow-y-auto">
+        <div className="px-5 py-4 space-y-3 max-h-[75vh] overflow-y-auto">
           {fields.map(f => {
             const req = isRequired(f);
             const hasErr = errors[f.name];

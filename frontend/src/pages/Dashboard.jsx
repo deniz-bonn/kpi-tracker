@@ -243,7 +243,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-xl font-bold text-gray-800">Dashboard</h1>
         <select
           value={year}
@@ -255,8 +255,8 @@ export default function Dashboard() {
       </div>
 
       {/* ── Monatliche Übersichtstabelle ── */}
-      <div className="rounded-xl border border-gray-200 overflow-auto">
-        <table className="text-sm" style={{ borderCollapse: 'collapse', minWidth: '100%' }}>
+      <div className="rounded-xl border border-gray-200 overflow-hidden overflow-x-auto">
+        <table className="w-full text-sm min-w-[900px]" style={{ borderCollapse: 'collapse' }}>
           <thead>
             {/* Gruppen-Header */}
             <tr className="bg-[#2d2e30] border-b border-[#444]">
