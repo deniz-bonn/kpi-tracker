@@ -9,6 +9,9 @@ import { formatEuro, currentMonat } from '../utils/format';
 const STATUS_OPTS = ['Offen', 'Gewonnen', 'Verloren'];
 const STANDORTE   = ['Bonn', 'Braunschweig', 'Österreich', 'Schweiz'];
 
+const DIENSTLEISTUNGEN_VL = ['RaaS Kontingente','RaaS Kleinkunde Laufzeit','Karriereseite','Karriereseite Wartung','Social-Media','Glaubenssätze','Media-Day','Website','Sonstiges'];
+const ABGERECHNET_OPTS = ['Nein', 'Ja', 'On Hold'];
+
 // ── KPI-Block (Gesamt oder pro KAM) ─────────────────────────────────────────
 // VL-spezifische Metriken: Anstehende, Möglicher AE, Realisiert, Kündigungen, Churn-Rate
 function KpiBlock({ title, kpis, highlight = false }) {
@@ -23,6 +26,7 @@ function KpiBlock({ title, kpis, highlight = false }) {
     { label: 'Kündigungen',                val: kpis.verloren,           hi: true },
     { label: 'Verlorener AE',              val: formatEuro(kpis.verlorener_ae) },
     { label: 'Churn-Rate',                 val: kpis.churn_rate.toFixed(2), color: churnColor, hi: true },
+    { label: 'Abgerechnet (gew. Deals)',   val: `${kpis.abgerechnet_ja} (${kpis.abgerechnet_quote}%)` },
   ];
 
   return (
@@ -54,13 +58,15 @@ function calcKpis(deals) {
   const verl = deals.filter(d => d.status === 'Verloren');
   const n    = deals.length;
   return {
-    total:         n,
-    gewonnen:      gew.length,
-    verloren:      verl.length,
-    moeglicher_ae: deals.reduce((s, d) => s + (Number(d.angebotswert) || 0), 0),
-    ae_summe:      gew.reduce((s, d)   => s + (Number(d.ae_wert)      || 0), 0),
-    verlorener_ae: verl.reduce((s, d)  => s + (Number(d.ae_wert) || Number(d.angebotswert) || 0), 0),
-    churn_rate:    n > 0 ? ((n - gew.length) / n) * 100 : 0,
+    total:            n,
+    gewonnen:         gew.length,
+    verloren:         verl.length,
+    moeglicher_ae:    deals.reduce((s, d) => s + (Number(d.angebotswert) || 0), 0),
+    ae_summe:         gew.reduce((s, d)   => s + (Number(d.ae_wert)      || 0), 0),
+    verlorener_ae:    verl.reduce((s, d)  => s + (Number(d.ae_wert) || Number(d.angebotswert) || 0), 0),
+    churn_rate:       n > 0 ? ((n - gew.length) / n) * 100 : 0,
+    abgerechnet_ja:   gew.filter(d => d.abgerechnet === 'Ja').length,
+    abgerechnet_quote: gew.length > 0 ? (gew.filter(d => d.abgerechnet === 'Ja').length / gew.length * 100).toFixed(1) : '0.0',
   };
 }
 
@@ -107,13 +113,14 @@ export default function DealsVL() {
     { name: 'monat',                 label: 'Monat (YYYY-MM)',                         required: true },
     { name: 'company_id',            label: 'Company',                 type: 'select', options: compOpts, required: true },
     { name: 'kunde',                 label: 'Kunde',                                   required: true },
-    { name: 'dienstleistung',        label: 'Dienstleistung' },
+    { name: 'dienstleistung',        label: 'Dienstleistung',          type: 'select', options: DIENSTLEISTUNGEN_VL },
     { name: 'kam_id',                label: 'Account Manager',         type: 'select', options: kamOptions },
-    { name: 'angebotswert',          label: 'Möglicher AE (€)',        type: 'number' },
-    { name: 'ae_wert',               label: 'Realisierter AE (€)',     type: 'number' },
-    { name: 'laufzeit_monate',       label: 'Neue Laufzeit (Monate)',  type: 'number' },
+    { name: 'angebotswert',          label: 'Möglicher AE (€)',        type: 'number', required: true },
+    { name: 'ae_wert',               label: 'Realisierter AE (€)',     type: 'number', required: f => f.status === 'Gewonnen' },
+    { name: 'laufzeit_monate',       label: 'Neue Laufzeit (Monate)',  type: 'number', required: f => f.status === 'Gewonnen' },
     { name: 'wie_vielt_verlaengerung', label: 'Wievielte Verlängerung', type: 'number' },
     { name: 'status',                label: 'Status',                  type: 'select', options: STATUS_OPTS, required: true },
+    { name: 'abgerechnet',           label: 'Abgerechnet',             type: 'select', options: ABGERECHNET_OPTS },
     { name: 'kommentar',             label: 'Kommentar',               type: 'textarea' },
   ];
 
@@ -222,14 +229,14 @@ export default function DealsVL() {
         <table className="w-full text-sm">
           <thead className="bg-[#2d2e30] text-gray-300 text-xs uppercase">
             <tr>
-              {['Datum','Kunde','Account Manager','Dienstleistung','Mögl. AE','Real. AE','Laufzeit','Verl. #','Status','Notiz',''].map(h => (
+              {['Datum','Kunde','Account Manager','Dienstleistung','Mögl. AE','Real. AE','Laufzeit','Verl. #','Status','Abgerechnet','Notiz',''].map(h => (
                 <th key={h} className="px-3 py-2 text-left font-medium">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {filtered.length === 0 ? (
-              <tr><td colSpan={11} className="text-center py-8 text-gray-400">Keine Deals gefunden</td></tr>
+              <tr><td colSpan={12} className="text-center py-8 text-gray-400">Keine Deals gefunden</td></tr>
             ) : filtered.map(d => (
               <tr key={d.id} className={`hover:bg-gray-50 ${d.status === 'Verloren' ? 'opacity-60' : ''}`}>
                 <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{d.datum?.slice(0,10)}</td>
@@ -244,6 +251,11 @@ export default function DealsVL() {
                 <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{d.laufzeit_monate ? `${d.laufzeit_monate}M` : '—'}</td>
                 <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{d.wie_vielt_verlaengerung ? `${d.wie_vielt_verlaengerung}x` : '—'}</td>
                 <td className="px-3 py-2"><StatusBadge status={d.status} /></td>
+                <td className="px-3 py-2 text-xs whitespace-nowrap">
+                  {d.abgerechnet
+                    ? <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${d.abgerechnet === 'Ja' ? 'bg-green-100 text-green-700' : d.abgerechnet === 'On Hold' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-600'}`}>{d.abgerechnet}</span>
+                    : <span className="text-gray-300">—</span>}
+                </td>
                 <td className="px-3 py-2 max-w-[200px]">
                   {d.kommentar
                     ? <span className="text-gray-600 text-xs" title={d.kommentar}>

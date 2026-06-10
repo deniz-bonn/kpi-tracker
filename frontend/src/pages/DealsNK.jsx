@@ -10,6 +10,10 @@ const QUELLEN = ['Cold Calling', 'Mail', 'Fax', 'Ad', 'Empfehlung', 'Follow Up',
 const STATUS_OPTS = ['Offen', 'Gewonnen', 'Verloren', 'In Verhandlung', 'In Closing Call 2'];
 const STANDORTE = ['Bonn', 'Braunschweig', 'Österreich', 'Schweiz'];
 
+const DIENSTLEISTUNGEN_NK = ['RaaS', 'RaaS Kleinkunde', 'Performance Recruiting'];
+const AUTO_VL_OPTS = ['Ja', 'Nein'];
+const ABGERECHNET_OPTS = ['Nein', 'Ja', 'On Hold'];
+
 // ── KPI-Zusammenfassung ──────────────────────────────────────────────────────
 function KpiBlock({ kpis }) {
   const rows = [
@@ -27,6 +31,8 @@ function KpiBlock({ kpis }) {
     { label: 'Angebote realisiert Mail', val: kpis.gewonnen_mail },
     { label: 'Angebote realisiert Fax', val: kpis.gewonnen_fax },
     { label: 'Realisierte Angebote mit AV in %', val: `${kpis.quote_mit_av}%`, hi: true },
+    { label: 'Auto-Verlängerung (gew. Deals)', val: `${kpis.auto_verlaengerung} (${kpis.auto_verlaengerung_quote}%)` },
+    { label: 'Abgerechnet (gew. Deals)',        val: `${kpis.abgerechnet_ja} (${kpis.abgerechnet_quote}%)` },
   ];
   return (
     <div className="rounded-lg border border-gray-200 overflow-hidden">
@@ -147,23 +153,28 @@ export default function DealsNK() {
   const closerList  = employees.filter(e => ['NKV-Closer', 'Multi'].includes(e.rolle));
   const openerList  = employees.filter(e => ['Opener', 'Multi'].includes(e.rolle));
   const setterList  = employees.filter(e => ['Setter', 'Multi'].includes(e.rolle));
+  const closerOptions = closerList.map(e => ({ value: e.id, label: `${e.name} (${e.company_name})` }));
+  const openerOptions = openerList.map(e => ({ value: e.id, label: `${e.name} (${e.company_name})` }));
+  const setterOptions = setterList.map(e => ({ value: e.id, label: `${e.name} (${e.company_name})` }));
 
   const fields = [
-    { name: 'datum',          label: 'Datum',               type: 'date',   required: true },
-    { name: 'monat',          label: 'Monat (YYYY-MM)',                      required: true },
-    { name: 'company_id',     label: 'Company',             type: 'select', options: compOpts, required: true },
-    { name: 'kunde',          label: 'Kunde',                               required: true },
+    { name: 'datum',          label: 'Datum',                    type: 'date',   required: true },
+    { name: 'monat',          label: 'Monat (YYYY-MM)',                           required: true },
+    { name: 'company_id',     label: 'Company',                  type: 'select', options: compOpts, required: true },
+    { name: 'kunde',          label: 'Kunde',                                     required: true },
     { name: 'angebotsnummer', label: 'Angebotsnummer' },
-    { name: 'dienstleistung', label: 'Dienstleistung' },
-    { name: 'quelle',         label: 'Quelle',              type: 'select', options: QUELLEN, required: true },
-    { name: 'closer_id',      label: 'Closer',              type: 'select', options: empOptions },
-    { name: 'opener_id',      label: 'Opener',              type: 'select', options: empOptions },
-    { name: 'setter_id',      label: 'Setter',              type: 'select', options: empOptions },
-    { name: 'angebotswert',   label: 'Angebotswert (€)',    type: 'number' },
-    { name: 'laufzeit_monate',label: 'Laufzeit (Monate)',   type: 'number' },
-    { name: 'ae_wert',        label: 'AE-Wert (€)',         type: 'number' },
-    { name: 'status',         label: 'Status',              type: 'select', options: STATUS_OPTS, required: true },
-    { name: 'kommentar',      label: 'Kommentar',           type: 'textarea' },
+    { name: 'dienstleistung', label: 'Dienstleistung',            type: 'select', options: DIENSTLEISTUNGEN_NK },
+    { name: 'closer_id',      label: 'Closer',                   type: 'select', options: closerOptions },
+    { name: 'opener_id',      label: 'Opener',                   type: 'select', options: openerOptions },
+    { name: 'setter_id',      label: 'Setter',                   type: 'select', options: setterOptions },
+    { name: 'quelle',         label: 'Quelle',                   type: 'select', options: QUELLEN },
+    { name: 'angebotswert',   label: 'Angebotswert (€)',          type: 'number', required: true },
+    { name: 'ae_wert',        label: 'AE-Wert (€)',               type: 'number', required: f => f.status === 'Gewonnen' },
+    { name: 'laufzeit_monate',label: 'Laufzeit (Monate)',          type: 'number', required: f => f.status === 'Gewonnen' },
+    { name: 'automatische_verlaengerung', label: 'Automatische Verlängerung', type: 'select', options: AUTO_VL_OPTS, required: true },
+    { name: 'status',         label: 'Status',                   type: 'select', options: STATUS_OPTS, required: true },
+    { name: 'abgerechnet',    label: 'Abgerechnet',               type: 'select', options: ABGERECHNET_OPTS },
+    { name: 'kommentar',      label: 'Kommentar',                 type: 'textarea' },
   ];
 
   const handleSave = (form) => {
@@ -188,6 +199,8 @@ export default function DealsNK() {
     const ae  = gew.reduce((s, d) => s + (Number(d.ae_wert)      || 0), 0);
     const agw = filtered.reduce((s, d) => s + (Number(d.angebotswert) || 0), 0);
     const n   = filtered.length;
+    const autoJ = gew.filter(d => d.automatische_verlaengerung === 'Ja').length;
+    const abgJ  = gew.filter(d => d.abgerechnet === 'Ja').length;
     return {
       total:                  n,
       gewonnen:               gew.length,
@@ -206,6 +219,10 @@ export default function DealsNK() {
       quote_mit_av:           gew.length > 0
                                 ? (gew.filter(d => Number(d.ae_wert) > 0).length / gew.length * 100).toFixed(2)
                                 : '0.00',
+      auto_verlaengerung:       autoJ,
+      auto_verlaengerung_quote: gew.length > 0 ? (autoJ / gew.length * 100).toFixed(1) : '0.0',
+      abgerechnet_ja:           abgJ,
+      abgerechnet_quote:        gew.length > 0 ? (abgJ / gew.length * 100).toFixed(1) : '0.0',
     };
   }, [filtered]);
 
@@ -319,14 +336,14 @@ export default function DealsNK() {
         <table className="w-full text-sm">
           <thead className="bg-[#2d2e30] text-gray-300 text-xs uppercase">
             <tr>
-              {['Datum','Kunde','Quelle','Closer','Opener','Setter','Angebotswert','AE-Wert','Status','Notiz',''].map(h => (
+              {['Datum','Kunde','Quelle','Closer','Opener','Setter','Angebotswert','AE-Wert','Status','Auto-VL','Abgerechnet','Notiz',''].map(h => (
                 <th key={h} className="px-3 py-2 text-left font-medium">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {filtered.length === 0 ? (
-              <tr><td colSpan={11} className="text-center py-8 text-gray-400">Keine Deals gefunden</td></tr>
+              <tr><td colSpan={13} className="text-center py-8 text-gray-400">Keine Deals gefunden</td></tr>
             ) : filtered.map(d => (
               <tr key={d.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{d.datum?.slice(0,10)}</td>
@@ -341,6 +358,16 @@ export default function DealsNK() {
                 <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{d.angebotswert ? formatEuro(d.angebotswert) : '—'}</td>
                 <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{d.ae_wert ? formatEuro(d.ae_wert) : '—'}</td>
                 <td className="px-3 py-2"><StatusBadge status={d.status} /></td>
+                <td className="px-3 py-2 text-xs whitespace-nowrap">
+                  {d.automatische_verlaengerung
+                    ? <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${d.automatische_verlaengerung === 'Ja' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>{d.automatische_verlaengerung}</span>
+                    : <span className="text-gray-300">—</span>}
+                </td>
+                <td className="px-3 py-2 text-xs whitespace-nowrap">
+                  {d.abgerechnet
+                    ? <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${d.abgerechnet === 'Ja' ? 'bg-green-100 text-green-700' : d.abgerechnet === 'On Hold' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-600'}`}>{d.abgerechnet}</span>
+                    : <span className="text-gray-300">—</span>}
+                </td>
                 <td className="px-3 py-2 max-w-[200px]">
                   {d.kommentar
                     ? <span className="text-gray-600 text-xs" title={d.kommentar}>

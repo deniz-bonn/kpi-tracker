@@ -60,10 +60,11 @@ router.post('/', wrap(async (req, res) => {
   const { gewonnen_datum, gewonnen_monat } = resolveGewonnenFelder(req.body);
   const fields = ['datum','monat','company_id','closer_id','opener_id','setter_id','quelle','kunde',
     'angebotsnummer','dienstleistung','angebotswert','laufzeit_monate','status','ae_wert','kommentar',
-    'gewonnen_datum','gewonnen_monat'];
+    'automatische_verlaengerung','abgerechnet','gewonnen_datum','gewonnen_monat'];
   const values = fields.map(f => {
     if (f === 'gewonnen_datum') return gewonnen_datum;
     if (f === 'gewonnen_monat') return gewonnen_monat;
+    if (f === 'abgerechnet') return req.body[f] ?? (req.body.status === 'Gewonnen' ? 'Nein' : null);
     return req.body[f] ?? null;
   });
 
@@ -84,10 +85,11 @@ router.put('/:id', wrap(async (req, res) => {
 
   const fields = ['datum','monat','company_id','closer_id','opener_id','setter_id','quelle','kunde',
     'angebotsnummer','dienstleistung','angebotswert','laufzeit_monate','status','ae_wert','kommentar',
-    'gewonnen_datum','gewonnen_monat'];
+    'automatische_verlaengerung','abgerechnet','gewonnen_datum','gewonnen_monat'];
   const values = fields.map(f => {
     if (f === 'gewonnen_datum') return gewonnen_datum;
     if (f === 'gewonnen_monat') return gewonnen_monat;
+    if (f === 'abgerechnet') return req.body[f] ?? (req.body.status === 'Gewonnen' ? 'Nein' : null);
     return req.body[f] ?? null;
   });
 
