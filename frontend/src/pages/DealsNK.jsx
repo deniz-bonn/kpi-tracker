@@ -15,102 +15,6 @@ const DIENSTLEISTUNGEN_NK = ['RaaS', 'RaaS Kleinkunde', 'Performance Recruiting'
 const AUTO_VL_OPTS = ['Ja', 'Nein'];
 const ABGERECHNET_OPTS = ['Nein', 'Ja', 'On Hold'];
 
-// ── KPI-Zusammenfassung ──────────────────────────────────────────────────────
-function KpiBlock({ kpis }) {
-  const rows = [
-    { label: 'Angebote insgesamt', val: kpis.total, hi: true },
-    { label: 'Angebote realisiert', val: kpis.gewonnen },
-    { label: 'Angebote nicht realisiert', val: kpis.verloren },
-    { label: 'Angebote in Verhandlung', val: kpis.in_verhandlung },
-    { label: 'Angebote in Closing Call 2', val: kpis.in_closing2 },
-    { label: 'Realisierungsquote nach Angeboten', val: `${kpis.quote_angebote}%`, hi: true },
-    { label: 'Realisierung Angebotswert', val: formatEuro(kpis.ae_summe) },
-    { label: 'Realisierungsquote nach Angebotswert', val: `${kpis.quote_wert}%` },
-    { label: 'Angebotswert insgesamt', val: formatEuro(kpis.angebotswert_gesamt), hi: true },
-    { label: 'Wert offener Angebote', val: formatEuro(kpis.wert_offen) },
-    { label: 'Angebote realisiert Cold Calling', val: kpis.gewonnen_cc },
-    { label: 'Angebote realisiert Mail', val: kpis.gewonnen_mail },
-    { label: 'Angebote realisiert Fax', val: kpis.gewonnen_fax },
-    { label: 'Realisierte Angebote mit AV in %', val: `${kpis.quote_mit_av}%`, hi: true },
-    { label: 'Auto-Verlängerung (gew. Deals)', val: `${kpis.auto_verlaengerung} (${kpis.auto_verlaengerung_quote}%)` },
-    { label: 'Abgerechnet (gew. Deals)',        val: `${kpis.abgerechnet_ja} (${kpis.abgerechnet_quote}%)` },
-  ];
-  return (
-    <div className="rounded-lg border border-gray-200 overflow-hidden">
-      <div className="px-3 py-2 bg-[#2d2e30] border-b border-[#444]">
-        <span className="text-xs font-bold text-white uppercase tracking-wide">Gesamt-KPIs</span>
-      </div>
-      <table className="w-full text-xs">
-        <tbody className="divide-y divide-gray-100">
-          {rows.map((r, i) => (
-            <tr key={i} className={r.hi ? 'bg-gray-100' : 'hover:bg-gray-50'}>
-              <td className="px-3 py-1.5 text-gray-600">{r.label}</td>
-              <td className={`px-3 py-1.5 text-right font-bold ${r.hi ? 'text-gray-900' : 'text-gray-700'}`}>{r.val}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-// ── Setter-Tabelle ────────────────────────────────────────────────────────────
-function SetterBlock({ stats }) {
-  return (
-    <div className="rounded-lg border border-gray-200 overflow-hidden">
-      <div className="px-3 py-2 bg-[#2d2e30] border-b border-[#444]">
-        <span className="text-xs font-bold text-white uppercase tracking-wide">Abschlussquote nach Setter (Closing → Close)</span>
-      </div>
-      <table className="w-full text-xs">
-        <tbody className="divide-y divide-gray-100">
-          {stats.length === 0
-            ? <tr><td colSpan={2} className="px-3 py-4 text-center text-gray-400">Keine Daten</td></tr>
-            : stats.map((s, i) => (
-              <tr key={i} className="hover:bg-gray-50">
-                <td className="px-3 py-1.5 text-gray-600 font-medium">{s.name}</td>
-                <td className={`px-3 py-1.5 text-right font-bold ${parseFloat(s.quote) >= 30 ? 'text-green-600' : parseFloat(s.quote) > 0 ? 'text-amber-600' : 'text-gray-400'}`}>
-                  {s.quote}%
-                </td>
-              </tr>
-            ))
-          }
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-// ── Closer-Tabelle (Google-Sheet-Stil: 2 Zeilen pro Closer) ──────────────────
-function CloserBlock({ stats }) {
-  return (
-    <div className="rounded-lg border border-gray-200 overflow-hidden">
-      <div className="px-3 py-2 bg-[#2d2e30] border-b border-[#444]">
-        <span className="text-xs font-bold text-white uppercase tracking-wide">Angebote & Abschlussquote nach Closer</span>
-      </div>
-      <table className="w-full text-xs">
-        <tbody className="divide-y divide-gray-100">
-          {stats.length === 0
-            ? <tr><td colSpan={2} className="px-3 py-4 text-center text-gray-400">Keine Daten</td></tr>
-            : stats.map((c, i) => (
-              <tbody key={i} className="divide-y divide-gray-100">
-                <tr className="bg-white">
-                  <td className="px-3 py-1 text-gray-600">{c.name} Angebote insgesamt</td>
-                  <td className="px-3 py-1 text-right font-bold text-gray-900">{c.total}</td>
-                </tr>
-                <tr className="bg-gray-50">
-                  <td className="px-3 py-1 text-gray-600">{c.name} Abschlussquote</td>
-                  <td className={`px-3 py-1 text-right font-bold ${parseFloat(c.quote) >= 30 ? 'text-green-600' : parseFloat(c.quote) > 0 ? 'text-amber-600' : 'text-gray-400'}`}>
-                    {c.quote}%
-                  </td>
-                </tr>
-              </tbody>
-            ))
-          }
-        </tbody>
-      </table>
-    </div>
-  );
-}
 
 // ── Hauptkomponente ───────────────────────────────────────────────────────────
 export default function DealsNK() {
@@ -192,6 +96,7 @@ export default function DealsNK() {
           : undefined,
     },
     { name: 'abgerechnet',    label: 'Abgerechnet',               type: 'select', options: ABGERECHNET_OPTS },
+    { name: 'kundennummer',     label: 'Kundennummer',                required: f => f.status === 'Gewonnen' },
     { name: 'kommentar',      label: 'Kommentar',                 type: 'textarea' },
   ];
 
@@ -263,12 +168,13 @@ export default function DealsNK() {
     const m = {};
     filtered.forEach(d => {
       if (!d.closer_id) return;
-      if (!m[d.closer_id]) m[d.closer_id] = { name: d.closer_name, total: 0, gewonnen: 0 };
+      if (!m[d.closer_id]) m[d.closer_id] = { name: d.closer_name, total: 0, gewonnen: 0, verloren: 0, ae_summe: 0 };
       m[d.closer_id].total++;
-      if (d.status === 'Gewonnen') m[d.closer_id].gewonnen++;
+      if (d.status === 'Gewonnen') { m[d.closer_id].gewonnen++; m[d.closer_id].ae_summe += Number(d.ae_wert) || 0; }
+      if (d.status === 'Verloren') m[d.closer_id].verloren++;
     });
     return Object.values(m)
-      .map(c => ({ ...c, quote: c.total > 0 ? (c.gewonnen / c.total * 100).toFixed(2) : '0.00' }))
+      .map(c => ({ ...c, offen: c.total - c.gewonnen - c.verloren, quote: c.total > 0 ? (c.gewonnen / c.total * 100).toFixed(2) : '0.00' }))
       .sort((a, b) => b.total - a.total);
   }, [filtered]);
 
@@ -347,10 +253,112 @@ export default function DealsNK() {
 
       {/* KPI-Block (ein-/ausblendbar) */}
       {showKpis && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <KpiBlock kpis={kpis} />
-          <SetterBlock stats={setterStats} />
-          <CloserBlock stats={closerStats} />
+        <div className="space-y-3">
+          {/* Gesamt-Strip */}
+          <div className="rounded-lg border border-blue-300 overflow-hidden">
+            <div className="px-3 py-2 bg-blue-700 border-b border-blue-600">
+              <span className="text-xs font-bold text-white uppercase tracking-wide">Gesamt-KPIs</span>
+            </div>
+            <div className="flex flex-wrap gap-x-8 gap-y-2 px-4 py-3 bg-blue-50">
+              {[
+                ['Angebote',        kpis.total],
+                ['Gewonnen',        kpis.gewonnen],
+                ['Verloren',        kpis.verloren],
+                ['In Verhandlung',  kpis.in_verhandlung],
+                ['Closing Call 2',  kpis.in_closing2],
+                ['Quote',           `${kpis.quote_angebote}%`],
+                ['AE realisiert',   formatEuro(kpis.ae_summe)],
+                ['Angebotswert',    formatEuro(kpis.angebotswert_gesamt)],
+                ['Offen (Wert)',    formatEuro(kpis.wert_offen)],
+                ['CC gewonnen',     kpis.gewonnen_cc],
+                ['Mail gewonnen',   kpis.gewonnen_mail],
+                ['Auto-VL',         `${kpis.auto_verlaengerung} (${kpis.auto_verlaengerung_quote}%)`],
+                ['Abgerechnet',     `${kpis.abgerechnet_ja} (${kpis.abgerechnet_quote}%)`],
+              ].map(([label, val]) => (
+                <div key={label} className="text-xs">
+                  <div className="text-blue-700 mb-0.5">{label}</div>
+                  <div className="font-bold text-gray-900">{val}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Closer- und Setter-Tabellen nebeneinander */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {/* Closer */}
+            <div className="rounded-lg border border-gray-200 overflow-hidden">
+              <div className="px-3 py-2 bg-[#2d2e30] border-b border-[#444]">
+                <span className="text-xs font-bold text-white uppercase tracking-wide">Abschlussquote nach Closer</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 font-medium">
+                      <th className="px-3 py-2 text-left">Closer</th>
+                      <th className="px-3 py-2 text-right">Angebote</th>
+                      <th className="px-3 py-2 text-right">Gewonnen</th>
+                      <th className="px-3 py-2 text-right">Verloren</th>
+                      <th className="px-3 py-2 text-right">Offen</th>
+                      <th className="px-3 py-2 text-right">Quote</th>
+                      <th className="px-3 py-2 text-right">AE</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {closerStats.length === 0
+                      ? <tr><td colSpan={7} className="px-3 py-4 text-center text-gray-400">Keine Daten</td></tr>
+                      : closerStats.map((c, i) => {
+                          const q = parseFloat(c.quote);
+                          return (
+                            <tr key={i} className="hover:bg-gray-50">
+                              <td className="px-3 py-1.5 text-gray-700 font-medium">{c.name}</td>
+                              <td className="px-3 py-1.5 text-right text-gray-600">{c.total}</td>
+                              <td className="px-3 py-1.5 text-right text-green-700 font-medium">{c.gewonnen}</td>
+                              <td className="px-3 py-1.5 text-right text-red-600">{c.verloren}</td>
+                              <td className="px-3 py-1.5 text-right text-gray-500">{c.offen}</td>
+                              <td className={`px-3 py-1.5 text-right font-bold ${q >= 30 ? 'text-green-600' : q > 0 ? 'text-amber-600' : 'text-gray-400'}`}>{c.quote}%</td>
+                              <td className="px-3 py-1.5 text-right text-gray-700 font-medium">{formatEuro(c.ae_summe)}</td>
+                            </tr>
+                          );
+                        })
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Setter */}
+            <div className="rounded-lg border border-gray-200 overflow-hidden">
+              <div className="px-3 py-2 bg-[#2d2e30] border-b border-[#444]">
+                <span className="text-xs font-bold text-white uppercase tracking-wide">Abschlussquote nach Setter</span>
+              </div>
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 font-medium">
+                    <th className="px-3 py-2 text-left">Setter</th>
+                    <th className="px-3 py-2 text-right">Settings</th>
+                    <th className="px-3 py-2 text-right">Gewonnen</th>
+                    <th className="px-3 py-2 text-right">Quote</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {setterStats.length === 0
+                    ? <tr><td colSpan={4} className="px-3 py-4 text-center text-gray-400">Keine Daten</td></tr>
+                    : setterStats.map((s, i) => {
+                        const q = parseFloat(s.quote);
+                        return (
+                          <tr key={i} className="hover:bg-gray-50">
+                            <td className="px-3 py-1.5 text-gray-700 font-medium">{s.name}</td>
+                            <td className="px-3 py-1.5 text-right text-gray-600">{s.total}</td>
+                            <td className="px-3 py-1.5 text-right text-green-700 font-medium">{s.gewonnen}</td>
+                            <td className={`px-3 py-1.5 text-right font-bold ${q >= 30 ? 'text-green-600' : q > 0 ? 'text-amber-600' : 'text-gray-400'}`}>{s.quote}%</td>
+                          </tr>
+                        );
+                      })
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
 

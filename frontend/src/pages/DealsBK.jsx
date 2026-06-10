@@ -14,42 +14,6 @@ const DIENSTLEISTUNGEN_BK = ['RaaS Kontingente','RaaS Kleinkunde Laufzeit','Karr
 const AUTO_VL_OPTS = ['Ja', 'Nein'];
 const ABGERECHNET_OPTS = ['Nein', 'Ja', 'On Hold'];
 
-// ── KPI-Block (Gesamt oder pro KAM) ─────────────────────────────────────────
-function KpiBlock({ title, kpis, highlight = false }) {
-  const rows = [
-    { label: 'Angebote insgesamt',                   val: kpis.total,              hi: true },
-    { label: 'Angebote realisiert',                  val: kpis.gewonnen },
-    { label: 'Angebote nicht realisiert',            val: kpis.verloren },
-    { label: 'Realisierungsquote nach Angeboten',    val: `${kpis.quote_angebote}%`, hi: true },
-    { label: 'Realisierung Angebotswert',            val: formatEuro(kpis.ae_summe) },
-    { label: 'Realisierungsquote nach Angebotswert', val: `${kpis.quote_wert}%` },
-    { label: 'Angebotswert insgesamt',               val: formatEuro(kpis.angebotswert_gesamt), hi: true },
-    { label: 'Wert offene Angebote',                 val: formatEuro(kpis.wert_offen) },
-    { label: 'Auto-Verlängerung (gew. Deals)', val: `${kpis.auto_verlaengerung} (${kpis.auto_verlaengerung_quote}%)` },
-    { label: 'Abgerechnet (gew. Deals)',        val: `${kpis.abgerechnet_ja} (${kpis.abgerechnet_quote}%)` },
-  ];
-
-  return (
-    <div className={`rounded-lg border overflow-hidden ${highlight ? 'border-green-400' : 'border-gray-200'}`}>
-      <div className={`px-3 py-2 border-b ${highlight ? 'bg-green-700 border-green-600' : 'bg-[#2d2e30] border-[#444]'}`}>
-        <span className={`text-xs font-bold uppercase tracking-wide ${highlight ? 'text-white' : 'text-white'}`}>
-          {title}
-        </span>
-      </div>
-      <table className="w-full text-xs">
-        <tbody className="divide-y divide-gray-100">
-          {rows.map((r, i) => (
-            <tr key={i} className={r.hi ? 'bg-gray-100' : 'hover:bg-gray-50'}>
-              <td className="px-3 py-1.5 text-gray-600">{r.label}</td>
-              <td className={`px-3 py-1.5 text-right font-bold ${r.hi ? 'text-gray-900' : 'text-gray-700'}`}>{r.val}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 // ── KPIs aus einem Deal-Array berechnen ──────────────────────────────────────
 function calcKpis(deals) {
   const gew = deals.filter(d => d.status === 'Gewonnen');
@@ -140,6 +104,7 @@ export default function DealsBK() {
           : undefined,
     },
     { name: 'abgerechnet',    label: 'Abgerechnet',       type: 'select', options: ABGERECHNET_OPTS },
+    { name: 'kundennummer',     label: 'Kundennummer',        required: f => f.status === 'Gewonnen' },
     { name: 'kommentar',      label: 'Kommentar',         type: 'textarea' },
   ];
 
@@ -240,13 +205,78 @@ export default function DealsBK() {
 
       {/* KPI-Block */}
       {showKpis && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
-          {/* Gesamt */}
-          <KpiBlock title="Gesamt" kpis={gesamtKpis} highlight />
-          {/* Pro KAM */}
-          {kamKpis.map(k => (
-            <KpiBlock key={k.id} title={k.name} kpis={k.kpis} />
-          ))}
+        <div className="space-y-3">
+          {/* Gesamt — kompakte Kennzahlen-Leiste */}
+          <div className="rounded-lg border border-green-300 overflow-hidden">
+            <div className="px-3 py-2 bg-green-700 border-b border-green-600">
+              <span className="text-xs font-bold text-white uppercase tracking-wide">Gesamt-KPIs</span>
+            </div>
+            <div className="flex flex-wrap gap-x-8 gap-y-2 px-4 py-3 bg-green-50">
+              {[
+                ['Angebote',      gesamtKpis.total],
+                ['Gewonnen',      gesamtKpis.gewonnen],
+                ['Verloren',      gesamtKpis.verloren],
+                ['Quote',         `${gesamtKpis.quote_angebote}%`],
+                ['AE realisiert', formatEuro(gesamtKpis.ae_summe)],
+                ['Angebotswert',  formatEuro(gesamtKpis.angebotswert_gesamt)],
+                ['Offen (Wert)',  formatEuro(gesamtKpis.wert_offen)],
+                ['Auto-VL',       `${gesamtKpis.auto_verlaengerung} (${gesamtKpis.auto_verlaengerung_quote}%)`],
+                ['Abgerechnet',   `${gesamtKpis.abgerechnet_ja} (${gesamtKpis.abgerechnet_quote}%)`],
+              ].map(([label, val]) => (
+                <div key={label} className="text-xs">
+                  <div className="text-gray-500 mb-0.5">{label}</div>
+                  <div className="font-bold text-gray-900">{val}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Pro KAM — kompakte Vergleichstabelle */}
+          <div className="rounded-lg border border-gray-200 overflow-hidden">
+            <div className="px-3 py-2 bg-[#2d2e30] border-b border-[#444]">
+              <span className="text-xs font-bold text-white uppercase tracking-wide">KPIs nach KAM</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 font-medium">
+                    <th className="px-3 py-2 text-left">KAM</th>
+                    <th className="px-3 py-2 text-right">Angebote</th>
+                    <th className="px-3 py-2 text-right">Gewonnen</th>
+                    <th className="px-3 py-2 text-right">Verloren</th>
+                    <th className="px-3 py-2 text-right">Quote</th>
+                    <th className="px-3 py-2 text-right">AE realisiert</th>
+                    <th className="px-3 py-2 text-right">Angebotswert</th>
+                    <th className="px-3 py-2 text-right">Auto-VL</th>
+                    <th className="px-3 py-2 text-right">Abgerechnet</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {kamKpis.length === 0
+                    ? <tr><td colSpan={9} className="px-3 py-4 text-center text-gray-400">Keine Daten</td></tr>
+                    : kamKpis.map(k => {
+                        const q = parseFloat(k.kpis.quote_angebote);
+                        return (
+                          <tr key={k.id} className="hover:bg-gray-50">
+                            <td className="px-3 py-2 font-medium text-gray-700 whitespace-nowrap">{k.name}</td>
+                            <td className="px-3 py-2 text-right text-gray-600">{k.kpis.total}</td>
+                            <td className="px-3 py-2 text-right text-gray-600">{k.kpis.gewonnen}</td>
+                            <td className="px-3 py-2 text-right text-gray-600">{k.kpis.verloren}</td>
+                            <td className={`px-3 py-2 text-right font-bold ${q >= 50 ? 'text-green-600' : q > 0 ? 'text-amber-600' : 'text-gray-400'}`}>
+                              {k.kpis.quote_angebote}%
+                            </td>
+                            <td className="px-3 py-2 text-right font-bold text-gray-900 whitespace-nowrap">{formatEuro(k.kpis.ae_summe)}</td>
+                            <td className="px-3 py-2 text-right text-gray-500 whitespace-nowrap">{formatEuro(k.kpis.angebotswert_gesamt)}</td>
+                            <td className="px-3 py-2 text-right text-gray-500 whitespace-nowrap">{k.kpis.auto_verlaengerung} ({k.kpis.auto_verlaengerung_quote}%)</td>
+                            <td className="px-3 py-2 text-right text-gray-500 whitespace-nowrap">{k.kpis.abgerechnet_ja} ({k.kpis.abgerechnet_quote}%)</td>
+                          </tr>
+                        );
+                      })
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
 

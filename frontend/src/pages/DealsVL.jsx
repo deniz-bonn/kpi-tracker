@@ -13,46 +13,6 @@ const STANDORTE   = ['Bonn', 'Braunschweig', 'Österreich', 'Schweiz'];
 const DIENSTLEISTUNGEN_VL = ['RaaS Kontingente','RaaS Kleinkunde Laufzeit','Karriereseite','Karriereseite Wartung','Social-Media','Glaubenssätze','Media-Day','Website','Sonstiges'];
 const ABGERECHNET_OPTS = ['Nein', 'Ja', 'On Hold'];
 
-// ── KPI-Block (Gesamt oder pro KAM) ─────────────────────────────────────────
-// VL-spezifische Metriken: Anstehende, Möglicher AE, Realisiert, Kündigungen, Churn-Rate
-function KpiBlock({ title, kpis, highlight = false }) {
-  const churnColor = kpis.churn_rate > 70 ? 'text-red-600' :
-                     kpis.churn_rate > 40 ? 'text-amber-600' : 'text-green-600';
-
-  const rows = [
-    { label: 'Anstehende Verlängerungen',  val: kpis.total,              hi: true },
-    { label: 'Möglicher AE',               val: formatEuro(kpis.moeglicher_ae) },
-    { label: 'Realisierte Verlängerungen', val: kpis.gewonnen,           hi: true },
-    { label: 'Realisierter AE',            val: formatEuro(kpis.ae_summe) },
-    { label: 'Kündigungen',                val: kpis.verloren,           hi: true },
-    { label: 'Verlorener AE',              val: formatEuro(kpis.verlorener_ae) },
-    { label: 'Churn-Rate',                 val: kpis.churn_rate.toFixed(2), color: churnColor, hi: true },
-    { label: 'Abgerechnet (gew. Deals)',   val: `${kpis.abgerechnet_ja} (${kpis.abgerechnet_quote}%)` },
-  ];
-
-  return (
-    <div className={`rounded-lg border overflow-hidden ${highlight ? 'border-purple-400' : 'border-gray-200'}`}>
-      <div className={`px-3 py-2 border-b ${highlight ? 'bg-purple-700 border-purple-600' : 'bg-[#2d2e30] border-[#444]'}`}>
-        <span className={`text-xs font-bold uppercase tracking-wide ${highlight ? 'text-white' : 'text-white'}`}>
-          {title}
-        </span>
-      </div>
-      <table className="w-full text-xs">
-        <tbody className="divide-y divide-gray-100">
-          {rows.map((r, i) => (
-            <tr key={i} className={r.hi ? 'bg-gray-100' : 'hover:bg-gray-50'}>
-              <td className="px-3 py-1.5 text-gray-600">{r.label}</td>
-              <td className={`px-3 py-1.5 text-right font-bold ${r.color || (r.hi ? 'text-gray-900' : 'text-gray-700')}`}>
-                {r.val}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 // ── KPIs aus einem Deal-Array berechnen ──────────────────────────────────────
 function calcKpis(deals) {
   const gew  = deals.filter(d => d.status === 'Gewonnen');
@@ -123,6 +83,7 @@ export default function DealsVL() {
     { name: 'wie_vielt_verlaengerung', label: 'Wievielte Verlängerung', type: 'number' },
     { name: 'status',                label: 'Status',                  type: 'select', options: STATUS_OPTS, required: true },
     { name: 'abgerechnet',           label: 'Abgerechnet',             type: 'select', options: ABGERECHNET_OPTS },
+    { name: 'kundennummer',            label: 'Kundennummer',              required: f => f.status === 'Gewonnen' },
     { name: 'kommentar',             label: 'Kommentar',               type: 'textarea' },
   ];
 
@@ -223,11 +184,80 @@ export default function DealsVL() {
 
       {/* KPI-Block */}
       {showKpis && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
-          <KpiBlock title="Gesamt" kpis={gesamtKpis} highlight />
-          {kamKpis.map(k => (
-            <KpiBlock key={k.id} title={k.name} kpis={k.kpis} />
-          ))}
+        <div className="space-y-3">
+          {/* Gesamt — kompakte Kennzahlen-Leiste */}
+          <div className="rounded-lg border border-purple-300 overflow-hidden">
+            <div className="px-3 py-2 bg-purple-700 border-b border-purple-600">
+              <span className="text-xs font-bold text-white uppercase tracking-wide">Gesamt-KPIs</span>
+            </div>
+            <div className="flex flex-wrap gap-x-8 gap-y-2 px-4 py-3 bg-purple-50">
+              {[
+                ['Anstehend',      gesamtKpis.total],
+                ['Realisiert',     gesamtKpis.gewonnen],
+                ['Kündigungen',    gesamtKpis.verloren],
+                ['Churn-Rate',     `${gesamtKpis.churn_rate.toFixed(2)}%`],
+                ['Möglicher AE',   formatEuro(gesamtKpis.moeglicher_ae)],
+                ['Realisierter AE',formatEuro(gesamtKpis.ae_summe)],
+                ['Verlorener AE',  formatEuro(gesamtKpis.verlorener_ae)],
+                ['Abgerechnet',    `${gesamtKpis.abgerechnet_ja} (${gesamtKpis.abgerechnet_quote}%)`],
+              ].map(([label, val]) => (
+                <div key={label} className="text-xs">
+                  <div className="text-gray-500 mb-0.5">{label}</div>
+                  <div className={`font-bold ${label === 'Churn-Rate'
+                    ? (gesamtKpis.churn_rate > 70 ? 'text-red-600' : gesamtKpis.churn_rate > 40 ? 'text-amber-600' : 'text-green-600')
+                    : 'text-gray-900'}`}>{val}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Pro KAM — kompakte Vergleichstabelle */}
+          <div className="rounded-lg border border-gray-200 overflow-hidden">
+            <div className="px-3 py-2 bg-[#2d2e30] border-b border-[#444]">
+              <span className="text-xs font-bold text-white uppercase tracking-wide">KPIs nach Account Manager</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 font-medium">
+                    <th className="px-3 py-2 text-left">Account Manager</th>
+                    <th className="px-3 py-2 text-right">Anstehend</th>
+                    <th className="px-3 py-2 text-right">Realisiert</th>
+                    <th className="px-3 py-2 text-right">Kündigungen</th>
+                    <th className="px-3 py-2 text-right">Churn-Rate</th>
+                    <th className="px-3 py-2 text-right">Möglicher AE</th>
+                    <th className="px-3 py-2 text-right">Realisierter AE</th>
+                    <th className="px-3 py-2 text-right">Verlorener AE</th>
+                    <th className="px-3 py-2 text-right">Abgerechnet</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {kamKpis.length === 0
+                    ? <tr><td colSpan={9} className="px-3 py-4 text-center text-gray-400">Keine Daten</td></tr>
+                    : kamKpis.map(k => {
+                        const cr = k.kpis.churn_rate;
+                        const churnCls = cr > 70 ? 'text-red-600' : cr > 40 ? 'text-amber-600' : 'text-green-600';
+                        return (
+                          <tr key={k.id} className="hover:bg-gray-50">
+                            <td className="px-3 py-2 font-medium text-gray-700 whitespace-nowrap">{k.name}</td>
+                            <td className="px-3 py-2 text-right text-gray-600">{k.kpis.total}</td>
+                            <td className="px-3 py-2 text-right text-gray-600">{k.kpis.gewonnen}</td>
+                            <td className="px-3 py-2 text-right text-gray-600">{k.kpis.verloren}</td>
+                            <td className={`px-3 py-2 text-right font-bold ${churnCls}`}>
+                              {cr.toFixed(2)}%
+                            </td>
+                            <td className="px-3 py-2 text-right text-gray-500 whitespace-nowrap">{formatEuro(k.kpis.moeglicher_ae)}</td>
+                            <td className="px-3 py-2 text-right font-bold text-gray-900 whitespace-nowrap">{formatEuro(k.kpis.ae_summe)}</td>
+                            <td className="px-3 py-2 text-right text-gray-500 whitespace-nowrap">{formatEuro(k.kpis.verlorener_ae)}</td>
+                            <td className="px-3 py-2 text-right text-gray-500 whitespace-nowrap">{k.kpis.abgerechnet_ja} ({k.kpis.abgerechnet_quote}%)</td>
+                          </tr>
+                        );
+                      })
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
 

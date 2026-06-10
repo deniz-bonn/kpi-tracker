@@ -2,933 +2,1843 @@
 -- Replaces all 2026 deal data with verified Google Sheet data
 -- NOTE: deals_bk and deals_vl use kam_id (not closer_id)
 
-DELETE FROM deals_nk WHERE monat LIKE '2026-%';
-DELETE FROM deals_bk WHERE monat LIKE '2026-%';
-DELETE FROM deals_vl WHERE monat LIKE '2026-%';
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-14','2026-01','H2O Versorgungstechnik GmbH',9,'Cold Calling','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-01-14','2026-01');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-15','2026-01','MOB Märkische Oberflächenanlagen & Behälterbau GmbH',9,'Cold Calling','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-15','2026-01','Altek GmbH',9,'Cold Calling','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-01-15','2026-01');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-16','2026-01','Hochdanner Sanitär- und Heizungs-GmbH',9,'Cold Calling','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-01-16','2026-01');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-16','2026-01','Ka-Ro electronics Fertigungs-GmbH',12,'Mail','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-19','2026-01','PB Gelatins GmbH',12,'Cold Calling','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-01-19','2026-01');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-20','2026-01','BG Gastro Holding GmbH',9,'Cold Calling','No-Brainer Recruiting',0.0,4600.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-20','2026-01','FUCHS Bau Ost GmbH',12,'Cold Calling','No-Brainer Recruiting',0.0,6900.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-20','2026-01','Dr. med. Alexandra Borgmann Fachärztin für Innere Medizin Fachärztin für Innere Medizin',12,'Cold Calling','No-Brainer Recruiting',0.0,5000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-20','2026-01','BSU Projekt Service GmbH',9,'Cold Calling','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-01-20','2026-01');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-21','2026-01','MDH AG Mamisch Dental Health',9,'Cold Calling','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-21','2026-01','Diehl GmbH',9,'Cold Calling','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-01-21','2026-01');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-23','2026-01','PBG Handwerker GmbH',9,'Ad','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-26','2026-01','Digatron Power Electronics GmbH',9,'Cold Calling','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-01-26','2026-01');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-26','2026-01','Grün-System-Bau GmbH',9,'Cold Calling','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-01-26','2026-01');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-26','2026-01','Bauunternehmung Tholen GmbH',12,'Mail','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-28','2026-01','WERIT-Kunststoffwerke W. Schneider GmbH & Co. KG',9,'Cold Calling','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-28','2026-01','Dr. Ecklebe GmbH',9,'Cold Calling','No-Brainer Recruiting',15000.0,15000.0,'Gewonnen',2.0,'2026-01-28','2026-01');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-29','2026-01','Polland Gartengestaltung GmbH',9,'Ad','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-30','2026-01','Werner''s Metzgerei GmbH & Co. KG',12,'Cold Calling','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-01-30','2026-01');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-30','2026-01','NEUHAUSER GmbH & Co. KG',9,'Ad','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-01-30','2026-01');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-30','2026-01','H+E Haustechnik und Elektro GmbH',9,'Cold Calling','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-01-30','2026-01');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-02','2026-02','VPT Kompressoren GmbH',9,'Cold Calling','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-02-02','2026-02');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-02','2026-02','HLW GmbH Tank- und Fahrzeugbau',9,'Mail','No-Brainer Recruiting',11500.0,11500.0,'Gewonnen',2.0,'2026-02-02','2026-02');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-03','2026-02','Bäckerei & Konditorei Diefenbach GmbH',9,'Mail','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-02-03','2026-02');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-03','2026-02','HolyPoly GmbH',9,'Mail','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-03','2026-02','Andreas Seise Gebäudetechnik GmbH',9,'Ad','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-04','2026-02','Petry AG',9,'Cold Calling','No-Brainer Recruiting',0.0,6900.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-04','2026-02','AmbiPark GmbH',9,'Mail','No-Brainer Recruiting',0.0,4600.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-05','2026-02','AMS Brendel GmbH Steuerberatungsgesellschaft',12,'Mail','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-02-05','2026-02');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-05','2026-02','Habicht + Sporer GmbH',9,'Mail','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-02-05','2026-02');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-05','2026-02','MR Landkreis Ansbach GmbH',9,'Cold Calling','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-02-05','2026-02');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-05','2026-02','MATTHIAS TRÖPGEN Bauunternehmung GmbH',9,'Cold Calling','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-06','2026-02','Henn GmbH Bauunternehmung',9,'Mail','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-02-06','2026-02');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-09','2026-02','Ballmeyer Kälte u. Klima GmbH',9,'Cold Calling','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-02-09','2026-02');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-10','2026-02','Laudon GmbH & Co. KG',9,'Mail','No-Brainer Recruiting',6000.0,6000.0,'Gewonnen',2.0,'2026-02-10','2026-02');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-10','2026-02','Karl Bachl Hoch – und Tiefbau GmbH & Co. KG',9,'Ad','No-Brainer Recruiting',11500.0,11500.0,'Gewonnen',2.0,'2026-02-10','2026-02');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-10','2026-02','Vaventus AG Kälte Klima Lüftung',12,'Ad','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-02-10','2026-02');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-10','2026-02','Märkl Bau GmbH',12,'Cold Calling','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-02-10','2026-02');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-11','2026-02','Diehn Heizungstechnik GmbH',9,'Cold Calling','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-02-11','2026-02');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-11','2026-02','B+S Soziale Dienste FHH GmbH & Co. KG',9,'Cold Calling','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-02-11','2026-02');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-11','2026-02','Christian Merle Zahnarztpraxis',12,'Mail','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-12','2026-02','Klaistower Hofbäckerei GmbH',9,'Mail','No-Brainer Recruiting',5000.0,5000.0,'Gewonnen',2.0,'2026-02-12','2026-02');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-12','2026-02','Auto Amthauer GmbH Hanau',9,'Cold Calling','No-Brainer Recruiting',5000.0,5000.0,'Gewonnen',2.0,'2026-02-12','2026-02');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-12','2026-02','Wartig Nord GmbH',12,'Mail','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-02-12','2026-02');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-12','2026-02','Zöller-Bau GmbH',9,'Cold Calling','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-16','2026-02','Energieversorgung Main-Spessart GmbH',9,'Cold Calling','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-02-16','2026-02');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-16','2026-02','IDS Systemumschlag GmbH & Co. KG',9,'Cold Calling','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-17','2026-02','Daume',9,'Cold Calling','No-Brainer Recruiting',0.0,5000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-18','2026-02','Gartencenter Heinrich Ramme GmbH',9,'Mail','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-18','2026-02','topline Bürosysteme Förtsch und Gimpl GmbH',12,'Mail','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-02-18','2026-02');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-18','2026-02','GSD Gesellschaft für Sparkassendienstleistungen mbH',9,'Mail','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-19','2026-02','Autohaus Wolfrum GmbH Naila',9,'Mail','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-02-19','2026-02');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-19','2026-02','BEN Buchele Elektromotorenwerke GmbH',9,'Mail','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-20','2026-02','Andries GmbH',9,'Mail','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-20','2026-02','Alterauge GmbH',9,'Cold Calling','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-02-20','2026-02');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-20','2026-02','Bardowicks.Haus und Holzbau GmbH',12,'Cold Calling','No-Brainer Recruiting',6000.0,6000.0,'Gewonnen',2.0,'2026-02-20','2026-02');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-20','2026-02','Autohaus Hammdorf Wolfenbüttel',9,'Mail','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-23','2026-02','HOWE Umwelttechnik GmbH',9,'Mail','No-Brainer Recruiting',10800.0,10800.0,'Gewonnen',2.0,'2026-02-23','2026-02');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-23','2026-02','Bruno Brenner, Garten- und Landschaftsbau GmbH',9,'Cold Calling','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-02-23','2026-02');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-25','2026-02','dekarbo GmbH',9,'Ad','No-Brainer Recruiting',0.0,5000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-26','2026-02','PS Union GmbH',9,'Mail','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-02-26','2026-02');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-26','2026-02','Nord-Spedetion GmbH & Co.KG',12,'Mail','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-26','2026-02','Jesko Gärtner Zahnarzt',9,'Mail','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-26','2026-02','ZAB Zentrale Akademie für Berufe im Gesundheitswesen GmbH',12,'Mail','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-02-26','2026-02');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-26','2026-02','Autohaus Peter Ebner',9,'Mail','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-27','2026-02','EMG Energie-Management GmbH',12,'Ad','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-02-27','2026-02');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-02','2026-03','Schnurr GmbH',9,'Mail','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-02','2026-03','Trans-Service GmbH Schwarzenberg',12,'Mail','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-03-02','2026-03');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-02','2026-03','Dr. Boris Henkel und Dr. Jeanette Henkel-Gutjahr Zahnarztpraxis',12,'Mail','No-Brainer Recruiting',5000.0,5000.0,'Gewonnen',2.0,'2026-03-02','2026-03');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-03','2026-03','Groschopp AG Drives & More',9,'Mail','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-03','2026-03','M. Kratzer Sanitär Heizung Spenglerei GmbH',12,'Cold Calling','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-03-03','2026-03');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-03','2026-03','Kur- und Sporthotel Appartementhaus GmbH',12,'Mail','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-04','2026-03','Autohaus Olenik GmbH',9,'Mail','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-03-04','2026-03');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-04','2026-03','Jens Gottschalk GmbH',12,'Ad','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-04','2026-03','Autohaus Olenik GmbH',9,'Mail','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-03-04','2026-03');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-04','2026-03','Gebr. Schnur GmbH',12,'Cold Calling','No-Brainer Recruiting',0.0,4600.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-05','2026-03','ProDEKon Blechtechnik GmbH & Co. KG',12,'Mail','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-05','2026-03','mosy GmbH',12,'Cold Calling','No-Brainer Recruiting',6000.0,6000.0,'Gewonnen',2.0,'2026-03-05','2026-03');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-05','2026-03','Apotheker Walter Bouhon GmbH',12,'Mail','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-05','2026-03','Proff Sanitärinstallation GmbH & Co. KG',9,'Mail','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-03-05','2026-03');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-05','2026-03','IGW Ingenieure GmbH',12,'Cold Calling','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-06','2026-03','GEMTEC AG',9,'Cold Calling','No-Brainer Recruiting',0.0,10900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-06','2026-03','Fensterbau Rutsch GmbH',9,'Cold Calling','No-Brainer Recruiting',0.0,6900.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-06','2026-03','Ehrenfels Heizung & Bad GmbH',9,'Mail','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-03-06','2026-03');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-09','2026-03','Industriebau Haldensleben GmbH',12,'Mail','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-09','2026-03','ASCANETZ GmbH',9,'Cold Calling','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-09','2026-03','FLACHGLAS Sachsen GmbH',12,'Cold Calling','No-Brainer Recruiting',0.0,5000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-09','2026-03','Veit Höver GmbH & Co. KG',9,'Empfehlung','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-03-09','2026-03');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-09','2026-03','AWOcura gGmbH',9,'Cold Calling','Individuell',13500.0,13500.0,'Gewonnen',2.0,'2026-03-09','2026-03');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-10','2026-03','StaMaTec R. Puder Stahl und Maschinenbautechnik GmbH',9,'Cold Calling','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-11','2026-03','Autohaus Wiese OHG',9,'Mail','No-Brainer Recruiting',0.0,6900.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-11','2026-03','Dr. med. Sybille Hettinger Fachärztin für Augenheilkunde',12,'Mail','No-Brainer Recruiting',3000.0,3000.0,'Gewonnen',2.0,'2026-03-11','2026-03');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-11','2026-03','Fahrzeugbau Jahn GmbH',12,'Cold Calling','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-12','2026-03','SWAP (Sachsen) GmbH',12,'Cold Calling','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-12','2026-03','phaeno - gemeinnützige GmbH',12,'Mail','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-13','2026-03','TTL Tapeten-Teppichbodenland Nord Handelsgesellschaft mbH',12,'Mail','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-03-13','2026-03');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-13','2026-03','Dr. med. Jens-Joachim Brücher Dermatologische Praxis',9,'Mail','Kontingente',12000.0,12000.0,'Gewonnen',4.0,'2026-03-13','2026-03');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-17','2026-03','Meyer-Tochtrop Bauunternehmen GmbH',12,'Cold Calling','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-03-17','2026-03');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-18','2026-03','Innotherm Heizsysteme GmbH',9,'Mail','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-18','2026-03','Laboratoire Biosthetique Kosmetik GmbH & Co. KG',12,'Mail','No-Brainer Recruiting',0.0,12000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-20','2026-03','Industrie- und Tankanlagen Führer&Weingartner GmbH',9,'Mail','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-03-20','2026-03');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-20','2026-03','Kieser Training GmbH',12,'Mail','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-03-20','2026-03');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-23','2026-03','Kring & Huppertz GmbH Garten und Landschaftsbau',12,'Mail','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-23','2026-03','Allianz Versicherungshaus Hiller',9,'Empfehlung','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-23','2026-03','Procuritas Seniorenzentrum Reinigungs GmbH',9,'Cold Calling','Individuell',13500.0,13500.0,'Gewonnen',2.0,'2026-03-23','2026-03');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-17','2026-03','Stiftung Pro Gemeinsinn gGmbH',9,'Cold Calling','Individuell',13500.0,13500.0,'Gewonnen',2.0,'2026-03-17','2026-03');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-24','2026-03','BBS Brand- und Wasserschadensanierung Gebrüder Berndt GmbH',12,'Mail','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-03-24','2026-03');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-25','2026-03','Dr. Ulrich-Lange-Stiftung GmbH',9,'Cold Calling','Individuell',13500.0,13500.0,'Gewonnen',3.0,'2026-03-25','2026-03');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-25','2026-03','Baukonzept Neubrandenburg GmbH',12,'Cold Calling','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-25','2026-03','Stadtbäckerei Kühl GmbH & Co. KG',12,'Cold Calling','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-26','2026-03','Ramgraber GmbH',9,'Cold Calling','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-26','2026-03','Hermann Otto GmbH',12,'Mail','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-03-26','2026-03');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-26','2026-03','C. Schrade GmbH',12,'Cold Calling','No-Brainer Recruiting',0.0,6000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-26','2026-03','Oberberg GmbH',9,'Cold Calling','Individuell',0.0,13500.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-27','2026-03','Kaiser-Karl-Klinik GmbH',9,'Mail','Individuell',0.0,13500.0,'Verloren',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-27','2026-03','WiWa Wilko Wagner GmbH',12,'Cold Calling','Individuell',0.0,12000.0,'Verloren',4.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-27','2026-03','Kälte Klima Grässlin GmbH',12,'Cold Calling','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-03-27','2026-03');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-01','2026-04','Dorow Heizung Lüftung Sanitär GmbH',11,'Cold Calling','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-04-01','2026-04');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-01','2026-04','Evangelisches Johannesstift Wichernkrankenhaus gGmbH',12,'Cold Calling','Individuell',0.0,13500.0,'Verloren',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-01','2026-04','Eloquendo GmbH',12,'Empfehlung','Individuell',0.0,12000.0,'Verloren',4.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-02','2026-04','INTEC Engineering GmbH',12,'Mail','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-02','2026-04','St. Elisabeth Wohn- und Pflegeheim',9,'Cold Calling','Individuell',0.0,9000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-02','2026-04','Ev. Altenheim St. Jacobistift',12,'Follow Up','Individuell',0.0,13500.0,'Verloren',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-02','2026-04','Wismarer Werkstätten GmbH',9,'Follow Up','Individuell',13500.0,13500.0,'Gewonnen',3.0,'2026-04-02','2026-04');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-07','2026-04','Neu­ro­lo­gi­sche Kli­nik Sel­zer GmbH',9,'Follow Up','Individuell',0.0,13500.0,'Verloren',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-07','2026-04','Sonnhalden | Genossenschaft Regionales Pflegeheim',9,'Mail','Individuell',0.0,9000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-07','2026-04','Golfclub Nippenburg GmbH',12,'Mail','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-07','2026-04','Malergeschäft Näther GmbH',12,'Cold Calling','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-04-07','2026-04');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-08','2026-04','I.D.V. Isolier- und Dämmstoff-Vertriebs-GmbH',12,'Cold Calling','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-04-08','2026-04');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-08','2026-04','Energietechnik Bremen GmbH',12,'Cold Calling','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-08','2026-04','Seniorensitz am Deister GmbH',9,'Mail','Individuell',0.0,13500.0,'Verloren',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-09','2026-04','DOG Deutsche Oelfabrik Gesellschaft für chemische Erzeugnisse mbH & Co. KG',12,'Cold Calling','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-04-09','2026-04');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-09','2026-04','Autohaus Hunold GmbH',12,'Mail','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-09','2026-04','Karl Kühnlein GmbH',12,'Mail','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-09','2026-04','Autohaus Louis Dresen GmbH',12,'Mail','Individuell',8000.0,8000.0,'Gewonnen',2.0,'2026-04-09','2026-04');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-09','2026-04','Kolping Bildung Deutschland gGmbH',9,'Follow Up','Individuell',0.0,13500.0,'Verloren',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-09','2026-04','Diakonie im Landkreis Karlsruhe gemeinnützige GmbH',9,'Follow Up','Individuell',0.0,13500.0,'Verloren',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-09','2026-04','Spitex Region Frauenfeld',9,'Follow Up','Kontingente',13500.0,13500.0,'Gewonnen',3.0,'2026-04-09','2026-04');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-10','2026-04','DRK-Kreisverband Merseburg-Querfurt e.V.',12,'Cold Calling','Individuell',9000.0,9000.0,'Gewonnen',2.0,'2026-04-10','2026-04');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-10','2026-04','Behandlungszentrum Aschau GmbH',12,'Follow Up','Individuell',13500.0,13500.0,'Gewonnen',3.0,'2026-04-10','2026-04');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-13','2026-04','Walther Dachziegel GmbH',9,'Follow Up','Individuell',0.0,9000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-13','2026-04','Uni Klinik Mainz',12,'Mail','Individuell',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-13','2026-04','Mörk GmbH & Co. KG',9,'Empfehlung','Individuell',0.0,9000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-14','2026-04','Klinikum Peine AöR',9,'Follow Up','Individuell',0.0,13500.0,'Verloren',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-14','2026-04','Arbeiterwohlfahrt Ortsverein Viernheim e. V.',12,'Cold Calling','Individuell',0.0,13500.0,'Verloren',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-14','2026-04','Lebenshilfe Fürth e.V.',9,'Mail','Individuell',13500.0,13500.0,'Gewonnen',3.0,'2026-04-14','2026-04');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-14','2026-04','Grundbaulabor Bremen, Ingenieurgesellschaft für Geotechnik mbH',12,'Mail','No-Brainer Recruiting',0.0,8000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-14','2026-04','SIMAKA Energie- und Umwelttechnik GmbH',12,'Cold Calling','No-Brainer Recruiting',0.0,6900.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-14','2026-04','Radiologie München eGbR',9,'Mail','SM + MD',0.0,14000.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-15','2026-04','Seniorenzentrum Hirschkamp',9,'Cold Calling','Individuell',13500.0,13500.0,'Gewonnen',3.0,'2026-04-15','2026-04');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-15','2026-04','Reifen Fricke GmbH',12,'Empfehlung','Individuell',0.0,9000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-16','2026-04','Lebenshilfe Bruchsal',9,'Mail','Individuell',27000.0,27000.0,'Gewonnen',6.0,'2026-04-16','2026-04');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-16','2026-04','HELIOS Klinik Rottweil',12,'Empfehlung','Individuell',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-16','2026-04','Arbeiter-Samariter-Bund Regionalverband Saalekreis Süd e. V.',12,'Follow Up','Individuell',13500.0,13500.0,'Gewonnen',3.0,'2026-04-16','2026-04');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-17','2026-04','Ev. Pflegeheim Lutherstift gGmbH',9,'Cold Calling','Individuell',0.0,9000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-17','2026-04','Arbeiter-Samariter-Bund Baden-Württemberg e.V.',9,'Follow Up','Individuell',13500.0,13500.0,'Gewonnen',3.0,'2026-04-17','2026-04');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-17','2026-04','Sankt Vincentius Krankenhaus',9,'Mail','Individuell',0.0,13500.0,'Verloren',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-17','2026-04','Lebenshilfe Bonn',9,'Follow Up','Individuell',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-17','2026-04','Diakoneo Krannkenhaus Rangau',9,'Follow Up','Individuell',13500.0,13500.0,'Gewonnen',3.0,'2026-04-17','2026-04');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-20','2026-04','Rheinwohnungsbau Dienstleistungen GmbH',12,'Mail','Individuell',13500.0,13500.0,'Gewonnen',3.0,'2026-04-20','2026-04');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-21','2026-04','Heizungs- und Sanitärtechnik Klante Klante GmbH',9,'Mail','Individuell',12000.0,12000.0,'Gewonnen',3.0,'2026-04-21','2026-04');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-21','2026-04','Schlosserei Schliebach GmbH',9,'Empfehlung','No-Brainer Recruiting',8000.0,8000.0,'Gewonnen',2.0,'2026-04-21','2026-04');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-21','2026-04','Klinikum Stuttgart',12,'Mail','Individuell',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-21','2026-04','Caritas Trägergesellschaft Saarbrücken mbH cts',12,'Follow Up','Individuell',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-22','2026-04','Wolfsteiner Altenheim-Stiftung gemeinnützige Betriebsgesellschaft mbH',9,'Cold Calling','Individuell',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-01','2026-04','Behandlungszentrum Aschau GmbH',12,'Cold Calling','Kontingente',13500.0,13500.0,'Gewonnen',3.0,'2026-04-01','2026-04');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-22','2026-04','Lebenshilfe Kreisvereinigung Saarlouis e.V.',9,'Cold Calling','Individuell',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-23','2026-04','Elan-Fitness GmbH',9,'Follow Up','Individuell',0.0,9000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-23','2026-04','Wohnpark St.Elisabeth',9,'Cold Calling','Individuell',13500.0,13500.0,'Gewonnen',3.0,'2026-04-23','2026-04');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-23','2026-04','Krügle & Höhl GmbHSteinmetz- und Bildhauermeisterbetrieb',12,'Empfehlung','No-Brainer Recruiting',6900.0,6900.0,'Gewonnen',2.0,'2026-04-23','2026-04');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-23','2026-04','PSORISOL Hautklinik GmbH',12,'Ad','Individuell',0.0,13500.0,'Verloren',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-24','2026-04','Klinikum Fichtelgebirge gGmbH',12,'Cold Calling','Kontingente',0.0,17600.0,'Verloren',4.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-24','2026-04','Senioren-Pflegeheim...aus gutem Grund GmbH',9,'Ad','Individuell',9000.0,9000.0,'Gewonnen',2.0,'2026-04-24','2026-04');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-27','2026-04','Pflegeteam 4You GmbH',9,'Ad','Individuell',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-27','2026-04','PflegeMobil Erlangen GmbH',9,'Mail','Individuell',0.0,13500.0,'Verloren',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-27','2026-04','radprax Krankenhaus Plettenberg GmbH',12,'Cold Calling','Individuell',13500.0,13500.0,'Gewonnen',3.0,'2026-04-27','2026-04');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-27','2026-04','St. Josefskrankenhaus Heidelberg GmbH & Co. KG',12,'Mail','Individuell',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-27','2026-04','Krone gebäudemanagement und technologie gmbh',9,'Mail','Individuell',13500.0,13500.0,'Gewonnen',3.0,'2026-04-27','2026-04');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04','Sozialstation Wendlingen am Neckar e.V.',9,'Mail','Individuell',0.0,13500.0,'Verloren',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04','KIRSCHNER HOLDING GmbH',12,'Mail','Individuell',0.0,9000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-04','2026-05','Casa Con Property Management GmbH',12,'Cold Calling','Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-05-04','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-05','2026-05','Kampfmittelbergung Zimmermann GmbH',9,'Cold Calling','Kontingente',0.0,9000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05','Vogg Haustechnik GmbH & Co. KG',9,'Cold Calling','Kontingente',0.0,9000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05','Planung Hiller GmbH',9,'Cold Calling','Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-05-06','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05','Weilke Logistik GmbH',12,'Cold Calling','Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-05-06','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05','Hermanns & Kreutz GmbH & Co. KG',9,'Cold Calling','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05','Ernst Hinze GmbH & Co. KG',9,'Cold Calling','Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-05-06','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-07','2026-05','Metal Check GmbH',9,'Cold Calling','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05','Liveco Veranstaltungstechnik GmbH',9,'Cold Calling','Kontingente',4500.0,4500.0,'Gewonnen',1.0,'2026-05-08','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05','Speedmaster GmbH',9,'Cold Calling','Kontingente',13500.0,13500.0,'Gewonnen',3.0,'2026-05-08','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-11','2026-05','FASTER GmbH',9,'Cold Calling','Kontingente',0.0,9000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-11','2026-05','Lausitzer Stahlbau Ruhland GmbH',12,'Cold Calling','No-Brainer Recruiting',8000.0,8000.0,'Gewonnen',2.0,'2026-05-11','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05','T+S Helmrath Logistik GmbH',9,'Cold Calling','Kontingente',10500.0,10500.0,'Gewonnen',3.0,'2026-05-12','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05','Spinnler Werkzeugbau GmbH',12,'Cold Calling','Kontingente',0.0,9000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05','Kaupp + Diether GmbH',12,'Cold Calling','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05','ESTA-Bildungswerk gemeinnützige GmbH',9,'Cold Calling','Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05','Heizung und Wasser Adolf und Eberhard Baur GmbH',12,'Cold Calling','Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-05-13','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05','Kirschenhofer Maschinen GmbH',12,'Cold Calling','Kontingente',0.0,13500.0,'Verloren',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05','Tüns Werbetechnik GmbH',11,'Cold Calling','Kontingente',0.0,9000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05','VOGT NDT GmbH',12,'Cold Calling','Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-05-13','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-15','2026-05','Aufzugtechnik Süd GmbH',12,'Cold Calling','Kontingente',0.0,9000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05','Antonics GmbH',9,'Cold Calling','Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05','Simon Glas GmbH & Co. KG',9,'Cold Calling','Kontingente',0.0,9000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05','BFT Immobilien GmbH',12,'Cold Calling','Kontingente',0.0,9000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05','GPI Aachen GmbH',12,'Cold Calling','Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-05-18','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05','Biedensand Bäder Lampertheim GmbH',12,'Cold Calling','Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-05-18','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05','SRG Schaltanlagen GmbH & Co. KG',12,'Cold Calling','Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05','SPS Klimatechnische Verkaufsu. Beratungs GmbH',9,'Cold Calling','Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-05-18','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-19','2026-05','Bauunternehmen Marco Friedrich GmbH',12,'Cold Calling','Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-05-19','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05','Meile-technik GmbH Heizung-Klima-Sanitär',12,'Cold Calling','Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-05-20','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05','Sunshine Wintergarten GmbH',9,'Cold Calling','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05','PRT Rohrtechnik Berlin-Brandenburg GmbH',9,'Cold Calling','Kontingente',4500.0,4500.0,'Gewonnen',1.0,'2026-05-20','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05','Ingenieurbüro Mayer AG',9,'Cold Calling','Kontingente',27000.0,27000.0,'Gewonnen',6.0,'2026-05-21','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05','HERBERT Tire Tooling GmbH & Co. KG',9,'Cold Calling','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05','ZYNP Europe GmbH',9,'Cold Calling','Kontingente',4500.0,4500.0,'Gewonnen',1.0,'2026-05-21','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05','Gipser Schmid GmbH',9,'Cold Calling','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-22','2026-05','ImmoProjekt Wohn- und Gewerbeobjekte GmbH',9,'Cold Calling','Kontingente',0.0,9000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05','Hamann GmbH',12,'Cold Calling','Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-05-21','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-26','2026-05','Tank - Technik - Handel Meiwes GmbH',12,'Cold Calling','Kontingente',0.0,9000.0,'Offen',4.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-27','2026-05','TE-LOH Germany GmbH',9,'Cold Calling','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-27','2026-05','bash-tec GmbH',9,'Cold Calling','Kontingente',0.0,9000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05','SBB Cargo International AG',12,'Cold Calling','Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05','hw Wenisch Haustechnik GmbH & Co. KG',9,'Cold Calling','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05','ITALMOTO Vertriebsgesellschaft mbH',9,'Cold Calling','Kontingente',0.0,5800.0,'Offen',1.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-29','2026-05','Gebr. Schröder Kabel- und Leitungsbau GmbH',9,'Cold Calling','Kontingente',5800.0,5800.0,'Gewonnen',1.0,'2026-05-29','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-29','2026-05','IWS GmbH',12,'Cold Calling','Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-05-29','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-04','2026-05','Behindertenhilfe Norden gemeinnützige GmbH',9,'Cold Calling','Individuell',0.0,9000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-04','2026-05','Reha-Klinik Hausbaden',25,'Follow Up','Kontingente',13500.0,13500.0,'Gewonnen',3.0,'2026-05-04','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-04','2026-05','Senevita AG Bern',25,'Cold Calling','Kontingente',0.0,27000.0,'Offen',6.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-04','2026-05','Hamburger Hospiz am Deich gGmbH',25,'Empfehlung','Kontingente',0.0,4500.0,'Verloren',1.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-05','2026-05','Diakonisches Werk an der Saar gGmbH',25,'Follow Up','Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-05','2026-05','AllDent Holding GmbH',25,'Follow Up','Kontingente',0.0,16500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-05','2026-05','Alten- und Pflegeheim St. Michael Kongregation der Barmherzigen Schwestern vom hl. Vinzenz von Paul Deal',25,'Mail','Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05','Gesellschaft für diakonische Altenhilfe Gießen und Linden gGmbH',25,'Follow Up','Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-05-06','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05','Spitex Region Kreuzlingen',25,'Cold Calling','Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05','Altenheim & Pflegeheim Stoltenhof',25,'Mail','Kontingente',4500.0,4500.0,'Gewonnen',1.0,'2026-05-06','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05','DRK-Kreisverband Halle-Saalkreis-Mansfelder Land e.V.',25,'Follow Up','Kontingente',13500.0,13500.0,'Gewonnen',3.0,'2026-05-06','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05','rehaklinik-montafon',25,'Empfehlung','Kontingente',0.0,18000.0,'Verloren',4.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-07','2026-05','ASB-Ortsverband Brandenburg an der Havel e.V.',25,'Follow Up','Kontingente',0.0,4500.0,'Verloren',1.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-07','2026-05','Stiftung Alters- und Pflegeheim Weggis',25,'Cold Calling','Kontingente',13500.0,13500.0,'Gewonnen',3.0,'2026-05-07','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-07','2026-05','Paul Wältring Vieh- und Fleischhandels GmbH',27,'Mail','Kontingente',4500.0,4500.0,'Gewonnen',1.0,'2026-05-07','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-07','2026-05','CABINET Schranksysteme AG',27,'Mail','Kontingente',13500.0,13500.0,'Gewonnen',3.0,'2026-05-07','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05','Diakonie Kliniken Hunsrück gGmbH',25,'Mail','Kontingente',0.0,13500.0,'Verloren',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05','Christliche Bürgerhilfe Sozialstation gGmbH',25,'Mail','Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-05-08','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-11','2026-05','Seniorenhaus Berghof GmbH',25,'Cold Calling','Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-05-11','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-11','2026-05','BS Ambulanter Pflegedienst UG',25,'Cold Calling','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-11','2026-05','Diabetes-Klinik Bad Mergentheim GmbH & Co. KG',25,'Cold Calling','Kontingente',27000.0,27000.0,'Gewonnen',3.0,'2026-05-11','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-11','2026-05','Tabea Diakonie - Pflege Heiligenstadt gGmbH',25,'Mail','Kontingente',0.0,6000.0,'Offen',1.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-11','2026-05','Schweizer Paraplegiker-Zentrum',25,'Cold Calling','Kontingente',0.0,13500.0,'Verloren',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05','E+S Sozialkonzepte gGmbH',27,'Cold Calling','Kontingente',0.0,4500.0,'Offen',1.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05','Wohn- und Pflegeheim Sonnmatt AG',25,'Cold Calling','Kontingente',0.0,13500.0,'Verloren',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05','Spitalzweisimmen',25,'Cold Calling','Kontingente',13500.0,13500.0,'Gewonnen',3.0,'2026-05-12','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05','Deutsche Steinzeug Cremer & Breuer AG Deal',25,'Follow Up','Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-05-12','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05','AlexA Seniorendienste GmbH',25,'Mail','Kontingente',13500.0,13500.0,'Gewonnen',3.0,'2026-05-13','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05','Clinica Holistica Engiadina SA',25,'Cold Calling','Kontingente',0.0,26000.0,'Verloren',4.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05','Diakonie-Sozialstation Visselhövede-Bothel gemeinnützige GmbH',25,'Mail','Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05','Ameos Klinikum Osnabrück',25,'Mail','Kontingente',13500.0,13500.0,'Gewonnen',3.0,'2026-05-18','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05','Stiftung Haus Tabea',25,'Follow Up','Kontingente',0.0,13500.0,'Verloren',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-19','2026-05','Krankenhaus Angermünde',25,'Follow Up','Kontingente',0.0,13500.0,'Verloren',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-19','2026-05','Neue Burg GmbH',27,'Cold Calling','Kontingente',5800.0,5800.0,'Gewonnen',1.0,'2026-05-19','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05','T r o x l e r-H a u s W u p p e r t a l e. V. Einrichtungen für Seelenpflegebedürftige',25,'Follow Up','Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-05-20','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05','Fachklinik und Seniorenresidenz Main-Taunus gGmbH Varisano',25,'Follow Up','Kontingente',13500.0,13500.0,'Gewonnen',3.0,'2026-05-20','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05','Spitex Davos',25,'Cold Calling','Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05','AA Alternative Altenhilfe GmbH',25,'Follow Up','Kontingente',0.0,9000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05','Helios Klinik Müllheim',25,'Mail','Kontingente',27000.0,27000.0,'Gewonnen',6.0,'2026-05-21','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05','Neurologisches Rehabilitationszentrum Quellenhof in Bad Wildbad GmbH',25,'Mail','Kontingente',13500.0,13500.0,'Gewonnen',3.0,'2026-05-21','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05','VAMED Rehazentrum Karlsruhe',25,'Follow Up','Kontingente',13500.0,13500.0,'Gewonnen',3.0,'2026-05-21','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05','Heizungstechnik Service GmbH',25,'Mail','Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-05-21','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-22','2026-05','Alternativ Wohnen im Alter GmbH',25,'Mail','Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-05-22','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-07','2026-05','Triptiser Edelstahl GmbH',24,'Mail','Kontingente',4500.0,4500.0,'Gewonnen',1.0,'2026-05-07','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-09','2026-05','Chez Mandarin GmbH',24,'Mail','Kontingente',4500.0,4500.0,'Gewonnen',1.0,'2026-05-09','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05','CABINET Schranksysteme AG',24,'Mail','Kontingente',4500.0,4500.0,'Gewonnen',1.0,'2026-05-08','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-11','2026-05','Heiner Dresrüsse Metallbau GmbH',24,'Mail','Kontingente',0.0,4500.0,'Offen',1.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05','H. KLEINEBERG GmbH',24,'Mail','Kontingente',5800.0,5800.0,'Gewonnen',NULL,'2026-05-12','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05','Mein Ofenstudio GmbH',24,'Mail','Kontingente',0.0,4500.0,'Offen',1.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-19','2026-05','James Marquardt & Co. GmbH',24,'Mail','Kontingente',5800.0,5800.0,'Gewonnen',NULL,'2026-05-19','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05','Gemeinschaftspraxis Dr. med. Hans-Werner Müller-Dethard und Amir Shobeiry',24,'Mail','Kontingente',4500.0,4500.0,'Gewonnen',1.0,'2026-05-08','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-11','2026-05','Rauser Tief- und Straßenbau GmbH',24,'Mail','Kontingente',0.0,4500.0,'Offen',1.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05','Physiotherapie und medizinische Fitness GmbH',24,'Mail','Kontingente',0.0,5800.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05','ANNABURGER Nutzfahrzeug GmbH',24,'Mail','Kontingente',0.0,4500.0,'Verloren',1.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05','Neltner Großküchen GmbH',24,'Mail','Kontingente',0.0,5800.0,'Offen',NULL,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05','Donau-Ries Haustechnik GmbH',24,'Mail','Kontingente',0.0,5800.0,'Offen',NULL,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05','Peter Rieper GmbH & Co. KG',24,'Mail','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05','DS Heizung und Sanitär GmbH',24,'Mail','Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-05-20','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05','Stumpe-Nevels Nachf. GmbH & Co.',24,'Mail','Kontingente',5800.0,5800.0,'Gewonnen',NULL,'2026-05-21','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05','Christian Reh GmbH',24,'Mail','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05','Holger Bartels GmbH',24,'Mail','Kontingente',0.0,5800.0,'Offen',NULL,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-22','2026-05','W+M Flachdachbau GmbH',24,'Mail','Kontingente',0.0,9000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-22','2026-05','UNI-SERVICE GmbH',24,'Mail','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05','Lücking & Härtel GmbH',24,'Mail','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-26','2026-05','Verein für Innere Mission in Bremen e. V.',25,'Mail','Kontingente',13500.0,13500.0,'Gewonnen',3.0,'2026-05-26','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-26','2026-05','Jesse GmbH',25,'Mail','Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-26','2026-05','Deutsches Rotes Kreuz Landesverband Schleswig-Holstein e. V.',25,'Empfehlung','Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-26','2026-05','Baustoff und Gewässer- sanierungs GmbH Dessau',24,'Mail','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-26','2026-05','Klinikum Lippe GmbH',25,'Follow Up','Kontingente',18000.0,18000.0,'Gewonnen',4.0,'2026-05-26','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-26','2026-05','Alexander-von-Humboldt-Klinik GRZ Geriatrisches Rehabilitationszentrum Betriebsgesellschaft mbH',27,'Cold Calling','Kontingente',0.0,5800.0,'Offen',1.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-27','2026-05','Intensivpflegedienst exzellent care GmbH',25,'Mail','Kontingente',5800.0,5800.0,'Gewonnen',1.0,'2026-05-27','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-27','2026-05','Hörland GmbH',24,'Mail','Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-05-27','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05','Physiowalk',25,'Mail','Kontingente',13500.0,13500.0,'Gewonnen',3.0,'2026-05-28','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05','Pflegeheim Wohnpark Zippendorf GmbH & Co. KG',27,'Mail','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05','Cereneo Klinik',25,'Cold Calling','Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05','ASB Ortsverband Neustadt/Sachsen e.V.',25,'Cold Calling','Kontingente',13500.0,13500.0,'Gewonnen',3.0,'2026-05-28','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-29','2026-05','Der Pflegeluchs GmbH',24,'Mail','Kontingente',4500.0,4500.0,'Gewonnen',1.0,'2026-05-29','2026-05');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06','Kulina Zerspanungstechnik und Maschinenbau GmbH',9,'Mail','Kontingente',13500.0,13500.0,'Gewonnen',3.0,'2026-06-01','2026-06');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06','Jens Gottschalk GmbH',12,'Cold Calling','Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-02','2026-06','Schrage GmbH',12,'Cold Calling','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-02','2026-06','Meusel & Beck GmbH',12,'Cold Calling','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-02','2026-06','Artemis Service GmbH',12,'Cold Calling','Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-02','2026-06','S&P Steuerberatungsgesellschaft GmbH',12,'Cold Calling','Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-06-02','2026-06');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-05','2026-06','Ohland Straßen- und Tiefbau GmbH',9,'Cold Calling','Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-06-05','2026-06');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-08','2026-06','Ruhrmann GmbH & Co. KG',12,'Cold Calling','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-08','2026-06','SWW Stahlbau Westerwald GmbH',12,'Cold Calling','Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-06-08','2026-06');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-08','2026-06','CLIMATECH Service GmbH',9,'Cold Calling','Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-08','2026-06','J. Knittel Söhne Verwaltungsgesellschaft mbH',12,'Cold Calling','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-10','2026-06','Claus Hansen Malereibetrieb GmbH',9,'Cold Calling','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-10','2026-06','Haar Mecklenburg GmbH & Co. KG',12,'Cold Calling','Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06','Biedermann Orthopaedietechnik GmbH',27,'Empfehlung','Kontingente',0.0,5800.0,'Offen',NULL,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06','Vitalis - Häusliche Krankenpflege',27,'Cold Calling','Kontingente',4500.0,4500.0,'Gewonnen',NULL,'2026-06-01','2026-06');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06','Ingenieurbüro EUKON',24,'Mail','Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-06-01','2026-06');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06','Karosserie- & Lackierzentrum Büchel GmbH & Co.KG',24,'Mail','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-02','2026-06','CBS Caritas Betriebsträgergesellschaft mbH Speyer',25,'Mail','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-02','2026-06','GZO AG Spital Wetzikon',25,'Cold Calling','Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-02','2026-06','Kost Wärmetechnik GmbH',27,'Mail','Kontingente',0.0,5800.0,'Offen',NULL,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-03','2026-06','Edling + Hammerschmidt Gebäudetechnik GmbH',27,'Mail','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-03','2026-06','Arbeiterwohlfahrt Kreisverband Essen e.V.',25,'Cold Calling','Kontingente',0.0,27000.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-03','2026-06','August Karthaus GmbH & Co. KG',27,'Cold Calling','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-03','2026-06','Sparkasse Barnim Deal',25,'Follow Up','Kontingente',0.0,17500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-03','2026-06','Haus Abendfrieden',27,'Cold Calling','Kontingente',0.0,5800.0,'Offen',1.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-03','2026-06','Stöhr Bakery GmbH',27,'Mail','Kontingente',5800.0,5800.0,'Gewonnen',NULL,'2026-06-03','2026-06');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-04','2026-06','Spitäler Frutigen Meiringen Interlaken AG',25,'Cold Calling','Kontingente',0.0,18000.0,'Offen',4.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-04','2026-06','Kreuzgewölbe GmbH Demenzkompetenzzentrum Sachsen',25,'Follow Up','Kontingente',0.0,9000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-04','2026-06','Klinik Helle Mitte',25,'Follow Up','Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-04','2026-06','AlexA Seniorendienste GmbH Pirna',25,'Follow Up','Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-06-04','2026-06');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-04','2026-06','Deutsches Rotes Kreuz Betreuungsdienste Lübeck gGmbH',25,'Empfehlung','Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-04','2026-06','Klinik Schöneberg GmbH',25,'Cold Calling','Kontingente',0.0,18000.0,'Offen',4.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-04','2026-06','Geraer Heimbetriebsgesellschaft mbH',25,'Follow Up','Kontingente',18000.0,18000.0,'Gewonnen',4.0,'2026-06-04','2026-06');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-05','2026-06','Physiotherapie am Rheinpark GmbH',27,'Mail','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-05','2026-06','Deutsches Rotes Kreuz Kreisverband Grafschaft Bentheim e. V.',25,'Follow Up','Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-05','2026-06','Bonifatius Seniorendienste GmbH',25,'Follow Up','kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-06-05','2026-06');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-05','2026-06','Gartenwelt Meißner',24,'Mail','Kontingente',0.0,9000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-05','2026-06','Diakonische Altenhilfe Siegerland gGmbH',25,'Follow Up','Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-08','2026-06','PflegeService Wirtz GmbH',25,'Follow Up','Kontingente',0.0,9000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-08','2026-06','activamed Pflegedienst GmbH',27,'Mail','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-08','2026-06','Manfred Kries GmbH',24,'Mail','Kontingente',0.0,5800.0,'Offen',NULL,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-08','2026-06','Diakonische Gesellschaft Wohnen und Beraten mbH DWB',25,'Follow Up','Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-08','2026-06','BÜHR Anlagenbau & Service GmbH',25,'Mail','Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-09','2026-06','Rotor Control GmbH',25,'Mail','Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-09','2026-06','Hoffbauer-Stiftung Potsdam',25,'Mail','Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-09','2026-06','Senevita Sunnwies',24,'Cold Calling','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-09','2026-06','ZABAG AG',24,'Mail','Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-09','2026-06','Seniorenheim am Pfaffenberg GmbH',25,'Follow Up','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-09','2026-06','IKB Pflegeteam GmbH',25,'Mail','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-09','2026-06','Klinik SGM Langenthal',25,'Mail','Kontingente',0.0,27000.0,'Offen',4.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-09','2026-06','Lutz Technologie GmbH Stefan Lutz',24,'Mail','Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-06-09','2026-06');
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-09','2026-06','Erich Neter GmbH',27,'Mail','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-10','2026-06','Reha- und Kurklinik Eden',25,'Cold Calling','Kontingente',0.0,18000.0,'Offen',4.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-10','2026-06','WWI Cottbus GmbH',24,'Mail','Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_nk (datum,monat,kunde,closer_id,quelle,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-10','2026-06','Sport- und Rehacentrum Magdeburg',25,'Mail','Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-07','2026-01','Kettenus',3,'Individuell',0.0,31110.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-08','2026-01','Collin (G.U.T)',4,'Kontingente',4500.0,4500.0,'Gewonnen',3.0,'2026-01-08','2026-01');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-09','2026-01','Elmer zusätzliche drei Standorte',4,'Kontingente',3200.0,3200.0,'Gewonnen',NULL,'2026-01-09','2026-01');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-12','2026-01','Jogerst Steintechnologie GmbH',5,'Karriereseite',6000.0,6000.0,'Gewonnen',12.0,'2026-01-12','2026-01');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-13','2026-01','Diakoneo',4,'Kontingente',6000.0,6000.0,'Gewonnen',2.0,'2026-01-13','2026-01');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-13','2026-01','Eberhardt Catering',3,'SM + MD',22000.0,22000.0,'Gewonnen',12.0,'2026-01-13','2026-01');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-13','2026-01','KABO-PLASTIC GmbH',5,'SM + MD',0.0,21000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-13','2026-01','Amixon',3,'Individuell',0.0,28500.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-13','2026-01','Gustav Ziegler GmbH',3,'Individuell',0.0,13600.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-13','2026-01','SÜD-HANSA',4,'Karriereseite',6000.0,6000.0,'Gewonnen',NULL,'2026-01-13','2026-01');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-14','2026-01','Peter Krüger Sanitär und Heiztechnik',5,'SM + MD',0.0,22000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-14','2026-01','Codex GmbH',3,'Glaubenssätze',0.0,24000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-15','2026-01','Gebrüder Reinartz GmbH',5,'Karriereseite',0.0,6000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-15','2026-01','Peter und Lochner Beratende Ingenieure für Bauwesen GmbH',5,'SM + MD',0.0,22500.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-15','2026-01','Klaus Hoch- und Tiefbau GmbH',4,'Individuell',0.0,45000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-15','2026-01','Naumburger Baugesallschaft mbH',5,'Individuell',0.0,24000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-15','2026-01','Betonpumpenunion GmbH & Co.KG',4,'Kontingente',6000.0,6000.0,'Gewonnen',3.0,'2026-01-15','2026-01');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-15','2026-01','Bähr Ingenieure',3,'Individuell',0.0,28000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-19','2026-01','Jogerst Steintechnologie GmbH',5,'SM + MD',0.0,18000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-19','2026-01','GM Getränketechnik & Maschinenbau GmbH',5,'SM + KS + MD',0.0,27000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-19','2026-01','Trispel GmbH',5,'Kontingente',0.0,24000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-20','2026-01','AG Niederpöllniz',3,'SM + KS + MD',0.0,27000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-20','2026-01','SEEDAMM-INDUSTRIEDIENST GmbH',5,'Kontingente',0.0,33600.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-20','2026-01','Behringer Wohn- und Pflegeheim Wacholderpark GmbH',4,'Karriereseite',0.0,6000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-20','2026-01','Altek GmbH',3,'Karriereseite',6000.0,6000.0,'Gewonnen',12.0,'2026-01-20','2026-01');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-20','2026-01','GC Collin KG',4,'Kontingente',4500.0,4500.0,'Gewonnen',3.0,'2026-01-20','2026-01');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-21','2026-01','H2O Versorgungstechnik',3,'Karriereseite',0.0,6000.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-21','2026-01','Elektro Enzinger GmbH',4,'Kontingente',0.0,4600.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-21','2026-01','Apikal',3,'Karriereseite',0.0,6000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-21','2026-01','Toha',3,'Karriereseite',0.0,6000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-22','2026-01','Naumburger Baugesallschaft mbH',5,'Individuell',0.0,8300.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-22','2026-01','SEEDAMM-INDUSTRIEDIENST GmbH',5,'Kontingente',6000.0,6000.0,'Gewonnen',2.0,'2026-01-22','2026-01');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-23','2026-01','Erfurter Gleisbau GmbH',4,'Individuell',24000.0,24000.0,'Gewonnen',12.0,'2026-01-23','2026-01');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-26','2026-01','Lebensstift gGmbH',4,'Kontingente',0.0,24000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-26','2026-01','Carediag GmbH',3,'Karriereseite',0.0,6000.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-26','2026-01','BM Green Cooling',4,'Karriereseite',8300.0,8300.0,'Gewonnen',12.0,'2026-01-26','2026-01');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-26','2026-01','Kettenus',3,'Kontingente',0.0,6900.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-26','2026-01','Nitsch',3,'Karriereseite',0.0,4900.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-27','2026-01','Bauer GmbH',5,'SM + KS + MD',0.0,28500.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-27','2026-01','Drews Marine GmbH',4,'Kontingente',24000.0,24000.0,'Gewonnen',12.0,'2026-01-27','2026-01');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-28','2026-01','Elements Fitness',3,'Individuell',30000.0,30000.0,'Gewonnen',12.0,'2026-01-28','2026-01');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-29','2026-01','RAPEX Heizung & Klimatechnik GmbH',4,'SM + MD',0.0,21000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-30','2026-01','Eitle GmbH',4,'Kontingente',0.0,6000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-03','2026-02','H. Ludendorff GmbH',4,'Karriereseite',0.0,6000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-03','2026-02','HKS Hünxer Kraftwerkservice GmbH',5,'Individuell',24000.0,24000.0,'Gewonnen',12.0,'2026-02-03','2026-02');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-04','2026-02','Abwasserverband Bergstraße',4,'SM + MD',21000.0,21000.0,'Gewonnen',12.0,'2026-02-04','2026-02');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-04','2026-02','Pflegezentrum Haus Monika',4,'Karriereseite',0.0,6000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-04','2026-02','Ulmer GmbH | Bäckerei-Konditorei',4,'Individuell',0.0,27000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-06','2026-02','Götz Management Holding AG',4,'Kontingente',0.0,28800.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-09','2026-02','VH Planungsbüro GmbH',4,'Glaubenssätze',0.0,36000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-10','2026-02','VTA Software & Service GmbH',4,'Kontingente',0.0,24000.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-11','2026-02','Standex GmbH',3,'Individuell',0.0,15200.0,'Verloren',4.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-11','2026-02','Sauter Gebäudetechnik GmbH',3,'Karriereseite',0.0,6000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-11','2026-02','Hans Fischer GmbH',3,'Karriereseite',0.0,6000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-12','2026-02','Wasserverband Garbsen',3,'SM + KS + MD',0.0,24000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-11','2026-02','Hochdanner GmbH',3,'Karriereseite',0.0,6000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-12','2026-02','Wiechmann GmbH',3,'Kontingente',13800.0,13800.0,'Gewonnen',6.0,'2026-02-12','2026-02');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-12','2026-02','Wilhem Ungeheuer Söhne GmbH',5,'Kontingente',9200.0,9200.0,'Gewonnen',4.0,'2026-02-12','2026-02');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-13','2026-02','Waldmann Elektrotechnik GmbH',3,'Karriereseite',0.0,6000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-13','2026-02','Kunststofftechnik Weißbach GmbH',5,'Shooting',0.0,4500.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-13','2026-02','Graf Dichtungen GmbH',3,'Karriereseite',0.0,6000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-16','2026-02','EFFYCOR GmbH',4,'SM + MD',12000.0,12000.0,'Gewonnen',6.0,'2026-02-16','2026-02');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-16','2026-02','Jugendhilfe und Sozialarbeit e.V JuSeV',4,'Karriereseite',0.0,6000.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-17','2026-02','Calmund + Riemer GmbH',5,'Social-Media',0.0,18000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-18','2026-02','Energieversorgung Main-Spessart GmbH',3,'Karriereseite',0.0,6000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-18','2026-02','SEEDAMM-INDUSTRIEDIENST GmbH',5,'Kontingente',9000.0,9000.0,'Gewonnen',3.0,'2026-02-18','2026-02');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-19','2026-02','pakt GmbH',4,'Kontingente',8740.0,8740.0,'Gewonnen',4.0,'2026-02-19','2026-02');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-23','2026-02','Heinz Moritz GmbH',31,'Individuell',27250.0,27250.0,'Gewonnen',9.0,'2026-02-23','2026-02');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-23','2026-02','Diakoneo',4,'Kontingente',30000.0,30000.0,'Gewonnen',12.0,'2026-02-23','2026-02');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-25','2026-02','Sicht-pack Hagner GmbH',31,'KS + MD',12500.0,12500.0,'Gewonnen',NULL,'2026-02-25','2026-02');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-26','2026-02','SÜD-HANSA GmbH & Co. KG',4,'Kontingente',0.0,24000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-26','2026-02','Weigerstorfer GmbH',4,'Kontingente',0.0,8000.0,'Verloren',4.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-27','2026-02','BM Green Cooling GmbH',4,'Kontingente',6555.0,6555.0,'Gewonnen',3.0,'2026-02-27','2026-02');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-02','2026-03','ELMER Dienstleistungen GmbH & Co. KG',4,'Individuell',0.0,129000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-02','2026-03','Bardowicks GmbH',3,'Karriereseite',0.0,6000.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-03','2026-03','Garten Brenner',4,'Karriereseite',0.0,6000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-04','2026-03','HKA Essen',4,'Karriereseite',0.0,6000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-04','2026-03','A.S.T. Aufzüge & Service Thieme Silex GmbH',4,'Kontingente',2300.0,2300.0,'Gewonnen',1.0,'2026-03-04','2026-03');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-05','2026-03','BSU',3,'Karriereseite',6000.0,6000.0,'Gewonnen',12.0,'2026-03-05','2026-03');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-05','2026-03','robatherm GmbH & Co. KG',4,'Kontingente',6000.0,6000.0,'Gewonnen',2.0,'2026-03-05','2026-03');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-10','2026-03','IZOBLOK GmbH',5,'Kontingente',12000.0,12000.0,'Gewonnen',6.0,'2026-03-10','2026-03');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-10','2026-03','Heinrich Kördel GmbH',4,'Karriereseite',0.0,6000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-10','2026-03','RAPEX Heizung & Klimatechnik GmbH',4,'SM + MD',21000.0,21000.0,'Gewonnen',12.0,'2026-03-10','2026-03');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-10','2026-03','SEEDAMM-INDUSTRIEDIENST GmbH',5,'Kontingente',6000.0,6000.0,'Gewonnen',2.0,'2026-03-10','2026-03');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-10','2026-03','Karl Bachl Hoch- und Tiefbau GmbH & Co. KG',4,'Kontingente',4370.0,4370.0,'Gewonnen',2.0,'2026-03-10','2026-03');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-12','2026-03','H2O Versorgungstechnik',3,'Karriereseite',0.0,6000.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-16','2026-03','Hautambulatorium Magdeburg',3,'Karriereseite',0.0,6000.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-17','2026-03','Bähr Ingenieure',3,'Shooting',4000.0,4000.0,'Gewonnen',NULL,'2026-03-17','2026-03');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-18','2026-03','GT Solar',4,'Kontingente',30000.0,30000.0,'Gewonnen',12.0,'2026-03-18','2026-03');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-19','2026-03','Altek GmbH',3,'Kontingente',6000.0,6000.0,'Gewonnen',2.0,'2026-03-19','2026-03');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-20','2026-03','Autohaus Olenik',3,'Karriereseite',0.0,6000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-24','2026-03','Karl Ulrich Bauunternehmen GmbH & Co.',4,'Kontingente',4600.0,4600.0,'Gewonnen',2.0,'2026-03-24','2026-03');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-24','2026-03','micromod Partikeltechnologie GmbH',4,'Kontingente',4600.0,4600.0,'Gewonnen',2.0,'2026-03-24','2026-03');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-27','2026-03','THIEME GmbH & Co. KG',3,'Karriereseite',0.0,6000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-30','2026-03','TechnoTeam',3,'Shooting',0.0,3000.0,'Verloren',0.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-31','2026-03','Autohaus Hottgenroth',3,'Kontingente',0.0,6000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-01','2026-04','BBS',6,'Karriereseite',0.0,10800.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-01','2026-04','Knappschaft Klinikum Saar',7,'Kontingente',32400.0,32400.0,'Gewonnen',12.0,'2026-04-01','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-07','2026-04','Mediclin Müritz',8,'Karriereseite',0.0,14000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-08','2026-04','Kommunalunternehmen Fürstenfeldbruck',7,'Kontingente',0.0,33600.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-08','2026-04','ASB Zwickau',8,'Shooting',0.0,4000.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-09','2026-04','Kälte Klima Grässlin',8,'SBB',6000.0,6000.0,'Gewonnen',12.0,'2026-04-09','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-09','2026-04','VITREA Hattingen',7,'Kontingente',12000.0,12000.0,'Gewonnen',4.0,'2026-04-09','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-09','2026-04','Uniklinik Regensburg',7,'SBB',6000.0,6000.0,'Gewonnen',12.0,'2026-04-09','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-09','2026-04','Klinkum Fürth',7,'Kontingente',0.0,14400.0,'Verloren',6.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-09','2026-04','ProCuritas',6,'Social-Media',0.0,24000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-09','2026-04','Schwarzwald Baar Klinikum',7,'SBB',0.0,6000.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-10','2026-04','Newcare',7,'Kontingente',12000.0,12000.0,'Gewonnen',3.0,'2026-04-10','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-13','2026-04','EV. Altenheimat',6,'Initiale Kontingenterweiterung',16800.0,16800.0,'Gewonnen',12.0,'2026-04-13','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-13','2026-04','Eberhardt Catering',3,'Individuell',0.0,10000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-14','2026-04','Helios Wiesbaden',7,'Kontingente',60000.0,60000.0,'Gewonnen',12.0,'2026-04-14','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-14','2026-04','Medicare',6,'Initiale Kontingenterweiterung',9800.0,9800.0,'Gewonnen',7.0,'2026-04-14','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-14','2026-04','st. Josef Wiesbaden',6,'Initiale Kontingenterweiterung',8400.0,8400.0,'Gewonnen',6.0,'2026-04-14','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-14','2026-04','VR Bank',7,'SBB',0.0,6000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-14','2026-04','Brandt Schokoladen',4,'Kontingente',6900.0,6900.0,'Gewonnen',3.0,'2026-04-14','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-14','2026-04','Klinikverbund Südwest',7,'Kontingente',0.0,33600.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-15','2026-04','Sophienstiftung',6,'Initiale Kontingenterweiterung',8400.0,8400.0,'Gewonnen',6.0,'2026-04-15','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-15','2026-04','st. Josef Wiesbaden',6,'Initiale Kontingenterweiterung',4200.0,4200.0,'Gewonnen',3.0,'2026-04-15','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-15','2026-04','Otto Chemie',7,'SBB',0.0,1000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-16','2026-04','LA Regio',6,'Initiale Kontingenterweiterung',16800.0,16800.0,'Gewonnen',12.0,'2026-04-16','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-16','2026-04','Klinikum Main Spessart',7,'Initiale Kontingenterweiterung',0.0,4200.0,'Verloren',3.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-16','2026-04','Klinikum Hanau',7,'Initiale Kontingenterweiterung',4200.0,4200.0,'Gewonnen',3.0,'2026-04-16','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-16','2026-04','Karl Jaspers Klinik',7,'SBB',0.0,6000.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-16','2026-04','Heimatliebe Bodensee GmbH',8,'Shooting',0.0,5000.0,'Offen',NULL,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-17','2026-04','Sternenbrücke Hamburg',8,'Kontingente',31500.0,31500.0,'Gewonnen',12.0,'2026-04-17','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-17','2026-04','Aphasie Zentrum',7,'Kontingente',32400.0,32400.0,'Gewonnen',12.0,'2026-04-17','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-17','2026-04','Mediclin Müritz',8,'Kontingente',0.0,32400.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-20','2026-04','Barmherzige Regensburg',6,'Kontingente',0.0,13200.0,'Verloren',3.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-20','2026-04','RBK',6,'Initiale Kontingenterweiterung',0.0,4200.0,'Verloren',3.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-20','2026-04','SLK',6,'Initiale Kontingenterweiterung',0.0,4200.0,'Verloren',3.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-20','2026-04','Barmherzige Regensburg',6,'Kontingente',33600.0,33600.0,'Gewonnen',12.0,'2026-04-20','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-20','2026-04','CBM GmbH',4,'Kontingente',0.0,13110.0,'Verloren',6.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-21','2026-04','Krumbein',4,'Kontingente',7000.0,7000.0,'Gewonnen',2.0,'2026-04-21','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-21','2026-04','KSP CNC-Technik GmbH',8,'KS + MD',0.0,17500.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-21','2026-04','Auto Amthauer',8,'KS + MD',0.0,17500.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-21','2026-04','Klinkum Gelsenkirchen',6,'Kontingente',0.0,33600.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-22','2026-04','ProCuritas',6,'Initiale Kontingenterweiterung',27000.0,27000.0,'Gewonnen',6.0,'2026-04-22','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-22','2026-04','Vaventus AG',8,'Karriereseite',0.0,14000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-22','2026-04','EFFYCOR',4,'Kontingente',0.0,48000.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-22','2026-04','Kälte Klima Grässlin',8,'Kontingente',0.0,9000.0,'Verloren',3.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-23','2026-04','Valet und Ott',4,'Kontingente',12000.0,12000.0,'Gewonnen',6.0,'2026-04-23','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-23','2026-04','Dr. Ulrich lange Stiftung',7,'Karriereseite',0.0,14000.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-23','2026-04','UniKlinik Regensburg',7,'Initiale Kontingenterweiterung',0.0,4200.0,'Verloren',4.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-23','2026-04','Christliches Krankenhaus Quakenbrück',6,'Kontingente',9000.0,9000.0,'Gewonnen',3.0,'2026-04-23','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-24','2026-04','LBS Süd',6,'Initiale Kontingenterweiterung',2800.0,2800.0,'Gewonnen',2.0,'2026-04-24','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-24','2026-04','Demenzpflege Bovenden',8,'SBB',0.0,6000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-24','2026-04','Haus Edelberg',6,'Initiale Kontingenterweiterung',0.0,120000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-24','2026-04','Talk Tools GmbH',4,'Kontingente',0.0,24000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-27','2026-04','Dorow Heizung GmbH',8,'Karriereseite',0.0,8000.0,'Offen',NULL,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-27','2026-04','Heinrich Kördel',4,'Kontingente',43200.0,43200.0,'Gewonnen',12.0,'2026-04-27','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-27','2026-04','SUAVIA',7,'Kontingente',0.0,32400.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-27','2026-04','AMF',7,'Kontingente',0.0,28200.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-27','2026-04','DRK-Kreisverband Merseburg-Querfurt',7,'KS + MD',0.0,17500.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-27','2026-04','Lammetal GmbH',7,'KS + MD',0.0,19000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04','TTL Tapeten-Teppichbodenland Nord Handelsgesellschaft mbH',4,'Kontingente',6900.0,6900.0,'Gewonnen',NULL,'2026-04-28','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04','HLW GmbH Tank- und Fahrzeugbau',4,'Kontingente',7000.0,7000.0,'Gewonnen',NULL,'2026-04-28','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04','Metzger Guttjahr Stiftung',8,'SBB',0.0,6000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04','Caritas Bruchsal',6,'Kontingente',0.0,27600.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04','Caritas krankenhaus Lebach',6,'Kontingente',0.0,22500.0,'Verloren',5.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04','VPT Kompressoren',4,'Kontingente',0.0,16500.0,'Verloren',6.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04','Müller Gerüstbau',4,'Kontingente',0.0,7000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04','pakt GmbH',4,'Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-04-28','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-29','2026-04','Malerbetrieb Näther',8,'Karriereseite',0.0,24000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-29','2026-04','Median NRZ Magdeburg',7,'Kontingente',7500.0,7500.0,'Gewonnen',3.0,'2026-04-29','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-29','2026-04','Bad Belzig',6,'Kontingente',80000.0,80000.0,'Gewonnen',12.0,'2026-04-29','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-30','2026-04','Caritasverband Pforzheim',4,'Kontingente',24000.0,24000.0,'Gewonnen',12.0,'2026-04-30','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-30','2026-04','AWO Köln',8,'Kontingente',0.0,60000.0,'Verloren',24.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-30','2026-04','Suedwesttouristik',6,'Kontingente',3000.0,3000.0,'Gewonnen',1.0,'2026-04-30','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-30','2026-04','Osma Werm GmbH',8,'Kontingente',2300.0,2300.0,'Gewonnen',1.0,'2026-04-30','2026-04');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-04','2026-05','X-tention',8,'Kontingente',0.0,25200.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-04','2026-05','Autohaus Louis Dresen',8,'KS + MD',0.0,17500.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-05','2026-05','ZAB',8,'SBB',0.0,6000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-05','2026-05','Meyer-Tochtrop',8,'SBB',0.0,6000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-05','2026-05','Trispel GmbH',4,'Kontingente',13500.0,13500.0,'Gewonnen',3.0,'2026-05-05','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-05','2026-05','Gesundheit Nordhessen',7,'Kontingente',17400.0,17400.0,'Gewonnen',6.0,'2026-05-05','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05','Valens',6,'Kontingente',68000.0,68000.0,'Gewonnen',12.0,'2026-05-06','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05','GFO Niederrhein',6,'Kontingente',0.0,6000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05','Kutzner',7,'SBB',0.0,6000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05','Median Sonnenwende',7,'Kontingente',13000.0,13000.0,'Gewonnen',4.0,'2026-05-06','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05','Dr. Leonhard',8,'Kontingente',0.0,9000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-07','2026-05','KARAWANE',6,'Social-Media',0.0,15000.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-07','2026-05','Rocholl',4,'Kontingente',0.0,13500.0,'Verloren',3.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-07','2026-05','KMG',6,'Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05','Altek',4,'Kontingente',1500.0,1500.0,'Gewonnen',NULL,'2026-05-08','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-07','2026-05','Uniklinik Regensburg',7,'Kontingente',0.0,60000.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-07','2026-05','Wohnpark St. Elisabeth',8,'KS + MD',0.0,12000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05','Krügle&Höhl',8,'SBB',2000.0,2000.0,'Gewonnen',4.0,'2026-05-08','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05','Caritas Wohnen udn Pflege',7,'Shooting',0.0,5000.0,'Offen',NULL,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05','Krügle&Höhl',8,'Shooting',4000.0,4000.0,'Gewonnen',NULL,'2026-05-08','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05','Dorow Heiztechnik',8,'SBB',6000.0,6000.0,'Gewonnen',12.0,'2026-05-08','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05','DRK Halle Saale',7,'KS + MD',0.0,17000.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05','Reha Klinik Hausbaden',8,'KS + MD',0.0,17500.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-11','2026-05','Agravis',6,'Initiale Kontingenterweiterung',12600.0,12600.0,'Gewonnen',9.0,'2026-05-11','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-11','2026-05','Ev. Altenheimat',6,'Karriereseite',8000.0,8000.0,'Gewonnen',12.0,'2026-05-11','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-11','2026-05','Spedition Seidel',4,'Kontingente',0.0,24000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-11','2026-05','Rehaklinik Tschugg',7,'KS + MD',0.0,19000.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-11','2026-05','newcare',7,'Kontingente',3000.0,3000.0,'Gewonnen',1.0,'2026-05-11','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05','LBS Nordwest',6,'SBB',2500.0,2500.0,'Gewonnen',2.0,'2026-05-12','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05','Diakonie Mettmann',7,'Kontingente',0.0,33600.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05','Diakonie Mettmann',7,'Shooting',0.0,3000.0,'Offen',1.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05','BSU Sanierungsunion Berlin',4,'SM + MD',0.0,24000.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05','Izoblok',8,'SM + KS + MD',0.0,26000.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05','Demenzpflege Bovenden',8,'SM + MD',0.0,12000.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05','Klinikverbund Südwest',7,'Kontingente',0.0,16200.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05','ELMER Dienstleistungs GmbH',4,'Kontingente',36000.0,36000.0,'Gewonnen',12.0,'2026-05-12','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2025-05-13','2026-05','ASB Saalekreis',7,'KS + MD',19000.0,19000.0,'Gewonnen',12.0,'2025-05-13','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2025-05-13','2026-05','ASB Saalekreis',7,'Social-Media',24000.0,24000.0,'Gewonnen',12.0,'2025-05-13','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05','BBS Berndt',6,'SBB',0.0,6000.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05','Paul Wältring',8,'KS + MD',0.0,11000.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05','BRK Altötting',8,'Kontingente',0.0,19300.0,'Offen',6.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05','Altenhilfe Gießen',6,'Kontingente',9000.0,9000.0,'Gewonnen',2.0,'2026-05-13','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-15','2026-05','DRK Rhein Main Taunus',7,'Kontingente',4200.0,4200.0,'Gewonnen',3.0,'2026-05-15','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05','Casa con Property',8,'KS + MD',0.0,17500.0,'Offen',NULL,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05','GFO Niederrhein',6,'Kontingente',3000.0,3000.0,'Gewonnen',1.0,'2026-05-18','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05','Awo Bonn',6,'SBB',6000.0,6000.0,'Gewonnen',12.0,'2026-05-18','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05','Christliche Bürgerhilfe Sozialstation gGmbH',8,'KS + MD',0.0,11500.0,'Offen',NULL,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05','KB Kunststoffhandel',7,'Kontingente',0.0,6000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-19','2026-05','Seedamm Industriedienst',4,'Kontingente',0.0,13500.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-19','2026-05','Wilhelm Rosebrock',8,'SBB',0.0,3000.0,'Offen',6.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05','DRK Lüchow Dannenberg',7,'SBB',0.0,6000.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05','Rheinwohnungsbau',8,'SM + MD',0.0,6000.0,'Verloren',3.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05','Johanniter Godeshöhe',7,'Kontingente',0.0,33600.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05','Johanniter Godeshöhe',7,'Shooting',0.0,3000.0,'Offen',NULL,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05','Daikin Fluid Technology',4,'Individuell',0.0,55500.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05','Vaventus AG',8,'Kontingente',0.0,33600.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05','robatherm',4,'Kontingente',16000.0,16000.0,'Gewonnen',4.0,'2026-05-20','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05','Talk Tools GmbH',4,'Kontingente',7500.0,7500.0,'Gewonnen',3.0,'2026-05-20','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05','Immanuel ML',6,'Kontingente',0.0,18000.0,'Offen',6.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05','BM Green Cooling GmbH',4,'Kontingente',17000.0,17000.0,'Gewonnen',4.0,'2026-05-21','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05','Diakonie Münster',6,'SBB',0.0,6000.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05','diakonie Münster',6,'Kontingente',0.0,13200.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05','Median Brandis',7,'Kontingente',0.0,5000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-22','2026-05','Rommel Klinik',7,'SM + MD',0.0,27000.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-22','2026-05','Erfurter Gleisbau',4,'Kontingente',0.0,24000.0,'Offen',6.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-22','2026-05','Industrie und Tankanlagenbau',4,'Kontingente',0.0,8000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-22','2026-05','Südwest Touristik',6,'Kontingente',0.0,32400.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-22','2026-05','Haus Edelberg',6,'Kontingente',0.0,9000.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-22','2026-05','KH Plettenberg',7,'SM + MD',0.0,27000.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-22','2026-05','Stiftung APW',8,'KS + MD',0.0,18000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-22','2026-05','Seniorenhaus Berghof',7,'KS + MD',0.0,14600.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-22','2026-05','Aphasiezentrum',7,'Kontingente',0.0,2800.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-26','2026-05','Spitalstiftung Konstanz',6,'Kontingente',0.0,50200.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-26','2026-05','Energieversorgung Main Spessart',7,'Kontingente',17400.0,17400.0,'Gewonnen',6.0,'2026-05-26','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-26','2026-05','Wichernhaus',6,'Kontingente',32400.0,32400.0,'Gewonnen',12.0,'2026-05-26','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-27','2026-05','Sieper',4,'Kontingente',4600.0,4600.0,'Gewonnen',2.0,'2026-05-27','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-27','2026-05','Caritas Breisgau',8,'SBB',1000.0,1000.0,'Gewonnen',2.0,'2026-05-27','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-27','2026-05','newcare',7,'Kontingente',9000.0,9000.0,'Gewonnen',3.0,'2026-05-27','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05','Wilhelm Ungeheuer Söhne GmbH',8,'Kontingente',1300.0,1300.0,'Gewonnen',2.0,'2026-05-28','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05','Spedition Seidel',4,'Kontingente',0.0,9000.0,'Verloren',3.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05','Industrie und Tankanlagenbau',4,'Kontingente',550.0,550.0,'Gewonnen',1.0,'2026-05-28','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05','ATOS Klinik',4,'Kontingente',1500.0,1500.0,'Gewonnen',2.0,'2026-05-28','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05','Proff Sanitärinstallation GmbH & Co. KG',4,'Kontingente',550.0,550.0,'Gewonnen',1.0,'2026-05-28','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05','HOWE Umwelttechnik GmbH',4,'Kontingente',2750.0,2750.0,'Gewonnen',5.0,'2026-05-28','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05','Thomas Waidner GmbH Werkzeugbau und Metallwaren',4,'Kontingente',1650.0,1650.0,'Gewonnen',3.0,'2026-05-28','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-29','2026-05','Kunststofftechnik Weißbach',4,'Kontingente',4500.0,4500.0,'Gewonnen',1.0,'2026-05-29','2026-05');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-29','2026-05','Kunststofftechnik Weißbach',4,'SM + MD',0.0,21000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-29','2026-05','Main-Kinzig-Klinik',7,'Kontingente',0.0,5600.0,'Offen',4.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-29','2026-05','Knappschaft Kliniken',7,'Kontingente',0.0,2800.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-29','2026-05','Heizkurier',6,'Karriereseite',0.0,11000.0,'Offen',NULL,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-29','2026-05','DRK Schleswig Holstein',7,'Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06','KST Motorenversuch',4,'Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06','PflegeNetz GmbH',7,'Kontingente',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06','Bürgerhospital Frankfurt',7,'Kontingente',0.0,2800.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06','Emmerich Pumpen',4,'Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06','Dr. Ecklebe GmbH',4,'Kontingente',1650.0,1650.0,'Gewonnen',3.0,'2026-06-01','2026-06');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06','Dr. Ecklebe Engineering GmbH',4,'Kontingente',1650.0,1650.0,'Gewonnen',3.0,'2026-06-01','2026-06');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06','DRK Lübeck',7,'Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-02','2026-06','Lebenshilfe Bruchsal-Bretten',7,'Kontingente',0.0,9000.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-02','2026-06','Martin Bruch',7,'Kontingente',2800.0,2800.0,'Gewonnen',2.0,'2026-06-02','2026-06');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-02','2026-06','Holthausen GmbH',4,'Kontingente',0.0,24000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-02','2026-06','Holthausen GmbH',4,'SM + MD',0.0,21000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-02','2026-06','Stoltenhof',8,'KS + MD',0.0,12000.0,'Offen',NULL,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-03','2026-06','Friesenwarf',7,'Kontingente',0.0,32400.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-03','2026-06','Standex',8,'Kontingente',0.0,1300.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-05','2026-06','Werner Wicker Klinik',8,'Kontingente',0.0,62400.0,'Offen',24.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-05','2026-06','Bauunternehmen Marco Friedrich',8,'KS + MD',0.0,14500.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-05','2026-06','Vitrea Karlsruhe',7,'Kontingente',0.0,13500.0,'Offen',3.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-05','2026-06','Vitrea Ulm',7,'KS + MD',0.0,12100.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-08','2026-06','Malerbetrieb Näther',8,'KS + MD',0.0,13800.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-08','2026-06','Malerbetrieb Näther',8,'Kontingente',6000.0,6000.0,'Gewonnen',2.0,'2026-06-08','2026-06');
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-09','2026-06','SWALK',8,'KS + MD',0.0,13800.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_bk (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-09','2026-06','MVZ Gelenkklinik',7,'Kontingente',0.0,32400.0,'Offen',12.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-02','2026-01','Gerresheimer Tettau GmbH',3,'Kontingentvertrag',0.0,4600.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-05','2026-01','Sozialwerk Heuser Heimbetriebsgesellschaft für Nordrhein-Westfalen mbH',5,'Kontingentvertrag',4600.0,4600.0,'Gewonnen',2.0,'2026-01-05','2026-01');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-06','2026-01','Audio Design Lautsprecher Vertriebs GmbH',3,'Kontingentvertrag',6000.0,6000.0,'Gewonnen',2.0,'2026-01-06','2026-01');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-08','2026-01','Seidel Transport- und Handelsgesellschaft mbH',4,'Kontingentvertrag',4600.0,4600.0,'Gewonnen',2.0,'2026-01-08','2026-01');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-09','2026-01','Elmer Gruppe',4,'Kontingentvertrag',9000.0,9000.0,'Gewonnen',6.0,'2026-01-09','2026-01');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-10','2026-01','Holz Kogler GmbH & Co.KG',5,'Kontingentvertrag',0.0,4600.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-10','2026-01','Peter Krüger Sanitär- und Heizungstechnik',5,'Kontingentvertrag',6000.0,6000.0,'Gewonnen',2.0,'2026-01-10','2026-01');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-11','2026-01','Landhaus-Bau Glinstedt GmbH',5,'Kontingentvertrag',6000.0,6000.0,'Gewonnen',2.0,'2026-01-11','2026-01');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-12','2026-01','GFI Gesellschaft für Feuerschutzund Installationen mbH',3,'Kontingentvertrag',9200.0,9200.0,'Gewonnen',4.0,'2026-01-12','2026-01');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-14','2026-01','AuraIntense24 GmbH',4,'Kontingentvertrag',0.0,6000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-19','2026-01','Mager & Wedemeyer Werkzeugmaschinen GmbH',4,'Kontingentvertrag',4600.0,4600.0,'Gewonnen',2.0,'2026-01-19','2026-01');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-19','2026-01','OSMA-Werm GmbH',3,'Kontingentvertrag',4600.0,4600.0,'Gewonnen',2.0,'2026-01-19','2026-01');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-21','2026-01','Scienion GmbH',3,'Kontingentvertrag',9200.0,9200.0,'Gewonnen',4.0,'2026-01-21','2026-01');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-24','2026-01','Abwasserverband Bergstraße',4,'Kontingentvertrag',4600.0,4600.0,'Gewonnen',2.0,'2026-01-24','2026-01');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-24','2026-01','HSE-Haustechnik GmbH',4,'Kontingentvertrag',4600.0,4600.0,'Gewonnen',2.0,'2026-01-24','2026-01');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-25','2026-01','GARANT Türen und Zargen GmbH',4,'Kontingentvertrag',4600.0,4600.0,'Gewonnen',2.0,'2026-01-25','2026-01');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-25','2026-01','GM Getränketechnik & Maschinenbau GmbH',5,'Kontingentvertrag',4600.0,4600.0,'Gewonnen',2.0,'2026-01-25','2026-01');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-28','2026-01','robatherm GmbH & Co. KG',4,'Kontingentvertrag',0.0,6000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-28','2026-01','SBF Spezialleuchten GmbH',5,'Kontingentvertrag',4600.0,4600.0,'Gewonnen',2.0,'2026-01-28','2026-01');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-29','2026-01','schoko Pro GmbH',3,'Kontingentvertrag',4600.0,4600.0,'Gewonnen',2.0,'2026-01-29','2026-01');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-30','2026-01','exceet Card AG',3,'Kontingentvertrag',9200.0,9200.0,'Gewonnen',4.0,'2026-01-30','2026-01');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-30','2026-01','Thomas Scherz Dental Keramik GmbH',3,'Kontingentvertrag',0.0,6000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-06','2026-01','AuraIntense24 GmbH',4,'Kontis',0.0,6000.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2025-12-30','2026-01','Ilsenburger Heimstatt für Jung und Alt e.V.',5,'Kontis',0.0,6000.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-07','2026-01','Höhne GmbH',4,'Kontis',0.0,6000.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-09','2026-01','Holz Kogler GmbH & Co.KG',5,'Kontis',0.0,4600.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-01','2026-01','Gerresheimer Tettau GmbH',3,'Kontis',0.0,4600.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-13','2026-01','ACR Chiller Rent GmbH',4,'Kontis',0.0,NULL,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-16','2026-01','Seidel Transport- und Handelsgesellschaft mbH',4,'Kontis',0.0,4600.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-20','2026-01','Landhaus-Bau Glinstedt GmbH',5,'Kontis',0.0,6000.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-01','2026-02','Logatec GmbH',5,'Kontingente',4600.0,4600.0,'Gewonnen',2.0,'2026-02-01','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-01','2026-02','Diakoniestation am Ev. Krankenhaus Lippstadt gGmbH',5,'Kontingente',4600.0,4600.0,'Gewonnen',2.0,'2026-02-01','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-02','2026-02','Gerke-Kälte-Klima GmbH',5,'Kontingente',9000.0,9000.0,'Gewonnen',6.0,'2026-02-02','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-02','2026-02','Wilhelm Ungeheuer Söhne GmbH',5,'Kontingente',4600.0,4600.0,'Gewonnen',2.0,'2026-02-02','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-02','2026-02','HKS Hünxer Kraftwerkservice GmbH',5,'Kontingente',4600.0,4600.0,'Gewonnen',2.0,'2026-02-02','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-02','2026-02','Luban Präzisionszerspanung GmbH',3,'Kontingente',6000.0,6000.0,'Gewonnen',2.0,'2026-02-02','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-03','2026-02','TSL GmbH',4,'Kontingente',4600.0,4600.0,'Gewonnen',2.0,'2026-02-03','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-03','2026-02','IZOBLOK GmbH',5,'Kontingente',0.0,4600.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-03','2026-02','Trispel GmbH',5,'Kontingente',4600.0,4600.0,'Gewonnen',2.0,'2026-02-03','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-04','2026-02','apikal Anlagenbau GmbH',3,'Kontingente',0.0,4600.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-04','2026-02','Helmut Haas GmbH',3,'Kontingente',4600.0,4600.0,'Gewonnen',2.0,'2026-02-04','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-05','2026-02','pasapa Mensch und Beruf e.V.',3,'Kontingente',4600.0,4600.0,'Gewonnen',2.0,'2026-02-05','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-05','2026-02','BRILLEN BECKER GmbH',5,'Kontingente',4600.0,4600.0,'Gewonnen',2.0,'2026-02-05','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-05','2026-02','Heiztechnik Mühlhausen GmbH',5,'Kontingente',4600.0,4600.0,'Gewonnen',2.0,'2026-02-05','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-05','2026-02','Niehoff Sitzmöbel GmbH',5,'Kontingente',4600.0,4600.0,'Gewonnen',2.0,'2026-02-05','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-05','2026-02','Jugendhilfe und Sozialarbeit e. V.',4,'Kontingente',6000.0,6000.0,'Gewonnen',2.0,'2026-02-05','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-08','2026-02','DRK-Kreisverband Peine e.V.',4,'Kontingente',6000.0,6000.0,'Gewonnen',2.0,'2026-02-08','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-08','2026-02','Peter und Lochner Beratende Ingenieure für Bauwesen GmbH',5,'Kontingente',4600.0,4600.0,'Gewonnen',2.0,'2026-02-08','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-08','2026-02','Wilhelm Rosebrock GmbH & Co.KG',5,'Kontingente',4600.0,4600.0,'Gewonnen',2.0,'2026-02-08','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-08','2026-02','Marienstift Dorfen',5,'Kontingente',4600.0,4600.0,'Gewonnen',2.0,'2026-02-08','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-09','2026-02','Langer E-Technik GmbH',3,'Kontingente',4600.0,4600.0,'Gewonnen',2.0,'2026-02-09','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-10','2026-02','EFFYCOR GmbH',4,'Kontingente',9200.0,9200.0,'Gewonnen',4.0,'2026-02-10','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-13','2026-02','Technoteam',3,'Social-Media',18000.0,18000.0,'Gewonnen',12.0,'2026-02-13','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-13','2026-02','Technoteam',3,'Wartung und Hosting KS',2388.0,2388.0,'Gewonnen',12.0,'2026-02-13','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-14','2026-02','KMG Ingenieurgesellschaft für Gebäude- und Versorgungstechnik mbH',4,'Social-Media',18000.0,18000.0,'Gewonnen',12.0,'2026-02-14','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-14','2026-02','KMG Ingenieurgesellschaft für Gebäude- und Versorgungstechnik mbH',4,'Wartung und Hosting KS',3600.0,3600.0,'Gewonnen',12.0,'2026-02-14','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-16','2026-02','IBES Baugrundinstitut Freiberg GmbH',4,'Kontingente',9200.0,9200.0,'Gewonnen',4.0,'2026-02-16','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-17','2026-02','H&H Gerätebau GmbH',5,'Kontingente',6000.0,6000.0,'Gewonnen',2.0,'2026-02-17','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-20','2026-02','KMG Ingenieurgesellschaft für Gebäude- und Versorgungstechnik mbH',4,'Kontingente',0.0,6900.0,'Verloren',3.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-20','2026-02','VH Planungsbüro GmbH',4,'Kontingente',4600.0,4600.0,'Gewonnen',2.0,'2026-02-20','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-20','2026-02','Adams - Holzbau - Fertigbau GmbH',3,'Kontingente',4600.0,4600.0,'Gewonnen',2.0,'2026-02-20','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-21','2026-02','Pflegezentrum Haus Monika GmbH & Co. KG',4,'Kontingente',6000.0,6000.0,'Gewonnen',2.0,'2026-02-21','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-21','2026-02','Peter Blank GmbH',3,'Kontingente',6000.0,6000.0,'Gewonnen',2.0,'2026-02-21','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-21','2026-02','Karl Hartinger Kranbetrieb GmbH + Co. KG',5,'Kontingente',4600.0,4600.0,'Gewonnen',2.0,'2026-02-21','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-21','2026-02','Hertner GmbH',4,'Kontingente',6000.0,6000.0,'Gewonnen',2.0,'2026-02-21','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-22','2026-02','ASTRAL business intelligence services GmbH',3,'Kontingente',4600.0,4600.0,'Gewonnen',2.0,'2026-02-22','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-24','2026-02','VTA Software & Service GmbH',4,'Kontingente',0.0,4600.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-24','2026-02','Axians Rhön-Montage GmbH',4,'Kontingente',0.0,4600.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-24','2026-02','Diakoneo Wohnen Himmelkron',4,'Kontingente',6000.0,6000.0,'Gewonnen',2.0,'2026-02-24','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-25','2026-02','W. Nitsch GmbH & Co. KG',3,'Kontingente',6000.0,6000.0,'Gewonnen',2.0,'2026-02-25','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-26','2026-02','MKG GÖBEL Solutions GmbH',5,'Kontingente',4600.0,4600.0,'Gewonnen',2.0,'2026-02-26','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-26','2026-02','NEEMANN LiteFlexPACKAGING GmbH & Co. KG',3,'Kontingente',6000.0,6000.0,'Gewonnen',2.0,'2026-02-26','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-26','2026-02','Bauer GmbH Landwirtschaftliche Beregnungsanlagen',5,'Kontingente',6000.0,6000.0,'Gewonnen',2.0,'2026-02-26','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-27','2026-02','Waldmann Elektrotechnik GmbH',3,'Kontingente',6000.0,6000.0,'Gewonnen',2.0,'2026-02-27','2026-02');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-30','2026-02','IZOBLOK GmbH',5,'Kontigente',0.0,4600.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-29','2026-02','Apikal GmbH',NULL,NULL,0.0,4600.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-09','2026-02','TSL GmbH',4,'Kontingente',0.0,4600.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-01','2026-02','Axians Rhön-Montage GmbH',4,'Kontingente',0.0,4600.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2024-02-17','2026-02','VTA Software & Service GmbH',4,'Kontingente',0.0,4600.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-18','2026-02','IBES Baugrundinstitut Freiberg GmbH',4,'Kontingente',0.0,9200.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-19','2026-02','KMG Ingenieurgesellschaft für Gebäude- und Versorgungstechnik mbH',NULL,'Kontingente',0.0,6900.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-24','2026-02','Peter und Lochner Beratende Ingenieure für Bauwesen GmbH',NULL,'Kontingente',0.0,4600.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-25','2026-02','DRK-Kreisverband Peine e.V.',NULL,'Kontingente',0.0,6000.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-01','2026-03','Bella-Gardinenkonfektion AG',4,'Kontingentvertrag',4600.0,4600.0,'Gewonnen',2.0,'2026-03-01','2026-03');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-05','2026-03','Sozialwerk Heuser Heimbetriebsgesellschaft für Nordrhein-Westfalen mbH',5,'Kontingentvertrag',0.0,4600.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-05','2026-03','BALTIC Taucherei- und Bergungsbetrieb Rostock GmbH',3,'Kontingentvertrag',4600.0,4600.0,'Gewonnen',2.0,'2026-03-05','2026-03');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-06','2026-03','Audio Design Lautsprecher Vertriebs GmbH',3,'Kontingentvertrag',0.0,6000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-06','2026-03','Standex GmbH',3,'Kontingentvertrag',4600.0,4600.0,'Gewonnen',2.0,'2026-03-06','2026-03');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-08','2026-03','Aerospace Data Security GmbH',3,'Kontingentvertrag',4600.0,4600.0,'Gewonnen',2.0,'2026-03-08','2026-03');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-08','2026-03','Wiechmann & Wiechmann GmbH',3,'Kontingentvertrag',4600.0,4600.0,'Gewonnen',2.0,'2026-03-08','2026-03');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-10','2026-03','Peter Krüger Sanitär- und Heizungstechnik',5,'Kontingentvertrag',6000.0,6000.0,'Gewonnen',2.0,'2026-03-10','2026-03');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-11','2026-03','Landhaus-Bau Glinstedt GmbH',5,'Kontingentvertrag',0.0,6000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-12','2026-03','GFI Gesellschaft für Feuerschutz und Installationen mbH',3,'Kontingentvertrag',9200.0,9200.0,'Gewonnen',4.0,'2026-03-12','2026-03');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-13','2026-03','x-tention Informationstechnologie GmbH',5,'Kontingentvertrag',4600.0,4600.0,'Gewonnen',2.0,'2026-03-13','2026-03');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-14','2026-03','Hermann Bach GmbH & Co. KG',4,'Kontingentvertrag',4600.0,4600.0,'Gewonnen',2.0,'2026-03-14','2026-03');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-15','2026-03','K&P Kälte Klima GbR',3,'Kontingentvertrag',0.0,6000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-19','2026-03','Mager & Wedemeyer Werkzeugmaschinen GmbH',4,'Kontingentvertrag',4600.0,4600.0,'Gewonnen',2.0,'2026-03-19','2026-03');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-21','2026-03','Scienion GmbH',8,'Kontingentvertrag',9200.0,9200.0,'Gewonnen',4.0,'2026-03-21','2026-03');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-21','2026-03','HKA Häusliche Kranken- und Altenpflege GmbH & Co. KG',4,'Kontingentvertrag',0.0,6000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-23','2026-03','Scheuten Glastechnik Heiden GmbH',4,'Kontingentvertrag',6000.0,6000.0,'Gewonnen',2.0,'2026-03-23','2026-03');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-24','2026-03','Abwasserverband Bergstraße',4,'Kontingentvertrag',4600.0,4600.0,'Gewonnen',2.0,'2026-03-24','2026-03');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-24','2026-03','HSE-Haustechnik GmbH',4,'Kontingentvertrag',4600.0,4600.0,'Gewonnen',2.0,'2026-03-24','2026-03');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-25','2026-03','GARANT Türen und Zargen GmbH',4,'Kontingentvertrag',4600.0,4600.0,'Gewonnen',2.0,'2026-03-25','2026-03');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-25','2026-03','GM Getränketechnik & Maschinenbau GmbH',5,'Kontingentvertrag',0.0,4600.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-26','2026-03','Gottlieb Binder GmbH & Co. KG',4,'Kontingentvertrag',4600.0,4600.0,'Gewonnen',2.0,'2026-03-26','2026-03');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-28','2026-03','SBF Spezialleuchten GmbH',5,'Kontingentvertrag',4600.0,4600.0,'Gewonnen',2.0,'2026-03-28','2026-03');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-28','2026-03','Kanadevia Inova BioMethan GmbH',4,'Kontingentvertrag',0.0,4600.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-29','2026-03','Karl Ulrich Bauunternehmen GmbH & Co.',4,'Kontingentvertrag',4600.0,4600.0,'Gewonnen',2.0,'2026-03-29','2026-03');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-10','2026-03','Sozialwerk Heuser Heimbetriebsgesellschaft für Nordrhein-Westfalen mbH',NULL,NULL,0.0,NULL,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-05','2026-03','Audio Design GmbH',3,'Kontingente',0.0,6000.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-04','2026-03','Jugendhilfe und Sozialarbeit e. V.',4,'Kontingente',0.0,6000.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-04','2026-03','HKA Häusliche Kranken- und Altenpflege GmbH & Co. KG',4,'Kontingente',0.0,6000.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-09','2026-03','Hertner GmbH',4,'Kontingente',0.0,6000.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-10','2026-03','H. Ludendorff GmbH',4,'Kontingente',0.0,4600.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-20','2026-03','Kanadevia Inova BioMethan GmbH',4,'Kontingente',0.0,4600.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-20','2026-03','GM Getränketechnik & Maschinenbau GmbH',5,'Kontingente',0.0,4600.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-24','2026-03','Haus Ilse',4,'Kontingente',0.0,6000.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-01','2026-04','Diakoniestation am Ev. Krankenhaus Lippstadt gGmbH',8,'Recruiting-Kampagne',0.0,4600.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-01','2026-04','Logatec GmbH',8,'Recruiting-Kampagne',4600.0,4600.0,'Gewonnen',2.0,'2026-04-01','2026-04');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-02','2026-04','Wilhelm Ungeheuer Söhne GmbH',5,'Recruiting-Kampagne',4600.0,4600.0,'Gewonnen',2.0,'2026-04-02','2026-04');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-02','2026-04','Behringer Wohn- und Pflegeheim Wacholderpark GmbH',4,'Recruiting-Kampagne, Media Day',6000.0,6000.0,'Gewonnen',2.0,'2026-04-02','2026-04');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-03','2026-04','Trispel GmbH',4,'Recruiting-Kampagne',4600.0,4600.0,'Gewonnen',2.0,'2026-04-03','2026-04');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-04','2026-04','Jogerst Stein Technologie GmbH',8,'Recruiting-Kampagne',0.0,6000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-05','2026-04','Niehoff Sitzmöbel GmbH',5,'Recruiting-Kampagne',4600.0,4600.0,'Gewonnen',2.0,'2026-04-05','2026-04');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-05','2026-04','Metzger-Gutjahr-Stiftung e.V.',8,'Recruiting-Kampagne',6000.0,6000.0,'Gewonnen',2.0,'2026-04-05','2026-04');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-05','2026-04','BRILLEN BECKER GmbH',7,'Recruiting-Kampagne',4600.0,4600.0,'Gewonnen',2.0,'2026-04-05','2026-04');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-06','2026-04','Bäckerei & Konditorei Diefenbach GmbH',4,'Recruiting-Kampagne',6000.0,6000.0,'Gewonnen',2.0,'2026-04-06','2026-04');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-08','2026-04','Marienstift Dorfen',8,'Recruiting-Kampagne',0.0,4600.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-08','2026-04','Peter und Lochner Beratende Ingenieure für Bauwesen GmbH',8,'Recruiting-Kampagne',0.0,4600.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-08','2026-04','Wilhelm Rosebrock GmbH & Co.KG',8,'Recruiting-Kampagne',4600.0,4600.0,'Gewonnen',2.0,'2026-04-08','2026-04');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-10','2026-04','ATOS Klinik Stuttgart GmbH',4,'Recruiting-Kampagne, Media Day',6000.0,6000.0,'Gewonnen',2.0,'2026-04-10','2026-04');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-10','2026-04','NEUHAUSER GmbH & Co. KG',4,'Recruiting-Kampagne',0.0,6000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-10','2026-04','EFFYCOR GmbH',4,'Recruiting-Kampagne, Media Day, Social Media Betreuung',9200.0,9200.0,'Gewonnen',4.0,'2026-04-10','2026-04');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-12','2026-04','H2O Versorgungstechnik GmbH',3,'Recruiting-Kampagne',6000.0,6000.0,'Gewonnen',2.0,'2026-04-12','2026-04');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-12','2026-04','Grün-System-Bau GmbH',4,'Recruiting-Kampagne',4600.0,4600.0,'Gewonnen',2.0,'2026-04-12','2026-04');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-12','2026-04','GFI Gesellschaft für Feuerschutz und Installationen mbH',3,'Recruiting-Kampagne, Karriere-Seite',9200.0,9200.0,'Gewonnen',4.0,'2026-04-12','2026-04');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-13','2026-04','Hochdanner Sanitär- und Heizungs-GmbH',7,'Recruiting-Kampagne',6000.0,6000.0,'Gewonnen',2.0,'2026-04-13','2026-04');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-18','2026-04','H+E Haustechnik und Elektro GmbH',8,'Recruiting-Kampagne',0.0,6000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-18','2026-04','Caritasstift St. Josef gGmbH',4,'Recruiting-Kampagne, Media Day',6000.0,6000.0,'Gewonnen',2.0,'2026-04-18','2026-04');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-18','2026-04','AMS Brendel GmbH Steuerberatungsgesellschaft',7,'Recruiting-Kampagne',0.0,6000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-19','2026-04','MR Landkreis Ansbach GmbH',8,'Recruiting-Kampagne',6000.0,6000.0,'Gewonnen',2.0,'2026-04-19','2026-04');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-19','2026-04','AIM Wohnbau GmbH',8,'Recruiting-Kampagne',4600.0,4600.0,'Gewonnen',2.0,'2026-04-19','2026-04');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-19','2026-04','Milchwerke Ingolstadt-Thalmässing eG',33,'Recruiting-Kampagne',6000.0,6000.0,'Gewonnen',2.0,'2026-04-19','2026-04');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-19','2026-04','H&H Gerätebau GmbH',8,'Recruiting-Kampagne',0.0,6000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-20','2026-04','Habicht + Sporer GmbH',4,'Recruiting-Kampagne',6000.0,6000.0,'Gewonnen',2.0,'2026-04-20','2026-04');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-23','2026-04','Karl Hartinger Kranbetrieb GmbH + Co. KG',8,'Recruiting-Kampagne',0.0,4600.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-22','2026-04','ASTRAL business intelligence services GmbH',4,'Recruiting-Kampagne, Karriere-Seite',0.0,4600.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-27','2026-04','Martin Sauter Heizungstechnik GmbH',7,'Recruiting-Kampagne',4600.0,4600.0,'Gewonnen',2.0,'2026-04-27','2026-04');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-25','2026-04','W. Nitsch GmbH & Co. KG',33,'Recruiting-Kampagne',6000.0,6000.0,'Gewonnen',2.0,'2026-04-25','2026-04');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04','MKG GÖBEL Solutions GmbH',4,'Recruiting-Kampagne',4600.0,4600.0,'Gewonnen',2.0,'2026-04-28','2026-04');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04','Bauer GmbH Landwirtschaftliche Beregnungsanlagen',5,'Recruiting-Kampagne',6000.0,6000.0,'Gewonnen',2.0,'2026-04-28','2026-04');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04','VPT Kompressoren GmbH',4,'Recruiting-Kampagne',6000.0,6000.0,'Gewonnen',2.0,'2026-04-28','2026-04');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04','Wartig Nord GmbH',8,'Recruiting-Kampagne',0.0,6000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04','Autohaus Wolfrum GmbH Naila',8,'Recruiting-Kampagne',0.0,6000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-29','2026-04','Märkl Bau GmbH',4,'Recruiting-Kampagne',6000.0,6000.0,'Gewonnen',2.0,'2026-04-29','2026-04');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-29','2026-04','Bruno Brenner, Garten- und Landschaftsbau GmbH',33,'Recruiting-Kampagne',0.0,6000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-08','2026-04','Marienstift Dorfen',5,'Recruiting-Kampagne',0.0,2.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-04','2026-04','Jogerst Stein',5,'Recruiting-Kampagne',0.0,2.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('0206-02-24','2026-04','Peter und Lochner Beratende Ingenieure für Bauwesen GmbH',5,NULL,0.0,2300.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('0206-02-24','2026-04','Autohaus Wolfrum GmbH Naila',5,NULL,0.0,3000.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-08','2026-04','B+S Service GmbH',4,'Recruiting-Kampagne',0.0,6000.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-09','2026-04','NEUHAUSER GmbH & Co. KG',4,'Recruiting-Kampagne',0.0,6000.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-10','2026-04','H+E Haustechnik und Elektro GmbH',3,'Recruiting-Kampagne',0.0,2.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-03','2026-04','H&H Gerätebau GmbH',5,'Recruiting-Kampagne',0.0,2.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-13','2026-04','Karl Hartinger Kranbetrieb GmbH + Co. KG',5,'Recruiting-Kampagne',0.0,2.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-15','2026-04','ATOS Klinik',4,'Recruiting-Kampagne',0.0,2.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-14','2026-04','Bäckerei Diefenbach',4,'Recruiting-Kampagne',0.0,2.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-21','2026-04','ASTRAL business intelligence services GmbH',4,'Recruiting-Kampagne',0.0,2.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-22','2026-04','HSE-Haustechnik GmbH',4,'Recruiting-Kampagne',0.0,2.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-02','2026-05','HOWE Umwelttechnik GmbH',4,'Kontingente',9200.0,9200.0,'Gewonnen',2.0,'2026-05-02','2026-05');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-04','2026-05','Auto Amthauer GmbH Hanau',8,'Kontingente',5000.0,5000.0,'Gewonnen',2.0,'2026-05-04','2026-05');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-05','2026-05','Dr. Ecklebe Engineering GmbH',4,'Kontingente',7500.0,7500.0,'Gewonnen',3.0,'2026-05-05','2026-05');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-05','2026-05','Dr. Ecklebe GmbH',4,'Kontingente',7500.0,7500.0,'Gewonnen',3.0,'2026-05-05','2026-05');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-05','2026-05','BALTIC Taucherei- und Bergungsbetrieb Rostock GmbH',33,'Kontingente',0.0,4600.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05','Standex GmbH',8,'Kontingente',4600.0,4600.0,'Gewonnen',2.0,'2026-05-06','2026-05');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05','Vaventus AG Kälte Klima Lüftung/ Lorenz GmbH',8,'Kontingente',0.0,6000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05','BSU Sanierungsunion Berlin GmbH',4,'Kontingente',0.0,4600.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-09','2026-05','Henn GmbH Bauunternehmung',33,'Kontingente',6000.0,6000.0,'Gewonnen',2.0,'2026-05-09','2026-05');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-09','2026-05','Bardowicks.Haus und Holzbau GmbH',33,'Kontingente',6000.0,6000.0,'Gewonnen',2.0,'2026-05-09','2026-05');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-10','2026-05','Peter Krüger Sanitär- und Heizungstechnik',8,'Kontingente',0.0,6000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-10','2026-05','Autohaus Olenik GmbH',33,'Kontingente',6000.0,6000.0,'Gewonnen',2.0,'2026-05-10','2026-05');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-10','2026-05','Laudon GmbH & Co. KG',33,'Kontingente',6000.0,6000.0,'Gewonnen',2.0,'2026-05-10','2026-05');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05','Graf-Dichtungen GmbH',33,'Kontingente',4600.0,4600.0,'Gewonnen',2.0,'2026-05-12','2026-05');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05','x-tention Informationstechnologie GmbH',8,'Kontingente',0.0,4600.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05','Karl Bachl Hoch – und Tiefbau GmbH & Co. KG',4,'Kontingente',9200.0,9200.0,'Gewonnen',4.0,'2026-05-13','2026-05');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-14','2026-05','Seniorenpflegezentrum Bovenden GmbH',8,'Kontingente',6000.0,6000.0,'Gewonnen',2.0,'2026-05-14','2026-05');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-16','2026-05','M. Kratzer Sanitär Heizung Spenglerei GmbH',4,'Kontingente',0.0,6000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-19','2026-05','Veit Höver GmbH & Co. KG',8,'Kontingente',6000.0,6000.0,'Gewonnen',2.0,'2026-05-19','2026-05');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-19','2026-05','EMG Energie-Management GmbH',6,'Kontingente',6000.0,6000.0,'Gewonnen',2.0,'2026-05-19','2026-05');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-19','2026-05','Mager & Wedemeyer Werkzeugmaschinen GmbH',4,'Kontingente',4600.0,4600.0,'Gewonnen',2.0,'2026-05-19','2026-05');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-19','2026-05','Süd-West Touristik',6,'Kontingente',6000.0,6000.0,'Gewonnen',2.0,'2026-05-19','2026-05');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-23','2026-05','Scheuten Glastechnik Heiden GmbH',4,'Kontingente',0.0,6000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-26','2026-05','Gottlieb Binder GmbH & Co. KG',4,'Kontingente',4600.0,4600.0,'Gewonnen',2.0,'2026-05-26','2026-05');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-27','2026-05','Domstadt Autohaus GmbH',8,'Kontingente',6000.0,6000.0,'Gewonnen',2.0,'2026-05-27','2026-05');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05','SBF Spezialleuchten GmbH',4,'Kontingente',0.0,4600.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-29','2026-05','Karl Ulrich Bauunternehmen GmbH & Co.',4,'Kontingente',4600.0,4600.0,'Gewonnen',2.0,'2026-05-29','2026-05');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-30','2026-05','Energieversorgung Main-Spessart GmbH',7,'Kontingente',0.0,6000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-30','2026-05','mosy GmbH',7,'Kontingente',6000.0,6000.0,'Gewonnen',2.0,'2026-05-30','2026-05');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-30','2026-05','BSU Sanierungsunion Berlin GmbH',4,'Kontingente',0.0,4600.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05','habicht + sporer GmbH',4,'Kontingente',0.0,6000.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-07','2026-05','VPT Kompressoren GmbH',4,'Kontingente',0.0,6000.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05','M. Kratzer Sanitär Heizung Spenglerei GmbH',4,'Kontingente',0.0,6000.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06','Diakoniestation am Ev. Krankenhaus Lippstadt gGmbH',8,'Recruiting-Kampagne',0.0,4600.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06','Logatec GmbH',8,'Recruiting-Kampagne',0.0,4600.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-02','2026-06','Wilhelm Ungeheuer Söhne GmbH',8,'Recruiting-Kampagne',9200.0,9200.0,'Gewonnen',4.0,'2026-06-02','2026-06');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-02','2026-06','Weroform GmbH',33,'Recruiting-Kampagne',0.0,4600.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-03','2026-06','KST-Motorenversuch GmbH & Co. KG',4,'Recruiting-Kampagne',0.0,6000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-03','2026-06','Dr. med. Sybille Hettinger Fachärztin für Augenheilkunde',8,'Recruiting-Kampagne',3000.0,3000.0,'Gewonnen',2.0,'2026-06-03','2026-06');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-04','2026-06','Rocholl Gartenbau, Landschaftsbau, Sportplatzbau und Tiefbau GmbH',4,'Recruiting-Kampagne, Media Day',10200.0,10200.0,'Gewonnen',6.0,'2026-06-04','2026-06');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-05','2026-06','Niehoff Sitzmöbel GmbH',33,'Recruiting-Kampagne',0.0,4600.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-05','2026-06','Metzger-Gutjahr-Stiftung e.V.',8,'Recruiting-Kampagne',6000.0,6000.0,'Gewonnen',2.0,'2026-06-05','2026-06');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-06','2026-06','Trans-Service GmbH Schwarzenberg',8,'Recruiting-Kampagne',0.0,6000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-08','2026-06','Wilhelm Rosebrock GmbH & Co.KG',8,'Recruiting-Kampagne',0.0,4600.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-08','2026-06','Physiotraining Ruwertal GmbH',8,'Recruiting-Kampagne',0.0,6000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-09','2026-06','Proff Sanitärinstallation GmbH & Co. KG',4,'Recruiting-Kampagne',6000.0,6000.0,'Gewonnen',2.0,'2026-06-09','2026-06');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-09','2026-06','Diehl GmbH',4,'Recruiting-Kampagne',6000.0,6000.0,'Gewonnen',2.0,'2026-06-09','2026-06');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-10','2026-06','EFFYCOR GmbH',4,'Recruiting-Kampagne, Media Day, Social Media Betreuung',0.0,9200.0,'Offen',4.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-12','2026-06','Grün-System-Bau GmbH',33,'Recruiting-Kampagne',0.0,4600.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-12','2026-06','GFI Gesellschaft für Feuerschutz
-und Installationen mbH',4,'Recruiting-Kampagne, Karriere-Seite',0.0,9200.0,'Offen',4.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-12','2026-06','Senioren-Pflegeheim...aus gutem Grund GmbH',4,'RaaS',0.0,4500.0,'Offen',1.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-13','2026-06','Hochdanner Sanitär- und Heizungs-GmbH',7,'Recruiting-Kampagne',0.0,6000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-13','2026-06','BBS Brand- und Wasserschadensanierung Gebrüder Berndt GmbH',6,'Recruiting-Kampagne',0.0,6000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-09','2026-06','Meyer-Tochtrop Bauunternehmen GmbH',8,'Recruiting-Kampagne',6000.0,6000.0,'Gewonnen',2.0,'2026-06-09','2026-06');
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-11','2026-06','Malergeschäft Näther GmbH',8,'Recruiting-Kampagne',0.0,6000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-12','2026-06','ZAB Zentrale Akademie für Berufe im Gesundheitswesen GmbH',8,'Recruiting-Kampagne',0.0,6000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-12','2026-06','Kälte Klima Grässlin GmbH',8,'Recruiting-Kampagne',0.0,6000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-19','2026-06','AIM Wohnbau GmbH',8,'Recruiting-Kampagne',0.0,4600.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-19','2026-06','Milchwerke Ingolstadt-Thalmässing eG',33,'Recruiting-Kampagne',0.0,6000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-19','2026-06','Lebenshilfe für Menschen mit geistiger oder anderer Behinderung Fürth e. V.',4,'RaaS',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-19','2026-06','St. Martin Pflegeheim GmbH',4,'RaaS',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-20','2026-06','Industrie- und Tankanlagen Führer & Weingartner GmbH',4,'Recruiting-Kampagne',0.0,6000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-20','2026-06','Seniorenzentrum Hirschkamp GmbH & Co. KG',4,'RaaS',0.0,9000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-20','2026-06','KSP CNC-Technik GmbH',8,'Recruiting-Kampagne',0.0,6000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-21','2026-06','Wartig Nord GmbH',8,'Recruiting-Kampagne',0.0,6000.0,'Verloren',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-26','2026-06','Diakoneo',4,'Recruiting-Kampagne',0.0,30000.0,'Verloren',12.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-27','2026-06','Martin Sauter Heizungstechnik GmbH',7,'Recruiting-Kampagne',0.0,4600.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-27','2026-06','Kieser Training GmbH',4,'Recruiting-Kampagne',0.0,6000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-28','2026-06','MKG GÖBEL Solutions GmbH',4,'Recruiting-Kampagne',0.0,4600.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-28','2026-06','Bauer GmbH Landwirtschaftliche Beregnungsanlagen',33,'Recruiting-Kampagne',0.0,6000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-28','2026-06','Kinder- und Jugendärzte Dr. med. Holger Meinicke und Dr. med. Björn Klawitter',4,'Recruiting-Kampagne',0.0,3000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-29','2026-06','Bruno Brenner, Garten- und Landschaftsbau GmbH',33,'Recruiting-Kampagne',0.0,6000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-29','2026-06','Autohaus Louis Dresen GmbH',8,'Recruiting-Kampagne',0.0,6000.0,'Offen',2.0,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-06','2026-06','Trans-Service GmbH Schwarzenberg',NULL,'Recruiting-Kampagne',0.0,2.0,'Verloren',NULL,NULL,NULL);
-INSERT INTO deals_vl (datum,monat,kunde,kam_id,dienstleistung,ae_wert,angebotswert,status,laufzeit_monate,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-29','2026-06','KST-Motorenversuch GmbH & Co. KG',NULL,'Recruiting-Kampagne',0.0,2.0,'Verloren',NULL,NULL,NULL);
+DELETE FROM deals_nk WHERE monat LIKE '2026-%'
+;
+DELETE FROM deals_bk WHERE monat LIKE '2026-%'
+;
+DELETE FROM deals_vl WHERE monat LIKE '2026-%'
+;
+DELETE FROM ae_gesamt_monthly WHERE monat LIKE '2026-%'
+;
 
-DELETE FROM ae_gesamt_monthly;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-14','2026-01',1,9,'Cold Calling','H2O Versorgungstechnik GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-01-14','2026-01')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-15','2026-01',1,9,'Cold Calling','MOB Märkische Oberflächenanlagen & Behälterbau GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-15','2026-01',1,9,'Cold Calling','Altek GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-01-15','2026-01')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-16','2026-01',1,9,'Cold Calling','Hochdanner Sanitär- und Heizungs-GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-01-16','2026-01')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-16','2026-01',1,12,'Mail','Ka-Ro electronics Fertigungs-GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-19','2026-01',1,12,'Cold Calling','PB Gelatins GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-01-19','2026-01')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-20','2026-01',1,9,'Cold Calling','BG Gastro Holding GmbH',NULL,'No-Brainer Recruiting',4600.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-20','2026-01',1,12,'Cold Calling','FUCHS Bau Ost GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-20','2026-01',1,12,'Cold Calling','Dr. med. Alexandra Borgmann Fachärztin für Innere Medizin Fachärztin für Innere Medizin',NULL,'No-Brainer Recruiting',5000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-20','2026-01',1,9,'Cold Calling','BSU Projekt Service GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-01-20','2026-01')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-21','2026-01',1,9,'Cold Calling','MDH AG Mamisch Dental Health',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-21','2026-01',1,9,'Cold Calling','Diehl GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-01-21','2026-01')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-23','2026-01',1,9,'Ad','PBG Handwerker GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-26','2026-01',1,9,'Cold Calling','Digatron Power Electronics GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-01-26','2026-01')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-26','2026-01',1,9,'Cold Calling','Grün-System-Bau GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-01-26','2026-01')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-26','2026-01',1,12,'Mail','Bauunternehmung Tholen GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-28','2026-01',1,9,'Cold Calling','WERIT-Kunststoffwerke W. Schneider GmbH & Co. KG',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-28','2026-01',1,9,'Cold Calling','Dr. Ecklebe GmbH',NULL,'No-Brainer Recruiting',15000.0,2,'Gewonnen',15000.0,'2026-01-28','2026-01')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-29','2026-01',1,9,'Ad','Polland Gartengestaltung GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-30','2026-01',1,12,'Cold Calling','Werner''s Metzgerei GmbH & Co. KG',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-01-30','2026-01')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-30','2026-01',1,9,'Ad','NEUHAUSER GmbH & Co. KG',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-01-30','2026-01')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-30','2026-01',1,9,'Cold Calling','H+E Haustechnik und Elektro GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-01-30','2026-01')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-02','2026-02',1,9,'Cold Calling','VPT Kompressoren GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-02-02','2026-02')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-02','2026-02',1,9,'Mail','HLW GmbH Tank- und Fahrzeugbau',NULL,'No-Brainer Recruiting',11500.0,2,'Gewonnen',11500.0,'2026-02-02','2026-02')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-03','2026-02',1,9,'Mail','Bäckerei & Konditorei Diefenbach GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-02-03','2026-02')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-03','2026-02',1,9,'Mail','HolyPoly GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-03','2026-02',1,9,'Ad','Andreas Seise Gebäudetechnik GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-04','2026-02',1,9,'Cold Calling','Petry AG',NULL,'No-Brainer Recruiting',6900.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-04','2026-02',1,9,'Mail','AmbiPark GmbH',NULL,'No-Brainer Recruiting',4600.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-05','2026-02',1,12,'Mail','AMS Brendel GmbH Steuerberatungsgesellschaft',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-02-05','2026-02')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-05','2026-02',1,9,'Mail','Habicht + Sporer GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-02-05','2026-02')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-05','2026-02',1,9,'Cold Calling','MR Landkreis Ansbach GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-02-05','2026-02')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-05','2026-02',1,9,'Cold Calling','MATTHIAS TRÖPGEN Bauunternehmung GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-06','2026-02',1,9,'Mail','Henn GmbH Bauunternehmung',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-02-06','2026-02')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-09','2026-02',1,9,'Cold Calling','Ballmeyer Kälte u. Klima GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-02-09','2026-02')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-10','2026-02',1,9,'Mail','Laudon GmbH & Co. KG',NULL,'No-Brainer Recruiting',6000.0,2,'Gewonnen',6000.0,'2026-02-10','2026-02')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-10','2026-02',1,9,'Ad','Karl Bachl Hoch – und Tiefbau GmbH & Co. KG',NULL,'No-Brainer Recruiting',11500.0,2,'Gewonnen',11500.0,'2026-02-10','2026-02')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-10','2026-02',1,12,'Ad','Vaventus AG Kälte Klima Lüftung',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-02-10','2026-02')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-10','2026-02',1,12,'Cold Calling','Märkl Bau GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-02-10','2026-02')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-11','2026-02',1,9,'Cold Calling','Diehn Heizungstechnik GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-02-11','2026-02')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-11','2026-02',1,9,'Cold Calling','B+S Soziale Dienste FHH GmbH & Co. KG',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-02-11','2026-02')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-11','2026-02',1,12,'Mail','Christian Merle Zahnarztpraxis',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-12','2026-02',1,9,'Mail','Klaistower Hofbäckerei GmbH',NULL,'No-Brainer Recruiting',5000.0,2,'Gewonnen',5000.0,'2026-02-12','2026-02')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-12','2026-02',1,9,'Cold Calling','Auto Amthauer GmbH Hanau',NULL,'No-Brainer Recruiting',5000.0,2,'Gewonnen',5000.0,'2026-02-12','2026-02')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-12','2026-02',1,12,'Mail','Wartig Nord GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-02-12','2026-02')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-12','2026-02',1,9,'Cold Calling','Zöller-Bau GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-16','2026-02',1,9,'Cold Calling','Energieversorgung Main-Spessart GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-02-16','2026-02')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-16','2026-02',1,9,'Cold Calling','IDS Systemumschlag GmbH & Co. KG',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-17','2026-02',1,9,'Cold Calling','Daume',NULL,'No-Brainer Recruiting',5000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-18','2026-02',1,9,'Mail','Gartencenter Heinrich Ramme GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-18','2026-02',1,12,'Mail','topline Bürosysteme Förtsch und Gimpl GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-02-18','2026-02')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-18','2026-02',1,9,'Mail','GSD Gesellschaft für Sparkassendienstleistungen mbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-19','2026-02',1,9,'Mail','Autohaus Wolfrum GmbH Naila',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-02-19','2026-02')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-19','2026-02',1,9,'Mail','BEN Buchele Elektromotorenwerke GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-20','2026-02',1,9,'Mail','Andries GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-20','2026-02',1,9,'Cold Calling','Alterauge GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-02-20','2026-02')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-20','2026-02',1,12,'Cold Calling','Bardowicks.Haus und Holzbau GmbH',NULL,'No-Brainer Recruiting',6000.0,2,'Gewonnen',6000.0,'2026-02-20','2026-02')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-20','2026-02',1,9,'Mail','Autohaus Hammdorf Wolfenbüttel',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-23','2026-02',1,9,'Mail','HOWE Umwelttechnik GmbH',NULL,'No-Brainer Recruiting',10800.0,2,'Gewonnen',10800.0,'2026-02-23','2026-02')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-23','2026-02',1,9,'Cold Calling','Bruno Brenner, Garten- und Landschaftsbau GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-02-23','2026-02')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-25','2026-02',1,9,'Ad','dekarbo GmbH',NULL,'No-Brainer Recruiting',5000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-26','2026-02',1,9,'Mail','PS Union GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-02-26','2026-02')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-26','2026-02',1,12,'Mail','Nord-Spedetion GmbH & Co.KG',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-26','2026-02',1,9,'Mail','Jesko Gärtner Zahnarzt',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-26','2026-02',1,12,'Mail','ZAB Zentrale Akademie für Berufe im Gesundheitswesen GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-02-26','2026-02')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-26','2026-02',1,9,'Mail','Autohaus Peter Ebner',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-27','2026-02',1,12,'Ad','EMG Energie-Management GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-02-27','2026-02')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-02','2026-03',1,9,'Mail','Schnurr GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-02','2026-03',1,12,'Mail','Trans-Service GmbH Schwarzenberg',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-03-02','2026-03')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-02','2026-03',1,12,'Mail','Dr. Boris Henkel und Dr. Jeanette Henkel-Gutjahr Zahnarztpraxis',NULL,'No-Brainer Recruiting',5000.0,2,'Gewonnen',5000.0,'2026-03-02','2026-03')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-03','2026-03',1,9,'Mail','Groschopp AG Drives & More',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-03','2026-03',1,12,'Cold Calling','M. Kratzer Sanitär Heizung Spenglerei GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-03-03','2026-03')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-03','2026-03',1,12,'Mail','Kur- und Sporthotel Appartementhaus GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-04','2026-03',1,9,'Mail','Autohaus Olenik GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-03-04','2026-03')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-04','2026-03',1,12,'Ad','Jens Gottschalk GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-04','2026-03',1,9,'Mail','Autohaus Olenik GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-03-04','2026-03')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-04','2026-03',1,12,'Cold Calling','Gebr. Schnur GmbH',NULL,'No-Brainer Recruiting',4600.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-05','2026-03',1,12,'Mail','ProDEKon Blechtechnik GmbH & Co. KG',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-05','2026-03',1,12,'Cold Calling','mosy GmbH',NULL,'No-Brainer Recruiting',6000.0,2,'Gewonnen',6000.0,'2026-03-05','2026-03')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-05','2026-03',1,12,'Mail','Apotheker Walter Bouhon GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-05','2026-03',1,9,'Mail','Proff Sanitärinstallation GmbH & Co. KG',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-03-05','2026-03')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-05','2026-03',1,12,'Cold Calling','IGW Ingenieure GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-06','2026-03',1,9,'Cold Calling','GEMTEC AG',NULL,'No-Brainer Recruiting',10900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-06','2026-03',1,9,'Cold Calling','Fensterbau Rutsch GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-06','2026-03',1,9,'Mail','Ehrenfels Heizung & Bad GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-03-06','2026-03')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-09','2026-03',1,12,'Mail','Industriebau Haldensleben GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-09','2026-03',1,9,'Cold Calling','ASCANETZ GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-09','2026-03',1,12,'Cold Calling','FLACHGLAS Sachsen GmbH',NULL,'No-Brainer Recruiting',5000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-09','2026-03',1,9,'Empfehlung','Veit Höver GmbH & Co. KG',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-03-09','2026-03')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-09','2026-03',1,9,'Cold Calling','AWOcura gGmbH',NULL,'Individuell',13500.0,2,'Gewonnen',13500.0,'2026-03-09','2026-03')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-10','2026-03',1,9,'Cold Calling','StaMaTec R. Puder Stahl und Maschinenbautechnik GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-11','2026-03',1,9,'Mail','Autohaus Wiese OHG',NULL,'No-Brainer Recruiting',6900.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-11','2026-03',1,12,'Mail','Dr. med. Sybille Hettinger Fachärztin für Augenheilkunde',NULL,'No-Brainer Recruiting',3000.0,2,'Gewonnen',3000.0,'2026-03-11','2026-03')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-11','2026-03',1,12,'Cold Calling','Fahrzeugbau Jahn GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-12','2026-03',1,12,'Cold Calling','SWAP (Sachsen) GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-12','2026-03',1,12,'Mail','phaeno - gemeinnützige GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-13','2026-03',1,12,'Mail','TTL Tapeten-Teppichbodenland Nord Handelsgesellschaft mbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-03-13','2026-03')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-13','2026-03',1,9,'Mail','Dr. med. Jens-Joachim Brücher Dermatologische Praxis',NULL,'Kontingente',12000.0,4,'Gewonnen',12000.0,'2026-03-13','2026-03')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-17','2026-03',1,12,'Cold Calling','Meyer-Tochtrop Bauunternehmen GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-03-17','2026-03')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-18','2026-03',1,9,'Mail','Innotherm Heizsysteme GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-18','2026-03',1,12,'Mail','Laboratoire Biosthetique Kosmetik GmbH & Co. KG',NULL,'No-Brainer Recruiting',12000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-20','2026-03',1,9,'Mail','Industrie- und Tankanlagen Führer&Weingartner GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-03-20','2026-03')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-20','2026-03',1,12,'Mail','Kieser Training GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-03-20','2026-03')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-23','2026-03',1,12,'Mail','Kring & Huppertz GmbH Garten und Landschaftsbau',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-23','2026-03',1,9,'Empfehlung','Allianz Versicherungshaus Hiller',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-23','2026-03',1,9,'Cold Calling','Procuritas Seniorenzentrum Reinigungs GmbH',NULL,'Individuell',13500.0,2,'Gewonnen',13500.0,'2026-03-23','2026-03')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-17','2026-03',1,9,'Cold Calling','Stiftung Pro Gemeinsinn gGmbH',NULL,'Individuell',13500.0,2,'Gewonnen',13500.0,'2026-03-17','2026-03')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-24','2026-03',1,12,'Mail','BBS Brand- und Wasserschadensanierung Gebrüder Berndt GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-03-24','2026-03')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-25','2026-03',1,9,'Cold Calling','Dr. Ulrich-Lange-Stiftung GmbH',NULL,'Individuell',13500.0,3,'Gewonnen',13500.0,'2026-03-25','2026-03')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-25','2026-03',1,12,'Cold Calling','Baukonzept Neubrandenburg GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-25','2026-03',1,12,'Cold Calling','Stadtbäckerei Kühl GmbH & Co. KG',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-26','2026-03',1,9,'Cold Calling','Ramgraber GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-26','2026-03',1,12,'Mail','Hermann Otto GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-03-26','2026-03')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-26','2026-03',1,12,'Cold Calling','C. Schrade GmbH',NULL,'No-Brainer Recruiting',6000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-26','2026-03',1,9,'Cold Calling','Oberberg GmbH',NULL,'Individuell',13500.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-27','2026-03',1,9,'Mail','Kaiser-Karl-Klinik GmbH',NULL,'Individuell',13500.0,3,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-27','2026-03',1,12,'Cold Calling','WiWa Wilko Wagner GmbH',NULL,'Individuell',12000.0,4,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-27','2026-03',1,12,'Cold Calling','Kälte Klima Grässlin GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-03-27','2026-03')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-01','2026-04',1,11,'Cold Calling','Dorow Heizung Lüftung Sanitär GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-04-01','2026-04')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-01','2026-04',1,12,'Cold Calling','Evangelisches Johannesstift Wichernkrankenhaus gGmbH',NULL,'Individuell',13500.0,3,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-01','2026-04',1,12,'Empfehlung','Eloquendo GmbH',NULL,'Individuell',12000.0,4,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-02','2026-04',1,12,'Mail','INTEC Engineering GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-02','2026-04',1,9,'Cold Calling','St. Elisabeth Wohn- und Pflegeheim',NULL,'Individuell',9000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-02','2026-04',1,12,'Follow Up','Ev. Altenheim St. Jacobistift',NULL,'Individuell',13500.0,3,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-02','2026-04',1,9,'Follow Up','Wismarer Werkstätten GmbH',NULL,'Individuell',13500.0,3,'Gewonnen',13500.0,'2026-04-02','2026-04')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-07','2026-04',1,9,'Follow Up','Neu­ro­lo­gi­sche Kli­nik Sel­zer GmbH',NULL,'Individuell',13500.0,3,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-07','2026-04',1,9,'Mail','Sonnhalden | Genossenschaft Regionales Pflegeheim',NULL,'Individuell',9000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-07','2026-04',1,12,'Mail','Golfclub Nippenburg GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-07','2026-04',1,12,'Cold Calling','Malergeschäft Näther GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-04-07','2026-04')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-08','2026-04',1,12,'Cold Calling','I.D.V. Isolier- und Dämmstoff-Vertriebs-GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-04-08','2026-04')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-08','2026-04',1,12,'Cold Calling','Energietechnik Bremen GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-08','2026-04',1,9,'Mail','Seniorensitz am Deister GmbH',NULL,'Individuell',13500.0,3,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-09','2026-04',1,12,'Cold Calling','DOG Deutsche Oelfabrik Gesellschaft für chemische Erzeugnisse mbH & Co. KG',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-04-09','2026-04')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-09','2026-04',1,12,'Mail','Autohaus Hunold GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-09','2026-04',1,12,'Mail','Karl Kühnlein GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-09','2026-04',1,12,'Mail','Autohaus Louis Dresen GmbH',NULL,'Individuell',8000.0,2,'Gewonnen',8000.0,'2026-04-09','2026-04')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-09','2026-04',1,9,'Follow Up','Kolping Bildung Deutschland gGmbH',NULL,'Individuell',13500.0,3,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-09','2026-04',1,9,'Follow Up','Diakonie im Landkreis Karlsruhe gemeinnützige GmbH',NULL,'Individuell',13500.0,3,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-09','2026-04',1,9,'Follow Up','Spitex Region Frauenfeld',NULL,'Kontingente',13500.0,3,'Gewonnen',13500.0,'2026-04-09','2026-04')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-10','2026-04',1,12,'Cold Calling','DRK-Kreisverband Merseburg-Querfurt e.V.',NULL,'Individuell',9000.0,2,'Gewonnen',9000.0,'2026-04-10','2026-04')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-10','2026-04',1,12,'Follow Up','Behandlungszentrum Aschau GmbH',NULL,'Individuell',13500.0,3,'Gewonnen',13500.0,'2026-04-10','2026-04')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-13','2026-04',1,9,'Follow Up','Walther Dachziegel GmbH',NULL,'Individuell',9000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-13','2026-04',1,12,'Mail','Uni Klinik Mainz',NULL,'Individuell',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-13','2026-04',1,9,'Empfehlung','Mörk GmbH & Co. KG',NULL,'Individuell',9000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-14','2026-04',1,9,'Follow Up','Klinikum Peine AöR',NULL,'Individuell',13500.0,3,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-14','2026-04',1,12,'Cold Calling','Arbeiterwohlfahrt Ortsverein Viernheim e. V.',NULL,'Individuell',13500.0,3,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-14','2026-04',1,9,'Mail','Lebenshilfe Fürth e.V.',NULL,'Individuell',13500.0,3,'Gewonnen',13500.0,'2026-04-14','2026-04')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-14','2026-04',1,12,'Mail','Grundbaulabor Bremen, Ingenieurgesellschaft für Geotechnik mbH',NULL,'No-Brainer Recruiting',8000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-14','2026-04',1,12,'Cold Calling','SIMAKA Energie- und Umwelttechnik GmbH',NULL,'No-Brainer Recruiting',6900.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-14','2026-04',1,9,'Mail','Radiologie München eGbR',NULL,'SM + MD',14000.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-15','2026-04',1,9,'Cold Calling','Seniorenzentrum Hirschkamp',NULL,'Individuell',13500.0,3,'Gewonnen',13500.0,'2026-04-15','2026-04')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-15','2026-04',1,12,'Empfehlung','Reifen Fricke GmbH',NULL,'Individuell',9000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-16','2026-04',1,9,'Mail','Lebenshilfe Bruchsal',NULL,'Individuell',27000.0,6,'Gewonnen',27000.0,'2026-04-16','2026-04')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-16','2026-04',1,12,'Empfehlung','HELIOS Klinik Rottweil',NULL,'Individuell',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-16','2026-04',1,12,'Follow Up','Arbeiter-Samariter-Bund Regionalverband Saalekreis Süd e. V.',NULL,'Individuell',13500.0,3,'Gewonnen',13500.0,'2026-04-16','2026-04')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-17','2026-04',1,9,'Cold Calling','Ev. Pflegeheim Lutherstift gGmbH',NULL,'Individuell',9000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-17','2026-04',1,9,'Follow Up','Arbeiter-Samariter-Bund Baden-Württemberg e.V.',NULL,'Individuell',13500.0,3,'Gewonnen',13500.0,'2026-04-17','2026-04')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-17','2026-04',1,9,'Mail','Sankt Vincentius Krankenhaus',NULL,'Individuell',13500.0,3,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-17','2026-04',1,9,'Follow Up','Lebenshilfe Bonn',NULL,'Individuell',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-17','2026-04',1,9,'Follow Up','Diakoneo Krannkenhaus Rangau',NULL,'Individuell',13500.0,3,'Gewonnen',13500.0,'2026-04-17','2026-04')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-20','2026-04',1,12,'Mail','Rheinwohnungsbau Dienstleistungen GmbH',NULL,'Individuell',13500.0,3,'Gewonnen',13500.0,'2026-04-20','2026-04')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-21','2026-04',1,9,'Mail','Heizungs- und Sanitärtechnik Klante Klante GmbH',NULL,'Individuell',12000.0,3,'Gewonnen',12000.0,'2026-04-21','2026-04')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-21','2026-04',1,9,'Empfehlung','Schlosserei Schliebach GmbH',NULL,'No-Brainer Recruiting',8000.0,2,'Gewonnen',8000.0,'2026-04-21','2026-04')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-21','2026-04',1,12,'Mail','Klinikum Stuttgart',NULL,'Individuell',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-21','2026-04',1,12,'Follow Up','Caritas Trägergesellschaft Saarbrücken mbH cts',NULL,'Individuell',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-22','2026-04',1,9,'Cold Calling','Wolfsteiner Altenheim-Stiftung gemeinnützige Betriebsgesellschaft mbH',NULL,'Individuell',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-01','2026-04',1,12,'Cold Calling','Behandlungszentrum Aschau GmbH',NULL,'Kontingente',13500.0,3,'Gewonnen',13500.0,'2026-04-01','2026-04')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-22','2026-04',1,9,'Cold Calling','Lebenshilfe Kreisvereinigung Saarlouis e.V.',NULL,'Individuell',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-23','2026-04',1,9,'Follow Up','Elan-Fitness GmbH',NULL,'Individuell',9000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-23','2026-04',1,9,'Cold Calling','Wohnpark St.Elisabeth',NULL,'Individuell',13500.0,3,'Gewonnen',13500.0,'2026-04-23','2026-04')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-23','2026-04',1,12,'Empfehlung','Krügle & Höhl GmbHSteinmetz- und Bildhauermeisterbetrieb',NULL,'No-Brainer Recruiting',6900.0,2,'Gewonnen',6900.0,'2026-04-23','2026-04')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-23','2026-04',1,12,'Ad','PSORISOL Hautklinik GmbH',NULL,'Individuell',13500.0,3,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-24','2026-04',1,12,'Cold Calling','Klinikum Fichtelgebirge gGmbH',NULL,'Kontingente',17600.0,4,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-24','2026-04',1,9,'Ad','Senioren-Pflegeheim...aus gutem Grund GmbH',NULL,'Individuell',9000.0,2,'Gewonnen',9000.0,'2026-04-24','2026-04')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-27','2026-04',1,9,'Ad','Pflegeteam 4You GmbH',NULL,'Individuell',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-27','2026-04',1,9,'Mail','PflegeMobil Erlangen GmbH',NULL,'Individuell',13500.0,3,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-27','2026-04',1,12,'Cold Calling','radprax Krankenhaus Plettenberg GmbH',NULL,'Individuell',13500.0,3,'Gewonnen',13500.0,'2026-04-27','2026-04')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-27','2026-04',1,12,'Mail','St. Josefskrankenhaus Heidelberg GmbH & Co. KG',NULL,'Individuell',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-27','2026-04',1,9,'Mail','Krone gebäudemanagement und technologie gmbh',NULL,'Individuell',13500.0,3,'Gewonnen',13500.0,'2026-04-27','2026-04')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04',1,9,'Mail','Sozialstation Wendlingen am Neckar e.V.',NULL,'Individuell',13500.0,3,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04',1,12,'Mail','KIRSCHNER HOLDING GmbH',NULL,'Individuell',9000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-04','2026-05',1,12,'Cold Calling','Casa Con Property Management GmbH',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-05-04','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-05','2026-05',1,9,'Cold Calling','Kampfmittelbergung Zimmermann GmbH',NULL,'Kontingente',9000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05',1,9,'Cold Calling','Vogg Haustechnik GmbH & Co. KG',NULL,'Kontingente',9000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05',1,9,'Cold Calling','Planung Hiller GmbH',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-05-06','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05',1,12,'Cold Calling','Weilke Logistik GmbH',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-05-06','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05',1,9,'Cold Calling','Hermanns & Kreutz GmbH & Co. KG',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05',1,9,'Cold Calling','Ernst Hinze GmbH & Co. KG',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-05-06','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-07','2026-05',1,9,'Cold Calling','Metal Check GmbH',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05',1,9,'Cold Calling','Liveco Veranstaltungstechnik GmbH',NULL,'Kontingente',4500.0,1,'Gewonnen',4500.0,'2026-05-08','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05',1,9,'Cold Calling','Speedmaster GmbH',NULL,'Kontingente',13500.0,3,'Gewonnen',13500.0,'2026-05-08','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-11','2026-05',1,9,'Cold Calling','FASTER GmbH',NULL,'Kontingente',9000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-11','2026-05',1,12,'Cold Calling','Lausitzer Stahlbau Ruhland GmbH',NULL,'No-Brainer Recruiting',8000.0,2,'Gewonnen',8000.0,'2026-05-11','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05',1,9,'Cold Calling','T+S Helmrath Logistik GmbH',NULL,'Kontingente',10500.0,3,'Gewonnen',10500.0,'2026-05-12','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05',1,12,'Cold Calling','Spinnler Werkzeugbau GmbH',NULL,'Kontingente',9000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05',1,12,'Cold Calling','Kaupp + Diether GmbH',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05',1,9,'Cold Calling','ESTA-Bildungswerk gemeinnützige GmbH',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05',1,12,'Cold Calling','Heizung und Wasser Adolf und Eberhard Baur GmbH',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-05-13','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05',1,12,'Cold Calling','Kirschenhofer Maschinen GmbH',NULL,'Kontingente',13500.0,3,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05',1,11,'Cold Calling','Tüns Werbetechnik GmbH',NULL,'Kontingente',9000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05',1,12,'Cold Calling','VOGT NDT GmbH',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-05-13','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-15','2026-05',1,12,'Cold Calling','Aufzugtechnik Süd GmbH',NULL,'Kontingente',9000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05',1,9,'Cold Calling','Antonics GmbH',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05',1,9,'Cold Calling','Simon Glas GmbH & Co. KG',NULL,'Kontingente',9000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05',1,12,'Cold Calling','BFT Immobilien GmbH',NULL,'Kontingente',9000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05',1,12,'Cold Calling','GPI Aachen GmbH',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-05-18','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05',1,12,'Cold Calling','Biedensand Bäder Lampertheim GmbH',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-05-18','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05',1,12,'Cold Calling','SRG Schaltanlagen GmbH & Co. KG',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05',1,9,'Cold Calling','SPS Klimatechnische Verkaufsu. Beratungs GmbH',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-05-18','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-19','2026-05',1,12,'Cold Calling','Bauunternehmen Marco Friedrich GmbH',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-05-19','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05',1,12,'Cold Calling','Meile-technik GmbH Heizung-Klima-Sanitär',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-05-20','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05',1,9,'Cold Calling','Sunshine Wintergarten GmbH',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05',1,9,'Cold Calling','PRT Rohrtechnik Berlin-Brandenburg GmbH',NULL,'Kontingente',4500.0,1,'Gewonnen',4500.0,'2026-05-20','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05',1,9,'Cold Calling','Ingenieurbüro Mayer AG',NULL,'Kontingente',27000.0,6,'Gewonnen',27000.0,'2026-05-21','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05',1,9,'Cold Calling','HERBERT Tire Tooling GmbH & Co. KG',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05',1,9,'Cold Calling','ZYNP Europe GmbH',NULL,'Kontingente',4500.0,1,'Gewonnen',4500.0,'2026-05-21','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05',1,9,'Cold Calling','Gipser Schmid GmbH',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-22','2026-05',1,9,'Cold Calling','ImmoProjekt Wohn- und Gewerbeobjekte GmbH',NULL,'Kontingente',9000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05',1,12,'Cold Calling','Hamann GmbH',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-05-21','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-26','2026-05',1,12,'Cold Calling','Tank - Technik - Handel Meiwes GmbH',NULL,'Kontingente',9000.0,4,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-27','2026-05',1,9,'Cold Calling','TE-LOH Germany GmbH',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-27','2026-05',1,9,'Cold Calling','bash-tec GmbH',NULL,'Kontingente',9000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05',1,12,'Cold Calling','SBB Cargo International AG',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05',1,9,'Cold Calling','hw Wenisch Haustechnik GmbH & Co. KG',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05',1,9,'Cold Calling','ITALMOTO Vertriebsgesellschaft mbH',NULL,'Kontingente',5800.0,1,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-29','2026-05',1,9,'Cold Calling','Gebr. Schröder Kabel- und Leitungsbau GmbH',NULL,'Kontingente',5800.0,1,'Gewonnen',5800.0,'2026-05-29','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-29','2026-05',1,12,'Cold Calling','IWS GmbH',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-05-29','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-04','2026-05',1,9,'Cold Calling','Behindertenhilfe Norden gemeinnützige GmbH',NULL,'Individuell',9000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-04','2026-05',1,25,'Follow Up','Reha-Klinik Hausbaden',NULL,'Kontingente',13500.0,3,'Gewonnen',13500.0,'2026-05-04','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-04','2026-05',1,25,'Cold Calling','Senevita AG Bern',NULL,'Kontingente',27000.0,6,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-04','2026-05',1,25,'Empfehlung','Hamburger Hospiz am Deich gGmbH',NULL,'Kontingente',4500.0,1,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-05','2026-05',1,25,'Follow Up','Diakonisches Werk an der Saar gGmbH',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-05','2026-05',1,25,'Follow Up','AllDent Holding GmbH',NULL,'Kontingente',16500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-05','2026-05',1,25,'Mail','Alten- und Pflegeheim St. Michael Kongregation der Barmherzigen Schwestern vom hl. Vinzenz von Paul Deal',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05',1,25,'Follow Up','Gesellschaft für diakonische Altenhilfe Gießen und Linden gGmbH',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-05-06','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05',1,25,'Cold Calling','Spitex Region Kreuzlingen',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05',1,25,'Mail','Altenheim & Pflegeheim Stoltenhof',NULL,'Kontingente',4500.0,1,'Gewonnen',4500.0,'2026-05-06','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05',1,25,'Follow Up','DRK-Kreisverband Halle-Saalkreis-Mansfelder Land e.V.',NULL,'Kontingente',13500.0,3,'Gewonnen',13500.0,'2026-05-06','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05',1,25,'Empfehlung','rehaklinik-montafon',NULL,'Kontingente',18000.0,4,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-07','2026-05',1,25,'Follow Up','ASB-Ortsverband Brandenburg an der Havel e.V.',NULL,'Kontingente',4500.0,1,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-07','2026-05',1,25,'Cold Calling','Stiftung Alters- und Pflegeheim Weggis',NULL,'Kontingente',13500.0,3,'Gewonnen',13500.0,'2026-05-07','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-07','2026-05',1,27,'Mail','Paul Wältring Vieh- und Fleischhandels GmbH',NULL,'Kontingente',4500.0,1,'Gewonnen',4500.0,'2026-05-07','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-07','2026-05',1,27,'Mail','CABINET Schranksysteme AG',NULL,'Kontingente',13500.0,3,'Gewonnen',13500.0,'2026-05-07','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05',1,25,'Mail','Diakonie Kliniken Hunsrück gGmbH',NULL,'Kontingente',13500.0,3,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05',1,25,'Mail','Christliche Bürgerhilfe Sozialstation gGmbH',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-05-08','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-11','2026-05',1,25,'Cold Calling','Seniorenhaus Berghof GmbH',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-05-11','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-11','2026-05',1,25,'Cold Calling','BS Ambulanter Pflegedienst UG',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-11','2026-05',1,25,'Cold Calling','Diabetes-Klinik Bad Mergentheim GmbH & Co. KG',NULL,'Kontingente',27000.0,3,'Gewonnen',27000.0,'2026-05-11','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-11','2026-05',1,25,'Mail','Tabea Diakonie - Pflege Heiligenstadt gGmbH',NULL,'Kontingente',6000.0,1,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-11','2026-05',1,25,'Cold Calling','Schweizer Paraplegiker-Zentrum',NULL,'Kontingente',13500.0,3,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05',1,27,'Cold Calling','E+S Sozialkonzepte gGmbH',NULL,'Kontingente',4500.0,1,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05',1,25,'Cold Calling','Wohn- und Pflegeheim Sonnmatt AG',NULL,'Kontingente',13500.0,3,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05',1,25,'Cold Calling','Spitalzweisimmen',NULL,'Kontingente',13500.0,3,'Gewonnen',13500.0,'2026-05-12','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05',1,25,'Follow Up','Deutsche Steinzeug Cremer & Breuer AG Deal',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-05-12','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05',1,25,'Mail','AlexA Seniorendienste GmbH',NULL,'Kontingente',13500.0,3,'Gewonnen',13500.0,'2026-05-13','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05',1,25,'Cold Calling','Clinica Holistica Engiadina SA',NULL,'Kontingente',26000.0,4,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05',1,25,'Mail','Diakonie-Sozialstation Visselhövede-Bothel gemeinnützige GmbH',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05',1,25,'Mail','Ameos Klinikum Osnabrück',NULL,'Kontingente',13500.0,3,'Gewonnen',13500.0,'2026-05-18','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05',1,25,'Follow Up','Stiftung Haus Tabea',NULL,'Kontingente',13500.0,3,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-19','2026-05',1,25,'Follow Up','Krankenhaus Angermünde',NULL,'Kontingente',13500.0,3,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-19','2026-05',1,27,'Cold Calling','Neue Burg GmbH',NULL,'Kontingente',5800.0,1,'Gewonnen',5800.0,'2026-05-19','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05',1,25,'Follow Up','T r o x l e r-H a u s W u p p e r t a l e. V. Einrichtungen für Seelenpflegebedürftige',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-05-20','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05',1,25,'Follow Up','Fachklinik und Seniorenresidenz Main-Taunus gGmbH Varisano',NULL,'Kontingente',13500.0,3,'Gewonnen',13500.0,'2026-05-20','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05',1,25,'Cold Calling','Spitex Davos',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05',1,25,'Follow Up','AA Alternative Altenhilfe GmbH',NULL,'Kontingente',9000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05',1,25,'Mail','Helios Klinik Müllheim',NULL,'Kontingente',27000.0,6,'Gewonnen',27000.0,'2026-05-21','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05',1,25,'Mail','Neurologisches Rehabilitationszentrum Quellenhof in Bad Wildbad GmbH',NULL,'Kontingente',13500.0,3,'Gewonnen',13500.0,'2026-05-21','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05',1,25,'Follow Up','VAMED Rehazentrum Karlsruhe',NULL,'Kontingente',13500.0,3,'Gewonnen',13500.0,'2026-05-21','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05',1,25,'Mail','Heizungstechnik Service GmbH',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-05-21','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-22','2026-05',1,25,'Mail','Alternativ Wohnen im Alter GmbH',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-05-22','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-07','2026-05',1,24,'Mail','Triptiser Edelstahl GmbH',NULL,'Kontingente',4500.0,1,'Gewonnen',4500.0,'2026-05-07','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-09','2026-05',1,24,'Mail','Chez Mandarin GmbH',NULL,'Kontingente',4500.0,1,'Gewonnen',4500.0,'2026-05-09','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05',1,24,'Mail','CABINET Schranksysteme AG',NULL,'Kontingente',4500.0,1,'Gewonnen',4500.0,'2026-05-08','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-11','2026-05',1,24,'Mail','Heiner Dresrüsse Metallbau GmbH',NULL,'Kontingente',4500.0,1,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05',1,24,'Mail','H. KLEINEBERG GmbH',NULL,'Kontingente',5800.0,NULL,'Gewonnen',5800.0,'2026-05-12','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05',1,24,'Mail','Mein Ofenstudio GmbH',NULL,'Kontingente',4500.0,1,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-19','2026-05',1,24,'Mail','James Marquardt & Co. GmbH',NULL,'Kontingente',5800.0,NULL,'Gewonnen',5800.0,'2026-05-19','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05',1,24,'Mail','Gemeinschaftspraxis Dr. med. Hans-Werner Müller-Dethard und Amir Shobeiry',NULL,'Kontingente',4500.0,1,'Gewonnen',4500.0,'2026-05-08','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-11','2026-05',1,24,'Mail','Rauser Tief- und Straßenbau GmbH',NULL,'Kontingente',4500.0,1,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05',1,24,'Mail','Physiotherapie und medizinische Fitness GmbH',NULL,'Kontingente',5800.0,NULL,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05',1,24,'Mail','ANNABURGER Nutzfahrzeug GmbH',NULL,'Kontingente',4500.0,1,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05',1,24,'Mail','Neltner Großküchen GmbH',NULL,'Kontingente',5800.0,NULL,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05',1,24,'Mail','Donau-Ries Haustechnik GmbH',NULL,'Kontingente',5800.0,NULL,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05',1,24,'Mail','Peter Rieper GmbH & Co. KG',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05',1,24,'Mail','DS Heizung und Sanitär GmbH',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-05-20','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05',1,24,'Mail','Stumpe-Nevels Nachf. GmbH & Co.',NULL,'Kontingente',5800.0,NULL,'Gewonnen',5800.0,'2026-05-21','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05',1,24,'Mail','Christian Reh GmbH',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05',1,24,'Mail','Holger Bartels GmbH',NULL,'Kontingente',5800.0,NULL,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-22','2026-05',1,24,'Mail','W+M Flachdachbau GmbH',NULL,'Kontingente',9000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-22','2026-05',1,24,'Mail','UNI-SERVICE GmbH',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05',1,24,'Mail','Lücking & Härtel GmbH',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-26','2026-05',1,25,'Mail','Verein für Innere Mission in Bremen e. V.',NULL,'Kontingente',13500.0,3,'Gewonnen',13500.0,'2026-05-26','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-26','2026-05',1,25,'Mail','Jesse GmbH',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-26','2026-05',1,25,'Empfehlung','Deutsches Rotes Kreuz Landesverband Schleswig-Holstein e. V.',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-26','2026-05',1,24,'Mail','Baustoff und Gewässer- sanierungs GmbH Dessau',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-26','2026-05',1,25,'Follow Up','Klinikum Lippe GmbH',NULL,'Kontingente',18000.0,4,'Gewonnen',18000.0,'2026-05-26','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-26','2026-05',1,27,'Cold Calling','Alexander-von-Humboldt-Klinik GRZ Geriatrisches Rehabilitationszentrum Betriebsgesellschaft mbH',NULL,'Kontingente',5800.0,1,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-27','2026-05',1,25,'Mail','Intensivpflegedienst exzellent care GmbH',NULL,'Kontingente',5800.0,1,'Gewonnen',5800.0,'2026-05-27','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-27','2026-05',1,24,'Mail','Hörland GmbH',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-05-27','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05',1,25,'Mail','Physiowalk',NULL,'Kontingente',13500.0,3,'Gewonnen',13500.0,'2026-05-28','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05',1,27,'Mail','Pflegeheim Wohnpark Zippendorf GmbH & Co. KG',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05',1,25,'Cold Calling','Cereneo Klinik',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05',1,25,'Cold Calling','ASB Ortsverband Neustadt/Sachsen e.V.',NULL,'Kontingente',13500.0,3,'Gewonnen',13500.0,'2026-05-28','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-29','2026-05',1,24,'Mail','Der Pflegeluchs GmbH',NULL,'Kontingente',4500.0,1,'Gewonnen',4500.0,'2026-05-29','2026-05')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06',1,9,'Mail','Kulina Zerspanungstechnik und Maschinenbau GmbH',NULL,'Kontingente',13500.0,3,'Gewonnen',13500.0,'2026-06-01','2026-06')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06',1,12,'Cold Calling','Jens Gottschalk GmbH',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-02','2026-06',1,12,'Cold Calling','Schrage GmbH',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-02','2026-06',1,12,'Cold Calling','Meusel & Beck GmbH',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-02','2026-06',1,12,'Cold Calling','Artemis Service GmbH',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-02','2026-06',1,12,'Cold Calling','S&P Steuerberatungsgesellschaft GmbH',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-06-02','2026-06')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-05','2026-06',1,9,'Cold Calling','Ohland Straßen- und Tiefbau GmbH',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-06-05','2026-06')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-08','2026-06',1,12,'Cold Calling','Ruhrmann GmbH & Co. KG',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-08','2026-06',1,12,'Cold Calling','SWW Stahlbau Westerwald GmbH',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-06-08','2026-06')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-08','2026-06',1,9,'Cold Calling','CLIMATECH Service GmbH',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-08','2026-06',1,12,'Cold Calling','J. Knittel Söhne Verwaltungsgesellschaft mbH',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-10','2026-06',1,9,'Cold Calling','Claus Hansen Malereibetrieb GmbH',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-10','2026-06',1,12,'Cold Calling','Haar Mecklenburg GmbH & Co. KG',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06',1,27,'Empfehlung','Biedermann Orthopaedietechnik GmbH',NULL,'Kontingente',5800.0,NULL,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06',1,27,'Cold Calling','Vitalis - Häusliche Krankenpflege',NULL,'Kontingente',4500.0,NULL,'Gewonnen',4500.0,'2026-06-01','2026-06')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06',1,24,'Mail','Ingenieurbüro EUKON',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-06-01','2026-06')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06',1,24,'Mail','Karosserie- & Lackierzentrum Büchel GmbH & Co.KG',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-02','2026-06',1,25,'Mail','CBS Caritas Betriebsträgergesellschaft mbH Speyer',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-02','2026-06',1,25,'Cold Calling','GZO AG Spital Wetzikon',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-02','2026-06',1,27,'Mail','Kost Wärmetechnik GmbH',NULL,'Kontingente',5800.0,NULL,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-03','2026-06',1,27,'Mail','Edling + Hammerschmidt Gebäudetechnik GmbH',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-03','2026-06',1,25,'Cold Calling','Arbeiterwohlfahrt Kreisverband Essen e.V.',NULL,'Kontingente',27000.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-03','2026-06',1,27,'Cold Calling','August Karthaus GmbH & Co. KG',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-03','2026-06',1,25,'Follow Up','Sparkasse Barnim Deal',NULL,'Kontingente',17500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-03','2026-06',1,27,'Cold Calling','Haus Abendfrieden',NULL,'Kontingente',5800.0,1,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-03','2026-06',1,27,'Mail','Stöhr Bakery GmbH',NULL,'Kontingente',5800.0,NULL,'Gewonnen',5800.0,'2026-06-03','2026-06')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-04','2026-06',1,25,'Cold Calling','Spitäler Frutigen Meiringen Interlaken AG',NULL,'Kontingente',18000.0,4,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-04','2026-06',1,25,'Follow Up','Kreuzgewölbe GmbH Demenzkompetenzzentrum Sachsen',NULL,'Kontingente',9000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-04','2026-06',1,25,'Follow Up','Klinik Helle Mitte',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-04','2026-06',1,25,'Follow Up','AlexA Seniorendienste GmbH Pirna',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-06-04','2026-06')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-04','2026-06',1,25,'Empfehlung','Deutsches Rotes Kreuz Betreuungsdienste Lübeck gGmbH',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-04','2026-06',1,25,'Cold Calling','Klinik Schöneberg GmbH',NULL,'Kontingente',18000.0,4,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-04','2026-06',1,25,'Follow Up','Geraer Heimbetriebsgesellschaft mbH',NULL,'Kontingente',18000.0,4,'Gewonnen',18000.0,'2026-06-04','2026-06')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-05','2026-06',1,27,'Mail','Physiotherapie am Rheinpark GmbH',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-05','2026-06',1,25,'Follow Up','Deutsches Rotes Kreuz Kreisverband Grafschaft Bentheim e. V.',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-05','2026-06',1,25,'Follow Up','Bonifatius Seniorendienste GmbH',NULL,'kontingente',9000.0,2,'Gewonnen',9000.0,'2026-06-05','2026-06')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-05','2026-06',1,24,'Mail','Gartenwelt Meißner',NULL,'Kontingente',9000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-05','2026-06',1,25,'Follow Up','Diakonische Altenhilfe Siegerland gGmbH',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-08','2026-06',1,25,'Follow Up','PflegeService Wirtz GmbH',NULL,'Kontingente',9000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-08','2026-06',1,27,'Mail','activamed Pflegedienst GmbH',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-08','2026-06',1,24,'Mail','Manfred Kries GmbH',NULL,'Kontingente',5800.0,NULL,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-08','2026-06',1,25,'Follow Up','Diakonische Gesellschaft Wohnen und Beraten mbH DWB',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-08','2026-06',1,25,'Mail','BÜHR Anlagenbau & Service GmbH',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-09','2026-06',1,25,'Mail','Rotor Control GmbH',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-09','2026-06',1,25,'Mail','Hoffbauer-Stiftung Potsdam',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-09','2026-06',1,24,'Cold Calling','Senevita Sunnwies',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-09','2026-06',1,24,'Mail','ZABAG AG',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-09','2026-06',1,25,'Follow Up','Seniorenheim am Pfaffenberg GmbH',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-09','2026-06',1,25,'Mail','IKB Pflegeteam GmbH',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-09','2026-06',1,25,'Mail','Klinik SGM Langenthal',NULL,'Kontingente',27000.0,4,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-09','2026-06',1,24,'Mail','Lutz Technologie GmbH Stefan Lutz',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-06-09','2026-06')
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-09','2026-06',1,27,'Mail','Erich Neter GmbH',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-10','2026-06',1,25,'Cold Calling','Reha- und Kurklinik Eden',NULL,'Kontingente',18000.0,4,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-10','2026-06',1,24,'Mail','WWI Cottbus GmbH',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_nk (datum,monat,company_id,closer_id,quelle,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-10','2026-06',1,25,'Mail','Sport- und Rehacentrum Magdeburg',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-07','2026-01',1,3,'Kettenus','11996','Individuell',31110.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-08','2026-01',1,4,'Collin (G.U.T)',NULL,'Kontingente',4500.0,3,'Gewonnen',4500.0,'2026-01-08','2026-01')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-09','2026-01',1,4,'Elmer zusätzliche drei Standorte',NULL,'Kontingente',3200.0,NULL,'Gewonnen',3200.0,'2026-01-09','2026-01')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-12','2026-01',1,5,'Jogerst Steintechnologie GmbH','11999','Karriereseite',6000.0,12,'Gewonnen',6000.0,'2026-01-12','2026-01')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-13','2026-01',1,4,'Diakoneo','12002','Kontingente',6000.0,2,'Gewonnen',6000.0,'2026-01-13','2026-01')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-13','2026-01',1,3,'Eberhardt Catering','12004','SM + MD',22000.0,12,'Gewonnen',22000.0,'2026-01-13','2026-01')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-13','2026-01',1,5,'KABO-PLASTIC GmbH','12008','SM + MD',21000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-13','2026-01',1,3,'Amixon','12006','Individuell',28500.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-13','2026-01',1,3,'Gustav Ziegler GmbH','12007','Individuell',13600.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-13','2026-01',1,4,'SÜD-HANSA','11998','Karriereseite',6000.0,NULL,'Gewonnen',6000.0,'2026-01-13','2026-01')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-14','2026-01',1,5,'Peter Krüger Sanitär und Heiztechnik','12010','SM + MD',22000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-14','2026-01',1,3,'Codex GmbH','12012','Glaubenssätze',24000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-15','2026-01',1,5,'Gebrüder Reinartz GmbH','12013','Karriereseite',6000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-15','2026-01',1,5,'Peter und Lochner Beratende Ingenieure für Bauwesen GmbH','12016','SM + MD',22500.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-15','2026-01',1,4,'Klaus Hoch- und Tiefbau GmbH','12011','Individuell',45000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-15','2026-01',1,5,'Naumburger Baugesallschaft mbH','12018','Individuell',24000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-15','2026-01',1,4,'Betonpumpenunion GmbH & Co.KG','12014','Kontingente',6000.0,3,'Gewonnen',6000.0,'2026-01-15','2026-01')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-15','2026-01',1,3,'Bähr Ingenieure','12017','Individuell',28000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-19','2026-01',1,5,'Jogerst Steintechnologie GmbH','12036','SM + MD',18000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-19','2026-01',1,5,'GM Getränketechnik & Maschinenbau GmbH','12031','SM + KS + MD',27000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-19','2026-01',1,5,'Trispel GmbH','12034','Kontingente',24000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-20','2026-01',1,3,'AG Niederpöllniz','12038','SM + KS + MD',27000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-20','2026-01',1,5,'SEEDAMM-INDUSTRIEDIENST GmbH','12043','Kontingente',33600.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-20','2026-01',1,4,'Behringer Wohn- und Pflegeheim Wacholderpark GmbH','12039','Karriereseite',6000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-20','2026-01',1,3,'Altek GmbH','12041','Karriereseite',6000.0,12,'Gewonnen',6000.0,'2026-01-20','2026-01')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-20','2026-01',1,4,'GC Collin KG',NULL,'Kontingente',4500.0,3,'Gewonnen',4500.0,'2026-01-20','2026-01')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-21','2026-01',1,3,'H2O Versorgungstechnik','12046','Karriereseite',6000.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-21','2026-01',1,4,'Elektro Enzinger GmbH','12049','Kontingente',4600.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-21','2026-01',1,3,'Apikal','12051','Karriereseite',6000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-21','2026-01',1,3,'Toha','12052','Karriereseite',6000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-22','2026-01',1,5,'Naumburger Baugesallschaft mbH','12054','Individuell',8300.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-22','2026-01',1,5,'SEEDAMM-INDUSTRIEDIENST GmbH','12053','Kontingente',6000.0,2,'Gewonnen',6000.0,'2026-01-22','2026-01')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-23','2026-01',1,4,'Erfurter Gleisbau GmbH','12047','Individuell',24000.0,12,'Gewonnen',24000.0,'2026-01-23','2026-01')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-26','2026-01',1,4,'Lebensstift gGmbH','12058','Kontingente',24000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-26','2026-01',1,3,'Carediag GmbH','12061','Karriereseite',6000.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-26','2026-01',1,4,'BM Green Cooling','2026-01-01 00:00:00','Karriereseite',8300.0,12,'Gewonnen',8300.0,'2026-01-26','2026-01')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-26','2026-01',1,3,'Kettenus','11996','Kontingente',6900.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-26','2026-01',1,3,'Nitsch','11966','Karriereseite',4900.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-27','2026-01',1,5,'Bauer GmbH','12065','SM + KS + MD',28500.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-27','2026-01',1,4,'Drews Marine GmbH','12064','Kontingente',24000.0,12,'Gewonnen',24000.0,'2026-01-27','2026-01')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-28','2026-01',1,3,'Elements Fitness','12067','Individuell',30000.0,12,'Gewonnen',30000.0,'2026-01-28','2026-01')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-29','2026-01',1,4,'RAPEX Heizung & Klimatechnik GmbH','12069','SM + MD',21000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-30','2026-01',1,4,'Eitle GmbH',NULL,'Kontingente',6000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-03','2026-02',1,4,'H. Ludendorff GmbH','12080','Karriereseite',6000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-03','2026-02',1,5,'HKS Hünxer Kraftwerkservice GmbH','2355','Individuell',24000.0,12,'Gewonnen',24000.0,'2026-02-03','2026-02')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-04','2026-02',1,4,'Abwasserverband Bergstraße','12096','SM + MD',21000.0,12,'Gewonnen',21000.0,'2026-02-04','2026-02')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-04','2026-02',1,4,'Pflegezentrum Haus Monika','12098','Karriereseite',6000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-04','2026-02',1,4,'Ulmer GmbH | Bäckerei-Konditorei','12101','Individuell',27000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-06','2026-02',1,4,'Götz Management Holding AG','12107','Kontingente',28800.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-09','2026-02',1,4,'VH Planungsbüro GmbH','12117','Glaubenssätze',36000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-10','2026-02',1,4,'VTA Software & Service GmbH','12115','Kontingente',24000.0,NULL,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-11','2026-02',1,3,'Standex GmbH','12129','Individuell',15200.0,4,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-11','2026-02',1,3,'Sauter Gebäudetechnik GmbH','12127','Karriereseite',6000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-11','2026-02',1,3,'Hans Fischer GmbH','12128','Karriereseite',6000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-12','2026-02',1,3,'Wasserverband Garbsen','12138','SM + KS + MD',24000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-11','2026-02',1,3,'Hochdanner GmbH','12133','Karriereseite',6000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-12','2026-02',1,3,'Wiechmann GmbH','12136','Kontingente',13800.0,6,'Gewonnen',13800.0,'2026-02-12','2026-02')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-12','2026-02',1,5,'Wilhem Ungeheuer Söhne GmbH','12150','Kontingente',9200.0,4,'Gewonnen',9200.0,'2026-02-12','2026-02')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-13','2026-02',1,3,'Waldmann Elektrotechnik GmbH','12140','Karriereseite',6000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-13','2026-02',1,5,'Kunststofftechnik Weißbach GmbH','12143','Shooting',4500.0,NULL,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-13','2026-02',1,3,'Graf Dichtungen GmbH','12144','Karriereseite',6000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-16','2026-02',1,4,'EFFYCOR GmbH','12147','SM + MD',12000.0,6,'Gewonnen',12000.0,'2026-02-16','2026-02')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-16','2026-02',1,4,'Jugendhilfe und Sozialarbeit e.V JuSeV','12079','Karriereseite',6000.0,NULL,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-17','2026-02',1,5,'Calmund + Riemer GmbH','12154','Social-Media',18000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-18','2026-02',1,3,'Energieversorgung Main-Spessart GmbH','12161','Karriereseite',6000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-18','2026-02',1,5,'SEEDAMM-INDUSTRIEDIENST GmbH','12163','Kontingente',9000.0,3,'Gewonnen',9000.0,'2026-02-18','2026-02')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-19','2026-02',1,4,'pakt GmbH','12169','Kontingente',8740.0,4,'Gewonnen',8740.0,'2026-02-19','2026-02')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-23','2026-02',1,31,'Heinz Moritz GmbH','12177','Individuell',27250.0,9,'Gewonnen',27250.0,'2026-02-23','2026-02')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-23','2026-02',1,4,'Diakoneo','12003','Kontingente',30000.0,12,'Gewonnen',30000.0,'2026-02-23','2026-02')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-25','2026-02',1,31,'Sicht-pack Hagner GmbH','11968','KS + MD',12500.0,NULL,'Gewonnen',12500.0,'2026-02-25','2026-02')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-26','2026-02',1,4,'SÜD-HANSA GmbH & Co. KG','12191','Kontingente',24000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-26','2026-02',1,4,'Weigerstorfer GmbH','12196','Kontingente',8000.0,4,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-27','2026-02',1,4,'BM Green Cooling GmbH','12204','Kontingente',6555.0,3,'Gewonnen',6555.0,'2026-02-27','2026-02')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-02','2026-03',1,4,'ELMER Dienstleistungen GmbH & Co. KG','12202','Individuell',129000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-02','2026-03',1,3,'Bardowicks GmbH','12210','Karriereseite',6000.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-03','2026-03',1,4,'Garten Brenner','12215','Karriereseite',6000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-04','2026-03',1,4,'HKA Essen','1220','Karriereseite',6000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-04','2026-03',1,4,'A.S.T. Aufzüge & Service Thieme Silex GmbH','2026-01-01 00:00:00','Kontingente',2300.0,1,'Gewonnen',2300.0,'2026-03-04','2026-03')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-05','2026-03',1,3,'BSU','12159','Karriereseite',6000.0,12,'Gewonnen',6000.0,'2026-03-05','2026-03')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-05','2026-03',1,4,'robatherm GmbH & Co. KG',NULL,'Kontingente',6000.0,2,'Gewonnen',6000.0,'2026-03-05','2026-03')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-10','2026-03',1,5,'IZOBLOK GmbH','12246','Kontingente',12000.0,6,'Gewonnen',12000.0,'2026-03-10','2026-03')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-10','2026-03',1,4,'Heinrich Kördel GmbH','12243','Karriereseite',6000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-10','2026-03',1,4,'RAPEX Heizung & Klimatechnik GmbH','12069','SM + MD',21000.0,12,'Gewonnen',21000.0,'2026-03-10','2026-03')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-10','2026-03',1,5,'SEEDAMM-INDUSTRIEDIENST GmbH','12248','Kontingente',6000.0,2,'Gewonnen',6000.0,'2026-03-10','2026-03')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-10','2026-03',1,4,'Karl Bachl Hoch- und Tiefbau GmbH & Co. KG','12244','Kontingente',4370.0,2,'Gewonnen',4370.0,'2026-03-10','2026-03')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-12','2026-03',1,3,'H2O Versorgungstechnik','12258','Karriereseite',6000.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-16','2026-03',1,3,'Hautambulatorium Magdeburg','12265','Karriereseite',6000.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-17','2026-03',1,3,'Bähr Ingenieure','12017','Shooting',4000.0,NULL,'Gewonnen',4000.0,'2026-03-17','2026-03')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-18','2026-03',1,4,'GT Solar','12276','Kontingente',30000.0,12,'Gewonnen',30000.0,'2026-03-18','2026-03')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-19','2026-03',1,3,'Altek GmbH','12281','Kontingente',6000.0,2,'Gewonnen',6000.0,'2026-03-19','2026-03')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-20','2026-03',1,3,'Autohaus Olenik','12285','Karriereseite',6000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-24','2026-03',1,4,'Karl Ulrich Bauunternehmen GmbH & Co.',NULL,'Kontingente',4600.0,2,'Gewonnen',4600.0,'2026-03-24','2026-03')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-24','2026-03',1,4,'micromod Partikeltechnologie GmbH','12296','Kontingente',4600.0,2,'Gewonnen',4600.0,'2026-03-24','2026-03')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-27','2026-03',1,3,'THIEME GmbH & Co. KG','11732','Karriereseite',6000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-30','2026-03',1,3,'TechnoTeam','12312','Shooting',3000.0,0,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-31','2026-03',1,3,'Autohaus Hottgenroth','12317','Kontingente',6000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-01','2026-04',1,6,'BBS','DA 526044-2','Karriereseite',10800.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-01','2026-04',1,7,'Knappschaft Klinikum Saar','Telefon','Kontingente',32400.0,12,'Gewonnen',32400.0,'2026-04-01','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-07','2026-04',1,8,'Mediclin Müritz','AG 2604022','Karriereseite',14000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-08','2026-04',1,7,'Kommunalunternehmen Fürstenfeldbruck',NULL,'Kontingente',33600.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-08','2026-04',1,8,'ASB Zwickau','aus VT','Shooting',4000.0,NULL,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-09','2026-04',1,8,'Kälte Klima Grässlin','Mail','SBB',6000.0,12,'Gewonnen',6000.0,'2026-04-09','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-09','2026-04',1,7,'VITREA Hattingen','Telefon','Kontingente',12000.0,4,'Gewonnen',12000.0,'2026-04-09','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-09','2026-04',1,7,'Uniklinik Regensburg','Termin','SBB',6000.0,12,'Gewonnen',6000.0,'2026-04-09','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-09','2026-04',1,7,'Klinkum Fürth',NULL,'Kontingente',14400.0,6,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-09','2026-04',1,6,'ProCuritas',NULL,'Social-Media',24000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-09','2026-04',1,7,'Schwarzwald Baar Klinikum','WK Termin','SBB',6000.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-10','2026-04',1,7,'Newcare','/','Kontingente',12000.0,3,'Gewonnen',12000.0,'2026-04-10','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-13','2026-04',1,6,'EV. Altenheimat','-','Initiale Kontingenterweiterung',16800.0,12,'Gewonnen',16800.0,'2026-04-13','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-13','2026-04',1,3,'Eberhardt Catering','12346','Individuell',10000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-14','2026-04',1,7,'Helios Wiesbaden',NULL,'Kontingente',60000.0,12,'Gewonnen',60000.0,'2026-04-14','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-14','2026-04',1,6,'Medicare',NULL,'Initiale Kontingenterweiterung',9800.0,7,'Gewonnen',9800.0,'2026-04-14','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-14','2026-04',1,6,'st. Josef Wiesbaden',NULL,'Initiale Kontingenterweiterung',8400.0,6,'Gewonnen',8400.0,'2026-04-14','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-14','2026-04',1,7,'VR Bank',NULL,'SBB',6000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-14','2026-04',1,4,'Brandt Schokoladen',NULL,'Kontingente',6900.0,3,'Gewonnen',6900.0,'2026-04-14','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-14','2026-04',1,7,'Klinikverbund Südwest',NULL,'Kontingente',33600.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-15','2026-04',1,6,'Sophienstiftung',NULL,'Initiale Kontingenterweiterung',8400.0,6,'Gewonnen',8400.0,'2026-04-15','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-15','2026-04',1,6,'st. Josef Wiesbaden',NULL,'Initiale Kontingenterweiterung',4200.0,3,'Gewonnen',4200.0,'2026-04-15','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-15','2026-04',1,7,'Otto Chemie',NULL,'SBB',1000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-16','2026-04',1,6,'LA Regio',NULL,'Initiale Kontingenterweiterung',16800.0,12,'Gewonnen',16800.0,'2026-04-16','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-16','2026-04',1,7,'Klinikum Main Spessart',NULL,'Initiale Kontingenterweiterung',4200.0,3,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-16','2026-04',1,7,'Klinikum Hanau',NULL,'Initiale Kontingenterweiterung',4200.0,3,'Gewonnen',4200.0,'2026-04-16','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-16','2026-04',1,7,'Karl Jaspers Klinik',NULL,'SBB',6000.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-16','2026-04',1,8,'Heimatliebe Bodensee GmbH',NULL,'Shooting',5000.0,NULL,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-17','2026-04',1,8,'Sternenbrücke Hamburg',NULL,'Kontingente',31500.0,12,'Gewonnen',31500.0,'2026-04-17','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-17','2026-04',1,7,'Aphasie Zentrum',NULL,'Kontingente',32400.0,12,'Gewonnen',32400.0,'2026-04-17','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-17','2026-04',1,8,'Mediclin Müritz',NULL,'Kontingente',32400.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-20','2026-04',1,6,'Barmherzige Regensburg',NULL,'Kontingente',13200.0,3,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-20','2026-04',1,6,'RBK',NULL,'Initiale Kontingenterweiterung',4200.0,3,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-20','2026-04',1,6,'SLK',NULL,'Initiale Kontingenterweiterung',4200.0,3,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-20','2026-04',1,6,'Barmherzige Regensburg',NULL,'Kontingente',33600.0,12,'Gewonnen',33600.0,'2026-04-20','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-20','2026-04',1,4,'CBM GmbH','12358','Kontingente',13110.0,6,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-21','2026-04',1,4,'Krumbein','RF-2604001','Kontingente',7000.0,2,'Gewonnen',7000.0,'2026-04-21','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-21','2026-04',1,8,'KSP CNC-Technik GmbH',NULL,'KS + MD',17500.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-21','2026-04',1,8,'Auto Amthauer',NULL,'KS + MD',17500.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-21','2026-04',1,6,'Klinkum Gelsenkirchen',NULL,'Kontingente',33600.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-22','2026-04',1,6,'ProCuritas','MAil GF','Initiale Kontingenterweiterung',27000.0,6,'Gewonnen',27000.0,'2026-04-22','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-22','2026-04',1,8,'Vaventus AG','Telefon','Karriereseite',14000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-22','2026-04',1,4,'EFFYCOR',NULL,'Kontingente',48000.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-22','2026-04',1,8,'Kälte Klima Grässlin',NULL,'Kontingente',9000.0,3,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-23','2026-04',1,4,'Valet und Ott',NULL,'Kontingente',12000.0,6,'Gewonnen',12000.0,'2026-04-23','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-23','2026-04',1,7,'Dr. Ulrich lange Stiftung',NULL,'Karriereseite',14000.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-23','2026-04',1,7,'UniKlinik Regensburg',NULL,'Initiale Kontingenterweiterung',4200.0,4,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-23','2026-04',1,6,'Christliches Krankenhaus Quakenbrück',NULL,'Kontingente',9000.0,3,'Gewonnen',9000.0,'2026-04-23','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-24','2026-04',1,6,'LBS Süd',NULL,'Initiale Kontingenterweiterung',2800.0,2,'Gewonnen',2800.0,'2026-04-24','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-24','2026-04',1,8,'Demenzpflege Bovenden','Telefon','SBB',6000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-24','2026-04',1,6,'Haus Edelberg',NULL,'Initiale Kontingenterweiterung',120000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-24','2026-04',1,4,'Talk Tools GmbH',NULL,'Kontingente',24000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-27','2026-04',1,8,'Dorow Heizung GmbH',NULL,'Karriereseite',8000.0,NULL,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-27','2026-04',1,4,'Heinrich Kördel',NULL,'Kontingente',43200.0,12,'Gewonnen',43200.0,'2026-04-27','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-27','2026-04',1,7,'SUAVIA',NULL,'Kontingente',32400.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-27','2026-04',1,7,'AMF',NULL,'Kontingente',28200.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-27','2026-04',1,7,'DRK-Kreisverband Merseburg-Querfurt',NULL,'KS + MD',17500.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-27','2026-04',1,7,'Lammetal GmbH',NULL,'KS + MD',19000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04',1,4,'TTL Tapeten-Teppichbodenland Nord Handelsgesellschaft mbH',NULL,'Kontingente',6900.0,NULL,'Gewonnen',6900.0,'2026-04-28','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04',1,4,'HLW GmbH Tank- und Fahrzeugbau',NULL,'Kontingente',7000.0,NULL,'Gewonnen',7000.0,'2026-04-28','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04',1,8,'Metzger Guttjahr Stiftung','telefon','SBB',6000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04',1,6,'Caritas Bruchsal',NULL,'Kontingente',27600.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04',1,6,'Caritas krankenhaus Lebach',NULL,'Kontingente',22500.0,5,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04',1,4,'VPT Kompressoren',NULL,'Kontingente',16500.0,6,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04',1,4,'Müller Gerüstbau',NULL,'Kontingente',7000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04',1,4,'pakt GmbH',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-04-28','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-29','2026-04',1,8,'Malerbetrieb Näther',NULL,'Karriereseite',24000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-29','2026-04',1,7,'Median NRZ Magdeburg',NULL,'Kontingente',7500.0,3,'Gewonnen',7500.0,'2026-04-29','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-29','2026-04',1,6,'Bad Belzig',NULL,'Kontingente',80000.0,12,'Gewonnen',80000.0,'2026-04-29','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-30','2026-04',1,4,'Caritasverband Pforzheim',NULL,'Kontingente',24000.0,12,'Gewonnen',24000.0,'2026-04-30','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-30','2026-04',1,8,'AWO Köln',NULL,'Kontingente',60000.0,24,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-30','2026-04',1,6,'Suedwesttouristik',NULL,'Kontingente',3000.0,1,'Gewonnen',3000.0,'2026-04-30','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-30','2026-04',1,8,'Osma Werm GmbH',NULL,'Kontingente',2300.0,1,'Gewonnen',2300.0,'2026-04-30','2026-04')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-04','2026-05',1,8,'X-tention','AG_2605002','Kontingente',25200.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-04','2026-05',1,8,'Autohaus Louis Dresen','AG_2605003','KS + MD',17500.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-05','2026-05',1,8,'ZAB','Telefon','SBB',6000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-05','2026-05',1,8,'Meyer-Tochtrop','Telefon','SBB',6000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-05','2026-05',1,4,'Trispel GmbH',NULL,'Kontingente',13500.0,3,'Gewonnen',13500.0,'2026-05-05','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-05','2026-05',1,7,'Gesundheit Nordhessen',NULL,'Kontingente',17400.0,6,'Gewonnen',17400.0,'2026-05-05','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05',1,6,'Valens',NULL,'Kontingente',68000.0,12,'Gewonnen',68000.0,'2026-05-06','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05',1,6,'GFO Niederrhein',NULL,'Kontingente',6000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05',1,7,'Kutzner',NULL,'SBB',6000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05',1,7,'Median Sonnenwende',NULL,'Kontingente',13000.0,4,'Gewonnen',13000.0,'2026-05-06','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05',1,8,'Dr. Leonhard',NULL,'Kontingente',9000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-07','2026-05',1,6,'KARAWANE',NULL,'Social-Media',15000.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-07','2026-05',1,4,'Rocholl',NULL,'Kontingente',13500.0,3,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-07','2026-05',1,6,'KMG',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05',1,4,'Altek',NULL,'Kontingente',1500.0,NULL,'Gewonnen',1500.0,'2026-05-08','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-07','2026-05',1,7,'Uniklinik Regensburg',NULL,'Kontingente',60000.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-07','2026-05',1,8,'Wohnpark St. Elisabeth',NULL,'KS + MD',12000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05',1,8,'Krügle&Höhl',NULL,'SBB',2000.0,4,'Gewonnen',2000.0,'2026-05-08','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05',1,7,'Caritas Wohnen udn Pflege',NULL,'Shooting',5000.0,NULL,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05',1,8,'Krügle&Höhl',NULL,'Shooting',4000.0,NULL,'Gewonnen',4000.0,'2026-05-08','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05',1,8,'Dorow Heiztechnik',NULL,'SBB',6000.0,12,'Gewonnen',6000.0,'2026-05-08','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05',1,7,'DRK Halle Saale',NULL,'KS + MD',17000.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05',1,8,'Reha Klinik Hausbaden',NULL,'KS + MD',17500.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-11','2026-05',1,6,'Agravis',NULL,'Initiale Kontingenterweiterung',12600.0,9,'Gewonnen',12600.0,'2026-05-11','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-11','2026-05',1,6,'Ev. Altenheimat',NULL,'Karriereseite',8000.0,12,'Gewonnen',8000.0,'2026-05-11','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-11','2026-05',1,4,'Spedition Seidel',NULL,'Kontingente',24000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-11','2026-05',1,7,'Rehaklinik Tschugg',NULL,'KS + MD',19000.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-11','2026-05',1,7,'newcare',NULL,'Kontingente',3000.0,1,'Gewonnen',3000.0,'2026-05-11','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05',1,6,'LBS Nordwest',NULL,'SBB',2500.0,2,'Gewonnen',2500.0,'2026-05-12','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05',1,7,'Diakonie Mettmann',NULL,'Kontingente',33600.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05',1,7,'Diakonie Mettmann',NULL,'Shooting',3000.0,1,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05',1,4,'BSU Sanierungsunion Berlin',NULL,'SM + MD',24000.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05',1,8,'Izoblok',NULL,'SM + KS + MD',26000.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05',1,8,'Demenzpflege Bovenden',NULL,'SM + MD',12000.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05',1,7,'Klinikverbund Südwest',NULL,'Kontingente',16200.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05',1,4,'ELMER Dienstleistungs GmbH',NULL,'Kontingente',36000.0,12,'Gewonnen',36000.0,'2026-05-12','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2025-05-13','2026-05',1,7,'ASB Saalekreis',NULL,'KS + MD',19000.0,12,'Gewonnen',19000.0,'2025-05-13','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2025-05-13','2026-05',1,7,'ASB Saalekreis',NULL,'Social-Media',24000.0,12,'Gewonnen',24000.0,'2025-05-13','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05',1,6,'BBS Berndt',NULL,'SBB',6000.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05',1,8,'Paul Wältring',NULL,'KS + MD',11000.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05',1,8,'BRK Altötting',NULL,'Kontingente',19300.0,6,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05',1,6,'Altenhilfe Gießen',NULL,'Kontingente',9000.0,2,'Gewonnen',9000.0,'2026-05-13','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-15','2026-05',1,7,'DRK Rhein Main Taunus',NULL,'Kontingente',4200.0,3,'Gewonnen',4200.0,'2026-05-15','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05',1,8,'Casa con Property',NULL,'KS + MD',17500.0,NULL,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05',1,6,'GFO Niederrhein',NULL,'Kontingente',3000.0,1,'Gewonnen',3000.0,'2026-05-18','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05',1,6,'Awo Bonn',NULL,'SBB',6000.0,12,'Gewonnen',6000.0,'2026-05-18','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05',1,8,'Christliche Bürgerhilfe Sozialstation gGmbH',NULL,'KS + MD',11500.0,NULL,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-18','2026-05',1,7,'KB Kunststoffhandel',NULL,'Kontingente',6000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-19','2026-05',1,4,'Seedamm Industriedienst',NULL,'Kontingente',13500.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-19','2026-05',1,8,'Wilhelm Rosebrock',NULL,'SBB',3000.0,6,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05',1,7,'DRK Lüchow Dannenberg',NULL,'SBB',6000.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05',1,8,'Rheinwohnungsbau',NULL,'SM + MD',6000.0,3,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05',1,7,'Johanniter Godeshöhe',NULL,'Kontingente',33600.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05',1,7,'Johanniter Godeshöhe',NULL,'Shooting',3000.0,NULL,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05',1,4,'Daikin Fluid Technology',NULL,'Individuell',55500.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05',1,8,'Vaventus AG',NULL,'Kontingente',33600.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05',1,4,'robatherm',NULL,'Kontingente',16000.0,4,'Gewonnen',16000.0,'2026-05-20','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-20','2026-05',1,4,'Talk Tools GmbH',NULL,'Kontingente',7500.0,3,'Gewonnen',7500.0,'2026-05-20','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05',1,6,'Immanuel ML',NULL,'Kontingente',18000.0,6,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05',1,4,'BM Green Cooling GmbH',NULL,'Kontingente',17000.0,4,'Gewonnen',17000.0,'2026-05-21','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05',1,6,'Diakonie Münster',NULL,'SBB',6000.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05',1,6,'diakonie Münster',NULL,'Kontingente',13200.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-21','2026-05',1,7,'Median Brandis',NULL,'Kontingente',5000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-22','2026-05',1,7,'Rommel Klinik',NULL,'SM + MD',27000.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-22','2026-05',1,4,'Erfurter Gleisbau',NULL,'Kontingente',24000.0,6,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-22','2026-05',1,4,'Industrie und Tankanlagenbau',NULL,'Kontingente',8000.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-22','2026-05',1,6,'Südwest Touristik',NULL,'Kontingente',32400.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-22','2026-05',1,6,'Haus Edelberg',NULL,'Kontingente',9000.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-22','2026-05',1,7,'KH Plettenberg',NULL,'SM + MD',27000.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-22','2026-05',1,8,'Stiftung APW',NULL,'KS + MD',18000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-22','2026-05',1,7,'Seniorenhaus Berghof',NULL,'KS + MD',14600.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-22','2026-05',1,7,'Aphasiezentrum',NULL,'Kontingente',2800.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-26','2026-05',1,6,'Spitalstiftung Konstanz',NULL,'Kontingente',50200.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-26','2026-05',1,7,'Energieversorgung Main Spessart',NULL,'Kontingente',17400.0,6,'Gewonnen',17400.0,'2026-05-26','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-26','2026-05',1,6,'Wichernhaus',NULL,'Kontingente',32400.0,12,'Gewonnen',32400.0,'2026-05-26','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-27','2026-05',1,4,'Sieper',NULL,'Kontingente',4600.0,2,'Gewonnen',4600.0,'2026-05-27','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-27','2026-05',1,8,'Caritas Breisgau',NULL,'SBB',1000.0,2,'Gewonnen',1000.0,'2026-05-27','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-27','2026-05',1,7,'newcare',NULL,'Kontingente',9000.0,3,'Gewonnen',9000.0,'2026-05-27','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05',1,8,'Wilhelm Ungeheuer Söhne GmbH',NULL,'Kontingente',1300.0,2,'Gewonnen',1300.0,'2026-05-28','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05',1,4,'Spedition Seidel',NULL,'Kontingente',9000.0,3,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05',1,4,'Industrie und Tankanlagenbau',NULL,'Kontingente',550.0,1,'Gewonnen',550.0,'2026-05-28','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05',1,4,'ATOS Klinik',NULL,'Kontingente',1500.0,2,'Gewonnen',1500.0,'2026-05-28','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05',1,4,'Proff Sanitärinstallation GmbH & Co. KG',NULL,'Kontingente',550.0,1,'Gewonnen',550.0,'2026-05-28','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05',1,4,'HOWE Umwelttechnik GmbH',NULL,'Kontingente',2750.0,5,'Gewonnen',2750.0,'2026-05-28','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05',1,4,'Thomas Waidner GmbH Werkzeugbau und Metallwaren',NULL,'Kontingente',1650.0,3,'Gewonnen',1650.0,'2026-05-28','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-29','2026-05',1,4,'Kunststofftechnik Weißbach',NULL,'Kontingente',4500.0,1,'Gewonnen',4500.0,'2026-05-29','2026-05')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-29','2026-05',1,4,'Kunststofftechnik Weißbach',NULL,'SM + MD',21000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-29','2026-05',1,7,'Main-Kinzig-Klinik',NULL,'Kontingente',5600.0,4,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-29','2026-05',1,7,'Knappschaft Kliniken',NULL,'Kontingente',2800.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-29','2026-05',1,6,'Heizkurier',NULL,'Karriereseite',11000.0,NULL,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-29','2026-05',1,7,'DRK Schleswig Holstein',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06',1,4,'KST Motorenversuch',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06',1,7,'PflegeNetz GmbH',NULL,'Kontingente',9000.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06',1,7,'Bürgerhospital Frankfurt',NULL,'Kontingente',2800.0,2,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06',1,4,'Emmerich Pumpen',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06',1,4,'Dr. Ecklebe GmbH',NULL,'Kontingente',1650.0,3,'Gewonnen',1650.0,'2026-06-01','2026-06')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06',1,4,'Dr. Ecklebe Engineering GmbH',NULL,'Kontingente',1650.0,3,'Gewonnen',1650.0,'2026-06-01','2026-06')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06',1,7,'DRK Lübeck',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-02','2026-06',1,7,'Lebenshilfe Bruchsal-Bretten',NULL,'Kontingente',9000.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-02','2026-06',1,7,'Martin Bruch',NULL,'Kontingente',2800.0,2,'Gewonnen',2800.0,'2026-06-02','2026-06')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-02','2026-06',1,4,'Holthausen GmbH',NULL,'Kontingente',24000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-02','2026-06',1,4,'Holthausen GmbH',NULL,'SM + MD',21000.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-02','2026-06',1,8,'Stoltenhof',NULL,'KS + MD',12000.0,NULL,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-03','2026-06',1,7,'Friesenwarf',NULL,'Kontingente',32400.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-03','2026-06',1,8,'Standex',NULL,'Kontingente',1300.0,2,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-05','2026-06',1,8,'Werner Wicker Klinik',NULL,'Kontingente',62400.0,24,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-05','2026-06',1,8,'Bauunternehmen Marco Friedrich',NULL,'KS + MD',14500.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-05','2026-06',1,7,'Vitrea Karlsruhe',NULL,'Kontingente',13500.0,3,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-05','2026-06',1,7,'Vitrea Ulm',NULL,'KS + MD',12100.0,12,'Verloren',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-08','2026-06',1,8,'Malerbetrieb Näther',NULL,'KS + MD',13800.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-08','2026-06',1,8,'Malerbetrieb Näther',NULL,'Kontingente',6000.0,2,'Gewonnen',6000.0,'2026-06-08','2026-06')
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-09','2026-06',1,8,'SWALK',NULL,'KS + MD',13800.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_bk (datum,monat,company_id,kam_id,kunde,angebotsnummer,dienstleistung,angebotswert,laufzeit_monate,status,ae_wert,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-09','2026-06',1,7,'MVZ Gelenkklinik',NULL,'Kontingente',32400.0,12,'Offen',0,NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-02','2026-01',1,3,'Gerresheimer Tettau GmbH','Kontingentvertrag',4600.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-05','2026-01',1,5,'Sozialwerk Heuser Heimbetriebsgesellschaft für Nordrhein-Westfalen mbH','Kontingentvertrag',4600.0,4600.0,2,'Gewonnen','2026-01-05','2026-01')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-06','2026-01',1,3,'Audio Design Lautsprecher Vertriebs GmbH','Kontingentvertrag',6000.0,6000.0,2,'Gewonnen','2026-01-06','2026-01')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-08','2026-01',1,4,'Seidel Transport- und Handelsgesellschaft mbH','Kontingentvertrag',4600.0,4600.0,2,'Gewonnen','2026-01-08','2026-01')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-09','2026-01',1,4,'Elmer Gruppe','Kontingentvertrag',9000.0,9000.0,6,'Gewonnen','2026-01-09','2026-01')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-10','2026-01',1,5,'Holz Kogler GmbH & Co.KG','Kontingentvertrag',4600.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-10','2026-01',1,5,'Peter Krüger Sanitär- und Heizungstechnik','Kontingentvertrag',6000.0,6000.0,2,'Gewonnen','2026-01-10','2026-01')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-11','2026-01',1,5,'Landhaus-Bau Glinstedt GmbH','Kontingentvertrag',6000.0,6000.0,2,'Gewonnen','2026-01-11','2026-01')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-12','2026-01',1,3,'GFI Gesellschaft für Feuerschutzund Installationen mbH','Kontingentvertrag',9200.0,9200.0,4,'Gewonnen','2026-01-12','2026-01')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-14','2026-01',1,4,'AuraIntense24 GmbH','Kontingentvertrag',6000.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-19','2026-01',1,4,'Mager & Wedemeyer Werkzeugmaschinen GmbH','Kontingentvertrag',4600.0,4600.0,2,'Gewonnen','2026-01-19','2026-01')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-19','2026-01',1,3,'OSMA-Werm GmbH','Kontingentvertrag',4600.0,4600.0,2,'Gewonnen','2026-01-19','2026-01')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-21','2026-01',1,3,'Scienion GmbH','Kontingentvertrag',9200.0,9200.0,4,'Gewonnen','2026-01-21','2026-01')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-24','2026-01',1,4,'Abwasserverband Bergstraße','Kontingentvertrag',4600.0,4600.0,2,'Gewonnen','2026-01-24','2026-01')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-24','2026-01',1,4,'HSE-Haustechnik GmbH','Kontingentvertrag',4600.0,4600.0,2,'Gewonnen','2026-01-24','2026-01')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-25','2026-01',1,4,'GARANT Türen und Zargen GmbH','Kontingentvertrag',4600.0,4600.0,2,'Gewonnen','2026-01-25','2026-01')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-25','2026-01',1,5,'GM Getränketechnik & Maschinenbau GmbH','Kontingentvertrag',4600.0,4600.0,2,'Gewonnen','2026-01-25','2026-01')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-28','2026-01',1,4,'robatherm GmbH & Co. KG','Kontingentvertrag',6000.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-28','2026-01',1,5,'SBF Spezialleuchten GmbH','Kontingentvertrag',4600.0,4600.0,2,'Gewonnen','2026-01-28','2026-01')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-29','2026-01',1,3,'schoko Pro GmbH','Kontingentvertrag',4600.0,4600.0,2,'Gewonnen','2026-01-29','2026-01')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-30','2026-01',1,3,'exceet Card AG','Kontingentvertrag',9200.0,9200.0,4,'Gewonnen','2026-01-30','2026-01')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-30','2026-01',1,3,'Thomas Scherz Dental Keramik GmbH','Kontingentvertrag',6000.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-06','2026-01',1,4,'AuraIntense24 GmbH','Kontis',6000.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2025-12-30','2026-01',1,5,'Ilsenburger Heimstatt für Jung und Alt e.V.','Kontis',6000.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-07','2026-01',1,4,'Höhne GmbH','Kontis',6000.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-09','2026-01',1,5,'Holz Kogler GmbH & Co.KG','Kontis',4600.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-01','2026-01',1,3,'Gerresheimer Tettau GmbH','Kontis',4600.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-13','2026-01',1,4,'ACR Chiller Rent GmbH','Kontis',NULL,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-16','2026-01',1,4,'Seidel Transport- und Handelsgesellschaft mbH','Kontis',4600.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-20','2026-01',1,5,'Landhaus-Bau Glinstedt GmbH','Kontis',6000.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-01','2026-02',1,5,'Logatec GmbH','Kontingente',4600.0,4600.0,2,'Gewonnen','2026-02-01','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-01','2026-02',1,5,'Diakoniestation am Ev. Krankenhaus Lippstadt gGmbH','Kontingente',4600.0,4600.0,2,'Gewonnen','2026-02-01','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-02','2026-02',1,5,'Gerke-Kälte-Klima GmbH','Kontingente',9000.0,9000.0,6,'Gewonnen','2026-02-02','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-02','2026-02',1,5,'Wilhelm Ungeheuer Söhne GmbH','Kontingente',4600.0,4600.0,2,'Gewonnen','2026-02-02','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-02','2026-02',1,5,'HKS Hünxer Kraftwerkservice GmbH','Kontingente',4600.0,4600.0,2,'Gewonnen','2026-02-02','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-02','2026-02',1,3,'Luban Präzisionszerspanung GmbH','Kontingente',6000.0,6000.0,2,'Gewonnen','2026-02-02','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-03','2026-02',1,4,'TSL GmbH','Kontingente',4600.0,4600.0,2,'Gewonnen','2026-02-03','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-03','2026-02',1,5,'IZOBLOK GmbH','Kontingente',4600.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-03','2026-02',1,5,'Trispel GmbH','Kontingente',4600.0,4600.0,2,'Gewonnen','2026-02-03','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-04','2026-02',1,3,'apikal Anlagenbau GmbH','Kontingente',4600.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-04','2026-02',1,3,'Helmut Haas GmbH','Kontingente',4600.0,4600.0,2,'Gewonnen','2026-02-04','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-05','2026-02',1,3,'pasapa Mensch und Beruf e.V.','Kontingente',4600.0,4600.0,2,'Gewonnen','2026-02-05','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-05','2026-02',1,5,'BRILLEN BECKER GmbH','Kontingente',4600.0,4600.0,2,'Gewonnen','2026-02-05','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-05','2026-02',1,5,'Heiztechnik Mühlhausen GmbH','Kontingente',4600.0,4600.0,2,'Gewonnen','2026-02-05','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-05','2026-02',1,5,'Niehoff Sitzmöbel GmbH','Kontingente',4600.0,4600.0,2,'Gewonnen','2026-02-05','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-05','2026-02',1,4,'Jugendhilfe und Sozialarbeit e. V.','Kontingente',6000.0,6000.0,2,'Gewonnen','2026-02-05','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-08','2026-02',1,4,'DRK-Kreisverband Peine e.V.','Kontingente',6000.0,6000.0,2,'Gewonnen','2026-02-08','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-08','2026-02',1,5,'Peter und Lochner Beratende Ingenieure für Bauwesen GmbH','Kontingente',4600.0,4600.0,2,'Gewonnen','2026-02-08','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-08','2026-02',1,5,'Wilhelm Rosebrock GmbH & Co.KG','Kontingente',4600.0,4600.0,2,'Gewonnen','2026-02-08','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-08','2026-02',1,5,'Marienstift Dorfen','Kontingente',4600.0,4600.0,2,'Gewonnen','2026-02-08','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-09','2026-02',1,3,'Langer E-Technik GmbH','Kontingente',4600.0,4600.0,2,'Gewonnen','2026-02-09','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-10','2026-02',1,4,'EFFYCOR GmbH','Kontingente',9200.0,9200.0,4,'Gewonnen','2026-02-10','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-13','2026-02',1,3,'Technoteam','Social-Media',18000.0,18000.0,12,'Gewonnen','2026-02-13','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-13','2026-02',1,3,'Technoteam','Wartung und Hosting KS',2388.0,2388.0,12,'Gewonnen','2026-02-13','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-14','2026-02',1,4,'KMG Ingenieurgesellschaft für Gebäude- und Versorgungstechnik mbH','Social-Media',18000.0,18000.0,12,'Gewonnen','2026-02-14','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-14','2026-02',1,4,'KMG Ingenieurgesellschaft für Gebäude- und Versorgungstechnik mbH','Wartung und Hosting KS',3600.0,3600.0,12,'Gewonnen','2026-02-14','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-16','2026-02',1,4,'IBES Baugrundinstitut Freiberg GmbH','Kontingente',9200.0,9200.0,4,'Gewonnen','2026-02-16','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-17','2026-02',1,5,'H&H Gerätebau GmbH','Kontingente',6000.0,6000.0,2,'Gewonnen','2026-02-17','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-20','2026-02',1,4,'KMG Ingenieurgesellschaft für Gebäude- und Versorgungstechnik mbH','Kontingente',6900.0,0,3,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-20','2026-02',1,4,'VH Planungsbüro GmbH','Kontingente',4600.0,4600.0,2,'Gewonnen','2026-02-20','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-20','2026-02',1,3,'Adams - Holzbau - Fertigbau GmbH','Kontingente',4600.0,4600.0,2,'Gewonnen','2026-02-20','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-21','2026-02',1,4,'Pflegezentrum Haus Monika GmbH & Co. KG','Kontingente',6000.0,6000.0,2,'Gewonnen','2026-02-21','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-21','2026-02',1,3,'Peter Blank GmbH','Kontingente',6000.0,6000.0,2,'Gewonnen','2026-02-21','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-21','2026-02',1,5,'Karl Hartinger Kranbetrieb GmbH + Co. KG','Kontingente',4600.0,4600.0,2,'Gewonnen','2026-02-21','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-21','2026-02',1,4,'Hertner GmbH','Kontingente',6000.0,6000.0,2,'Gewonnen','2026-02-21','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-22','2026-02',1,3,'ASTRAL business intelligence services GmbH','Kontingente',4600.0,4600.0,2,'Gewonnen','2026-02-22','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-24','2026-02',1,4,'VTA Software & Service GmbH','Kontingente',4600.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-24','2026-02',1,4,'Axians Rhön-Montage GmbH','Kontingente',4600.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-24','2026-02',1,4,'Diakoneo Wohnen Himmelkron','Kontingente',6000.0,6000.0,2,'Gewonnen','2026-02-24','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-25','2026-02',1,3,'W. Nitsch GmbH & Co. KG','Kontingente',6000.0,6000.0,2,'Gewonnen','2026-02-25','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-26','2026-02',1,5,'MKG GÖBEL Solutions GmbH','Kontingente',4600.0,4600.0,2,'Gewonnen','2026-02-26','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-26','2026-02',1,3,'NEEMANN LiteFlexPACKAGING GmbH & Co. KG','Kontingente',6000.0,6000.0,2,'Gewonnen','2026-02-26','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-26','2026-02',1,5,'Bauer GmbH Landwirtschaftliche Beregnungsanlagen','Kontingente',6000.0,6000.0,2,'Gewonnen','2026-02-26','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-27','2026-02',1,3,'Waldmann Elektrotechnik GmbH','Kontingente',6000.0,6000.0,2,'Gewonnen','2026-02-27','2026-02')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-30','2026-02',1,5,'IZOBLOK GmbH','Kontigente',4600.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-01-29','2026-02',1,NULL,'Apikal GmbH',NULL,4600.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-09','2026-02',1,4,'TSL GmbH','Kontingente',4600.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-01','2026-02',1,4,'Axians Rhön-Montage GmbH','Kontingente',4600.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2024-02-17','2026-02',1,4,'VTA Software & Service GmbH','Kontingente',4600.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-18','2026-02',1,4,'IBES Baugrundinstitut Freiberg GmbH','Kontingente',9200.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-19','2026-02',1,NULL,'KMG Ingenieurgesellschaft für Gebäude- und Versorgungstechnik mbH','Kontingente',6900.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-24','2026-02',1,NULL,'Peter und Lochner Beratende Ingenieure für Bauwesen GmbH','Kontingente',4600.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-25','2026-02',1,NULL,'DRK-Kreisverband Peine e.V.','Kontingente',6000.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-01','2026-03',1,4,'Bella-Gardinenkonfektion AG','Kontingentvertrag',4600.0,4600.0,2,'Gewonnen','2026-03-01','2026-03')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-05','2026-03',1,5,'Sozialwerk Heuser Heimbetriebsgesellschaft für Nordrhein-Westfalen mbH','Kontingentvertrag',4600.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-05','2026-03',1,3,'BALTIC Taucherei- und Bergungsbetrieb Rostock GmbH','Kontingentvertrag',4600.0,4600.0,2,'Gewonnen','2026-03-05','2026-03')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-06','2026-03',1,3,'Audio Design Lautsprecher Vertriebs GmbH','Kontingentvertrag',6000.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-06','2026-03',1,3,'Standex GmbH','Kontingentvertrag',4600.0,4600.0,2,'Gewonnen','2026-03-06','2026-03')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-08','2026-03',1,3,'Aerospace Data Security GmbH','Kontingentvertrag',4600.0,4600.0,2,'Gewonnen','2026-03-08','2026-03')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-08','2026-03',1,3,'Wiechmann & Wiechmann GmbH','Kontingentvertrag',4600.0,4600.0,2,'Gewonnen','2026-03-08','2026-03')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-10','2026-03',1,5,'Peter Krüger Sanitär- und Heizungstechnik','Kontingentvertrag',6000.0,6000.0,2,'Gewonnen','2026-03-10','2026-03')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-11','2026-03',1,5,'Landhaus-Bau Glinstedt GmbH','Kontingentvertrag',6000.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-12','2026-03',1,3,'GFI Gesellschaft für Feuerschutz und Installationen mbH','Kontingentvertrag',9200.0,9200.0,4,'Gewonnen','2026-03-12','2026-03')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-13','2026-03',1,5,'x-tention Informationstechnologie GmbH','Kontingentvertrag',4600.0,4600.0,2,'Gewonnen','2026-03-13','2026-03')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-14','2026-03',1,4,'Hermann Bach GmbH & Co. KG','Kontingentvertrag',4600.0,4600.0,2,'Gewonnen','2026-03-14','2026-03')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-15','2026-03',1,3,'K&P Kälte Klima GbR','Kontingentvertrag',6000.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-19','2026-03',1,4,'Mager & Wedemeyer Werkzeugmaschinen GmbH','Kontingentvertrag',4600.0,4600.0,2,'Gewonnen','2026-03-19','2026-03')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-21','2026-03',1,8,'Scienion GmbH','Kontingentvertrag',9200.0,9200.0,4,'Gewonnen','2026-03-21','2026-03')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-21','2026-03',1,4,'HKA Häusliche Kranken- und Altenpflege GmbH & Co. KG','Kontingentvertrag',6000.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-23','2026-03',1,4,'Scheuten Glastechnik Heiden GmbH','Kontingentvertrag',6000.0,6000.0,2,'Gewonnen','2026-03-23','2026-03')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-24','2026-03',1,4,'Abwasserverband Bergstraße','Kontingentvertrag',4600.0,4600.0,2,'Gewonnen','2026-03-24','2026-03')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-24','2026-03',1,4,'HSE-Haustechnik GmbH','Kontingentvertrag',4600.0,4600.0,2,'Gewonnen','2026-03-24','2026-03')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-25','2026-03',1,4,'GARANT Türen und Zargen GmbH','Kontingentvertrag',4600.0,4600.0,2,'Gewonnen','2026-03-25','2026-03')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-25','2026-03',1,5,'GM Getränketechnik & Maschinenbau GmbH','Kontingentvertrag',4600.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-26','2026-03',1,4,'Gottlieb Binder GmbH & Co. KG','Kontingentvertrag',4600.0,4600.0,2,'Gewonnen','2026-03-26','2026-03')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-28','2026-03',1,5,'SBF Spezialleuchten GmbH','Kontingentvertrag',4600.0,4600.0,2,'Gewonnen','2026-03-28','2026-03')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-28','2026-03',1,4,'Kanadevia Inova BioMethan GmbH','Kontingentvertrag',4600.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-29','2026-03',1,4,'Karl Ulrich Bauunternehmen GmbH & Co.','Kontingentvertrag',4600.0,4600.0,2,'Gewonnen','2026-03-29','2026-03')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-10','2026-03',1,NULL,'Sozialwerk Heuser Heimbetriebsgesellschaft für Nordrhein-Westfalen mbH',NULL,NULL,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-02-05','2026-03',1,3,'Audio Design GmbH','Kontingente',6000.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-04','2026-03',1,4,'Jugendhilfe und Sozialarbeit e. V.','Kontingente',6000.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-04','2026-03',1,4,'HKA Häusliche Kranken- und Altenpflege GmbH & Co. KG','Kontingente',6000.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-09','2026-03',1,4,'Hertner GmbH','Kontingente',6000.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-10','2026-03',1,4,'H. Ludendorff GmbH','Kontingente',4600.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-20','2026-03',1,4,'Kanadevia Inova BioMethan GmbH','Kontingente',4600.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-20','2026-03',1,5,'GM Getränketechnik & Maschinenbau GmbH','Kontingente',4600.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-24','2026-03',1,4,'Haus Ilse','Kontingente',6000.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-01','2026-04',1,8,'Diakoniestation am Ev. Krankenhaus Lippstadt gGmbH','Recruiting-Kampagne',4600.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-01','2026-04',1,8,'Logatec GmbH','Recruiting-Kampagne',4600.0,4600.0,2,'Gewonnen','2026-04-01','2026-04')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-02','2026-04',1,5,'Wilhelm Ungeheuer Söhne GmbH','Recruiting-Kampagne',4600.0,4600.0,2,'Gewonnen','2026-04-02','2026-04')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-02','2026-04',1,4,'Behringer Wohn- und Pflegeheim Wacholderpark GmbH','Recruiting-Kampagne, Media Day',6000.0,6000.0,2,'Gewonnen','2026-04-02','2026-04')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-03','2026-04',1,4,'Trispel GmbH','Recruiting-Kampagne',4600.0,4600.0,2,'Gewonnen','2026-04-03','2026-04')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-04','2026-04',1,8,'Jogerst Stein Technologie GmbH','Recruiting-Kampagne',6000.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-05','2026-04',1,5,'Niehoff Sitzmöbel GmbH','Recruiting-Kampagne',4600.0,4600.0,2,'Gewonnen','2026-04-05','2026-04')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-05','2026-04',1,8,'Metzger-Gutjahr-Stiftung e.V.','Recruiting-Kampagne',6000.0,6000.0,2,'Gewonnen','2026-04-05','2026-04')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-05','2026-04',1,7,'BRILLEN BECKER GmbH','Recruiting-Kampagne',4600.0,4600.0,2,'Gewonnen','2026-04-05','2026-04')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-06','2026-04',1,4,'Bäckerei & Konditorei Diefenbach GmbH','Recruiting-Kampagne',6000.0,6000.0,2,'Gewonnen','2026-04-06','2026-04')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-08','2026-04',1,8,'Marienstift Dorfen','Recruiting-Kampagne',4600.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-08','2026-04',1,8,'Peter und Lochner Beratende Ingenieure für Bauwesen GmbH','Recruiting-Kampagne',4600.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-08','2026-04',1,8,'Wilhelm Rosebrock GmbH & Co.KG','Recruiting-Kampagne',4600.0,4600.0,2,'Gewonnen','2026-04-08','2026-04')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-10','2026-04',1,4,'ATOS Klinik Stuttgart GmbH','Recruiting-Kampagne, Media Day',6000.0,6000.0,2,'Gewonnen','2026-04-10','2026-04')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-10','2026-04',1,4,'NEUHAUSER GmbH & Co. KG','Recruiting-Kampagne',6000.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-10','2026-04',1,4,'EFFYCOR GmbH','Recruiting-Kampagne, Media Day, Social Media Betreuung',9200.0,9200.0,4,'Gewonnen','2026-04-10','2026-04')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-12','2026-04',1,3,'H2O Versorgungstechnik GmbH','Recruiting-Kampagne',6000.0,6000.0,2,'Gewonnen','2026-04-12','2026-04')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-12','2026-04',1,4,'Grün-System-Bau GmbH','Recruiting-Kampagne',4600.0,4600.0,2,'Gewonnen','2026-04-12','2026-04')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-12','2026-04',1,3,'GFI Gesellschaft für Feuerschutz und Installationen mbH','Recruiting-Kampagne, Karriere-Seite',9200.0,9200.0,4,'Gewonnen','2026-04-12','2026-04')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-13','2026-04',1,7,'Hochdanner Sanitär- und Heizungs-GmbH','Recruiting-Kampagne',6000.0,6000.0,2,'Gewonnen','2026-04-13','2026-04')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-18','2026-04',1,8,'H+E Haustechnik und Elektro GmbH','Recruiting-Kampagne',6000.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-18','2026-04',1,4,'Caritasstift St. Josef gGmbH','Recruiting-Kampagne, Media Day',6000.0,6000.0,2,'Gewonnen','2026-04-18','2026-04')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-18','2026-04',1,7,'AMS Brendel GmbH Steuerberatungsgesellschaft','Recruiting-Kampagne',6000.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-19','2026-04',1,8,'MR Landkreis Ansbach GmbH','Recruiting-Kampagne',6000.0,6000.0,2,'Gewonnen','2026-04-19','2026-04')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-19','2026-04',1,8,'AIM Wohnbau GmbH','Recruiting-Kampagne',4600.0,4600.0,2,'Gewonnen','2026-04-19','2026-04')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-19','2026-04',1,33,'Milchwerke Ingolstadt-Thalmässing eG','Recruiting-Kampagne',6000.0,6000.0,2,'Gewonnen','2026-04-19','2026-04')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-19','2026-04',1,8,'H&H Gerätebau GmbH','Recruiting-Kampagne',6000.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-20','2026-04',1,4,'Habicht + Sporer GmbH','Recruiting-Kampagne',6000.0,6000.0,2,'Gewonnen','2026-04-20','2026-04')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-23','2026-04',1,8,'Karl Hartinger Kranbetrieb GmbH + Co. KG','Recruiting-Kampagne',4600.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-22','2026-04',1,4,'ASTRAL business intelligence services GmbH','Recruiting-Kampagne, Karriere-Seite',4600.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-27','2026-04',1,7,'Martin Sauter Heizungstechnik GmbH','Recruiting-Kampagne',4600.0,4600.0,2,'Gewonnen','2026-04-27','2026-04')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-25','2026-04',1,33,'W. Nitsch GmbH & Co. KG','Recruiting-Kampagne',6000.0,6000.0,2,'Gewonnen','2026-04-25','2026-04')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04',1,4,'MKG GÖBEL Solutions GmbH','Recruiting-Kampagne',4600.0,4600.0,2,'Gewonnen','2026-04-28','2026-04')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04',1,5,'Bauer GmbH Landwirtschaftliche Beregnungsanlagen','Recruiting-Kampagne',6000.0,6000.0,2,'Gewonnen','2026-04-28','2026-04')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04',1,4,'VPT Kompressoren GmbH','Recruiting-Kampagne',6000.0,6000.0,2,'Gewonnen','2026-04-28','2026-04')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04',1,8,'Wartig Nord GmbH','Recruiting-Kampagne',6000.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-28','2026-04',1,8,'Autohaus Wolfrum GmbH Naila','Recruiting-Kampagne',6000.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-29','2026-04',1,4,'Märkl Bau GmbH','Recruiting-Kampagne',6000.0,6000.0,2,'Gewonnen','2026-04-29','2026-04')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-29','2026-04',1,33,'Bruno Brenner, Garten- und Landschaftsbau GmbH','Recruiting-Kampagne',6000.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-08','2026-04',1,5,'Marienstift Dorfen','Recruiting-Kampagne',2.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-04','2026-04',1,5,'Jogerst Stein','Recruiting-Kampagne',2.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('0206-02-24','2026-04',1,5,'Peter und Lochner Beratende Ingenieure für Bauwesen GmbH',NULL,2300.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('0206-02-24','2026-04',1,5,'Autohaus Wolfrum GmbH Naila',NULL,3000.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-08','2026-04',1,4,'B+S Service GmbH','Recruiting-Kampagne',6000.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-09','2026-04',1,4,'NEUHAUSER GmbH & Co. KG','Recruiting-Kampagne',6000.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-10','2026-04',1,3,'H+E Haustechnik und Elektro GmbH','Recruiting-Kampagne',2.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-03','2026-04',1,5,'H&H Gerätebau GmbH','Recruiting-Kampagne',2.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-03-13','2026-04',1,5,'Karl Hartinger Kranbetrieb GmbH + Co. KG','Recruiting-Kampagne',2.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-15','2026-04',1,4,'ATOS Klinik','Recruiting-Kampagne',2.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-14','2026-04',1,4,'Bäckerei Diefenbach','Recruiting-Kampagne',2.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-21','2026-04',1,4,'ASTRAL business intelligence services GmbH','Recruiting-Kampagne',2.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-22','2026-04',1,4,'HSE-Haustechnik GmbH','Recruiting-Kampagne',2.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-02','2026-05',1,4,'HOWE Umwelttechnik GmbH','Kontingente',9200.0,9200.0,2,'Gewonnen','2026-05-02','2026-05')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-04','2026-05',1,8,'Auto Amthauer GmbH Hanau','Kontingente',5000.0,5000.0,2,'Gewonnen','2026-05-04','2026-05')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-05','2026-05',1,4,'Dr. Ecklebe Engineering GmbH','Kontingente',7500.0,7500.0,3,'Gewonnen','2026-05-05','2026-05')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-05','2026-05',1,4,'Dr. Ecklebe GmbH','Kontingente',7500.0,7500.0,3,'Gewonnen','2026-05-05','2026-05')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-05','2026-05',1,33,'BALTIC Taucherei- und Bergungsbetrieb Rostock GmbH','Kontingente',4600.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05',1,8,'Standex GmbH','Kontingente',4600.0,4600.0,2,'Gewonnen','2026-05-06','2026-05')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05',1,8,'Vaventus AG Kälte Klima Lüftung/ Lorenz GmbH','Kontingente',6000.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05',1,4,'BSU Sanierungsunion Berlin GmbH','Kontingente',4600.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-09','2026-05',1,33,'Henn GmbH Bauunternehmung','Kontingente',6000.0,6000.0,2,'Gewonnen','2026-05-09','2026-05')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-09','2026-05',1,33,'Bardowicks.Haus und Holzbau GmbH','Kontingente',6000.0,6000.0,2,'Gewonnen','2026-05-09','2026-05')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-10','2026-05',1,8,'Peter Krüger Sanitär- und Heizungstechnik','Kontingente',6000.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-10','2026-05',1,33,'Autohaus Olenik GmbH','Kontingente',6000.0,6000.0,2,'Gewonnen','2026-05-10','2026-05')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-10','2026-05',1,33,'Laudon GmbH & Co. KG','Kontingente',6000.0,6000.0,2,'Gewonnen','2026-05-10','2026-05')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-12','2026-05',1,33,'Graf-Dichtungen GmbH','Kontingente',4600.0,4600.0,2,'Gewonnen','2026-05-12','2026-05')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05',1,8,'x-tention Informationstechnologie GmbH','Kontingente',4600.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-13','2026-05',1,4,'Karl Bachl Hoch – und Tiefbau GmbH & Co. KG','Kontingente',9200.0,9200.0,4,'Gewonnen','2026-05-13','2026-05')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-14','2026-05',1,8,'Seniorenpflegezentrum Bovenden GmbH','Kontingente',6000.0,6000.0,2,'Gewonnen','2026-05-14','2026-05')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-16','2026-05',1,4,'M. Kratzer Sanitär Heizung Spenglerei GmbH','Kontingente',6000.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-19','2026-05',1,8,'Veit Höver GmbH & Co. KG','Kontingente',6000.0,6000.0,2,'Gewonnen','2026-05-19','2026-05')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-19','2026-05',1,6,'EMG Energie-Management GmbH','Kontingente',6000.0,6000.0,2,'Gewonnen','2026-05-19','2026-05')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-19','2026-05',1,4,'Mager & Wedemeyer Werkzeugmaschinen GmbH','Kontingente',4600.0,4600.0,2,'Gewonnen','2026-05-19','2026-05')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-19','2026-05',1,6,'Süd-West Touristik','Kontingente',6000.0,6000.0,2,'Gewonnen','2026-05-19','2026-05')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-23','2026-05',1,4,'Scheuten Glastechnik Heiden GmbH','Kontingente',6000.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-26','2026-05',1,4,'Gottlieb Binder GmbH & Co. KG','Kontingente',4600.0,4600.0,2,'Gewonnen','2026-05-26','2026-05')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-27','2026-05',1,8,'Domstadt Autohaus GmbH','Kontingente',6000.0,6000.0,2,'Gewonnen','2026-05-27','2026-05')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-28','2026-05',1,4,'SBF Spezialleuchten GmbH','Kontingente',4600.0,0,2,'Offen',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-29','2026-05',1,4,'Karl Ulrich Bauunternehmen GmbH & Co.','Kontingente',4600.0,4600.0,2,'Gewonnen','2026-05-29','2026-05')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-30','2026-05',1,7,'Energieversorgung Main-Spessart GmbH','Kontingente',6000.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-30','2026-05',1,7,'mosy GmbH','Kontingente',6000.0,6000.0,2,'Gewonnen','2026-05-30','2026-05')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-04-30','2026-05',1,4,'BSU Sanierungsunion Berlin GmbH','Kontingente',4600.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-06','2026-05',1,4,'habicht + sporer GmbH','Kontingente',6000.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-07','2026-05',1,4,'VPT Kompressoren GmbH','Kontingente',6000.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-08','2026-05',1,4,'M. Kratzer Sanitär Heizung Spenglerei GmbH','Kontingente',6000.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06',1,8,'Diakoniestation am Ev. Krankenhaus Lippstadt gGmbH','Recruiting-Kampagne',4600.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-01','2026-06',1,8,'Logatec GmbH','Recruiting-Kampagne',4600.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-02','2026-06',1,8,'Wilhelm Ungeheuer Söhne GmbH','Recruiting-Kampagne',9200.0,9200.0,4,'Gewonnen','2026-06-02','2026-06')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-02','2026-06',1,33,'Weroform GmbH','Recruiting-Kampagne',4600.0,0,2,'Offen',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-03','2026-06',1,4,'KST-Motorenversuch GmbH & Co. KG','Recruiting-Kampagne',6000.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-03','2026-06',1,8,'Dr. med. Sybille Hettinger Fachärztin für Augenheilkunde','Recruiting-Kampagne',3000.0,3000.0,2,'Gewonnen','2026-06-03','2026-06')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-04','2026-06',1,4,'Rocholl Gartenbau, Landschaftsbau, Sportplatzbau und Tiefbau GmbH','Recruiting-Kampagne, Media Day',10200.0,10200.0,6,'Gewonnen','2026-06-04','2026-06')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-05','2026-06',1,33,'Niehoff Sitzmöbel GmbH','Recruiting-Kampagne',4600.0,0,2,'Offen',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-05','2026-06',1,8,'Metzger-Gutjahr-Stiftung e.V.','Recruiting-Kampagne',6000.0,6000.0,2,'Gewonnen','2026-06-05','2026-06')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-06','2026-06',1,8,'Trans-Service GmbH Schwarzenberg','Recruiting-Kampagne',6000.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-08','2026-06',1,8,'Wilhelm Rosebrock GmbH & Co.KG','Recruiting-Kampagne',4600.0,0,2,'Offen',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-08','2026-06',1,8,'Physiotraining Ruwertal GmbH','Recruiting-Kampagne',6000.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-09','2026-06',1,4,'Proff Sanitärinstallation GmbH & Co. KG','Recruiting-Kampagne',6000.0,6000.0,2,'Gewonnen','2026-06-09','2026-06')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-09','2026-06',1,4,'Diehl GmbH','Recruiting-Kampagne',6000.0,6000.0,2,'Gewonnen','2026-06-09','2026-06')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-10','2026-06',1,4,'EFFYCOR GmbH','Recruiting-Kampagne, Media Day, Social Media Betreuung',9200.0,0,4,'Offen',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-12','2026-06',1,33,'Grün-System-Bau GmbH','Recruiting-Kampagne',4600.0,0,2,'Offen',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-12','2026-06',1,4,'GFI Gesellschaft für Feuerschutz
+und Installationen mbH','Recruiting-Kampagne, Karriere-Seite',9200.0,0,4,'Offen',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-12','2026-06',1,4,'Senioren-Pflegeheim...aus gutem Grund GmbH','RaaS',4500.0,0,1,'Offen',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-13','2026-06',1,7,'Hochdanner Sanitär- und Heizungs-GmbH','Recruiting-Kampagne',6000.0,0,2,'Offen',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-13','2026-06',1,6,'BBS Brand- und Wasserschadensanierung Gebrüder Berndt GmbH','Recruiting-Kampagne',6000.0,0,2,'Offen',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-09','2026-06',1,8,'Meyer-Tochtrop Bauunternehmen GmbH','Recruiting-Kampagne',6000.0,6000.0,2,'Gewonnen','2026-06-09','2026-06')
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-11','2026-06',1,8,'Malergeschäft Näther GmbH','Recruiting-Kampagne',6000.0,0,2,'Offen',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-12','2026-06',1,8,'ZAB Zentrale Akademie für Berufe im Gesundheitswesen GmbH','Recruiting-Kampagne',6000.0,0,2,'Offen',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-12','2026-06',1,8,'Kälte Klima Grässlin GmbH','Recruiting-Kampagne',6000.0,0,2,'Offen',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-19','2026-06',1,8,'AIM Wohnbau GmbH','Recruiting-Kampagne',4600.0,0,2,'Offen',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-19','2026-06',1,33,'Milchwerke Ingolstadt-Thalmässing eG','Recruiting-Kampagne',6000.0,0,2,'Offen',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-19','2026-06',1,4,'Lebenshilfe für Menschen mit geistiger oder anderer Behinderung Fürth e. V.','RaaS',9000.0,0,2,'Offen',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-19','2026-06',1,4,'St. Martin Pflegeheim GmbH','RaaS',9000.0,0,2,'Offen',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-20','2026-06',1,4,'Industrie- und Tankanlagen Führer & Weingartner GmbH','Recruiting-Kampagne',6000.0,0,2,'Offen',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-20','2026-06',1,4,'Seniorenzentrum Hirschkamp GmbH & Co. KG','RaaS',9000.0,0,2,'Offen',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-20','2026-06',1,8,'KSP CNC-Technik GmbH','Recruiting-Kampagne',6000.0,0,2,'Offen',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-21','2026-06',1,8,'Wartig Nord GmbH','Recruiting-Kampagne',6000.0,0,2,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-26','2026-06',1,4,'Diakoneo','Recruiting-Kampagne',30000.0,0,12,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-27','2026-06',1,7,'Martin Sauter Heizungstechnik GmbH','Recruiting-Kampagne',4600.0,0,2,'Offen',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-27','2026-06',1,4,'Kieser Training GmbH','Recruiting-Kampagne',6000.0,0,2,'Offen',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-28','2026-06',1,4,'MKG GÖBEL Solutions GmbH','Recruiting-Kampagne',4600.0,0,2,'Offen',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-28','2026-06',1,33,'Bauer GmbH Landwirtschaftliche Beregnungsanlagen','Recruiting-Kampagne',6000.0,0,2,'Offen',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-28','2026-06',1,4,'Kinder- und Jugendärzte Dr. med. Holger Meinicke und Dr. med. Björn Klawitter','Recruiting-Kampagne',3000.0,0,2,'Offen',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-29','2026-06',1,33,'Bruno Brenner, Garten- und Landschaftsbau GmbH','Recruiting-Kampagne',6000.0,0,2,'Offen',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-29','2026-06',1,8,'Autohaus Louis Dresen GmbH','Recruiting-Kampagne',6000.0,0,2,'Offen',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-06-06','2026-06',1,NULL,'Trans-Service GmbH Schwarzenberg','Recruiting-Kampagne',2.0,0,NULL,'Verloren',NULL,NULL)
+;
+INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,ae_wert,laufzeit_monate,status,gewonnen_datum,gewonnen_monat) VALUES ('2026-05-29','2026-06',1,NULL,'KST-Motorenversuch GmbH & Co. KG','Recruiting-Kampagne',2.0,0,NULL,'Verloren',NULL,NULL)
+;
+
+-- Rebuild ae_gesamt_monthly from imported deals
+-- Migration 013 will overwrite this with AE Gesamt sheet values
+
 INSERT INTO ae_gesamt_monthly (
-  monat, nk_bonn_anz, nk_bonn_ae, nk_bs_anz, nk_bs_ae,
-  nk_at_anz, nk_at_ae, nk_ch_anz, nk_ch_ae,
-  nk_gesamt, bk_gesamt, vl_gesamt, gesamt
+  monat,
+  nk_bonn_anz, nk_bonn_ae,
+  nk_bs_anz,   nk_bs_ae,
+  nk_at_anz,   nk_at_ae,
+  nk_ch_anz,   nk_ch_ae,
+  nk_gesamt,   bk_gesamt,   vl_gesamt,   gesamt
 )
 SELECT
   m.monat,
-  COALESCE(nk.bonn_anz,0), COALESCE(nk.bonn_ae,0),
-  COALESCE(nk.bs_anz,0),   COALESCE(nk.bs_ae,0),
-  0, 0, 0, 0,
-  COALESCE(nk.nk_gesamt,0), COALESCE(bk.bk_gesamt,0), COALESCE(vl.vl_gesamt,0),
-  COALESCE(nk.nk_gesamt,0)+COALESCE(bk.bk_gesamt,0)+COALESCE(vl.vl_gesamt,0)
+  COALESCE(nk.bonn_anz, 0), COALESCE(nk.bonn_ae, 0),
+  COALESCE(nk.bs_anz,   0), COALESCE(nk.bs_ae,   0),
+  COALESCE(nk.at_anz,   0), COALESCE(nk.at_ae,   0),
+  COALESCE(nk.ch_anz,   0), COALESCE(nk.ch_ae,   0),
+  COALESCE(nk.nk_gesamt, 0),
+  COALESCE(bk.bk_gesamt, 0),
+  COALESCE(vl.vl_gesamt, 0),
+  COALESCE(nk.nk_gesamt, 0) + COALESCE(bk.bk_gesamt, 0) + COALESCE(vl.vl_gesamt, 0)
 FROM (
   SELECT DISTINCT gewonnen_monat AS monat FROM (
     SELECT gewonnen_monat FROM deals_nk WHERE status='Gewonnen' AND gewonnen_monat IS NOT NULL
-    UNION SELECT gewonnen_monat FROM deals_bk WHERE status='Gewonnen' AND gewonnen_monat IS NOT NULL
-    UNION SELECT gewonnen_monat FROM deals_vl WHERE status='Gewonnen' AND gewonnen_monat IS NOT NULL
+    UNION
+    SELECT gewonnen_monat FROM deals_bk WHERE status='Gewonnen' AND gewonnen_monat IS NOT NULL
+    UNION
+    SELECT gewonnen_monat FROM deals_vl WHERE status='Gewonnen' AND gewonnen_monat IS NOT NULL
   ) u
 ) m
 LEFT JOIN (
-  SELECT d.gewonnen_monat AS monat,
-    SUM(CASE WHEN COALESCE(e.standort,'')='Bonn' THEN d.ae_wert ELSE 0 END) AS bonn_ae,
-    COUNT(CASE WHEN COALESCE(e.standort,'')='Bonn' THEN 1 END) AS bonn_anz,
-    SUM(CASE WHEN COALESCE(e.standort,'')='Braunschweig' THEN d.ae_wert ELSE 0 END) AS bs_ae,
-    COUNT(CASE WHEN COALESCE(e.standort,'')='Braunschweig' THEN 1 END) AS bs_anz,
+  SELECT
+    d.gewonnen_monat AS monat,
+    SUM(CASE WHEN COALESCE(e.standort,'') = 'Bonn'         THEN d.ae_wert ELSE 0 END) AS bonn_ae,
+    COUNT(CASE WHEN COALESCE(e.standort,'') = 'Bonn'         THEN 1 END)               AS bonn_anz,
+    SUM(CASE WHEN COALESCE(e.standort,'') = 'Braunschweig' THEN d.ae_wert ELSE 0 END) AS bs_ae,
+    COUNT(CASE WHEN COALESCE(e.standort,'') = 'Braunschweig' THEN 1 END)               AS bs_anz,
+    SUM(CASE WHEN COALESCE(e.standort,'') = 'Österreich'   THEN d.ae_wert ELSE 0 END) AS at_ae,
+    COUNT(CASE WHEN COALESCE(e.standort,'') = 'Österreich'   THEN 1 END)               AS at_anz,
+    SUM(CASE WHEN COALESCE(e.standort,'') = 'Schweiz'      THEN d.ae_wert ELSE 0 END) AS ch_ae,
+    COUNT(CASE WHEN COALESCE(e.standort,'') = 'Schweiz'      THEN 1 END)               AS ch_anz,
     SUM(d.ae_wert) AS nk_gesamt
-  FROM deals_nk d LEFT JOIN employees e ON e.id=d.closer_id
-  WHERE d.status='Gewonnen' AND d.gewonnen_monat IS NOT NULL
+  FROM deals_nk d
+  LEFT JOIN employees e ON e.id = d.closer_id
+  WHERE d.status = 'Gewonnen' AND d.gewonnen_monat IS NOT NULL
   GROUP BY d.gewonnen_monat
-) nk ON nk.monat=m.monat
+) nk ON nk.monat = m.monat
 LEFT JOIN (
   SELECT gewonnen_monat AS monat, SUM(ae_wert) AS bk_gesamt
-  FROM deals_bk WHERE status='Gewonnen' AND gewonnen_monat IS NOT NULL GROUP BY gewonnen_monat
-) bk ON bk.monat=m.monat
+  FROM deals_bk WHERE status = 'Gewonnen' AND gewonnen_monat IS NOT NULL
+  GROUP BY gewonnen_monat
+) bk ON bk.monat = m.monat
 LEFT JOIN (
   SELECT gewonnen_monat AS monat, SUM(ae_wert) AS vl_gesamt
-  FROM deals_vl WHERE status='Gewonnen' AND gewonnen_monat IS NOT NULL GROUP BY gewonnen_monat
-) vl ON vl.monat=m.monat
-ORDER BY m.monat;
+  FROM deals_vl WHERE status = 'Gewonnen' AND gewonnen_monat IS NOT NULL
+  GROUP BY gewonnen_monat
+) vl ON vl.monat = m.monat
+ORDER BY m.monat
+;

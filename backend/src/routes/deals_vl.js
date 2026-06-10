@@ -65,7 +65,7 @@ router.post('/', wrap(async (req, res) => {
   const { gewonnen_datum, gewonnen_monat } = resolveGewonnenFelder(body);
   const fields = ['datum','monat','company_id','kam_id','kunde','dienstleistung','angebotswert',
     'ae_wert','laufzeit_monate','status','wie_vielt_verlaengerung','kommentar',
-    'abgerechnet','gewonnen_datum','gewonnen_monat'];
+    'abgerechnet','kundennummer','gewonnen_datum','gewonnen_monat'];
   const values = fields.map(f => {
     if (f === 'gewonnen_datum') return gewonnen_datum;
     if (f === 'gewonnen_monat') return gewonnen_monat;
@@ -95,7 +95,7 @@ router.put('/:id', wrap(async (req, res) => {
   const { gewonnen_datum, gewonnen_monat } = resolveGewonnenFelder(req.body, existing);
   const fields = ['datum','monat','company_id','kam_id','kunde','dienstleistung','angebotswert',
     'ae_wert','laufzeit_monate','status','wie_vielt_verlaengerung','kommentar',
-    'abgerechnet','gewonnen_datum','gewonnen_monat'];
+    'abgerechnet','kundennummer','gewonnen_datum','gewonnen_monat'];
   const values = fields.map(f => {
     if (f === 'gewonnen_datum') return gewonnen_datum;
     if (f === 'gewonnen_monat') return gewonnen_monat;
