@@ -127,6 +127,18 @@ export default function DealsBK() {
     { name: 'laufzeit_monate',label: 'Laufzeit (Monate)', type: 'number', required: f => f.status === 'Gewonnen' },
     { name: 'automatische_verlaengerung', label: 'Automatische Verlängerung', type: 'select', options: AUTO_VL_OPTS, required: true },
     { name: 'status',         label: 'Status',            type: 'select', options: STATUS_OPTS, required: true },
+    {
+      name:     'gewonnen_datum',
+      label:    'Annahmedatum',
+      type:     'date',
+      hint:     'Datum, an dem der Kunde den Deal angenommen hat',
+      show:     f => f.status === 'Gewonnen',
+      required: f => f.status === 'Gewonnen',
+      autoFill: (form, changedKey) =>
+        changedKey === 'status' && form.status === 'Gewonnen' && !form.gewonnen_datum
+          ? new Date().toISOString().slice(0, 10)
+          : undefined,
+    },
     { name: 'abgerechnet',    label: 'Abgerechnet',       type: 'select', options: ABGERECHNET_OPTS },
     { name: 'kommentar',      label: 'Kommentar',         type: 'textarea' },
   ];
