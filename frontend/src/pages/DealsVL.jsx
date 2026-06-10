@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { dealsApi, employeesApi } from '../utils/api';
+import { dealsApi, employeesApi, exportApi } from '../utils/api';
 import StatusBadge from '../components/StatusBadge';
 import DealModal from '../components/DealModal';
 import { formatEuro, currentMonat } from '../utils/format';
+import { useAuth } from '../context/AuthContext';
 
 const STATUS_OPTS = ['Offen', 'Gewonnen', 'Verloren'];
 const STANDORTE   = ['Bonn', 'Braunschweig', 'Österreich', 'Schweiz'];
@@ -73,6 +74,7 @@ function calcKpis(deals) {
 // ── Hauptkomponente ──────────────────────────────────────────────────────────
 export default function DealsVL() {
   const { company, companies } = useOutletContext();
+  const { canSeeAll } = useAuth();
   const qc = useQueryClient();
   const [monat, setMonat]                = useState(currentMonat());
   const [showAllMonths, setShowAllMonths] = useState(false);
@@ -114,7 +116,7 @@ export default function DealsVL() {
     { name: 'company_id',            label: 'Company',                 type: 'select', options: compOpts, required: true },
     { name: 'kunde',                 label: 'Kunde',                                   required: true },
     { name: 'dienstleistung',        label: 'Dienstleistung',          type: 'select', options: DIENSTLEISTUNGEN_VL },
-    { name: 'kam_id',                label: 'Account Manager',         type: 'select', options: kamOptions },
+    ...(canSeeAll ? [{ name: 'kam_id', label: 'Account Manager', type: 'select', options: kamOptions }] : []),
     { name: 'angebotswert',          label: 'Möglicher AE (€)',        type: 'number', required: true },
     { name: 'ae_wert',               label: 'Realisierter AE (€)',     type: 'number', required: f => f.status === 'Gewonnen' },
     { name: 'laufzeit_monate',       label: 'Neue Laufzeit (Monate)',  type: 'number', required: f => f.status === 'Gewonnen' },
@@ -186,6 +188,11 @@ export default function DealsVL() {
             <input type="month" value={monat} onChange={e => setMonat(e.target.value)}
               className="bg-white border border-gray-300 text-gray-700 text-sm rounded px-3 py-1.5" />
           )}
+          <button
+            onClick={() => exportApi.download('vl.csv', 'verlaengerungen.csv', { ...(company && { company_id: company }), ...(!showAllMonths && { monat }) })}
+            className="px-3 py-1.5 bg-white border border-gray-300 hover:border-gray-400 text-gray-600 text-sm rounded">
+            ↓ CSV
+          </button>
           <button onClick={() => setModal({ mode: 'create', data: { status: 'Offen', datum: new Date().toISOString().slice(0,10), monat } })}
             className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded">
             + Neue Verlängerung

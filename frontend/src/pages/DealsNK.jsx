@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { dealsApi, employeesApi } from '../utils/api';
+import { dealsApi, employeesApi, exportApi } from '../utils/api';
 import StatusBadge from '../components/StatusBadge';
 import DealModal from '../components/DealModal';
 import { formatEuro, currentMonat } from '../utils/format';
+import { useAuth } from '../context/AuthContext';
 
 const QUELLEN = ['Cold Calling', 'Mail', 'Fax', 'Ad', 'Empfehlung', 'Follow Up', 'Inbound', 'Leadhandy', 'Post'];
 const STATUS_OPTS = ['Offen', 'Gewonnen', 'Verloren', 'In Verhandlung', 'In Closing Call 2'];
@@ -114,6 +115,7 @@ function CloserBlock({ stats }) {
 // ── Hauptkomponente ───────────────────────────────────────────────────────────
 export default function DealsNK() {
   const { company, companies } = useOutletContext();
+  const { user, isAdmin, canSeeAll } = useAuth();
   const qc = useQueryClient();
   const [monat, setMonat] = useState(currentMonat());
   const [showAllMonths, setShowAllMonths] = useState(false);
@@ -164,9 +166,12 @@ export default function DealsNK() {
     { name: 'kunde',          label: 'Kunde',                                     required: true },
     { name: 'angebotsnummer', label: 'Angebotsnummer' },
     { name: 'dienstleistung', label: 'Dienstleistung',            type: 'select', options: DIENSTLEISTUNGEN_NK },
-    { name: 'closer_id',      label: 'Closer',                   type: 'select', options: closerOptions },
-    { name: 'opener_id',      label: 'Opener',                   type: 'select', options: openerOptions },
-    { name: 'setter_id',      label: 'Setter',                   type: 'select', options: setterOptions },
+    // Employee fields only visible to admin/backoffice
+    ...(canSeeAll ? [
+      { name: 'closer_id', label: 'Closer', type: 'select', options: closerOptions },
+      { name: 'opener_id', label: 'Opener', type: 'select', options: openerOptions },
+      { name: 'setter_id', label: 'Setter', type: 'select', options: setterOptions },
+    ] : []),
     { name: 'quelle',         label: 'Quelle',                   type: 'select', options: QUELLEN },
     { name: 'angebotswert',   label: 'Angebotswert (€)',          type: 'number', required: true },
     { name: 'ae_wert',        label: 'AE-Wert (€)',               type: 'number', required: f => f.status === 'Gewonnen' },
@@ -280,6 +285,11 @@ export default function DealsNK() {
             <input type="month" value={monat} onChange={e => setMonat(e.target.value)}
               className="bg-white border border-gray-300 text-gray-700 text-sm rounded px-3 py-1.5" />
           )}
+          <button
+            onClick={() => exportApi.download('nk.csv', 'neukunden.csv', { ...(company && { company_id: company }), ...(!showAllMonths && { monat }) })}
+            className="px-3 py-1.5 bg-white border border-gray-300 hover:border-gray-400 text-gray-600 text-sm rounded">
+            ↓ CSV
+          </button>
           <button
             onClick={() => setModal({ mode: 'create', data: { status: 'Offen', datum: new Date().toISOString().slice(0,10), monat } })}
             className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded">

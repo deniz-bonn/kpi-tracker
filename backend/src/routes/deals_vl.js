@@ -1,6 +1,10 @@
 const router = require('express').Router();
-const db = require('../db');
-const wrap = require('../middleware/asyncHandler');
+const db     = require('../db');
+const wrap   = require('../middleware/asyncHandler');
+const { requireAuth } = require('../middleware/auth');
+const { logAudit }   = require('../utils/audit');
+
+router.use(requireAuth);
 
 const BASE_SELECT = `
   SELECT d.*, c.name as company_name, k.name as kam_name, k.standort as kam_standort
@@ -17,6 +21,14 @@ function resolveGewonnenFelder(body, existing = null) {
   return { gewonnen_datum: null, gewonnen_monat: null };
 }
 
+function ownFilter(req) {
+  const user = req.user;
+  if (['bk_vertrieb'].includes(user.role) && user.employee_id) {
+    return { field: 'd.kam_id', value: user.employee_id };
+  }
+  return null;
+}
+
 router.get('/', wrap(async (req, res) => {
   const { company_id, monat, gewonnen_monat, status, kam_id } = req.query;
   const conditions = [];
@@ -24,11 +36,14 @@ router.get('/', wrap(async (req, res) => {
   let i = 1;
   const p = () => db.dialect === 'postgres' ? `$${i++}` : '?';
 
-  if (company_id) { conditions.push(`d.company_id = ${p()}`); params.push(company_id); }
-  if (monat) { conditions.push(`d.monat = ${p()}`); params.push(monat); }
-  if (gewonnen_monat) { conditions.push(`d.gewonnen_monat = ${p()}`); params.push(gewonnen_monat); }
-  if (status) { conditions.push(`d.status = ${p()}`); params.push(status); }
-  if (kam_id) { conditions.push(`d.kam_id = ${p()}`); params.push(kam_id); }
+  const own = ownFilter(req);
+  if (own) { conditions.push(`${own.field} = ${p()}`); params.push(own.value); }
+
+  if (company_id)    { conditions.push(`d.company_id = ${p()}`);    params.push(company_id); }
+  if (monat)         { conditions.push(`d.monat = ${p()}`);         params.push(monat); }
+  if (gewonnen_monat){ conditions.push(`d.gewonnen_monat = ${p()}`);params.push(gewonnen_monat); }
+  if (status)        { conditions.push(`d.status = ${p()}`);        params.push(status); }
+  if (kam_id)        { conditions.push(`d.kam_id = ${p()}`);        params.push(kam_id); }
 
   const where = conditions.length ? ' WHERE ' + conditions.join(' AND ') : '';
   res.json(await db.all(BASE_SELECT + where + ' ORDER BY d.datum DESC', params));
@@ -42,32 +57,42 @@ router.get('/:id', wrap(async (req, res) => {
 }));
 
 router.post('/', wrap(async (req, res) => {
-  const { gewonnen_datum, gewonnen_monat } = resolveGewonnenFelder(req.body);
+  const body = { ...req.body };
+  if (['bk_vertrieb'].includes(req.user.role) && req.user.employee_id) {
+    body.kam_id = req.user.employee_id;
+  }
+
+  const { gewonnen_datum, gewonnen_monat } = resolveGewonnenFelder(body);
   const fields = ['datum','monat','company_id','kam_id','kunde','dienstleistung','angebotswert',
     'ae_wert','laufzeit_monate','status','wie_vielt_verlaengerung','kommentar',
     'abgerechnet','gewonnen_datum','gewonnen_monat'];
   const values = fields.map(f => {
     if (f === 'gewonnen_datum') return gewonnen_datum;
     if (f === 'gewonnen_monat') return gewonnen_monat;
-    if (f === 'abgerechnet') return req.body[f] ?? (req.body.status === 'Gewonnen' ? 'Nein' : null);
-    return req.body[f] ?? null;
+    if (f === 'abgerechnet') return body[f] ?? (body.status === 'Gewonnen' ? 'Nein' : null);
+    return body[f] ?? null;
   });
 
+  let row;
   if (db.dialect === 'postgres') {
     const ph = fields.map((_,i) => `$${i+1}`).join(',');
-    const row = await db.get(`INSERT INTO deals_vl (${fields.join(',')}) VALUES (${ph}) RETURNING *`, values);
-    res.status(201).json(row);
+    row = await db.get(`INSERT INTO deals_vl (${fields.join(',')}) VALUES (${ph}) RETURNING *`, values);
   } else {
     const ph = fields.map(() => '?').join(',');
     const result = db.run(`INSERT INTO deals_vl (${fields.join(',')}) VALUES (${ph})`, values);
-    res.status(201).json({ id: result.lastInsertRowid, ...req.body, gewonnen_datum, gewonnen_monat });
+    row = { id: result.lastInsertRowid, ...body, gewonnen_datum, gewonnen_monat };
   }
+
+  await logAudit({ user: req.user, action: 'create', entityType: 'deal_vl', entityId: row.id, newData: row });
+  res.status(201).json(row);
 }));
 
 router.put('/:id', wrap(async (req, res) => {
-  const existing = db.get('SELECT * FROM deals_vl WHERE id=?', [req.params.id]);
-  const { gewonnen_datum, gewonnen_monat } = resolveGewonnenFelder(req.body, existing);
+  const existing = db.dialect === 'postgres'
+    ? await db.get('SELECT * FROM deals_vl WHERE id=$1', [req.params.id])
+    : db.get('SELECT * FROM deals_vl WHERE id=?', [req.params.id]);
 
+  const { gewonnen_datum, gewonnen_monat } = resolveGewonnenFelder(req.body, existing);
   const fields = ['datum','monat','company_id','kam_id','kunde','dienstleistung','angebotswert',
     'ae_wert','laufzeit_monate','status','wie_vielt_verlaengerung','kommentar',
     'abgerechnet','gewonnen_datum','gewonnen_monat'];
@@ -78,23 +103,31 @@ router.put('/:id', wrap(async (req, res) => {
     return req.body[f] ?? null;
   });
 
+  let row;
   if (db.dialect === 'postgres') {
     const set = fields.map((f,i) => `${f}=$${i+1}`).join(',');
-    const row = await db.get(
+    row = await db.get(
       `UPDATE deals_vl SET ${set}, updated_at=NOW() WHERE id=$${fields.length+1} RETURNING *`,
       [...values, req.params.id]
     );
-    res.json(row);
   } else {
     const set = fields.map(f => `${f}=?`).join(',');
     db.run(`UPDATE deals_vl SET ${set}, updated_at=datetime('now') WHERE id=?`, [...values, req.params.id]);
-    res.json(db.get(BASE_SELECT + ' WHERE d.id=?', [req.params.id]));
+    row = db.get(BASE_SELECT + ' WHERE d.id=?', [req.params.id]);
   }
+
+  await logAudit({ user: req.user, action: 'update', entityType: 'deal_vl', entityId: Number(req.params.id), oldData: existing, newData: row });
+  res.json(row);
 }));
 
 router.delete('/:id', wrap(async (req, res) => {
+  const existing = db.dialect === 'postgres'
+    ? await db.get('SELECT * FROM deals_vl WHERE id=$1', [req.params.id])
+    : db.get('SELECT * FROM deals_vl WHERE id=?', [req.params.id]);
+
   const p = db.dialect === 'postgres' ? '$1' : '?';
   await db.run(`DELETE FROM deals_vl WHERE id=${p}`, [req.params.id]);
+  await logAudit({ user: req.user, action: 'delete', entityType: 'deal_vl', entityId: Number(req.params.id), oldData: existing });
   res.status(204).end();
 }));
 
