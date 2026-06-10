@@ -160,12 +160,12 @@ export default function DealsNK() {
   const setterOptions = setterList.map(e => ({ value: e.id, label: `${e.name} (${e.company_name})` }));
 
   const fields = [
-    { name: 'datum',          label: 'Datum',                    type: 'date',   required: true },
+    { name: 'datum',          label: 'Datum',                    type: 'date',   required: true, readOnly: modal?.mode === 'edit' },
     { name: 'monat',          label: 'Monat (YYYY-MM)',                           required: true },
     { name: 'company_id',     label: 'Company',                  type: 'select', options: compOpts, required: true },
     { name: 'kunde',          label: 'Kunde',                                     required: true },
     { name: 'angebotsnummer', label: 'Angebotsnummer' },
-    { name: 'dienstleistung', label: 'Dienstleistung',            type: 'select', options: DIENSTLEISTUNGEN_NK },
+    { name: 'dienstleistung', label: 'Dienstleistung',            type: 'select', options: DIENSTLEISTUNGEN_NK, required: f => f.status === 'Gewonnen' },
     // Employee fields only visible to admin/backoffice
     ...(canSeeAll ? [
       { name: 'closer_id', label: 'Closer', type: 'select', options: closerOptions },

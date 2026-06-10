@@ -61,8 +61,13 @@ export default function DealModal({ title, fields, initial = {}, onSave, onClose
                 <label className="block text-xs text-gray-600 mb-1">
                   {f.label}
                   {req && <span className="text-red-500 ml-0.5">*</span>}
+                  {f.readOnly && <span className="ml-1 text-gray-400 font-normal">(nicht änderbar)</span>}
                 </label>
-                {f.type === 'select' ? (
+                {f.readOnly ? (
+                  <div className="w-full bg-gray-50 border border-gray-200 text-gray-500 text-sm rounded px-3 py-1.5">
+                    {form[f.name] ? String(form[f.name]).slice(0, 10) : <span className="italic text-gray-400">—</span>}
+                  </div>
+                ) : f.type === 'select' ? (
                   <select
                     value={form[f.name] ?? ''}
                     onChange={e => { set(f.name, e.target.value); setErrors(er => ({ ...er, [f.name]: false })); }}
@@ -83,7 +88,7 @@ export default function DealModal({ title, fields, initial = {}, onSave, onClose
                 ) : (
                   <input
                     type={f.type ?? 'text'}
-                    value={form[f.name] ?? ''}
+                    value={f.type === 'date' ? (form[f.name] ?? '').slice(0, 10) : (form[f.name] ?? '')}
                     onChange={e => { set(f.name, e.target.value); setErrors(er => ({ ...er, [f.name]: false })); }}
                     className={base}
                   />

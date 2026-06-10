@@ -111,11 +111,11 @@ export default function DealsVL() {
   const kamOptions = kamList.map(e => ({ value: e.id, label: `${e.name} (${e.company_name})` }));
 
   const fields = [
-    { name: 'datum',                 label: 'Datum',                   type: 'date',   required: true },
+    { name: 'datum',                 label: 'Datum',                   type: 'date',   required: true, readOnly: modal?.mode === 'edit' },
     { name: 'monat',                 label: 'Monat (YYYY-MM)',                         required: true },
     { name: 'company_id',            label: 'Company',                 type: 'select', options: compOpts, required: true },
     { name: 'kunde',                 label: 'Kunde',                                   required: true },
-    { name: 'dienstleistung',        label: 'Dienstleistung',          type: 'select', options: DIENSTLEISTUNGEN_VL },
+    { name: 'dienstleistung',        label: 'Dienstleistung',          type: 'select', options: DIENSTLEISTUNGEN_VL, required: f => f.status === 'Gewonnen' },
     ...(canSeeAll ? [{ name: 'kam_id', label: 'Account Manager', type: 'select', options: kamOptions }] : []),
     { name: 'angebotswert',          label: 'Möglicher AE (€)',        type: 'number', required: true },
     { name: 'ae_wert',               label: 'Realisierter AE (€)',     type: 'number', required: f => f.status === 'Gewonnen' },
