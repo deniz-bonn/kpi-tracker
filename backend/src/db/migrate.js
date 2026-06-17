@@ -65,9 +65,18 @@ async function runMigrations() {
 
     console.log(`  Running ${file} (${statements.length} statements)`);
 
-    for (const stmt of statements) {
-      if (dialect === 'postgres') await db.run(stmt);
-      else db.run(stmt);
+    for (let i = 0; i < statements.length; i++) {
+      const stmt = statements[i];
+      try {
+        if (dialect === 'postgres') await db.run(stmt);
+        else db.run(stmt);
+      } catch (err) {
+        console.error(`\nMigration FAILED: ${file}`);
+        console.error(`Statement ${i + 1}/${statements.length}:`);
+        console.error(stmt.slice(0, 500));
+        console.error('\nError:', err.message);
+        throw err;
+      }
     }
 
     await markRan(file);
@@ -78,6 +87,6 @@ async function runMigrations() {
 }
 
 runMigrations().catch(err => {
-  console.error('Migration failed:', err);
+  console.error('\nFatal migration error:', err.message);
   process.exit(1);
 });
