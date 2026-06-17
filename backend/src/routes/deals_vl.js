@@ -21,11 +21,8 @@ function resolveGewonnenFelder(body, existing = null) {
   return { gewonnen_datum: null, gewonnen_monat: null };
 }
 
-function ownFilter(req) {
-  const user = req.user;
-  if (['bk_vertrieb'].includes(user.role) && user.employee_id) {
-    return { field: 'd.kam_id', value: user.employee_id };
-  }
+function ownFilter(_req) {
+  // VL und Kuendigungen: alle KAMs sehen alle Datensaetze (kein per-User-Filter)
   return null;
 }
 

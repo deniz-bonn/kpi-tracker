@@ -68,7 +68,7 @@ function AppRoutes() {
           </ProtectedRoute>
         } />
         <Route path="kpi-mitarbeiter" element={
-          <ProtectedRoute allowedRoles={ROLES.adminAndBo}>
+          <ProtectedRoute allowedRoles={[...ROLES.adminAndBo, 'bk_vertrieb', 'nk_vertrieb']}>
             <KpiMitarbeiter />
           </ProtectedRoute>
         } />
