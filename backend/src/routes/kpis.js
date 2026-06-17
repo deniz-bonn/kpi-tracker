@@ -326,16 +326,18 @@ router.get('/dashboard', wrap(async (req, res) => {
     const useAG = ag && ag.gesamt > 0;
 
     // NK – prefer AE Gesamt values when available
-    const nk_bonn   = useAG ? (ag.nk_bonn_ae || 0) : locAE(nkByLoc, monat, ['Bonn']);
-    const nk_bs     = useAG ? (ag.nk_bs_ae   || 0) : locAE(nkByLoc, monat, ['Braunschweig']);
-    const nk_at     = useAG ? (ag.nk_at_ae   || 0) : locAE(nkByLoc, monat, ['Österreich']);
-    const nk_ch     = useAG ? (ag.nk_ch_ae   || 0) : locAE(nkByLoc, monat, ['Schweiz']);
-    const nk_gesamt = useAG ? (ag.nk_gesamt  || 0) : totAE(nkTotal, monat);
+    // Number() cast handles BigInt (node:sqlite default) and string returns from SQLite
+    const n = (v) => Number(v ?? 0) || 0;
+    const nk_bonn   = useAG ? n(ag.nk_bonn_ae) : locAE(nkByLoc, monat, ['Bonn']);
+    const nk_bs     = useAG ? n(ag.nk_bs_ae)   : locAE(nkByLoc, monat, ['Braunschweig']);
+    const nk_at     = useAG ? n(ag.nk_at_ae)   : locAE(nkByLoc, monat, ['Österreich']);
+    const nk_ch     = useAG ? n(ag.nk_ch_ae)   : locAE(nkByLoc, monat, ['Schweiz']);
+    const nk_gesamt = useAG ? n(ag.nk_gesamt)  : totAE(nkTotal, monat);
 
-    const nk_bonn_anz = useAG ? (ag.nk_bonn_anz || 0) : locCnt(nkCntByLoc, monat, ['Bonn']);
-    const nk_bs_anz   = useAG ? (ag.nk_bs_anz   || 0) : locCnt(nkCntByLoc, monat, ['Braunschweig']);
-    const nk_at_anz   = useAG ? (ag.nk_at_anz   || 0) : locCnt(nkCntByLoc, monat, ['Österreich']);
-    const nk_ch_anz   = useAG ? (ag.nk_ch_anz   || 0) : locCnt(nkCntByLoc, monat, ['Schweiz']);
+    const nk_bonn_anz = useAG ? n(ag.nk_bonn_anz) : locCnt(nkCntByLoc, monat, ['Bonn']);
+    const nk_bs_anz   = useAG ? n(ag.nk_bs_anz)   : locCnt(nkCntByLoc, monat, ['Braunschweig']);
+    const nk_at_anz   = useAG ? n(ag.nk_at_anz)   : locCnt(nkCntByLoc, monat, ['Österreich']);
+    const nk_ch_anz   = useAG ? n(ag.nk_ch_anz)   : locCnt(nkCntByLoc, monat, ['Schweiz']);
     const nk_gesamt_anz = nk_bonn_anz + nk_bs_anz + nk_at_anz + nk_ch_anz;
 
     // BK / VL – Gesamt aus ae_gesamt_monthly; Standort-Aufschlüsselung immer aus Live-Deals
@@ -343,14 +345,14 @@ router.get('/dashboard', wrap(async (req, res) => {
     const bk_de     = locAE(bkByLoc, monat, ['Bonn', 'Braunschweig']);
     const bk_at     = locAE(bkByLoc, monat, ['Österreich']);
     const bk_ch     = locAE(bkByLoc, monat, ['Schweiz']);
-    const bk_gesamt = useAG ? (ag.bk_gesamt || 0) : totAE(bkTotal, monat);
+    const bk_gesamt = useAG ? n(ag.bk_gesamt) : totAE(bkTotal, monat);
 
     const vl_de     = locAE(vlByLoc, monat, ['Bonn', 'Braunschweig']);
     const vl_at     = locAE(vlByLoc, monat, ['Österreich']);
     const vl_ch     = locAE(vlByLoc, monat, ['Schweiz']);
-    const vl_gesamt = useAG ? (ag.vl_gesamt || 0) : totAE(vlTotal, monat);
+    const vl_gesamt = useAG ? n(ag.vl_gesamt) : totAE(vlTotal, monat);
 
-    const gesamt = useAG ? (ag.gesamt || 0) : (nk_gesamt + bk_gesamt + vl_gesamt);
+    const gesamt = useAG ? n(ag.gesamt) : (nk_gesamt + bk_gesamt + vl_gesamt);
     const pct = v => gesamt > 0 ? Math.round((v / gesamt) * 10000) / 100 : 0;
 
     const ziel = Number(zieleRows.find(t => t.monat === monat)?.ziel_gesamt) || 0;

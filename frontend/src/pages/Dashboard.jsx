@@ -219,7 +219,7 @@ export default function Dashboard() {
   const collapseAll = () => setExpanded(new Set());
 
   // Jahressummen (Übersichtstabelle)
-  const sum = (key) => rows.reduce((s, r) => s + (r[key] || 0), 0);
+  const sum = (key) => rows.reduce((s, r) => s + (Number(r[key]) || 0), 0);
   const totals = {
     nk_bonn: sum('nk_bonn'), nk_bs: sum('nk_bs'), nk_at: sum('nk_at'), nk_ch: sum('nk_ch'), nk_gesamt: sum('nk_gesamt'),
     nk_bonn_anz: sum('nk_bonn_anz'), nk_bs_anz: sum('nk_bs_anz'), nk_at_anz: sum('nk_at_anz'), nk_ch_anz: sum('nk_ch_anz'), nk_gesamt_anz: sum('nk_gesamt_anz'),
