@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dealsApi, employeesApi, exportApi } from '../utils/api';
@@ -44,6 +44,8 @@ export default function DealsVL() {
   const [filterKam,      setFilterKam]      = useState('');
   const [filterStatus,   setFilterStatus]   = useState('');
   const [filterStandort, setFilterStandort] = useState('');
+  const [importResult,   setImportResult]   = useState(null);
+  const importFileRef = useRef(null);
 
   const params = { ...(company && { company_id: company }), ...(!showAllMonths && { monat }) };
   const { data: deals = [] } = useQuery({
@@ -65,6 +67,51 @@ export default function DealsVL() {
   const createMut = useMutation({ mutationFn: dealsApi.vl.create, onSuccess: () => { invalidate(); setModal(null); } });
   const updateMut = useMutation({ mutationFn: ({ id, data }) => dealsApi.vl.update(id, data), onSuccess: () => { invalidate(); setModal(null); } });
   const deleteMut = useMutation({ mutationFn: dealsApi.vl.delete, onSuccess: invalidate });
+  const importCsvMut = useMutation({
+    mutationFn: (payload) => dealsApi.vl.importCsv(payload),
+    onSuccess: (result) => { setImportResult(result); invalidate(); },
+  });
+
+  const parseCSVRow = (line) => {
+    const result = []; let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') { if (inQ && line[i+1] === '"') { cur += '"'; i++; } else inQ = !inQ; }
+      else if (c === ',' && !inQ) { result.push(cur); cur = ''; }
+      else cur += c;
+    }
+    result.push(cur);
+    return result.map(s => s.trim().replace(/^"|"$/g, ''));
+  };
+
+  const handleImportFile = (e) => {
+    const file = e.target.files[0]; if (!file) return; e.target.value = '';
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = (ev.target.result || '').replace(/^﻿/, '').replace(/\r/g, '');
+      const lines = text.split('\n').filter(l => l.trim());
+      if (lines.length < 2) { alert('Keine Daten in der Datei.'); return; }
+      const hdrs = parseCSVRow(lines[0]);
+      const idx = (h) => hdrs.findIndex(x => x.trim() === h);
+      const rows = lines.slice(1).map(line => {
+        const c = parseCSVRow(line);
+        return {
+          kunde:                  c[idx('Kunde')] || null,
+          dienstleistung:         c[idx('Dienstleistung')] || null,
+          datum:                  c[idx('Datum')] || null,
+          auslaufend_am:          c[idx('Auslaufend am')] || null,
+          wie_vielt_verlaengerung: c[idx('Wievielte Verlängerung')] || null,
+          kam_name:               c[idx('Account Manager')] || null,
+          angebotswert:           c[idx('Angebotswert')] || null,
+          laufzeit_monate:        c[idx('Laufzeit Monate')] || null,
+        };
+      }).filter(r => r.kunde);
+      if (rows.length === 0) { alert('Keine gültigen Zeilen gefunden.'); return; }
+      if (!confirm(`${rows.length} Verlängerungen importieren?`)) return;
+      importCsvMut.mutate({ rows, company_id: company || 1 });
+    };
+    reader.readAsText(file, 'UTF-8');
+  };
 
   const compOpts   = companies.map(c => ({ value: c.id, label: c.name }));
   const kamList    = employees.filter(e => e.rolle === 'KAM');
@@ -75,15 +122,21 @@ export default function DealsVL() {
     { name: 'monat',                 label: 'Monat (YYYY-MM)',                         required: true },
     { name: 'company_id',            label: 'Company',                 type: 'select', options: compOpts, required: true },
     { name: 'kunde',                 label: 'Kunde',                                   required: true },
+    { name: 'kundennummer',          label: 'HubSpot ID',                              required: f => f.status === 'Gewonnen' },
     { name: 'dienstleistung',        label: 'Dienstleistung',          type: 'select', options: DIENSTLEISTUNGEN_VL, required: f => f.status === 'Gewonnen' },
     ...(canSeeAll ? [{ name: 'kam_id', label: 'Account Manager', type: 'select', options: kamOptions }] : []),
     { name: 'angebotswert',          label: 'Möglicher AE (€)',        type: 'number', required: true },
     { name: 'ae_wert',               label: 'Realisierter AE (€)',     type: 'number', required: f => f.status === 'Gewonnen' },
     { name: 'laufzeit_monate',       label: 'Neue Laufzeit (Monate)',  type: 'number', required: f => f.status === 'Gewonnen' },
-    { name: 'wie_vielt_verlaengerung', label: 'Wievielte Verlängerung', type: 'number' },
+    { name: 'wie_vielt_verlaengerung', label: 'Wievielte Verlängerung', type: 'number', required: f => f.status === 'Gewonnen' },
     { name: 'status',                label: 'Status',                  type: 'select', options: STATUS_OPTS, required: true },
+    { name: 'weitergeben_an_vertrieb', label: 'Weitergeben an Vertrieb?', type: 'select', options: ['Ja', 'Nein'], show: f => f.status === 'Verloren', required: f => f.status === 'Verloren', hint: 'Ja = Kunde erscheint im Kündigungen-Tab als Up-Sale Potenzial' },
+    { name: 'gekuendigt_am',         label: 'Gekündigt am',            type: 'date',   show: f => f.status === 'Verloren', required: f => f.status === 'Verloren' },
+    { name: 'auslaufend_am',         label: 'Auslaufend am',           type: 'date',   show: f => f.status === 'Verloren', required: f => f.status === 'Verloren' },
+    { name: 'ansprechpartner',       label: 'Ansprechpartner kundenseitig',             show: f => f.status === 'Verloren' },
+    { name: 'telefon',               label: 'Telefonnummer',                           show: f => f.status === 'Verloren' },
+    { name: 'email_kontakt',         label: 'E-Mail Adresse',                          show: f => f.status === 'Verloren' },
     { name: 'abgerechnet',           label: 'Abgerechnet',             type: 'select', options: ABGERECHNET_OPTS },
-    { name: 'kundennummer',            label: 'Kundennummer',              required: f => f.status === 'Gewonnen' },
     { name: 'kommentar',             label: 'Kommentar',               type: 'textarea' },
   ];
 
@@ -154,12 +207,30 @@ export default function DealsVL() {
             className="px-3 py-1.5 bg-white border border-gray-300 hover:border-gray-400 text-gray-600 text-sm rounded">
             ↓ CSV
           </button>
+          <button onClick={() => importFileRef.current?.click()} disabled={importCsvMut.isPending}
+            className="px-3 py-1.5 bg-white border border-gray-300 hover:border-gray-400 text-gray-600 text-sm rounded disabled:opacity-50">
+            ↑ {importCsvMut.isPending ? 'Importiere…' : 'CSV Import'}
+          </button>
+          <input ref={importFileRef} type="file" accept=".csv" className="hidden" onChange={handleImportFile} />
           <button onClick={() => setModal({ mode: 'create', data: { status: 'Offen', datum: new Date().toISOString().slice(0,10), monat } })}
             className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded">
             + Neue Verlängerung
           </button>
         </div>
       </div>
+
+      {/* Import-Ergebnis */}
+      {importResult && (
+        <div className={`rounded-lg border px-4 py-2.5 text-xs flex items-center justify-between ${
+          importResult.errors?.length > 0 ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-green-300 bg-green-50 text-green-700'
+        }`}>
+          <span>
+            {importResult.created} Verlängerungen importiert
+            {importResult.errors?.length > 0 && ` · ${importResult.errors.length} Fehler: ${importResult.errors.join(', ')}`}
+          </span>
+          <button onClick={() => setImportResult(null)} className="ml-4 text-gray-400 hover:text-gray-600">✕</button>
+        </div>
+      )}
 
       {/* Filter-Leiste */}
       <div className="flex flex-wrap gap-2 items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">

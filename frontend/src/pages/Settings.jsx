@@ -1,25 +1,127 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { companiesApi, targetsApi, adminApi, auditApi, employeesApi } from '../utils/api';
+import { companiesApi, targetsApi, adminApi, auditApi, employeesApi, featureFlagsApi } from '../utils/api';
 import { currentMonat } from '../utils/format';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 
 const ROLE_OPTS = [
+  { value: 'superadmin',  label: 'Super Admin' },
   { value: 'admin',       label: 'Admin' },
   { value: 'nk_vertrieb', label: 'NK-Vertrieb' },
   { value: 'bk_vertrieb', label: 'BK-Vertrieb' },
   { value: 'backoffice',  label: 'Backoffice' },
 ];
-const ROLE_LABELS = { admin:'Admin', nk_vertrieb:'NK-Vertrieb', bk_vertrieb:'BK-Vertrieb', backoffice:'Backoffice' };
+const ROLE_LABELS = { superadmin:'Super Admin', admin:'Admin', nk_vertrieb:'NK-Vertrieb', bk_vertrieb:'BK-Vertrieb', backoffice:'Backoffice' };
+
+// ── Zugriffssteuerung (superadmin only) ────────────────────────────────────
+const CONTROLLED_FEATURES = [
+  { key: 'kpi_beta', label: 'KPI Mitarbeiter Beta', desc: 'Beta-Dashboard mit täglichem Activity-Tracking' },
+];
+const CONTROLLABLE_ROLES = [
+  { value: 'admin',       label: 'Admin' },
+  { value: 'backoffice',  label: 'Backoffice' },
+  { value: 'bk_vertrieb', label: 'BK-Vertrieb' },
+  { value: 'nk_vertrieb', label: 'NK-Vertrieb' },
+];
+
+function AccessControlSection() {
+  const { refreshFeatureFlags } = useAuth();
+  const qc = useQueryClient();
+  const [localFlags, setLocalFlags] = useState({});
+  const [savedOk,    setSavedOk]    = useState(null);
+
+  const { data: flags = {}, isLoading } = useQuery({
+    queryKey: ['feature-flags'],
+    queryFn:  featureFlagsApi.list,
+  });
+
+  useEffect(() => { setLocalFlags(flags); }, [flags]);
+
+  const saveMut = useMutation({
+    mutationFn: ({ feature, roles }) => featureFlagsApi.update(feature, roles),
+    onSuccess: (_, { feature }) => {
+      qc.invalidateQueries({ queryKey: ['feature-flags'] });
+      refreshFeatureFlags();
+      setSavedOk(feature);
+      setTimeout(() => setSavedOk(null), 2000);
+    },
+  });
+
+  const toggle = (feature, role) => {
+    setLocalFlags(prev => {
+      const cur = prev[feature] || [];
+      return { ...prev, [feature]: cur.includes(role) ? cur.filter(r => r !== role) : [...cur, role] };
+    });
+  };
+
+  if (isLoading) return <div className="text-sm text-gray-400 py-4">Lade...</div>;
+
+  return (
+    <div className="space-y-4">
+      <div className="text-xs bg-amber-50 border border-amber-200 text-amber-700 rounded px-3 py-2">
+        Superadmin hat immer vollen Zugang — unabhängig von diesen Einstellungen.
+      </div>
+      <div className="rounded-xl border border-gray-200 overflow-hidden">
+        <div className="bg-[#2d2e30] px-4 py-3 border-b border-[#444]">
+          <span className="text-xs font-bold text-white uppercase tracking-wider">Feature-Zugänge nach Rolle</span>
+        </div>
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 border-b border-gray-100">
+            <tr>
+              <th className="px-4 py-2.5 text-left text-xs text-gray-500 font-medium">Funktion</th>
+              {CONTROLLABLE_ROLES.map(r => (
+                <th key={r.value} className="px-3 py-2.5 text-center text-xs text-gray-500 font-medium">{r.label}</th>
+              ))}
+              <th className="px-4 py-2.5 w-28"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {CONTROLLED_FEATURES.map(feat => (
+              <tr key={feat.key} className="hover:bg-gray-50">
+                <td className="px-4 py-3">
+                  <div className="text-sm font-medium text-gray-800">{feat.label}</div>
+                  <div className="text-xs text-gray-400 mt-0.5">{feat.desc}</div>
+                </td>
+                {CONTROLLABLE_ROLES.map(role => (
+                  <td key={role.value} className="px-3 py-3 text-center">
+                    <input
+                      type="checkbox"
+                      checked={(localFlags[feat.key] || []).includes(role.value)}
+                      onChange={() => toggle(feat.key, role.value)}
+                      className="w-4 h-4 accent-blue-600 cursor-pointer"
+                    />
+                  </td>
+                ))}
+                <td className="px-4 py-3 text-right">
+                  <button
+                    onClick={() => saveMut.mutate({ feature: feat.key, roles: localFlags[feat.key] || [] })}
+                    disabled={saveMut.isPending}
+                    className={`text-xs px-3 py-1 rounded transition-colors disabled:opacity-50 ${
+                      savedOk === feat.key
+                        ? 'bg-green-600 text-white'
+                        : 'bg-blue-600 hover:bg-blue-500 text-white'
+                    }`}
+                  >
+                    {savedOk === feat.key ? '✓ Gespeichert' : 'Speichern'}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
 
 const ACTION_LABELS = { create: 'Erstellt', update: 'Bearbeitet', delete: 'Gelöscht', undo: 'Rückgängig' };
 const ACTION_COLORS = { create:'text-green-600', update:'text-blue-600', delete:'text-red-600', undo:'text-amber-600' };
 
 export default function Settings() {
-  const { user: me, isAdmin } = useAuth();
+  const { user: me, isAdmin, isSuperAdmin } = useAuth();
   const qc = useQueryClient();
-  const [tab, setTab] = useState(isAdmin ? 'users' : 'password');
+  const [tab, setTab] = useState(() => isSuperAdmin ? 'access' : isAdmin ? 'users' : 'password');
 
   // ── Password change ───────────────────────────────────────────────────────
   const [pwForm, setPwForm]   = useState({ current_password: '', new_password: '', confirm: '' });
@@ -105,6 +207,7 @@ export default function Settings() {
   });
 
   const TABS = [
+    ...(isSuperAdmin ? [{ id: 'access', label: 'Zugriffssteuerung' }] : []),
     ...(isAdmin ? [
       { id: 'users',     label: 'Benutzer' },
       { id: 'companies', label: 'Companies' },
@@ -129,6 +232,9 @@ export default function Settings() {
           </button>
         ))}
       </div>
+
+      {/* ── TAB: Zugriffssteuerung ─────────────────────────────────── */}
+      {tab === 'access' && isSuperAdmin && <AccessControlSection />}
 
       {/* ── TAB: Benutzer ──────────────────────────────────────────── */}
       {tab === 'users' && isAdmin && (

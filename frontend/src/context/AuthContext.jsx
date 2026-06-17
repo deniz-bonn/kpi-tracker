@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { featureFlagsApi } from '../utils/api';
 
 const AuthContext = createContext(null);
 
@@ -14,12 +15,13 @@ function parseJwt(token) {
 }
 
 export function AuthProvider({ children }) {
-  const [token, setToken]   = useState(() => localStorage.getItem(TOKEN_KEY));
-  const [user,  setUser]    = useState(() => {
+  const [token, setToken]         = useState(() => localStorage.getItem(TOKEN_KEY));
+  const [user,  setUser]          = useState(() => {
     const t = localStorage.getItem(TOKEN_KEY);
     return t ? parseJwt(t) : null;
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading]     = useState(false);
+  const [featureFlags, setFeatureFlags] = useState(null); // null = not yet loaded
 
   // Keep axios default header in sync
   useEffect(() => {
@@ -41,6 +43,14 @@ export function AuthProvider({ children }) {
     return () => clearTimeout(timer);
   }, [token]);
 
+  // Fetch feature flags whenever user changes
+  useEffect(() => {
+    if (!user) { setFeatureFlags(null); return; }
+    featureFlagsApi.list()
+      .then(flags => setFeatureFlags(flags))
+      .catch(() => setFeatureFlags({})); // on error: empty flags = no extra access
+  }, [user?.id]);
+
   const login = useCallback(async (email, password) => {
     const res = await axios.post('/api/auth/login', { email, password });
     const { token: t, user: u } = res.data;
@@ -56,18 +66,36 @@ export function AuthProvider({ children }) {
     delete axios.defaults.headers.common['Authorization'];
     setToken(null);
     setUser(null);
+    setFeatureFlags(null);
   }, []);
 
-  const isAdmin      = user?.role === 'admin';
+  const refreshFeatureFlags = useCallback(() => {
+    if (!user) return;
+    featureFlagsApi.list()
+      .then(flags => setFeatureFlags(flags))
+      .catch(() => {});
+  }, [user?.id]);
+
+  const isSuperAdmin = user?.role === 'superadmin';
+  const isAdmin      = user?.role === 'admin' || isSuperAdmin;
   const isBackoffice = user?.role === 'backoffice';
-  const canSeeNK     = ['admin','nk_vertrieb','bk_vertrieb','backoffice'].includes(user?.role);
-  const canSeeBK     = ['admin','bk_vertrieb','backoffice'].includes(user?.role);
-  const canSeeVL     = ['admin','bk_vertrieb','backoffice'].includes(user?.role);
+  const canSeeNK     = ['admin','superadmin','nk_vertrieb','bk_vertrieb','backoffice'].includes(user?.role);
+  const canSeeBK     = ['admin','superadmin','bk_vertrieb','backoffice'].includes(user?.role);
+  const canSeeVL     = ['admin','superadmin','bk_vertrieb','backoffice'].includes(user?.role);
   const canSeeAdmin  = isAdmin;
   const canSeeAll    = isAdmin || isBackoffice;
+  // superadmin always has access; others need featureFlags loaded + role listed
+  const canSeeKpiBeta = isSuperAdmin || (
+    featureFlags !== null && (featureFlags['kpi_beta'] || []).includes(user?.role)
+  );
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading, isAdmin, isBackoffice, canSeeNK, canSeeBK, canSeeVL, canSeeAdmin, canSeeAll }}>
+    <AuthContext.Provider value={{
+      user, token, login, logout, loading,
+      isSuperAdmin, isAdmin, isBackoffice,
+      canSeeNK, canSeeBK, canSeeVL, canSeeAdmin, canSeeAll,
+      canSeeKpiBeta, featureFlags, refreshFeatureFlags,
+    }}>
       {children}
     </AuthContext.Provider>
   );

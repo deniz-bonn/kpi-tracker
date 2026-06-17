@@ -74,6 +74,39 @@ function EmpTable({ title, rows, showAE = false, color = 'blue' }) {
   );
 }
 
+function SectionSummary({ rows, showAE, color }) {
+  if (!rows?.length) return null;
+  const total    = rows.reduce((s, r) => s + r.total, 0);
+  const gewonnen = rows.reduce((s, r) => s + r.gewonnen, 0);
+  const verloren = rows.reduce((s, r) => s + r.verloren, 0);
+  const quote    = total > 0 ? Math.round(gewonnen / total * 100) : 0;
+  const ae       = rows.reduce((s, r) => s + (r.ae_summe || 0), 0);
+
+  const c = {
+    blue:   { bg: 'bg-blue-50',   border: 'border-blue-200',   text: 'text-blue-900',   label: 'text-blue-600' },
+    green:  { bg: 'bg-green-50',  border: 'border-green-200',  text: 'text-green-900',  label: 'text-green-600' },
+    purple: { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-900', label: 'text-purple-600' },
+  }[color];
+
+  return (
+    <div className={`rounded-lg border ${c.border} ${c.bg} px-4 py-2.5 flex flex-wrap gap-x-8 gap-y-1.5`}>
+      <span className={`text-xs ${c.label}`}>Erstellt: <strong className={c.text}>{total}</strong></span>
+      <span className={`text-xs ${c.label}`}>Gewonnen: <strong className="text-green-700">{gewonnen}</strong></span>
+      <span className={`text-xs ${c.label}`}>Verloren: <strong className="text-red-600">{verloren}</strong></span>
+      <span className={`text-xs ${c.label}`}>Quote: <strong className={c.text}>{quote}%</strong></span>
+      {showAE && ae > 0 && (
+        <span className={`text-xs ${c.label}`}>AE: <strong className={c.text}>{formatEuro(ae)}</strong></span>
+      )}
+    </div>
+  );
+}
+
+const SECTION_HEADER = {
+  blue:   'bg-blue-700',
+  green:  'bg-green-700',
+  purple: 'bg-purple-700',
+};
+
 export default function KpiMitarbeiter() {
   const { company } = useOutletContext();
   const [monat, setMonat] = useState(currentMonat());
@@ -81,9 +114,7 @@ export default function KpiMitarbeiter() {
 
   const params = {
     ...(company && { company_id: company }),
-    ...(showAllMonths
-      ? { year: monat.split('-')[0] }
-      : { monat }),
+    ...(showAllMonths ? { year: monat.split('-')[0] } : { monat }),
   };
 
   const { data, isLoading } = useQuery({
@@ -92,6 +123,10 @@ export default function KpiMitarbeiter() {
     staleTime: 0,
     refetchOnMount: 'always',
   });
+
+  const hasNK = data?.nk_closer?.length || data?.nk_opener?.length || data?.nk_setter?.length;
+  const hasBK = data?.bk_kam?.length;
+  const hasVL = data?.vl_kam?.length;
 
   return (
     <div className="space-y-6">
@@ -112,37 +147,52 @@ export default function KpiMitarbeiter() {
       {isLoading ? (
         <div className="text-gray-500">Lade...</div>
       ) : (
-        <div className="space-y-5">
-          {/* NK */}
-          <div>
-            <h2 className="text-sm font-semibold text-gray-600 mb-3 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>
-              Neukunden (NK)
-            </h2>
+        <div className="space-y-7">
+
+          {/* ── NK ──────────────────────────────────────── */}
+          {hasNK ? (
             <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className={`px-3 py-1.5 ${SECTION_HEADER.blue} rounded-lg`}>
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">Neukunden NK</span>
+                </div>
+              </div>
+              <SectionSummary rows={data?.nk_closer} showAE color="blue" />
               <EmpTable title="Closer — Abschlussquote & AE" rows={data?.nk_closer} showAE color="blue" />
-              <EmpTable title="Opener — Terminierungsquote" rows={data?.nk_opener} color="blue" />
-              <EmpTable title="Setter — Setting-Quote" rows={data?.nk_setter} color="blue" />
+              <EmpTable title="Opener — Terminierungsquote"  rows={data?.nk_opener}        color="blue" />
+              <EmpTable title="Setter — Setting-Quote"       rows={data?.nk_setter}        color="blue" />
             </div>
-          </div>
+          ) : null}
 
-          {/* BK */}
-          <div>
-            <h2 className="text-sm font-semibold text-gray-600 mb-3 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
-              Bestandskunden (BK)
-            </h2>
-            <EmpTable title="KAM — Abschlussquote & AE" rows={data?.bk_kam} showAE color="green" />
-          </div>
+          {/* ── BK ──────────────────────────────────────── */}
+          {hasBK ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className={`px-3 py-1.5 ${SECTION_HEADER.green} rounded-lg`}>
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">Bestandskunden BK</span>
+                </div>
+              </div>
+              <SectionSummary rows={data?.bk_kam} showAE color="green" />
+              <EmpTable title="KAM — Abschlussquote & AE" rows={data?.bk_kam} showAE color="green" />
+            </div>
+          ) : null}
 
-          {/* VL */}
-          <div>
-            <h2 className="text-sm font-semibold text-gray-600 mb-3 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-purple-500 inline-block"></span>
-              Verlängerungen (VL)
-            </h2>
-            <EmpTable title="KAM — Verlängerungsquote & AE" rows={data?.vl_kam} showAE color="purple" />
-          </div>
+          {/* ── VL ──────────────────────────────────────── */}
+          {hasVL ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className={`px-3 py-1.5 ${SECTION_HEADER.purple} rounded-lg`}>
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">Verlängerungen VL</span>
+                </div>
+              </div>
+              <SectionSummary rows={data?.vl_kam} showAE color="purple" />
+              <EmpTable title="KAM — Verlängerungsquote & AE" rows={data?.vl_kam} showAE color="purple" />
+            </div>
+          ) : null}
+
+          {!hasNK && !hasBK && !hasVL && (
+            <div className="text-gray-400 text-sm py-8 text-center">Keine Daten für diesen Zeitraum.</div>
+          )}
         </div>
       )}
     </div>

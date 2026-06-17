@@ -56,6 +56,89 @@ router.get('/:id', wrap(async (req, res) => {
   res.json(row);
 }));
 
+router.post('/import-kontakt', wrap(async (req, res) => {
+  const rows = req.body;
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return res.status(400).json({ error: 'Keine Daten' });
+  }
+  const ALLOWED = ['gekuendigt_am','auslaufend_am','ansprechpartner','telefon','email_kontakt','terminiert','neuer_ap_intern'];
+  let updated = 0;
+  const errors = [];
+  for (const row of rows) {
+    if (!row.id) { errors.push('Zeile ohne ID übersprungen'); continue; }
+    const toUpdate = ALLOWED.filter(f => Object.prototype.hasOwnProperty.call(row, f));
+    if (toUpdate.length === 0) continue;
+    try {
+      if (db.dialect === 'postgres') {
+        const set = toUpdate.map((f, i) => `${f}=$${i + 1}`).join(',');
+        await db.run(
+          `UPDATE deals_vl SET ${set}, updated_at=NOW() WHERE id=$${toUpdate.length + 1}`,
+          [...toUpdate.map(f => row[f] || null), row.id]
+        );
+      } else {
+        const set = toUpdate.map(f => `${f}=?`).join(',');
+        db.run(
+          `UPDATE deals_vl SET ${set}, updated_at=datetime('now') WHERE id=?`,
+          [...toUpdate.map(f => row[f] || null), row.id]
+        );
+      }
+      updated++;
+    } catch (e) {
+      errors.push(`ID ${row.id}: ${e.message}`);
+    }
+  }
+  res.json({ updated, errors });
+}));
+
+router.post('/import-csv', wrap(async (req, res) => {
+  const { rows, company_id } = req.body;
+  if (!Array.isArray(rows) || rows.length === 0) return res.status(400).json({ error: 'Keine Daten' });
+  if (!company_id) return res.status(400).json({ error: 'company_id fehlt' });
+
+  // Build lowercase KAM name → id map
+  const kamRows = db.dialect === 'postgres'
+    ? await db.all("SELECT id, name FROM employees WHERE rolle='KAM'")
+    : db.all("SELECT id, name FROM employees WHERE rolle='KAM'");
+  const kamMap = {};
+  for (const k of kamRows) kamMap[k.name.trim().toLowerCase()] = k.id;
+
+  let created = 0;
+  const errors = [];
+
+  for (const row of rows) {
+    if (!row.kunde || !row.datum) {
+      errors.push(`Übersprungen: Kunde oder Datum fehlt (${row.kunde || '?'})`);
+      continue;
+    }
+    const monat = String(row.datum).slice(0, 7);
+    const kam_id = kamMap[(row.kam_name || '').trim().toLowerCase()] || null;
+    const angebotswert = row.angebotswert ? Number(row.angebotswert) || null : null;
+    const laufzeit_monate = row.laufzeit_monate ? Number(row.laufzeit_monate) || null : null;
+    const wie_vielt = row.wie_vielt_verlaengerung ? Number(row.wie_vielt_verlaengerung) || null : null;
+    try {
+      if (db.dialect === 'postgres') {
+        await db.run(
+          `INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,laufzeit_monate,wie_vielt_verlaengerung,auslaufend_am,status,created_at,updated_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'Offen',NOW(),NOW())`,
+          [row.datum, monat, company_id, kam_id, row.kunde, row.dienstleistung || null,
+           angebotswert, laufzeit_monate, wie_vielt, row.auslaufend_am || null]
+        );
+      } else {
+        db.run(
+          `INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebotswert,laufzeit_monate,wie_vielt_verlaengerung,auslaufend_am,status,created_at,updated_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?,'Offen',datetime('now'),datetime('now'))`,
+          [row.datum, monat, company_id, kam_id, row.kunde, row.dienstleistung || null,
+           angebotswert, laufzeit_monate, wie_vielt, row.auslaufend_am || null]
+        );
+      }
+      created++;
+    } catch (e) {
+      errors.push(`${row.kunde}: ${e.message}`);
+    }
+  }
+  res.json({ created, errors });
+}));
+
 router.post('/', wrap(async (req, res) => {
   const body = { ...req.body };
   if (['bk_vertrieb'].includes(req.user.role) && req.user.employee_id) {
@@ -65,11 +148,22 @@ router.post('/', wrap(async (req, res) => {
   const { gewonnen_datum, gewonnen_monat } = resolveGewonnenFelder(body);
   const fields = ['datum','monat','company_id','kam_id','kunde','dienstleistung','angebotswert',
     'ae_wert','laufzeit_monate','status','wie_vielt_verlaengerung','kommentar',
-    'abgerechnet','kundennummer','gewonnen_datum','gewonnen_monat'];
+    'abgerechnet','kundennummer','gewonnen_datum','gewonnen_monat',
+    'gekuendigt_am','auslaufend_am','ansprechpartner','telefon','email_kontakt',
+    'upsale_angesprochen','upsale_summe','upsale_angenommen','upsale_angenommen_summe',
+    'weitergeben_an_vertrieb','terminiert','neuer_ap_intern'];
   const values = fields.map(f => {
     if (f === 'gewonnen_datum') return gewonnen_datum;
     if (f === 'gewonnen_monat') return gewonnen_monat;
     if (f === 'abgerechnet') return body[f] ?? (body.status === 'Gewonnen' ? 'Nein' : null);
+    if (f === 'upsale_angesprochen' || f === 'upsale_angenommen') return Number(body[f]) || 0;
+    if (f === 'terminiert') return Number(body[f]) || 0;
+    if (f === 'neuer_ap_intern') {
+      const v = body[f] ?? null;
+      if (!v && body.weitergeben_an_vertrieb === 'Ja') return 'Vertrieb';
+      if (!v && body.weitergeben_an_vertrieb === 'Nein' && body.kam_id) return String(body.kam_id);
+      return v;
+    }
     return body[f] ?? null;
   });
 
@@ -95,11 +189,30 @@ router.put('/:id', wrap(async (req, res) => {
   const { gewonnen_datum, gewonnen_monat } = resolveGewonnenFelder(req.body, existing);
   const fields = ['datum','monat','company_id','kam_id','kunde','dienstleistung','angebotswert',
     'ae_wert','laufzeit_monate','status','wie_vielt_verlaengerung','kommentar',
-    'abgerechnet','kundennummer','gewonnen_datum','gewonnen_monat'];
+    'abgerechnet','kundennummer','gewonnen_datum','gewonnen_monat',
+    'gekuendigt_am','auslaufend_am','ansprechpartner','telefon','email_kontakt',
+    'upsale_angesprochen','upsale_summe','upsale_angenommen','upsale_angenommen_summe',
+    'weitergeben_an_vertrieb','terminiert','neuer_ap_intern'];
+  // Fields only editable inline in Kündigungen — preserve existing value when not in form body
+  const PRESERVE_FIELDS = ['gekuendigt_am','auslaufend_am','ansprechpartner','telefon','email_kontakt','terminiert','neuer_ap_intern'];
   const values = fields.map(f => {
     if (f === 'gewonnen_datum') return gewonnen_datum;
     if (f === 'gewonnen_monat') return gewonnen_monat;
     if (f === 'abgerechnet') return req.body[f] ?? (req.body.status === 'Gewonnen' ? 'Nein' : null);
+    if (f === 'upsale_angesprochen' || f === 'upsale_angenommen') return Number(req.body[f]) || 0;
+    if (f === 'terminiert') {
+      if (req.body.terminiert !== undefined) return Number(req.body.terminiert) || 0;
+      return Number(existing?.terminiert) || 0;
+    }
+    if (f === 'neuer_ap_intern') {
+      if (req.body.neuer_ap_intern !== undefined) return req.body.neuer_ap_intern ?? null;
+      const weitergeben = req.body.weitergeben_an_vertrieb;
+      const kamId = req.body.kam_id || existing?.kam_id;
+      if (weitergeben === 'Ja') return 'Vertrieb';
+      if (weitergeben === 'Nein' && kamId) return String(kamId);
+      return existing?.neuer_ap_intern ?? null;
+    }
+    if (PRESERVE_FIELDS.includes(f) && req.body[f] === undefined) return existing?.[f] ?? null;
     return req.body[f] ?? null;
   });
 
@@ -117,6 +230,49 @@ router.put('/:id', wrap(async (req, res) => {
   }
 
   await logAudit({ user: req.user, action: 'update', entityType: 'deal_vl', entityId: Number(req.params.id), oldData: existing, newData: row });
+  res.json(row);
+}));
+
+router.patch('/:id/kontakt', wrap(async (req, res) => {
+  const KONTAKT_FIELDS = ['gekuendigt_am','auslaufend_am','ansprechpartner','telefon','email_kontakt','terminiert','neuer_ap_intern'];
+  const toUpdate = KONTAKT_FIELDS.filter(f => Object.prototype.hasOwnProperty.call(req.body, f));
+  if (toUpdate.length === 0) return res.json({ ok: true });
+
+  let row;
+  if (db.dialect === 'postgres') {
+    const set = toUpdate.map((f, i) => `${f}=$${i + 1}`).join(',');
+    row = await db.get(
+      `UPDATE deals_vl SET ${set}, updated_at=NOW() WHERE id=$${toUpdate.length + 1} RETURNING *`,
+      [...toUpdate.map(f => req.body[f] ?? null), req.params.id]
+    );
+  } else {
+    const set = toUpdate.map(f => `${f}=?`).join(',');
+    db.run(
+      `UPDATE deals_vl SET ${set}, updated_at=datetime('now') WHERE id=?`,
+      [...toUpdate.map(f => req.body[f] ?? null), req.params.id]
+    );
+    row = db.get(BASE_SELECT + ' WHERE d.id=?', [req.params.id]);
+  }
+  res.json(row);
+}));
+
+router.patch('/:id/upsale', wrap(async (req, res) => {
+  const { upsale_angesprochen, upsale_summe, upsale_angenommen, upsale_angenommen_summe } = req.body;
+  let row;
+  if (db.dialect === 'postgres') {
+    row = await db.get(
+      `UPDATE deals_vl SET upsale_angesprochen=$1, upsale_summe=$2, upsale_angenommen=$3,
+       upsale_angenommen_summe=$4, updated_at=NOW() WHERE id=$5 RETURNING *`,
+      [upsale_angesprochen ?? 0, upsale_summe ?? null, upsale_angenommen ?? 0, upsale_angenommen_summe ?? null, req.params.id]
+    );
+  } else {
+    db.run(
+      `UPDATE deals_vl SET upsale_angesprochen=?, upsale_summe=?, upsale_angenommen=?,
+       upsale_angenommen_summe=?, updated_at=datetime('now') WHERE id=?`,
+      [upsale_angesprochen ?? 0, upsale_summe ?? null, upsale_angenommen ?? 0, upsale_angenommen_summe ?? null, req.params.id]
+    );
+    row = db.get(BASE_SELECT + ' WHERE d.id=?', [req.params.id]);
+  }
   res.json(row);
 }));
 

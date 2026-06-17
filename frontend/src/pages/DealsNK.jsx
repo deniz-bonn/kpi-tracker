@@ -68,7 +68,7 @@ export default function DealsNK() {
     { name: 'monat',          label: 'Monat (YYYY-MM)',                           required: true },
     { name: 'company_id',     label: 'Company',                  type: 'select', options: compOpts, required: true },
     { name: 'kunde',          label: 'Kunde',                                     required: true },
-    { name: 'angebotsnummer', label: 'Angebotsnummer' },
+    { name: 'kundennummer',   label: 'HubSpot ID',                                required: f => f.status === 'Gewonnen' },
     { name: 'dienstleistung', label: 'Dienstleistung',            type: 'select', options: DIENSTLEISTUNGEN_NK, required: f => f.status === 'Gewonnen' },
     // Employee fields only visible to admin/backoffice
     ...(canSeeAll ? [
@@ -96,7 +96,6 @@ export default function DealsNK() {
           : undefined,
     },
     { name: 'abgerechnet',    label: 'Abgerechnet',               type: 'select', options: ABGERECHNET_OPTS },
-    { name: 'kundennummer',     label: 'Kundennummer',                required: f => f.status === 'Gewonnen' },
     { name: 'kommentar',      label: 'Kommentar',                 type: 'textarea' },
   ];
 

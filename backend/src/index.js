@@ -25,6 +25,10 @@ app.use('/api/targets',        requireAuth, require('./routes/targets'));
 app.use('/api/kpis',           requireAuth, require('./routes/kpis'));
 app.use('/api/auswertung',     requireAuth, require('./routes/auswertung'));
 app.use('/api/monthly-targets',requireAuth, require('./routes/monthly_targets'));
+app.use('/api/activity-logs',  require('./routes/activity_logs'));  // requireAuth inside
+app.use('/api/inbound-daily',  require('./routes/inbound_daily'));  // requireAuth inside
+app.use('/api/feature-flags',  require('./routes/feature_flags')); // requireAuth inside
+app.use('/api/upsale-deals',   require('./routes/upsale_deals'));   // requireAuth inside
 app.use('/api/admin',          require('./routes/admin'));       // requireAuth + requireRole inside
 app.use('/api/audit',          require('./routes/audit'));       // requireAuth inside
 app.use('/api/export',         require('./routes/export'));      // requireAuth inside

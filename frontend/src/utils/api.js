@@ -49,11 +49,15 @@ export const dealsApi = {
     delete: (id) => api.delete(`/deals/bk/${id}`),
   },
   vl: {
-    list: (params) => api.get('/deals/vl', { params }).then(r => r.data),
-    get: (id) => api.get(`/deals/vl/${id}`).then(r => r.data),
-    create: (data) => api.post('/deals/vl', data).then(r => r.data),
-    update: (id, data) => api.put(`/deals/vl/${id}`, data).then(r => r.data),
-    delete: (id) => api.delete(`/deals/vl/${id}`),
+    list:        (params)       => api.get('/deals/vl', { params }).then(r => r.data),
+    get:         (id)           => api.get(`/deals/vl/${id}`).then(r => r.data),
+    create:      (data)         => api.post('/deals/vl', data).then(r => r.data),
+    update:      (id, data)     => api.put(`/deals/vl/${id}`, data).then(r => r.data),
+    delete:      (id)           => api.delete(`/deals/vl/${id}`),
+    patchUpsale:  (id, data) => api.patch(`/deals/vl/${id}/upsale`, data).then(r => r.data),
+    patchKontakt:   (id, data) => api.patch(`/deals/vl/${id}/kontakt`, data).then(r => r.data),
+    importKontakt:  (rows)    => api.post('/deals/vl/import-kontakt', rows).then(r => r.data),
+    importCsv:      (payload) => api.post('/deals/vl/import-csv', payload).then(r => r.data),
   },
 };
 
@@ -90,6 +94,29 @@ export const adminApi = {
   resendInvite: (id) => api.post(`/admin/users/${id}/resend-invite`).then(r => r.data),
   resetPassword: (id, new_password) => api.post(`/admin/users/${id}/reset-password`, { new_password }).then(r => r.data),
   loginLogs: () => api.get('/admin/login-logs').then(r => r.data),
+};
+
+export const activityLogsApi = {
+  list:   (params) => api.get('/activity-logs', { params }).then(r => r.data),
+  upsert: (data)   => api.post('/activity-logs', data).then(r => r.data),
+  delete: (id)     => api.delete(`/activity-logs/${id}`),
+};
+
+export const inboundDailyApi = {
+  list:   (params) => api.get('/inbound-daily', { params }).then(r => r.data),
+  upsert: (data)   => api.post('/inbound-daily', data).then(r => r.data),
+};
+
+export const upsaleDealsApi = {
+  list:   (params) => api.get('/upsale-deals', { params }).then(r => r.data),
+  create: (data)   => api.post('/upsale-deals', data).then(r => r.data),
+  update: (id, data) => api.put(`/upsale-deals/${id}`, data).then(r => r.data),
+  delete: (id)     => api.delete(`/upsale-deals/${id}`),
+};
+
+export const featureFlagsApi = {
+  list:   ()               => api.get('/feature-flags').then(r => r.data),
+  update: (feature, roles) => api.post('/feature-flags', { feature, roles }).then(r => r.data),
 };
 
 export const auditApi = {
