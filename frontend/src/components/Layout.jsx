@@ -1,7 +1,7 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { companiesApi } from '../utils/api';
+import { companiesApi, adminApi } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 
 const ALL_NAV = [
@@ -38,6 +38,14 @@ export default function Layout() {
     return n.roles.includes(user?.role);
   });
   const close = () => setSidebar(false);
+
+  const { data: onlineUsers = [] } = useQuery({
+    queryKey: ['online-users'],
+    queryFn: adminApi.onlineUsers,
+    enabled: user?.role === 'superadmin',
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+  });
 
   const handleLogout = () => {
     logout();
@@ -89,6 +97,19 @@ export default function Layout() {
             </NavLink>
           ))}
         </nav>
+
+        {/* Online indicator (superadmin only) */}
+        {user?.role === 'superadmin' && (
+          <NavLink to="/einstellungen" onClick={() => { close(); }}
+            className="mx-3 mb-1 flex items-center gap-2 text-xs text-green-400 hover:text-green-300 px-2 py-1.5 rounded hover:bg-[#3c3c3c] transition-colors"
+            title="Gerade online — Einstellungen öffnen"
+          >
+            <span className={`w-1.5 h-1.5 rounded-full inline-block ${onlineUsers.length > 0 ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`}></span>
+            {onlineUsers.length > 0
+              ? `${onlineUsers.length} ${onlineUsers.length === 1 ? 'Benutzer' : 'Benutzer'} online`
+              : 'Niemand online'}
+          </NavLink>
+        )}
 
         {/* User info + logout */}
         <div className="border-t border-[#444] px-3 py-3">

@@ -207,6 +207,14 @@ export default function Settings() {
     }
   };
 
+  // ── Online users (superadmin only) ───────────────────────────────────────
+  const { data: onlineUsers = [], dataUpdatedAt: onlineUpdatedAt } = useQuery({
+    queryKey: ['online-users'],
+    queryFn: adminApi.onlineUsers,
+    enabled: isSuperAdmin && tab === 'online',
+    refetchInterval: 15_000,
+  });
+
   // ── Audit log (admin only) ────────────────────────────────────────────────
   const { data: auditLogs = [] } = useQuery({
     queryKey: ['audit-logs'], queryFn: () => auditApi.list({ limit: 50 }), enabled: isAdmin && tab === 'audit',
@@ -218,7 +226,10 @@ export default function Settings() {
   });
 
   const TABS = [
-    ...(isSuperAdmin ? [{ id: 'access', label: 'Zugriffssteuerung' }] : []),
+    ...(isSuperAdmin ? [
+      { id: 'access', label: 'Zugriffssteuerung' },
+      { id: 'online', label: 'Online' },
+    ] : []),
     ...(isAdmin ? [
       { id: 'users',     label: 'Benutzer' },
       { id: 'companies', label: 'Companies' },
@@ -450,6 +461,57 @@ export default function Settings() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ── TAB: Online ────────────────────────────────────────────── */}
+      {tab === 'online' && isSuperAdmin && (
+        <section className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+          <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
+              <h2 className="text-sm font-semibold text-gray-700">
+                Gerade online — {onlineUsers.length} {onlineUsers.length === 1 ? 'Benutzer' : 'Benutzer'}
+              </h2>
+            </div>
+            <span className="text-xs text-gray-400">
+              Aktualisiert alle 15 Sek. · Schwellenwert: 3 Min.
+            </span>
+          </div>
+          {onlineUsers.length === 0 ? (
+            <div className="px-5 py-8 text-center text-sm text-gray-400">
+              Keine aktiven Benutzer im Moment.
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {onlineUsers.map(u => {
+                const seenAgo = onlineUpdatedAt && u.last_seen
+                  ? Math.round((onlineUpdatedAt - new Date(u.last_seen).getTime()) / 1000)
+                  : null;
+                return (
+                  <div key={u.id} className="px-5 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                        {u.name?.charAt(0)?.toUpperCase() || '?'}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">{u.name}</p>
+                        <p className="text-xs text-gray-500">{u.email} · {ROLE_LABELS[u.role] || u.role}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-gray-400">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block animate-pulse"></span>
+                      {seenAgo !== null && seenAgo < 60
+                        ? `vor ${seenAgo}s`
+                        : seenAgo !== null
+                        ? `vor ${Math.round(seenAgo / 60)}m`
+                        : 'aktiv'}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>

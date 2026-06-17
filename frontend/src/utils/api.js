@@ -94,6 +94,7 @@ export const adminApi = {
   resendInvite: (id) => api.post(`/admin/users/${id}/resend-invite`).then(r => r.data),
   resetPassword: (id, new_password) => api.post(`/admin/users/${id}/reset-password`, { new_password }).then(r => r.data),
   loginLogs: () => api.get('/admin/login-logs').then(r => r.data),
+  onlineUsers: () => api.get('/admin/online-users').then(r => r.data),
 };
 
 export const activityLogsApi = {

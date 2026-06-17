@@ -79,11 +79,11 @@ router.post('/login', wrap(async (req, res) => {
 
   if (!ok) return res.status(401).json({ error: 'E-Mail oder Passwort falsch' });
 
-  // update last_login
+  // update last_login + last_seen
   if (db.dialect === 'postgres') {
-    await db.run(`UPDATE users SET last_login=NOW() WHERE id=$1`, [user.id]);
+    await db.run(`UPDATE users SET last_login=NOW(), last_seen=NOW() WHERE id=$1`, [user.id]);
   } else {
-    db.run(`UPDATE users SET last_login=datetime('now') WHERE id=?`, [user.id]);
+    db.run(`UPDATE users SET last_login=datetime('now'), last_seen=datetime('now') WHERE id=?`, [user.id]);
   }
 
   const payload = {
@@ -240,6 +240,17 @@ router.post('/invite/accept', wrap(async (req, res) => {
       `UPDATE users SET password_hash=?, invite_token=NULL, invite_expires=NULL, active=1 WHERE id=?`,
       [hash, user.id]
     );
+  }
+  res.json({ ok: true });
+}));
+
+// ── POST /api/auth/ping ───────────────────────────────────────────────────────
+// Heartbeat — updates last_seen so superadmin can see who's online
+router.post('/ping', requireAuth, wrap(async (req, res) => {
+  if (db.dialect === 'postgres') {
+    await db.run(`UPDATE users SET last_seen=NOW() WHERE id=$1`, [req.user.id]);
+  } else {
+    db.run(`UPDATE users SET last_seen=datetime('now') WHERE id=?`, [req.user.id]);
   }
   res.json({ ok: true });
 }));

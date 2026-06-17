@@ -140,6 +140,26 @@ router.post('/users/:id/reset-password', wrap(async (req, res) => {
   res.json({ ok: true });
 }));
 
+// ── GET /api/admin/online-users ──────────────────────────────────────────────
+// Users with last_seen within the last 3 minutes (superadmin only)
+router.get('/online-users', requireRole('superadmin'), wrap(async (req, res) => {
+  let rows;
+  if (db.dialect === 'postgres') {
+    rows = await db.all(
+      `SELECT id, name, email, role, last_seen FROM users
+       WHERE last_seen > NOW() - INTERVAL '3 minutes'
+       ORDER BY last_seen DESC`
+    );
+  } else {
+    rows = db.all(
+      `SELECT id, name, email, role, last_seen FROM users
+       WHERE last_seen > datetime('now', '-3 minutes')
+       ORDER BY last_seen DESC`
+    );
+  }
+  res.json(rows);
+}));
+
 // ── GET /api/admin/login-logs ─────────────────────────────────────────────────
 router.get('/login-logs', wrap(async (req, res) => {
   const sql = db.dialect === 'postgres'

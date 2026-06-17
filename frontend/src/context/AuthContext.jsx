@@ -51,6 +51,15 @@ export function AuthProvider({ children }) {
       .catch(() => setFeatureFlags({})); // on error: empty flags = no extra access
   }, [user?.id]);
 
+  // Heartbeat: keep last_seen fresh while the tab is open
+  useEffect(() => {
+    if (!user) return;
+    const ping = () => axios.post('/api/auth/ping').catch(() => {});
+    ping();
+    const id = setInterval(ping, 30_000);
+    return () => clearInterval(id);
+  }, [user?.id]);
+
   const login = useCallback(async (email, password) => {
     const res = await axios.post('/api/auth/login', { email, password });
     const { token: t, user: u } = res.data;
