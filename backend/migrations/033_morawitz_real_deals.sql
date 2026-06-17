@@ -1301,7 +1301,7 @@ INSERT INTO deals_vl (datum,monat,company_id,kam_id,kunde,dienstleistung,angebot
   SELECT '2026-06-12','2026-06',3,e.id,'TWF Baumaschinentechnik GmbH',NULL,4000,4000,2,1,'2026-07-11','Gewonnen',NULL,NULL,'2026-06-12','2026-06'
   FROM employees e WHERE e.name='Stefan Morawitz' AND e.company_id=3 LIMIT 1;
 
--- 5. ae_gesamt_monthly korrigieren (nur Jan-Mai; Jun nutzt Live-Deals)
+-- 5. ae_gesamt_monthly korrigieren (nur Jan-Mai, Jun nutzt Live-Deals)
 UPDATE ae_gesamt_monthly SET
   nk_at_anz = 37,
   nk_at_ae  = 160000,
