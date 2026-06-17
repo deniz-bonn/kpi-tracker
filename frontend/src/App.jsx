@@ -16,9 +16,9 @@ import Auswertung from './pages/Auswertung';
 import Settings from './pages/Settings';
 
 const ROLES = {
-  nkAndAbove: ['admin', 'nk_vertrieb', 'bk_vertrieb', 'backoffice'],
-  bkAndAbove: ['admin', 'bk_vertrieb', 'backoffice'],
-  adminAndBo: ['admin', 'backoffice'],
+  nkAndAbove: ['admin', 'nk_vertrieb', 'bk_vertrieb', 'backoffice', 'vertriebsleitung'],
+  bkAndAbove: ['admin', 'bk_vertrieb', 'backoffice', 'vertriebsleitung'],
+  adminAndBo: ['admin', 'backoffice', 'vertriebsleitung'],
 };
 
 // Inner component so useAuth() works (AuthProvider wraps it)
