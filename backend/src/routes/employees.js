@@ -35,17 +35,31 @@ router.post('/', wrap(async (req, res) => {
 }));
 
 router.patch('/:id', wrap(async (req, res) => {
-  const { name, company_id, rolle, standort, aktiv } = req.body;
+  const { name, company_id, rolle, standort, aktiv, show_in_kpi } = req.body;
   if (db.dialect === 'postgres') {
     const row = await db.get(
-      'UPDATE employees SET name=COALESCE($1,name), company_id=COALESCE($2,company_id), rolle=COALESCE($3,rolle), standort=COALESCE($4,standort), aktiv=COALESCE($5,aktiv) WHERE id=$6 RETURNING *',
-      [name, company_id, rolle, standort !== undefined ? standort || null : undefined, aktiv, req.params.id]
+      `UPDATE employees SET
+         name=COALESCE($1,name), company_id=COALESCE($2,company_id),
+         rolle=COALESCE($3,rolle), standort=COALESCE($4,standort),
+         aktiv=COALESCE($5,aktiv), show_in_kpi=COALESCE($6,show_in_kpi)
+       WHERE id=$7 RETURNING *`,
+      [name, company_id, rolle,
+       standort !== undefined ? standort || null : undefined,
+       aktiv, show_in_kpi !== undefined ? show_in_kpi : null,
+       req.params.id]
     );
     res.json(row);
   } else {
     db.run(
-      'UPDATE employees SET name=COALESCE(?,name), company_id=COALESCE(?,company_id), rolle=COALESCE(?,rolle), standort=COALESCE(?,standort), aktiv=COALESCE(?,aktiv) WHERE id=?',
-      [name ?? null, company_id ?? null, rolle ?? null, standort !== undefined ? standort || null : null, aktiv ?? null, req.params.id]
+      `UPDATE employees SET
+         name=COALESCE(?,name), company_id=COALESCE(?,company_id),
+         rolle=COALESCE(?,rolle), standort=COALESCE(?,standort),
+         aktiv=COALESCE(?,aktiv), show_in_kpi=COALESCE(?,show_in_kpi)
+       WHERE id=?`,
+      [name ?? null, company_id ?? null, rolle ?? null,
+       standort !== undefined ? standort || null : null,
+       aktiv ?? null, show_in_kpi !== undefined ? show_in_kpi : null,
+       req.params.id]
     );
     res.json(await db.get('SELECT e.*, c.name as company_name FROM employees e JOIN companies c ON c.id=e.company_id WHERE e.id=?', [req.params.id]));
   }

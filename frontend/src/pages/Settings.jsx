@@ -207,6 +207,21 @@ export default function Settings() {
     }
   };
 
+  // ── KPI visibility (superadmin only) ─────────────────────────────────────
+  const { data: allEmployees = [] } = useQuery({
+    queryKey: ['employees-all'],
+    queryFn: () => employeesApi.list({ all: 1 }),
+    enabled: isSuperAdmin && tab === 'kpi_visibility',
+  });
+
+  const kpiVisibilityMut = useMutation({
+    mutationFn: ({ id, show_in_kpi }) => employeesApi.update(id, { show_in_kpi }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['employees-all'] });
+      qc.invalidateQueries({ queryKey: ['employees'] });
+    },
+  });
+
   // ── Online users (superadmin only) ───────────────────────────────────────
   const { data: onlineUsers = [], dataUpdatedAt: onlineUpdatedAt } = useQuery({
     queryKey: ['online-users'],
@@ -227,8 +242,9 @@ export default function Settings() {
 
   const TABS = [
     ...(isSuperAdmin ? [
-      { id: 'access', label: 'Zugriffssteuerung' },
-      { id: 'online', label: 'Online' },
+      { id: 'access',         label: 'Zugriffssteuerung' },
+      { id: 'kpi_visibility', label: 'KPI-Mitarbeiter' },
+      { id: 'online',         label: 'Online' },
     ] : []),
     ...(isAdmin ? [
       { id: 'users',     label: 'Benutzer' },
@@ -463,6 +479,48 @@ export default function Settings() {
               ))}
             </div>
           )}
+        </section>
+      )}
+
+      {/* ── TAB: KPI-Mitarbeiter Sichtbarkeit ─────────────────────── */}
+      {tab === 'kpi_visibility' && isSuperAdmin && (
+        <section className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+          <div className="px-5 py-3 border-b border-gray-100">
+            <h2 className="text-sm font-semibold text-gray-700">KPI-Mitarbeiter Sichtbarkeit</h2>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Legt fest, welche Mitarbeiter in „KPI Mitarbeiter" und „KPI Mitarbeiter Beta" erfasst werden.
+            </p>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {allEmployees.length === 0 && (
+              <div className="px-5 py-6 text-center text-sm text-gray-400">Lade...</div>
+            )}
+            {allEmployees.map(emp => {
+              const visible = emp.show_in_kpi !== 0 && emp.show_in_kpi !== false;
+              return (
+                <div key={emp.id} className="px-5 py-2.5 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className={`text-sm font-medium ${emp.aktiv ? 'text-gray-800' : 'text-gray-400'}`}>{emp.name}</span>
+                    <span className="ml-2 text-xs text-gray-400">{emp.rolle} · {emp.company_name}</span>
+                    {!emp.aktiv && (
+                      <span className="ml-2 text-[10px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded">Inaktiv</span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => kpiVisibilityMut.mutate({ id: emp.id, show_in_kpi: visible ? 0 : 1 })}
+                    disabled={kpiVisibilityMut.isPending}
+                    className={`shrink-0 text-xs px-3 py-1.5 rounded border font-medium transition-colors disabled:opacity-50 ${
+                      visible
+                        ? 'bg-green-50 border-green-300 text-green-700 hover:bg-green-100'
+                        : 'bg-gray-50 border-gray-200 text-gray-400 hover:border-gray-400 hover:text-gray-600'
+                    }`}
+                  >
+                    {visible ? '✓ Erfasst' : 'Ausgeblendet'}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </section>
       )}
 
