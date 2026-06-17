@@ -318,17 +318,12 @@ router.get('/dashboard', wrap(async (req, res) => {
 
   const months = Array.from({ length: 12 }, (_, i) => `${yr}-${String(i + 1).padStart(2, '0')}`);
 
-  // Only use ae_gesamt_monthly for PAST (completed) months.
-  // The current month and future months always use live deal data.
-  const now = new Date();
-  const currentMonat = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-
   const rows = months.map(monat => {
     const ag = aeGesamt(monat); // authoritative AE Gesamt record (may be null)
 
-    // For completed (past) months with an AE Gesamt record, use those totals.
-    // For the current month and future months, always compute from live deal data.
-    const useAG = ag && ag.gesamt > 0 && monat < currentMonat;
+    // Use ae_gesamt_monthly whenever a non-zero record exists.
+    // This covers past months AND the current month when it has been frozen via migration.
+    const useAG = ag && ag.gesamt > 0;
 
     // NK – prefer AE Gesamt values when available
     const nk_bonn   = useAG ? (ag.nk_bonn_ae || 0) : locAE(nkByLoc, monat, ['Bonn']);
