@@ -8,7 +8,7 @@ const { logAudit } = require('../utils/audit');
 router.use(requireAuth);
 
 // ── GET /api/audit ──────────────────────────────────────────────────────────
-router.get('/', requireRole('admin', 'backoffice'), wrap(async (req, res) => {
+router.get('/', requireRole('admin', 'backoffice', 'vertriebsleitung'), wrap(async (req, res) => {
   const { entity_type, limit = 100 } = req.query;
   let sql, params = [];
 

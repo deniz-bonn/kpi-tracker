@@ -79,11 +79,12 @@ export function AuthProvider({ children }) {
   const isSuperAdmin = user?.role === 'superadmin';
   const isAdmin      = user?.role === 'admin' || isSuperAdmin;
   const isBackoffice = user?.role === 'backoffice';
-  const canSeeNK     = ['admin','superadmin','nk_vertrieb','bk_vertrieb','backoffice'].includes(user?.role);
-  const canSeeBK     = ['admin','superadmin','bk_vertrieb','backoffice'].includes(user?.role);
-  const canSeeVL     = ['admin','superadmin','bk_vertrieb','backoffice'].includes(user?.role);
+  const isVertriebsleitung = user?.role === 'vertriebsleitung';
+  const canSeeNK     = ['admin','superadmin','nk_vertrieb','bk_vertrieb','backoffice','vertriebsleitung'].includes(user?.role);
+  const canSeeBK     = ['admin','superadmin','bk_vertrieb','backoffice','vertriebsleitung'].includes(user?.role);
+  const canSeeVL     = ['admin','superadmin','bk_vertrieb','backoffice','vertriebsleitung'].includes(user?.role);
   const canSeeAdmin  = isAdmin;
-  const canSeeAll    = isAdmin || isBackoffice;
+  const canSeeAll    = isAdmin || isBackoffice || isVertriebsleitung;
   // superadmin always has access; others need featureFlags loaded + role listed
   const canSeeKpiBeta = isSuperAdmin || (
     featureFlags !== null && (featureFlags['kpi_beta'] || []).includes(user?.role)
@@ -92,7 +93,7 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={{
       user, token, login, logout, loading,
-      isSuperAdmin, isAdmin, isBackoffice,
+      isSuperAdmin, isAdmin, isBackoffice, isVertriebsleitung,
       canSeeNK, canSeeBK, canSeeVL, canSeeAdmin, canSeeAll,
       canSeeKpiBeta, featureFlags, refreshFeatureFlags,
     }}>

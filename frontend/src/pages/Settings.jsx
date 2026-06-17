@@ -6,23 +6,25 @@ import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 
 const ROLE_OPTS = [
-  { value: 'superadmin',  label: 'Super Admin' },
-  { value: 'admin',       label: 'Admin' },
-  { value: 'nk_vertrieb', label: 'NK-Vertrieb' },
-  { value: 'bk_vertrieb', label: 'BK-Vertrieb' },
-  { value: 'backoffice',  label: 'Backoffice' },
+  { value: 'superadmin',       label: 'Super Admin' },
+  { value: 'admin',            label: 'Admin' },
+  { value: 'vertriebsleitung', label: 'Vertriebsleitung' },
+  { value: 'nk_vertrieb',      label: 'NK-Vertrieb' },
+  { value: 'bk_vertrieb',      label: 'BK-Vertrieb' },
+  { value: 'backoffice',       label: 'Backoffice' },
 ];
-const ROLE_LABELS = { superadmin:'Super Admin', admin:'Admin', nk_vertrieb:'NK-Vertrieb', bk_vertrieb:'BK-Vertrieb', backoffice:'Backoffice' };
+const ROLE_LABELS = { superadmin:'Super Admin', admin:'Admin', vertriebsleitung:'Vertriebsleitung', nk_vertrieb:'NK-Vertrieb', bk_vertrieb:'BK-Vertrieb', backoffice:'Backoffice' };
 
 // ── Zugriffssteuerung (superadmin only) ────────────────────────────────────
 const CONTROLLED_FEATURES = [
   { key: 'kpi_beta', label: 'KPI Mitarbeiter Beta', desc: 'Beta-Dashboard mit täglichem Activity-Tracking' },
 ];
 const CONTROLLABLE_ROLES = [
-  { value: 'admin',       label: 'Admin' },
-  { value: 'backoffice',  label: 'Backoffice' },
-  { value: 'bk_vertrieb', label: 'BK-Vertrieb' },
-  { value: 'nk_vertrieb', label: 'NK-Vertrieb' },
+  { value: 'admin',            label: 'Admin' },
+  { value: 'vertriebsleitung', label: 'Vertriebsleitung' },
+  { value: 'backoffice',       label: 'Backoffice' },
+  { value: 'bk_vertrieb',      label: 'BK-Vertrieb' },
+  { value: 'nk_vertrieb',      label: 'NK-Vertrieb' },
 ];
 
 function AccessControlSection() {

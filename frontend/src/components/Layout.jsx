@@ -5,24 +5,25 @@ import { companiesApi } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 
 const ALL_NAV = [
-  { to: '/dashboard',           label: 'Dashboard',            icon: '📊', roles: ['admin','superadmin','nk_vertrieb','bk_vertrieb','backoffice'] },
-  { to: '/neukunden',           label: 'Neukunden NK',          icon: '🟢', roles: ['admin','superadmin','nk_vertrieb','bk_vertrieb','backoffice'] },
-  { to: '/bestandskunden',      label: 'Bestandskunden BK',     icon: '🔵', roles: ['admin','superadmin','bk_vertrieb','backoffice'] },
-  { to: '/verlaengerungen',     label: 'Verlängerungen VL',     icon: '🔄', roles: ['admin','superadmin','bk_vertrieb','backoffice'] },
-  { to: '/kuendigungen',        label: 'Kündigungen',            icon: '⚠️',  roles: ['admin','superadmin','bk_vertrieb','backoffice'] },
-  { to: '/auswertung',          label: 'KPI Auswertung',        icon: '📋', roles: ['admin','superadmin','backoffice'] },
-  { to: '/kpi-mitarbeiter',     label: 'KPI Mitarbeiter',       icon: '📈', roles: ['admin','superadmin','backoffice'] },
+  { to: '/dashboard',           label: 'Dashboard',            icon: '📊', roles: ['admin','superadmin','nk_vertrieb','bk_vertrieb','backoffice','vertriebsleitung'] },
+  { to: '/neukunden',           label: 'Neukunden NK',          icon: '🟢', roles: ['admin','superadmin','nk_vertrieb','bk_vertrieb','backoffice','vertriebsleitung'] },
+  { to: '/bestandskunden',      label: 'Bestandskunden BK',     icon: '🔵', roles: ['admin','superadmin','bk_vertrieb','backoffice','vertriebsleitung'] },
+  { to: '/verlaengerungen',     label: 'Verlängerungen VL',     icon: '🔄', roles: ['admin','superadmin','bk_vertrieb','backoffice','vertriebsleitung'] },
+  { to: '/kuendigungen',        label: 'Kündigungen',            icon: '⚠️',  roles: ['admin','superadmin','bk_vertrieb','backoffice','vertriebsleitung'] },
+  { to: '/auswertung',          label: 'KPI Auswertung',        icon: '📋', roles: ['admin','superadmin','backoffice','vertriebsleitung'] },
+  { to: '/kpi-mitarbeiter',     label: 'KPI Mitarbeiter',       icon: '📈', roles: ['admin','superadmin','backoffice','vertriebsleitung'] },
   { to: '/kpi-mitarbeiter-beta',label: 'KPI Mitarbeiter Beta',  icon: '🧪', feature: 'kpi_beta' },
-  { to: '/mitarbeiter',         label: 'Mitarbeiter',           icon: '👥', roles: ['admin','superadmin','backoffice'] },
+  { to: '/mitarbeiter',         label: 'Mitarbeiter',           icon: '👥', roles: ['admin','superadmin','backoffice','vertriebsleitung'] },
   { to: '/einstellungen',       label: 'Einstellungen',         icon: '⚙️',  roles: ['admin','superadmin','nk_vertrieb','bk_vertrieb','backoffice'] },
 ];
 
 const ROLE_LABELS = {
-  superadmin:  'Super Admin',
-  admin:       'Admin',
-  nk_vertrieb: 'NK-Vertrieb',
-  bk_vertrieb: 'BK-Vertrieb',
-  backoffice:  'Backoffice',
+  superadmin:        'Super Admin',
+  admin:             'Admin',
+  vertriebsleitung:  'Vertriebsleitung',
+  nk_vertrieb:       'NK-Vertrieb',
+  bk_vertrieb:       'BK-Vertrieb',
+  backoffice:        'Backoffice',
 };
 
 export default function Layout() {

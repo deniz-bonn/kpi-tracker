@@ -29,7 +29,7 @@ router.post('/', requireRole('superadmin'), wrap(async (req, res) => {
     return res.status(400).json({ error: 'feature und roles erforderlich' });
   }
 
-  const validRoles = ['admin', 'backoffice', 'bk_vertrieb', 'nk_vertrieb'];
+  const validRoles = ['admin', 'vertriebsleitung', 'backoffice', 'bk_vertrieb', 'nk_vertrieb'];
   const safeRoles  = roles.filter(r => validRoles.includes(r));
 
   if (db.dialect === 'postgres') {
