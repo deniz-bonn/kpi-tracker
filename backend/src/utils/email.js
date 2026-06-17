@@ -14,7 +14,8 @@ function createTransporter() {
 }
 
 const FROM = process.env.SMTP_FROM || 'KPI Tracker <noreply@kpi-tracker.app>';
-const APP_URL = process.env.APP_URL || 'http://localhost:5173';
+const APP_URL = process.env.APP_URL ||
+  (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : 'http://localhost:5173');
 
 async function sendInvite(email, name, token) {
   const link = `${APP_URL}/set-password?token=${token}`;
