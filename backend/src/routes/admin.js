@@ -56,7 +56,7 @@ router.post('/users', wrap(async (req, res) => {
   const emailResult = await sendInvite(email, name, token);
   res.status(201).json({
     ...user,
-    invite_link: process.env.NODE_ENV !== 'production' ? emailResult.link : undefined,
+    invite_link: !emailResult.email_sent ? emailResult.link : undefined,
   });
 }));
 
@@ -120,7 +120,7 @@ router.post('/users/:id/resend-invite', wrap(async (req, res) => {
   const emailResult = await sendInvite(user.email, user.name, token);
   res.json({
     ok: true,
-    invite_link: process.env.NODE_ENV !== 'production' ? emailResult.link : undefined,
+    invite_link: !emailResult.email_sent ? emailResult.link : undefined,
   });
 }));
 

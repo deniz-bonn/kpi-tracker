@@ -22,7 +22,7 @@ async function sendInvite(email, name, token) {
 
   if (!transporter) {
     console.log(`\n[INVITE EMAIL - no SMTP configured]\nTo: ${email}\nLink: ${link}\n`);
-    return { link };
+    return { link, email_sent: false };
   }
 
   await transporter.sendMail({
@@ -36,7 +36,7 @@ async function sendInvite(email, name, token) {
       <p>Der Link ist 7 Tage gültig.</p>
     `,
   });
-  return { link };
+  return { link, email_sent: true };
 }
 
 async function sendPasswordReset(email, name, token) {
@@ -45,7 +45,7 @@ async function sendPasswordReset(email, name, token) {
 
   if (!transporter) {
     console.log(`\n[RESET EMAIL - no SMTP configured]\nTo: ${email}\nLink: ${link}\n`);
-    return { link };
+    return { link, email_sent: false };
   }
 
   await transporter.sendMail({
@@ -59,7 +59,7 @@ async function sendPasswordReset(email, name, token) {
       <p>Der Link ist 1 Stunde gültig. Falls du keine Zurücksetzung angefordert hast, ignoriere diese E-Mail.</p>
     `,
   });
-  return { link };
+  return { link, email_sent: true };
 }
 
 module.exports = { sendInvite, sendPasswordReset };

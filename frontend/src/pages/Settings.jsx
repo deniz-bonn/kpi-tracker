@@ -155,11 +155,12 @@ export default function Settings() {
   const upsertTarget  = useMutation({ mutationFn: targetsApi.upsert,   onSuccess: () => { qc.invalidateQueries({queryKey:['targets']}); } });
 
   // ── User management (admin only) ──────────────────────────────────────────
-  const [userForm,   setUserForm]   = useState({ email: '', name: '', role: 'nk_vertrieb', employee_id: '' });
-  const [userMsg,    setUserMsg]    = useState(null);
-  const [editUser,   setEditUser]   = useState(null);
-  const [resetPwId,  setResetPwId]  = useState(null);
-  const [resetPwVal, setResetPwVal] = useState('');
+  const [userForm,    setUserForm]   = useState({ email: '', name: '', role: 'nk_vertrieb', employee_id: '' });
+  const [userMsg,     setUserMsg]    = useState(null);
+  const [inviteLink,  setInviteLink] = useState(null);
+  const [editUser,    setEditUser]   = useState(null);
+  const [resetPwId,   setResetPwId]  = useState(null);
+  const [resetPwVal,  setResetPwVal] = useState('');
 
   const { data: users     = [] } = useQuery({ queryKey: ['admin-users'], queryFn: adminApi.listUsers, enabled: isAdmin });
   const { data: employees = [] } = useQuery({ queryKey: ['employees'],   queryFn: () => employeesApi.list() });
@@ -169,10 +170,13 @@ export default function Settings() {
     onSuccess: (data) => {
       qc.invalidateQueries({queryKey:['admin-users']});
       setUserForm({ email:'', name:'', role:'nk_vertrieb', employee_id:'' });
-      const msg = data.invite_link
-        ? `Einladungslink: ${data.invite_link}`
-        : 'Einladungs-E-Mail gesendet!';
-      setUserMsg({ ok: msg });
+      if (data.invite_link) {
+        setInviteLink(data.invite_link);
+        setUserMsg({ ok: 'Benutzer angelegt. Kein SMTP konfiguriert — Link unten kopieren und manuell verschicken.' });
+      } else {
+        setInviteLink(null);
+        setUserMsg({ ok: 'Einladungs-E-Mail wurde gesendet!' });
+      }
     },
     onError: (err) => setUserMsg({ err: err.response?.data?.error || 'Fehler' }),
   });
@@ -192,8 +196,13 @@ export default function Settings() {
 
   const resendInvite = async (id) => {
     const data = await adminApi.resendInvite(id);
-    const msg = data.invite_link ? `Neuer Link: ${data.invite_link}` : 'Neue Einladung gesendet!';
-    alert(msg);
+    if (data.invite_link) {
+      setInviteLink(data.invite_link);
+      setUserMsg({ ok: 'Neuer Link generiert. Kein SMTP konfiguriert — Link unten kopieren und manuell verschicken.' });
+    } else {
+      setInviteLink(null);
+      setUserMsg({ ok: 'Neue Einladungs-E-Mail wurde gesendet!' });
+    }
   };
 
   // ── Audit log (admin only) ────────────────────────────────────────────────
@@ -245,6 +254,25 @@ export default function Settings() {
             {userMsg && (
               <div className={`text-xs rounded px-3 py-2 mb-3 ${userMsg.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
                 {userMsg.ok || userMsg.err}
+              </div>
+            )}
+            {inviteLink && (
+              <div className="mb-3 rounded border border-amber-300 bg-amber-50 px-3 py-2.5">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-semibold text-amber-800">Einladungslink (manuell versenden)</span>
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(inviteLink); }}
+                    className="text-xs text-amber-700 hover:text-amber-900 border border-amber-300 rounded px-2 py-0.5 bg-white hover:bg-amber-100"
+                  >
+                    Kopieren
+                  </button>
+                </div>
+                <div className="text-xs text-amber-900 break-all font-mono bg-white border border-amber-200 rounded px-2 py-1.5 select-all">
+                  {inviteLink}
+                </div>
+                <p className="text-[11px] text-amber-700 mt-1.5">
+                  Tipp: SMTP-Zugangsdaten in Railway unter Variables konfigurieren (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM, APP_URL), damit Einladungen automatisch per E-Mail versendet werden.
+                </p>
               </div>
             )}
             <form onSubmit={e => { e.preventDefault(); createUser.mutate(userForm); }} className="grid grid-cols-2 gap-3">
