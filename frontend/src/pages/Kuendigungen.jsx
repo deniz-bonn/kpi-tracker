@@ -348,9 +348,9 @@ const createDealMut = useMutation({
   };
 
   // ── Filter & sort ─────────────────────────────────────────────────────────────
-  // Show all deals where weitergeben_an_vertrieb is explicitly set (Ja or Nein)
+  // Only show deals explicitly passed to Vertrieb (Nein = stays in VL, doesn't appear here)
   const weitergegeben = useMemo(() =>
-    deals.filter(d => d.weitergeben_an_vertrieb === 'Ja' || d.weitergeben_an_vertrieb === 'Nein'),
+    deals.filter(d => d.weitergeben_an_vertrieb === 'Ja'),
     [deals]
   );
 

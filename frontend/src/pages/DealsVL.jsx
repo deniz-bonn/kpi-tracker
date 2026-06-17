@@ -133,9 +133,9 @@ export default function DealsVL() {
     { name: 'weitergeben_an_vertrieb', label: 'Weitergeben an Vertrieb?', type: 'select', options: ['Ja', 'Nein'], show: f => f.status === 'Verloren', required: f => f.status === 'Verloren', hint: 'Ja = Kunde erscheint im Kündigungen-Tab als Up-Sale Potenzial' },
     { name: 'gekuendigt_am',         label: 'Gekündigt am',            type: 'date',   show: f => f.status === 'Verloren', required: f => f.status === 'Verloren' },
     { name: 'auslaufend_am',         label: 'Auslaufend am',           type: 'date',   show: f => f.status === 'Verloren', required: f => f.status === 'Verloren' },
-    { name: 'ansprechpartner',       label: 'Ansprechpartner kundenseitig',             show: f => f.status === 'Verloren' },
-    { name: 'telefon',               label: 'Telefonnummer',                           show: f => f.status === 'Verloren' },
-    { name: 'email_kontakt',         label: 'E-Mail Adresse',                          show: f => f.status === 'Verloren' },
+    { name: 'ansprechpartner',       label: 'Ansprechpartner kundenseitig', show: f => f.status === 'Verloren', required: f => f.weitergeben_an_vertrieb === 'Ja' },
+    { name: 'telefon',               label: 'Telefonnummer',                show: f => f.status === 'Verloren', required: f => f.weitergeben_an_vertrieb === 'Ja' },
+    { name: 'email_kontakt',         label: 'E-Mail Adresse',               show: f => f.status === 'Verloren', required: f => f.weitergeben_an_vertrieb === 'Ja' },
     { name: 'abgerechnet',           label: 'Abgerechnet',             type: 'select', options: ABGERECHNET_OPTS },
     { name: 'kommentar',             label: 'Kommentar',               type: 'textarea' },
   ];
