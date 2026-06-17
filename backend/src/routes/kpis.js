@@ -163,7 +163,7 @@ router.get('/employees', wrap(async (req, res) => {
       SUM(CASE WHEN d.status='Offen' THEN 1 ELSE 0 END) as offen,
       SUM(CASE WHEN d.status='Gewonnen' THEN COALESCE(d.ae_wert,0) ELSE 0 END) as ae_summe
       FROM deals_nk d JOIN employees e ON e.id=d.closer_id
-      ${nkCloserF.conds.length ? 'WHERE '+nkCloserF.conds.join(' AND ') : ''}
+      WHERE e.show_in_kpi != 0 ${nkCloserF.conds.length ? 'AND '+nkCloserF.conds.join(' AND ') : ''}
       GROUP BY e.id,e.name ORDER BY ae_summe DESC`, nkCloserF.params),
 
     db.all(`SELECT e.id, e.name,
@@ -173,7 +173,7 @@ router.get('/employees', wrap(async (req, res) => {
       SUM(CASE WHEN d.status='Offen' THEN 1 ELSE 0 END) as offen,
       0 as ae_summe
       FROM deals_nk d JOIN employees e ON e.id=d.opener_id
-      ${nkOpenerF.conds.length ? 'WHERE '+nkOpenerF.conds.join(' AND ') : ''}
+      WHERE e.show_in_kpi != 0 ${nkOpenerF.conds.length ? 'AND '+nkOpenerF.conds.join(' AND ') : ''}
       GROUP BY e.id,e.name ORDER BY gewonnen DESC`, nkOpenerF.params),
 
     db.all(`SELECT e.id, e.name,
@@ -183,7 +183,7 @@ router.get('/employees', wrap(async (req, res) => {
       SUM(CASE WHEN d.status='Offen' THEN 1 ELSE 0 END) as offen,
       0 as ae_summe
       FROM deals_nk d JOIN employees e ON e.id=d.setter_id
-      ${nkSetterF.conds.length ? 'WHERE '+nkSetterF.conds.join(' AND ') : ''}
+      WHERE e.show_in_kpi != 0 ${nkSetterF.conds.length ? 'AND '+nkSetterF.conds.join(' AND ') : ''}
       GROUP BY e.id,e.name ORDER BY gewonnen DESC`, nkSetterF.params),
 
     db.all(`SELECT e.id, e.name,
@@ -193,7 +193,7 @@ router.get('/employees', wrap(async (req, res) => {
       SUM(CASE WHEN d.status='Offen' THEN 1 ELSE 0 END) as offen,
       SUM(CASE WHEN d.status='Gewonnen' THEN COALESCE(d.ae_wert,0) ELSE 0 END) as ae_summe
       FROM deals_bk d JOIN employees e ON e.id=d.kam_id
-      ${bkKamF.conds.length ? 'WHERE '+bkKamF.conds.join(' AND ') : ''}
+      WHERE e.show_in_kpi != 0 ${bkKamF.conds.length ? 'AND '+bkKamF.conds.join(' AND ') : ''}
       GROUP BY e.id,e.name ORDER BY ae_summe DESC`, bkKamF.params),
 
     db.all(`SELECT e.id, e.name,
@@ -203,7 +203,7 @@ router.get('/employees', wrap(async (req, res) => {
       SUM(CASE WHEN d.status='Offen' THEN 1 ELSE 0 END) as offen,
       SUM(CASE WHEN d.status='Gewonnen' THEN COALESCE(d.ae_wert,0) ELSE 0 END) as ae_summe
       FROM deals_vl d JOIN employees e ON e.id=d.kam_id
-      ${vlKamF.conds.length ? 'WHERE '+vlKamF.conds.join(' AND ') : ''}
+      WHERE e.show_in_kpi != 0 ${vlKamF.conds.length ? 'AND '+vlKamF.conds.join(' AND ') : ''}
       GROUP BY e.id,e.name ORDER BY ae_summe DESC`, vlKamF.params),
   ]);
 

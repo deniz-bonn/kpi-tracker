@@ -330,6 +330,7 @@ export default function KpiMitarbeiterBeta() {
   const tracked = useMemo(() =>
     employees
       .filter(e => TRACKED_ROLES.includes(e.rolle))
+      .filter(e => e.show_in_kpi !== 0)
       .filter(e => !empFilter || String(e.id) === empFilter)
       .sort((a, b) => a.name.localeCompare(b.name))
   , [employees, empFilter]);
@@ -429,7 +430,7 @@ export default function KpiMitarbeiterBeta() {
           </div>
           <select value={empFilter} onChange={e => setEmpFilter(e.target.value)} className={sel}>
             <option value="">Alle Mitarbeiter</option>
-            {employees.filter(e => TRACKED_ROLES.includes(e.rolle)).map(e =>
+            {employees.filter(e => TRACKED_ROLES.includes(e.rolle) && e.show_in_kpi !== 0).map(e =>
               <option key={e.id} value={e.id}>{e.name}</option>
             )}
           </select>
