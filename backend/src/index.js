@@ -40,5 +40,11 @@ if (fs.existsSync(publicPath)) {
   app.get('*', (req, res) => res.sendFile(path.join(publicPath, 'index.html')));
 }
 
+// Global JSON error handler — must be last middleware
+app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
+  console.error('[API error]', err.message, err.stack?.split('\n')[1] || '');
+  res.status(err.status || err.statusCode || 500).json({ error: err.message || 'Interner Serverfehler' });
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`KPI Tracker API running on :${PORT}`));

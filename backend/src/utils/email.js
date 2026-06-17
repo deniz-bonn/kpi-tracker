@@ -26,18 +26,23 @@ async function sendInvite(email, name, token) {
     return { link, email_sent: false };
   }
 
-  await transporter.sendMail({
-    from: FROM,
-    to:   email,
-    subject: 'Einladung zum KPI Tracker',
-    html: `
-      <p>Hallo ${name},</p>
-      <p>Du wurdest zum KPI Tracker eingeladen. Klicke auf den folgenden Link, um dein Passwort festzulegen:</p>
-      <p><a href="${link}">${link}</a></p>
-      <p>Der Link ist 7 Tage gültig.</p>
-    `,
-  });
-  return { link, email_sent: true };
+  try {
+    await transporter.sendMail({
+      from: FROM,
+      to:   email,
+      subject: 'Einladung zum KPI Tracker',
+      html: `
+        <p>Hallo ${name},</p>
+        <p>Du wurdest zum KPI Tracker eingeladen. Klicke auf den folgenden Link, um dein Passwort festzulegen:</p>
+        <p><a href="${link}">${link}</a></p>
+        <p>Der Link ist 7 Tage gültig.</p>
+      `,
+    });
+    return { link, email_sent: true };
+  } catch (err) {
+    console.error('[sendInvite SMTP error]', err.message);
+    return { link, email_sent: false };
+  }
 }
 
 async function sendPasswordReset(email, name, token) {
@@ -49,18 +54,23 @@ async function sendPasswordReset(email, name, token) {
     return { link, email_sent: false };
   }
 
-  await transporter.sendMail({
-    from: FROM,
-    to:   email,
-    subject: 'Passwort zurücksetzen – KPI Tracker',
-    html: `
-      <p>Hallo ${name},</p>
-      <p>Du hast eine Passwortzurücksetzung angefordert. Klicke auf den folgenden Link:</p>
-      <p><a href="${link}">${link}</a></p>
-      <p>Der Link ist 1 Stunde gültig. Falls du keine Zurücksetzung angefordert hast, ignoriere diese E-Mail.</p>
-    `,
-  });
-  return { link, email_sent: true };
+  try {
+    await transporter.sendMail({
+      from: FROM,
+      to:   email,
+      subject: 'Passwort zurücksetzen – KPI Tracker',
+      html: `
+        <p>Hallo ${name},</p>
+        <p>Du hast eine Passwortzurücksetzung angefordert. Klicke auf den folgenden Link:</p>
+        <p><a href="${link}">${link}</a></p>
+        <p>Der Link ist 1 Stunde gültig. Falls du keine Zurücksetzung angefordert hast, ignoriere diese E-Mail.</p>
+      `,
+    });
+    return { link, email_sent: true };
+  } catch (err) {
+    console.error('[sendPasswordReset SMTP error]', err.message);
+    return { link, email_sent: false };
+  }
 }
 
 module.exports = { sendInvite, sendPasswordReset };
