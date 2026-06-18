@@ -11,6 +11,7 @@ export default function Employees() {
   const qc = useQueryClient();
   const [form, setForm] = useState({ name: '', company_id: company || '', rolle: '', standort: '' });
   const [editId, setEditId] = useState(null);
+  const [showInaktiv, setShowInaktiv] = useState(false);
 
   const params = { all: 1, ...(company && { company_id: company }) };
   const { data: employees = [] } = useQuery({ queryKey: ['employees', params], queryFn: () => employeesApi.list(params) });
@@ -26,9 +27,62 @@ export default function Employees() {
     else createMut.mutate(form);
   };
 
+  const aktive   = employees.filter(e => e.aktiv);
+  const inaktive = employees.filter(e => !e.aktiv);
+
+  const EmpRow = ({ e }) => (
+    <tr key={e.id} className="hover:bg-gray-50">
+      <td className="px-3 py-2 text-gray-900 font-medium">{e.name}</td>
+      <td className="px-3 py-2 text-gray-600">{e.company_name}</td>
+      <td className="px-3 py-2">
+        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{e.rolle}</span>
+      </td>
+      <td className="px-3 py-2 text-gray-500 text-xs">{e.standort || '—'}</td>
+      <td className="px-3 py-2">
+        <span className={`text-xs ${e.aktiv ? 'text-green-500' : 'text-gray-400'}`}>
+          {e.aktiv ? 'Aktiv' : 'Inaktiv'}
+        </span>
+      </td>
+      <td className="px-3 py-2">
+        <div className="flex gap-2">
+          <button onClick={() => { setEditId(e.id); setForm({ name: e.name, company_id: e.company_id, rolle: e.rolle, standort: e.standort || '' }); }}
+            className="text-gray-400 hover:text-blue-600 text-xs">Bearbeiten</button>
+          <button onClick={() => toggleMut.mutate({ id: e.id, aktiv: e.aktiv ? 0 : 1 })}
+            className="text-gray-400 hover:text-amber-600 text-xs">
+            {e.aktiv ? 'Deaktivieren' : 'Aktivieren'}
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+
+  const THead = () => (
+    <thead className="bg-[#2d2e30] text-gray-300 text-xs uppercase">
+      <tr>
+        {['Name','Company','Rolle','Standort','Status',''].map(h => (
+          <th key={h} className="px-3 py-2 text-left font-medium">{h}</th>
+        ))}
+      </tr>
+    </thead>
+  );
+
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold text-gray-800">Mitarbeiter</h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-xl font-bold text-gray-800">Mitarbeiter</h1>
+        {inaktive.length > 0 && (
+          <button
+            onClick={() => setShowInaktiv(v => !v)}
+            className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded border transition-colors ${
+              showInaktiv
+                ? 'bg-gray-200 border-gray-300 text-gray-700'
+                : 'bg-white border-gray-300 text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+            }`}>
+            <span>{showInaktiv ? '▲' : '▼'}</span>
+            {inaktive.length} Inaktive {showInaktiv ? 'ausblenden' : 'anzeigen'}
+          </button>
+        )}
+      </div>
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="rounded-xl border border-gray-200 bg-white p-4">
@@ -66,45 +120,32 @@ export default function Employees() {
         </div>
       </form>
 
-      {/* Table */}
+      {/* Aktive Mitarbeiter */}
       <div className="rounded-xl border border-gray-200 overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-[#2d2e30] text-gray-300 text-xs uppercase">
-            <tr>
-              {['Name','Company','Rolle','Standort','Status',''].map(h => (
-                <th key={h} className="px-3 py-2 text-left font-medium">{h}</th>
-              ))}
-            </tr>
-          </thead>
+          <THead />
           <tbody className="divide-y divide-gray-100">
-            {employees.map(e => (
-              <tr key={e.id} className={`hover:bg-gray-50 ${!e.aktiv ? 'opacity-50' : ''}`}>
-                <td className="px-3 py-2 text-gray-900 font-medium">{e.name}</td>
-                <td className="px-3 py-2 text-gray-600">{e.company_name}</td>
-                <td className="px-3 py-2">
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{e.rolle}</span>
-                </td>
-                <td className="px-3 py-2 text-gray-500 text-xs">{e.standort || '—'}</td>
-                <td className="px-3 py-2">
-                  <span className={`text-xs ${e.aktiv ? 'text-green-400' : 'text-gray-400'}`}>
-                    {e.aktiv ? 'Aktiv' : 'Inaktiv'}
-                  </span>
-                </td>
-                <td className="px-3 py-2">
-                  <div className="flex gap-2">
-                    <button onClick={() => { setEditId(e.id); setForm({ name: e.name, company_id: e.company_id, rolle: e.rolle, standort: e.standort || '' }); }}
-                      className="text-gray-400 hover:text-blue-600 text-xs">Bearbeiten</button>
-                    <button onClick={() => toggleMut.mutate({ id: e.id, aktiv: e.aktiv ? 0 : 1 })}
-                      className="text-gray-400 hover:text-amber-600 text-xs">
-                      {e.aktiv ? 'Deaktivieren' : 'Aktivieren'}
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {aktive.length === 0 ? (
+              <tr><td colSpan={6} className="px-3 py-6 text-center text-gray-400 text-xs">Keine aktiven Mitarbeiter</td></tr>
+            ) : aktive.map(e => <EmpRow key={e.id} e={e} />)}
           </tbody>
         </table>
       </div>
+
+      {/* Archiv — Inaktive */}
+      {showInaktiv && inaktive.length > 0 && (
+        <div className="rounded-xl border border-gray-200 overflow-hidden opacity-70">
+          <div className="px-3 py-2 bg-gray-100 border-b border-gray-200">
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Archiv — Inaktive Mitarbeiter</span>
+          </div>
+          <table className="w-full text-sm">
+            <THead />
+            <tbody className="divide-y divide-gray-100 bg-gray-50">
+              {inaktive.map(e => <EmpRow key={e.id} e={e} />)}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
