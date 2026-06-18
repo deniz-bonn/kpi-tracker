@@ -264,6 +264,7 @@ export default function KpiMitarbeiterBeta() {
   const [modal,        setModal]        = useState(null);   // { employee, existing? }
   const [inboundModal, setInboundModal] = useState(false);
   const [empFilter,    setEmpFilter]    = useState('');
+  const [standortFilter, setStandortFilter] = useState('');
 
   const shiftDatum = (delta) => {
     const [y, m, d] = datum.split('-').map(Number);
@@ -332,8 +333,9 @@ export default function KpiMitarbeiterBeta() {
       .filter(e => TRACKED_ROLES.includes(e.rolle))
       .filter(e => e.show_in_kpi !== 0)
       .filter(e => !empFilter || String(e.id) === empFilter)
+      .filter(e => !standortFilter || e.standort === standortFilter)
       .sort((a, b) => a.name.localeCompare(b.name))
-  , [employees, empFilter]);
+  , [employees, empFilter, standortFilter]);
 
   const dayMap = useMemo(() => {
     const m = {};
@@ -347,45 +349,21 @@ export default function KpiMitarbeiterBeta() {
   const monthDeals  = nkDeals.data      || [];
   const inboundData = inboundByMonth.data || [];
 
-  const globalKpis = useMemo(() => {
-    const won = monthDeals.filter(d => d.status === 'Gewonnen');
-    return [
-      { label: 'Entscheider → Termin', color: 'indigo',
-        value: pct(sum(monthLogs,'entscheider_terminiert'), sum(monthLogs,'entscheider_erreicht')),
-        desc:  `${sum(monthLogs,'entscheider_terminiert')} von ${sum(monthLogs,'entscheider_erreicht')}` },
-      { label: 'Anteil Cold Calls',    color: 'indigo',
-        value: pct(sum(monthLogs,'terminiert_cold_calls'), sum(monthLogs,'entscheider_terminiert')),
-        desc:  `${sum(monthLogs,'terminiert_cold_calls')} CC-Termine` },
-      { label: 'Anteil Inbound',       color: 'teal',
-        value: pct(sum(monthLogs,'terminiert_inbound'), sum(monthLogs,'entscheider_terminiert')),
-        desc:  `${sum(monthLogs,'terminiert_inbound')} Inbound-Termine` },
-      { label: 'Show-Rate Settings',   color: 'indigo',
-        value: pct(sum(monthLogs,'settings_stattgefunden'), sum(monthLogs,'settings_geplant')),
-        desc:  `${sum(monthLogs,'settings_stattgefunden')} von ${sum(monthLogs,'settings_geplant')}` },
-      { label: 'Setting → Closing',    color: 'violet',
-        value: pct(sum(monthLogs,'beratungen_geplant'), sum(monthLogs,'settings_stattgefunden')),
-        desc:  `${sum(monthLogs,'beratungen_geplant')} Beratungen terminiert` },
-      { label: 'Show-Rate Closing',    color: 'violet',
-        value: pct(sum(monthLogs,'beratungen_stattgefunden'), sum(monthLogs,'beratungen_geplant')),
-        desc:  `${sum(monthLogs,'beratungen_stattgefunden')} von ${sum(monthLogs,'beratungen_geplant')}` },
-      { label: 'Closing → Close',      color: 'green',
-        value: pct(won.length, sum(monthLogs,'beratungen_stattgefunden')),
-        desc:  `${won.length} Deals gewonnen` },
-      { label: 'Setting → Close',      color: 'green',
-        value: pct(won.length, sum(monthLogs,'settings_stattgefunden')),
-        desc:  `${won.length} / ${sum(monthLogs,'settings_stattgefunden')} Settings` },
-    ];
-  }, [monthLogs, monthDeals]);
+  const auswertungLogs = useMemo(() => {
+    if (!standortFilter) return monthLogs;
+    const empSet = new Set(employees.filter(e => e.standort === standortFilter).map(e => e.id));
+    return monthLogs.filter(l => empSet.has(l.employee_id));
+  }, [monthLogs, employees, standortFilter]);
 
   const perEmployee = useMemo(() => {
     const map = {};
-    monthLogs.forEach(l => {
+    auswertungLogs.forEach(l => {
       if (!map[l.employee_id])
         map[l.employee_id] = { name: l.employee_name, rolle: l.employee_rolle, logs: [] };
       map[l.employee_id].logs.push(l);
     });
     return Object.values(map).sort((a, b) => a.name?.localeCompare(b.name));
-  }, [monthLogs]);
+  }, [auswertungLogs]);
 
   const inboundWeeks = useMemo(() => {
     const weeks = {};
@@ -401,6 +379,14 @@ export default function KpiMitarbeiterBeta() {
   }, [inboundData]);
 
   const sel = "bg-white border border-gray-300 text-gray-700 text-xs rounded px-2 py-1.5";
+
+  const standorte = useMemo(() =>
+    [...new Set(
+      employees
+        .filter(e => TRACKED_ROLES.includes(e.rolle) && e.show_in_kpi !== 0 && e.standort)
+        .map(e => e.standort)
+    )].sort()
+  , [employees]);
 
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
@@ -433,6 +419,10 @@ export default function KpiMitarbeiterBeta() {
             {employees.filter(e => TRACKED_ROLES.includes(e.rolle) && e.show_in_kpi !== 0).map(e =>
               <option key={e.id} value={e.id}>{e.name}</option>
             )}
+          </select>
+          <select value={standortFilter} onChange={e => setStandortFilter(e.target.value)} className={sel}>
+            <option value="">Alle Standorte</option>
+            {standorte.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
           {tab === 'eingabe'
             ? <div className="flex items-center gap-1">
@@ -567,27 +557,87 @@ export default function KpiMitarbeiterBeta() {
       {tab === 'auswertung' && (
         <div className="space-y-4">
 
-          {/* Globale KPIs */}
-          <div className="rounded-lg border border-indigo-200 overflow-hidden">
-            <div className="px-3 py-2 bg-indigo-700">
-              <span className="text-xs font-bold text-white uppercase tracking-wide">Globale KPI-Übersicht — {monat}</span>
-            </div>
-            {monthLogs.length === 0 ? (
+          {/* KPI-Kategorien */}
+          {monthLogs.length === 0 ? (
+            <div className="rounded-lg border border-indigo-200 overflow-hidden">
+              <div className="px-3 py-2 bg-indigo-700">
+                <span className="text-xs font-bold text-white uppercase tracking-wide">KPI-Übersicht — {monat}</span>
+              </div>
               <div className="px-4 py-6 text-sm text-gray-400 text-center bg-indigo-50">
                 Noch keine Activity-Logs für {monat} erfasst.
               </div>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 bg-indigo-50">
-                {globalKpis.map(k => <KpiCard key={k.label} {...k} />)}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {/* Opening */}
+              <div className="rounded-lg border border-indigo-200 overflow-hidden">
+                <div className="px-3 py-2 bg-indigo-700">
+                  <span className="text-xs font-bold text-white uppercase tracking-wide">Opening — Entscheider</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 bg-indigo-50">
+                  <KpiCard color="indigo" label="Entscheider erreicht"   value={sum(auswertungLogs,'entscheider_erreicht')} />
+                  <KpiCard color="indigo" label="Entscheider terminiert" value={sum(auswertungLogs,'entscheider_terminiert')} />
+                  <KpiCard color="indigo" label="Entscheider → Termin"
+                    value={pct(sum(auswertungLogs,'entscheider_terminiert'), sum(auswertungLogs,'entscheider_erreicht'))}
+                    desc={`${sum(auswertungLogs,'entscheider_terminiert')} von ${sum(auswertungLogs,'entscheider_erreicht')}`} />
+                </div>
               </div>
-            )}
-          </div>
+              {/* Terminierungen */}
+              <div className="rounded-lg border border-teal-200 overflow-hidden">
+                <div className="px-3 py-2 bg-teal-700">
+                  <span className="text-xs font-bold text-white uppercase tracking-wide">Terminierungen</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 bg-teal-50">
+                  <KpiCard color="teal"   label="Terminiert gesamt"
+                    value={sum(auswertungLogs,'entscheider_terminiert')} />
+                  <KpiCard color="indigo" label="Anteil Cold Calls"
+                    value={pct(sum(auswertungLogs,'terminiert_cold_calls'), sum(auswertungLogs,'entscheider_terminiert'))}
+                    desc={`${sum(auswertungLogs,'terminiert_cold_calls')} CC-Termine`} />
+                  <KpiCard color="teal"   label="Anteil Inbound"
+                    value={pct(sum(auswertungLogs,'terminiert_inbound'), sum(auswertungLogs,'entscheider_terminiert'))}
+                    desc={`${sum(auswertungLogs,'terminiert_inbound')} Inbound-Termine`} />
+                </div>
+              </div>
+              {/* Setting */}
+              <div className="rounded-lg border border-violet-200 overflow-hidden">
+                <div className="px-3 py-2 bg-violet-700">
+                  <span className="text-xs font-bold text-white uppercase tracking-wide">Setting</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 bg-violet-50">
+                  <KpiCard color="violet" label="Settings geplant"       value={sum(auswertungLogs,'settings_geplant')} />
+                  <KpiCard color="violet" label="Settings stattgefunden" value={sum(auswertungLogs,'settings_stattgefunden')} />
+                  <KpiCard color="violet" label="Show-Rate Settings"
+                    value={pct(sum(auswertungLogs,'settings_stattgefunden'), sum(auswertungLogs,'settings_geplant'))}
+                    desc={`${sum(auswertungLogs,'settings_stattgefunden')} von ${sum(auswertungLogs,'settings_geplant')}`} />
+                  <KpiCard color="violet" label="Setting → Closing"
+                    value={pct(sum(auswertungLogs,'beratungen_geplant'), sum(auswertungLogs,'settings_stattgefunden'))}
+                    desc={`${sum(auswertungLogs,'beratungen_geplant')} Beratungen terminiert`} />
+                </div>
+              </div>
+              {/* Beratungsgespräche / Closing */}
+              <div className="rounded-lg border border-green-200 overflow-hidden">
+                <div className="px-3 py-2 bg-green-700">
+                  <span className="text-xs font-bold text-white uppercase tracking-wide">Beratungsgespräche / Closing</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 bg-green-50">
+                  <KpiCard color="violet" label="Beratungen geplant"       value={sum(auswertungLogs,'beratungen_geplant')} />
+                  <KpiCard color="violet" label="Beratungen stattgefunden" value={sum(auswertungLogs,'beratungen_stattgefunden')} />
+                  <KpiCard color="violet" label="Show-Rate Closing"
+                    value={pct(sum(auswertungLogs,'beratungen_stattgefunden'), sum(auswertungLogs,'beratungen_geplant'))}
+                    desc={`${sum(auswertungLogs,'beratungen_stattgefunden')} von ${sum(auswertungLogs,'beratungen_geplant')}`} />
+                  <KpiCard color="green"  label="Closing → Close"
+                    value={pct(monthDeals.filter(d => d.status==='Gewonnen').length, sum(auswertungLogs,'beratungen_stattgefunden'))}
+                    desc={`${monthDeals.filter(d => d.status==='Gewonnen').length} Deals gewonnen`} />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Pro-Mitarbeiter Tabelle */}
           <div className="rounded-lg border border-gray-200 overflow-hidden">
             <div className="px-3 py-2 bg-[#2d2e30] flex items-center justify-between">
               <span className="text-xs font-bold text-white uppercase tracking-wide">Zahlen gesamt — {monat}</span>
-              <span className="text-xs text-gray-400">{monthLogs.length} Einträge</span>
+              <span className="text-xs text-gray-400">{auswertungLogs.length} Einträge</span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
@@ -638,17 +688,17 @@ export default function KpiMitarbeiterBeta() {
                   <tfoot>
                     <tr className="bg-[#2d2e30] text-white font-bold text-xs">
                       <td className="px-3 py-2" colSpan={2}>Gesamt</td>
-                      <td className="px-3 py-2 text-right">{sum(monthLogs,'entscheider_erreicht')}</td>
-                      <td className="px-3 py-2 text-right">{sum(monthLogs,'entscheider_terminiert')}</td>
-                      <td className="px-3 py-2 text-right">{sum(monthLogs,'settings_geplant')}</td>
-                      <td className="px-3 py-2 text-right">{sum(monthLogs,'settings_stattgefunden')}</td>
-                      <td className="px-3 py-2 text-right">{sum(monthLogs,'beratungen_geplant')}</td>
-                      <td className="px-3 py-2 text-right">{sum(monthLogs,'beratungen_stattgefunden')}</td>
+                      <td className="px-3 py-2 text-right">{sum(auswertungLogs,'entscheider_erreicht')}</td>
+                      <td className="px-3 py-2 text-right">{sum(auswertungLogs,'entscheider_terminiert')}</td>
+                      <td className="px-3 py-2 text-right">{sum(auswertungLogs,'settings_geplant')}</td>
+                      <td className="px-3 py-2 text-right">{sum(auswertungLogs,'settings_stattgefunden')}</td>
+                      <td className="px-3 py-2 text-right">{sum(auswertungLogs,'beratungen_geplant')}</td>
+                      <td className="px-3 py-2 text-right">{sum(auswertungLogs,'beratungen_stattgefunden')}</td>
                       <td className="px-3 py-2 text-right">
-                        {pct(sum(monthLogs,'settings_stattgefunden'), sum(monthLogs,'settings_geplant'))}
+                        {pct(sum(auswertungLogs,'settings_stattgefunden'), sum(auswertungLogs,'settings_geplant'))}
                       </td>
                       <td className="px-3 py-2 text-right">
-                        {pct(monthDeals.filter(d=>d.status==='Gewonnen').length, sum(monthLogs,'settings_stattgefunden'))}
+                        {pct(monthDeals.filter(d=>d.status==='Gewonnen').length, sum(auswertungLogs,'settings_stattgefunden'))}
                       </td>
                     </tr>
                   </tfoot>
