@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 
 const UPSALE_STATUS = ['Offen', 'In Verhandlung', 'Abgelehnt', 'Gewonnen'];
 const AUTO_VL_OPTS  = ['Ja', 'Nein'];
+const STANDORTE     = ['Bonn', 'Braunschweig', 'Österreich', 'Schweiz'];
 
 const STATUS_COLORS = {
   'Offen':          'bg-gray-100 text-gray-600',
@@ -78,9 +79,10 @@ export default function Kuendigungen() {
   const [selectedMonth, setSelectedMonth] = useState(currentMonth());
   const [showAllMonths, setShowAllMonths] = useState(false);
   const [terminiertLocal, setTerminiertLocal] = useState({}); // optimistic local state per row id
-  const [filterKam,    setFilterKam]    = useState('');
-  const [filterDeals,  setFilterDeals]  = useState('');
-  const [sortBy,       setSortBy]       = useState('ablauf_asc');
+  const [filterKam,      setFilterKam]      = useState('');
+  const [filterDeals,    setFilterDeals]    = useState('');
+  const [filterStandort, setFilterStandort] = useState(new Set());
+  const [sortBy,         setSortBy]         = useState('ablauf_asc');
   const [dealModal,    setDealModal]    = useState(null);
 
   // Inline editing state
@@ -364,11 +366,12 @@ const createDealMut = useMutation({
   }, [weitergegeben, showAllMonths, selectedMonth]);
 
   const filtered = useMemo(() => monthFiltered.filter(d => {
+    if (filterStandort.size > 0 && !filterStandort.has(d.kam_standort)) return false;
     if (filterKam && String(d.kam_id) !== filterKam) return false;
     if (filterDeals === '_mit_deal'  && (upsaleByVlId[d.id] || []).length === 0) return false;
     if (filterDeals === '_ohne_deal' && (upsaleByVlId[d.id] || []).length > 0)   return false;
     return true;
-  }), [monthFiltered, filterKam, filterDeals, upsaleByVlId]);
+  }), [monthFiltered, filterStandort, filterKam, filterDeals, upsaleByVlId]);
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
@@ -430,8 +433,15 @@ const createDealMut = useMutation({
     };
   }, [filtered, upsaleByVlId]);
 
+  const toggleStandort = (s) =>
+    setFilterStandort(prev => {
+      const next = new Set(prev);
+      if (next.has(s)) next.delete(s); else next.add(s);
+      return next;
+    });
+
   const sel = 'bg-white border border-gray-300 text-gray-700 text-xs rounded px-2 py-1.5';
-  const hasF = filterKam || filterDeals;
+  const hasF = filterKam || filterDeals || filterStandort.size > 0;
 
   return (
     <div className="space-y-4">
@@ -502,6 +512,26 @@ const createDealMut = useMutation({
       <div className="flex flex-wrap gap-2 items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
         <span className="text-xs text-gray-500 mr-1">Filter:</span>
 
+        {/* Standort multi-select toggles */}
+        <div className="flex items-center gap-1">
+          {STANDORTE.map(s => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => toggleStandort(s)}
+              className={`text-xs px-2.5 py-1 rounded border font-medium transition-colors ${
+                filterStandort.has(s)
+                  ? 'bg-orange-500 border-orange-500 text-white'
+                  : 'bg-white border-gray-300 text-gray-600 hover:border-orange-400 hover:text-orange-600'
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+
+        <span className="text-xs text-gray-400 mx-1">|</span>
+
         {canSeeAll && (
           <select value={filterKam} onChange={e => setFilterKam(e.target.value)} className={sel}>
             <option value="">Alle Account Manager</option>
@@ -527,7 +557,7 @@ const createDealMut = useMutation({
         </select>
 
         {hasF && (
-          <button onClick={() => { setFilterKam(''); setFilterDeals(''); }}
+          <button onClick={() => { setFilterKam(''); setFilterDeals(''); setFilterStandort(new Set()); }}
             className="text-xs text-gray-500 hover:text-red-500 ml-1">
             ✕ Zurücksetzen
           </button>
