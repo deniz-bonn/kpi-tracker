@@ -16,9 +16,16 @@ app.use('/api/auth', require('./routes/auth'));
 app.get('/api/health', (_, res) => res.json({ ok: true, dialect: process.env.DB_DIALECT || 'sqlite', deploy: 'v045-data-sync' }));
 app.get('/api/dbstats', (_, res) => {
   const db = require('./db');
-  const nk = db.all('SELECT gewonnen_monat, COUNT(*) as n, SUM(ae_wert) as ae FROM deals_nk WHERE status=? GROUP BY gewonnen_monat ORDER BY gewonnen_monat', ['Gewonnen']);
-  const total = db.all('SELECT COUNT(*) as n FROM deals_nk', []);
-  res.json({ nk_by_month: nk, nk_total: total[0] });
+  try {
+    const nk_count = db.get('SELECT COUNT(*) as n FROM deals_nk');
+    const bk_count = db.get('SELECT COUNT(*) as n FROM deals_bk');
+    const vl_count = db.get('SELECT COUNT(*) as n FROM deals_vl');
+    const ag_count = db.get('SELECT COUNT(*) as n FROM ae_gesamt_monthly');
+    const migs     = db.all('SELECT filename FROM _migrations ORDER BY ran_at DESC LIMIT 5');
+    res.json({ nk_count, bk_count, vl_count, ag_count, last_migrations: migs });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── Protected routes (require JWT) ──────────────────────────────────────────
