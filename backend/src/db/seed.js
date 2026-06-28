@@ -1,8 +1,14 @@
 require('dotenv').config();
-const { DatabaseSync } = require('node:sqlite');
 const fs = require('fs');
 const path = require('path');
 
+const dialect = process.env.DATABASE_URL ? 'postgres' : 'sqlite';
+if (dialect === 'postgres') {
+  console.log('PostgreSQL-Modus: seed.js übersprungen (Daten via pg.sql-Migrationen).');
+  process.exit(0);
+}
+
+const { DatabaseSync } = require('node:sqlite');
 const dbPath = process.env.DB_PATH || './data/kpi.db';
 const seedPath = path.join(__dirname, 'seed.sql');
 
