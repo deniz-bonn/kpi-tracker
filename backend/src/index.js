@@ -16,13 +16,15 @@ app.use('/api/auth', require('./routes/auth'));
 app.get('/api/health', (_, res) => res.json({ ok: true, dialect: process.env.DB_DIALECT || 'sqlite', deploy: 'v045-data-sync' }));
 app.get('/api/dbstats', (_, res) => {
   const db = require('./db');
+  const N = v => Number(v ?? 0);
   try {
-    const nk_count = db.get('SELECT COUNT(*) as n FROM deals_nk');
-    const bk_count = db.get('SELECT COUNT(*) as n FROM deals_bk');
-    const vl_count = db.get('SELECT COUNT(*) as n FROM deals_vl');
-    const ag_count = db.get('SELECT COUNT(*) as n FROM ae_gesamt_monthly');
-    const migs     = db.all('SELECT filename FROM _migrations ORDER BY ran_at DESC LIMIT 5');
-    res.json({ nk_count, bk_count, vl_count, ag_count, last_migrations: migs });
+    const nk   = N(db.get('SELECT CAST(COUNT(*) AS REAL) as n FROM deals_nk')?.n);
+    const bk   = N(db.get('SELECT CAST(COUNT(*) AS REAL) as n FROM deals_bk')?.n);
+    const vl   = N(db.get('SELECT CAST(COUNT(*) AS REAL) as n FROM deals_vl')?.n);
+    const ag   = N(db.get('SELECT CAST(COUNT(*) AS REAL) as n FROM ae_gesamt_monthly')?.n);
+    const migs = db.all('SELECT filename FROM _migrations ORDER BY ran_at DESC LIMIT 5').map(r => r.filename);
+    const nk_gwm = db.all('SELECT gewonnen_monat as m, CAST(COUNT(*) AS REAL) as n FROM deals_nk WHERE status=\'Gewonnen\' GROUP BY gewonnen_monat ORDER BY gewonnen_monat').map(r => ({m: r.m, n: N(r.n)}));
+    res.json({ nk, bk, vl, ag, migs, nk_gwm });
   } catch(e) {
     res.status(500).json({ error: e.message });
   }
