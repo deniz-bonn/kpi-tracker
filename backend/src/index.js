@@ -14,6 +14,12 @@ app.use(express.json());
 app.use('/api/auth', require('./routes/auth'));
 
 app.get('/api/health', (_, res) => res.json({ ok: true, dialect: process.env.DB_DIALECT || 'sqlite', deploy: 'v045-data-sync' }));
+app.get('/api/dbstats', (_, res) => {
+  const db = require('./db');
+  const nk = db.all('SELECT gewonnen_monat, COUNT(*) as n, SUM(ae_wert) as ae FROM deals_nk WHERE status=? GROUP BY gewonnen_monat ORDER BY gewonnen_monat', ['Gewonnen']);
+  const total = db.all('SELECT COUNT(*) as n FROM deals_nk', []);
+  res.json({ nk_by_month: nk, nk_total: total[0] });
+});
 
 // ── Protected routes (require JWT) ──────────────────────────────────────────
 app.use('/api/companies',      requireAuth, require('./routes/companies'));
