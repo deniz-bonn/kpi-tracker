@@ -357,7 +357,7 @@ UPDATE deals_vl SET auslaufend_am='2026-04-26' WHERE id=3723;
 UPDATE deals_vl SET auslaufend_am='2026-04-27' WHERE id=3724;
 
 -- weitergeben_an_vertrieb=Ja für Verloren-VL-Deals in betroffenen Monaten
--- (vorheriger Wert war manuell gesetzt; als Startpunkt alle auf Ja setzen)
+-- (vorheriger Wert war manuell gesetzt - als Startpunkt alle auf Ja setzen)
 UPDATE deals_vl SET weitergeben_an_vertrieb='Ja'
   WHERE monat IN ('2026-01','2026-02','2026-03','2026-04','2026-05','2026-06')
   AND status='Verloren'
