@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const dbPath = process.env.DB_PATH || './data/kpi.db';
-const seedPath = path.join(__dirname, '../../../backend/data/seed.sql');
+const seedPath = path.join(__dirname, 'seed.sql');
 
 if (!fs.existsSync(seedPath)) {
   console.log('seed.sql nicht gefunden, überspringe.');
