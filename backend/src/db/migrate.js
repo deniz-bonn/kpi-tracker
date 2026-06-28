@@ -39,6 +39,50 @@ async function markRan(filename) {
   }
 }
 
+function splitSql(sql) {
+  const results = [];
+  let current = '';
+  let inString = false;
+  let stringChar = '';
+
+  for (let i = 0; i < sql.length; i++) {
+    const ch = sql[i];
+    if (inString) {
+      current += ch;
+      if (ch === stringChar) {
+        if (sql[i + 1] === stringChar) {
+          current += sql[++i];
+        } else {
+          inString = false;
+        }
+      }
+    } else if (ch === "'" || ch === '"') {
+      inString = true;
+      stringChar = ch;
+      current += ch;
+    } else if (ch === ';') {
+      const stmt = current
+        .split('\n')
+        .filter(line => !line.trim().startsWith('--'))
+        .join('\n')
+        .trim();
+      if (stmt) results.push(stmt);
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+
+  const last = current
+    .split('\n')
+    .filter(line => !line.trim().startsWith('--'))
+    .join('\n')
+    .trim();
+  if (last) results.push(last);
+
+  return results;
+}
+
 async function runMigrations() {
   console.log(`Running migrations for dialect: ${dialect}`);
   await ensureTrackingTable();
@@ -53,15 +97,7 @@ async function runMigrations() {
     const filePath = path.join(migrationsDir, file);
     const sql = fs.readFileSync(filePath, 'utf8');
 
-    const statements = sql
-      .split(';')
-      .map(s =>
-        s.split('\n')
-          .filter(line => !line.trim().startsWith('--'))
-          .join('\n')
-          .trim()
-      )
-      .filter(s => s.length > 0);
+    const statements = splitSql(sql);
 
     console.log(`  Running ${file} (${statements.length} statements)`);
 
