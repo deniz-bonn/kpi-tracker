@@ -13,7 +13,7 @@ app.use(express.json());
 // ── Public routes (no auth) ──────────────────────────────────────────────────
 app.use('/api/auth', require('./routes/auth'));
 
-app.get('/api/health', (_, res) => res.json({ ok: true, dialect: process.env.DB_DIALECT || 'sqlite' }));
+app.get('/api/health', (_, res) => res.json({ ok: true, dialect: process.env.DB_DIALECT || 'sqlite', deploy: 'v045-data-sync' }));
 
 // ── Protected routes (require JWT) ──────────────────────────────────────────
 app.use('/api/companies',      requireAuth, require('./routes/companies'));
