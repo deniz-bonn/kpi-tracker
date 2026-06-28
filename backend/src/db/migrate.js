@@ -27,6 +27,10 @@ async function ensureTrackingTable() {
 }
 
 async function getRanMigrations() {
+  if (dialect === 'sqlite') {
+    const rows = db.sqlite.prepare('SELECT filename FROM _migrations').all();
+    return new Set(Array.from(rows).map(r => r.filename));
+  }
   const rows = await db.all('SELECT filename FROM _migrations');
   return new Set(rows.map(r => r.filename));
 }
@@ -97,21 +101,31 @@ async function runMigrations() {
     const filePath = path.join(migrationsDir, file);
     const sql = fs.readFileSync(filePath, 'utf8');
 
-    const statements = splitSql(sql);
-
-    console.log(`  Running ${file} (${statements.length} statements)`);
-
-    for (let i = 0; i < statements.length; i++) {
-      const stmt = statements[i];
+    if (dialect === 'sqlite') {
+      // sqlite.exec() runs the entire SQL file atomically — more reliable than prepare().run()
+      const stmtCount = splitSql(sql).length;
+      console.log(`  Running ${file} (${stmtCount} statements)`);
       try {
-        if (dialect === 'postgres') await db.run(stmt);
-        else db.run(stmt);
+        db.sqlite.exec(sql);
       } catch (err) {
         console.error(`\nMigration FAILED: ${file}`);
-        console.error(`Statement ${i + 1}/${statements.length}:`);
-        console.error(stmt.slice(0, 500));
         console.error('\nError:', err.message);
         throw err;
+      }
+    } else {
+      const statements = splitSql(sql);
+      console.log(`  Running ${file} (${statements.length} statements)`);
+      for (let i = 0; i < statements.length; i++) {
+        const stmt = statements[i];
+        try {
+          await db.run(stmt);
+        } catch (err) {
+          console.error(`\nMigration FAILED: ${file}`);
+          console.error(`Statement ${i + 1}/${statements.length}:`);
+          console.error(stmt.slice(0, 500));
+          console.error('\nError:', err.message);
+          throw err;
+        }
       }
     }
 

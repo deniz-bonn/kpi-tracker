@@ -16,14 +16,15 @@ app.use('/api/auth', require('./routes/auth'));
 app.get('/api/health', (_, res) => res.json({ ok: true, dialect: process.env.DB_DIALECT || 'sqlite', deploy: 'v045-data-sync' }));
 app.get('/api/dbstats', (_, res) => {
   const db = require('./db');
-  const N = v => Number(v ?? 0);
   try {
-    const nk   = N(db.get('SELECT CAST(COUNT(*) AS REAL) as n FROM deals_nk')?.n);
-    const bk   = N(db.get('SELECT CAST(COUNT(*) AS REAL) as n FROM deals_bk')?.n);
-    const vl   = N(db.get('SELECT CAST(COUNT(*) AS REAL) as n FROM deals_vl')?.n);
-    const ag   = N(db.get('SELECT CAST(COUNT(*) AS REAL) as n FROM ae_gesamt_monthly')?.n);
-    const migs = db.all('SELECT filename FROM _migrations ORDER BY ran_at DESC LIMIT 5').map(r => r.filename);
-    const nk_gwm = db.all('SELECT gewonnen_monat as m, CAST(COUNT(*) AS REAL) as n FROM deals_nk WHERE status=\'Gewonnen\' GROUP BY gewonnen_monat ORDER BY gewonnen_monat').map(r => ({m: r.m, n: N(r.n)}));
+    const N = v => Number(v ?? 0);
+    const sq = db.sqlite;
+    const nk = N(sq.prepare('SELECT COUNT(*) as n FROM deals_nk').get()?.n);
+    const bk = N(sq.prepare('SELECT COUNT(*) as n FROM deals_bk').get()?.n);
+    const vl = N(sq.prepare('SELECT COUNT(*) as n FROM deals_vl').get()?.n);
+    const ag = N(sq.prepare('SELECT COUNT(*) as n FROM ae_gesamt_monthly').get()?.n);
+    const migs = Array.from(sq.prepare('SELECT filename FROM _migrations ORDER BY ran_at DESC LIMIT 8').all()).map(r => r.filename);
+    const nk_gwm = Array.from(sq.prepare("SELECT gewonnen_monat as m, COUNT(*) as n FROM deals_nk WHERE status='Gewonnen' GROUP BY gewonnen_monat ORDER BY gewonnen_monat").all()).map(r => `${r.m}:${N(r.n)}`);
     res.json({ nk, bk, vl, ag, migs, nk_gwm });
   } catch(e) {
     res.status(500).json({ error: e.message });
