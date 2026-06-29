@@ -54,8 +54,11 @@ app.use('/api/export',         require('./routes/export'));      // requireAuth 
 // ── Serve built React frontend (production / Railway) ────────────────────────
 const publicPath = path.join(__dirname, '../public');
 if (fs.existsSync(publicPath)) {
-  app.use(express.static(publicPath));
-  app.get('*', (req, res) => res.sendFile(path.join(publicPath, 'index.html')));
+  app.use(express.static(publicPath, { etag: true, lastModified: true }));
+  app.get('*', (_req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.sendFile(path.join(publicPath, 'index.html'));
+  });
 }
 
 // Global JSON error handler — must be last middleware
