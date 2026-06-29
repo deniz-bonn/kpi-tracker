@@ -148,7 +148,8 @@ router.post('/', wrap(async (req, res) => {
     'abgerechnet','kundennummer','gewonnen_datum','gewonnen_monat',
     'gekuendigt_am','auslaufend_am','ansprechpartner','telefon','email_kontakt',
     'upsale_angesprochen','upsale_summe','upsale_angenommen','upsale_angenommen_summe',
-    'weitergeben_an_vertrieb','terminiert','neuer_ap_intern'];
+    'weitergeben_an_vertrieb','terminiert','neuer_ap_intern',
+    'vertragsnummer','vertragsbeginn','ende_laufzeit','ende_kuendigungsfrist'];
   const values = fields.map(f => {
     if (f === 'gewonnen_datum') return gewonnen_datum;
     if (f === 'gewonnen_monat') return gewonnen_monat;
@@ -189,7 +190,8 @@ router.put('/:id', wrap(async (req, res) => {
     'abgerechnet','kundennummer','gewonnen_datum','gewonnen_monat',
     'gekuendigt_am','auslaufend_am','ansprechpartner','telefon','email_kontakt',
     'upsale_angesprochen','upsale_summe','upsale_angenommen','upsale_angenommen_summe',
-    'weitergeben_an_vertrieb','terminiert','neuer_ap_intern'];
+    'weitergeben_an_vertrieb','terminiert','neuer_ap_intern',
+    'vertragsnummer','vertragsbeginn','ende_laufzeit','ende_kuendigungsfrist'];
   // Fields only editable inline in Kündigungen — preserve existing value when not in form body
   const PRESERVE_FIELDS = ['gekuendigt_am','auslaufend_am','ansprechpartner','telefon','email_kontakt','terminiert','neuer_ap_intern'];
   const values = fields.map(f => {
