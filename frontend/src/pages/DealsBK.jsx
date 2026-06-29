@@ -83,7 +83,7 @@ export default function DealsBK() {
     { name: 'monat',          label: 'Monat (YYYY-MM)',                   required: true },
     { name: 'company_id',     label: 'Company',           type: 'select', options: compOpts, required: true },
     { name: 'kunde',          label: 'Kunde',                             required: true },
-    { name: 'kundennummer',   label: 'HubSpot ID',                        required: f => f.status === 'Gewonnen' },
+    { name: 'kundennummer',   label: 'HubSpot ID' },
     { name: 'dienstleistung', label: 'Dienstleistung',    type: 'select', options: DIENSTLEISTUNGEN_BK, required: f => f.status === 'Gewonnen' },
     ...(canSeeAll ? [{ name: 'kam_id', label: 'KAM', type: 'select', options: kamOptions }] : []),
     { name: 'angebotswert',   label: 'Angebotswert (€)',  type: 'number', required: true },

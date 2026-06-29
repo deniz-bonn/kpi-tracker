@@ -122,7 +122,7 @@ export default function DealsVL() {
     { name: 'monat',                 label: 'Monat (YYYY-MM)',                         required: true },
     { name: 'company_id',            label: 'Company',                 type: 'select', options: compOpts, required: true },
     { name: 'kunde',                 label: 'Kunde',                                   required: true },
-    { name: 'kundennummer',          label: 'HubSpot ID',                              required: f => f.status === 'Gewonnen' },
+    { name: 'kundennummer',          label: 'HubSpot ID' },
     { name: 'vertragsnummer',        label: 'Vertragsnummer' },
     { name: 'vertragsbeginn',        label: 'Vertragsbeginn',          type: 'date' },
     { name: 'ende_laufzeit',         label: 'Ende der Laufzeit',       type: 'date' },
