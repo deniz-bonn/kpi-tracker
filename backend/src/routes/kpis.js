@@ -348,10 +348,11 @@ router.get('/dashboard', wrap(async (req, res) => {
     const bk_ch     = locAE(bkByLoc, monat, ['Schweiz']);
     const bk_gesamt = bk_de + bk_at + bk_ch;
 
-    const vl_de     = locAE(vlByLoc, monat, ['Bonn', 'Braunschweig']);
-    const vl_at     = locAE(vlByLoc, monat, ['Österreich']);
+    // VL – DE/AT aus ag.vl_de_ae / ag.vl_at_ae wenn explizit gesetzt, sonst aus Live-Deals
+    const vl_de     = (useAG && n(ag.vl_de_ae) > 0) ? n(ag.vl_de_ae) : locAE(vlByLoc, monat, ['Bonn', 'Braunschweig']);
+    const vl_at     = (useAG && n(ag.vl_at_ae) > 0) ? n(ag.vl_at_ae) : locAE(vlByLoc, monat, ['Österreich']);
     const vl_ch     = locAE(vlByLoc, monat, ['Schweiz']);
-    const vl_gesamt = useAG ? n(ag.vl_gesamt) : totAE(vlTotal, monat);
+    const vl_gesamt = vl_de + vl_at + vl_ch;
 
     const gesamt = nk_gesamt + bk_gesamt + vl_gesamt;
     const pct = v => gesamt > 0 ? Math.round((v / gesamt) * 10000) / 100 : 0;

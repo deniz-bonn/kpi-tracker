@@ -33,36 +33,33 @@ async function syncAeGesamtVL(deal, prev) {
   const monat = deal.gewonnen_monat || prev?.gewonnen_monat;
   if (!monat) return;
 
+  // Jan–Jun 2026: statische Sollwerte — Automation nicht anwenden
+  if (monat <= '2026-06') return;
+
   const p1 = d === 'postgres' ? '$1' : '?';
+  const emp = await db.get(`SELECT standort FROM employees WHERE id=${p1}`, [deal.kam_id]);
+  const standort = emp?.standort || '';
+
   const ag = await db.get(`SELECT * FROM ae_gesamt_monthly WHERE monat=${p1}`, [monat]);
   const n = v => Number(v) || 0;
+  // Kein ae_gesamt_monthly-Row → Live-Daten werden im Dashboard angezeigt
+  if (!ag) return;
 
-  if (ag) {
-    const newVl     = Math.max(0, n(ag.vl_gesamt) + aeDelta);
-    const newNk     = n(ag.nk_bonn_ae) + n(ag.nk_bs_ae) + n(ag.nk_at_ae) + n(ag.nk_ch_ae);
-    const newGesamt = newNk + n(ag.bk_gesamt) + newVl;
+  if (standort === 'Österreich') {
+    if (n(ag.vl_at_ae) === 0) return;
+    const newVal = Math.max(0, n(ag.vl_at_ae) + aeDelta);
     if (d === 'postgres') {
-      await db.run(
-        `UPDATE ae_gesamt_monthly SET vl_gesamt=$1, gesamt=$2, updated_at=NOW() WHERE monat=$3`,
-        [newVl, newGesamt, monat]
-      );
+      await db.run(`UPDATE ae_gesamt_monthly SET vl_at_ae=$1, updated_at=NOW() WHERE monat=$2`, [newVal, monat]);
     } else {
-      await db.run(
-        `UPDATE ae_gesamt_monthly SET vl_gesamt=?, gesamt=?, updated_at=datetime('now') WHERE monat=?`,
-        [newVl, newGesamt, monat]
-      );
+      await db.run(`UPDATE ae_gesamt_monthly SET vl_at_ae=?, updated_at=datetime('now') WHERE monat=?`, [newVal, monat]);
     }
-  } else if (aeDelta > 0) {
+  } else if (standort === 'Bonn' || standort === 'Braunschweig') {
+    if (n(ag.vl_de_ae) === 0) return;
+    const newVal = Math.max(0, n(ag.vl_de_ae) + aeDelta);
     if (d === 'postgres') {
-      await db.run(
-        `INSERT INTO ae_gesamt_monthly (monat, vl_gesamt, gesamt) VALUES ($1,$2,$2)`,
-        [monat, aeDelta]
-      );
+      await db.run(`UPDATE ae_gesamt_monthly SET vl_de_ae=$1, updated_at=NOW() WHERE monat=$2`, [newVal, monat]);
     } else {
-      await db.run(
-        `INSERT OR IGNORE INTO ae_gesamt_monthly (monat, vl_gesamt, gesamt) VALUES (?,?,?)`,
-        [monat, aeDelta, aeDelta]
-      );
+      await db.run(`UPDATE ae_gesamt_monthly SET vl_de_ae=?, updated_at=datetime('now') WHERE monat=?`, [newVal, monat]);
     }
   }
 }
