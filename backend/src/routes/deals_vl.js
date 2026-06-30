@@ -13,6 +13,60 @@ const BASE_SELECT = `
   LEFT JOIN employees k ON k.id = d.kam_id
 `;
 
+async function syncAeGesamtVL(deal, prev) {
+  const d = db.dialect;
+  const wasGewonnen = prev?.status === 'Gewonnen';
+  const isNowGewonnen = deal.status === 'Gewonnen';
+
+  if (!wasGewonnen && !isNowGewonnen) return;
+
+  let aeDelta = 0;
+  if (!wasGewonnen && isNowGewonnen) {
+    aeDelta = Number(deal.ae_wert) || 0;
+  } else if (wasGewonnen && !isNowGewonnen) {
+    aeDelta = -(Number(prev.ae_wert) || 0);
+  } else {
+    aeDelta = (Number(deal.ae_wert) || 0) - (Number(prev.ae_wert) || 0);
+    if (aeDelta === 0) return;
+  }
+
+  const monat = deal.gewonnen_monat || prev?.gewonnen_monat;
+  if (!monat) return;
+
+  const p1 = d === 'postgres' ? '$1' : '?';
+  const ag = await db.get(`SELECT * FROM ae_gesamt_monthly WHERE monat=${p1}`, [monat]);
+  const n = v => Number(v) || 0;
+
+  if (ag) {
+    const newVl     = Math.max(0, n(ag.vl_gesamt) + aeDelta);
+    const newNk     = n(ag.nk_bonn_ae) + n(ag.nk_bs_ae) + n(ag.nk_at_ae) + n(ag.nk_ch_ae);
+    const newGesamt = newNk + n(ag.bk_gesamt) + newVl;
+    if (d === 'postgres') {
+      await db.run(
+        `UPDATE ae_gesamt_monthly SET vl_gesamt=$1, gesamt=$2, updated_at=NOW() WHERE monat=$3`,
+        [newVl, newGesamt, monat]
+      );
+    } else {
+      await db.run(
+        `UPDATE ae_gesamt_monthly SET vl_gesamt=?, gesamt=?, updated_at=datetime('now') WHERE monat=?`,
+        [newVl, newGesamt, monat]
+      );
+    }
+  } else if (aeDelta > 0) {
+    if (d === 'postgres') {
+      await db.run(
+        `INSERT INTO ae_gesamt_monthly (monat, vl_gesamt, gesamt) VALUES ($1,$2,$2)`,
+        [monat, aeDelta]
+      );
+    } else {
+      await db.run(
+        `INSERT OR IGNORE INTO ae_gesamt_monthly (monat, vl_gesamt, gesamt) VALUES (?,?,?)`,
+        [monat, aeDelta, aeDelta]
+      );
+    }
+  }
+}
+
 function resolveGewonnenFelder(body, existing = null) {
   if (body.status === 'Gewonnen') {
     const gd = body.gewonnen_datum || existing?.gewonnen_datum || body.datum || new Date().toISOString().slice(0, 10);
@@ -175,6 +229,7 @@ router.post('/', wrap(async (req, res) => {
     row = { id: result.lastInsertRowid, ...body, gewonnen_datum, gewonnen_monat };
   }
 
+  await syncAeGesamtVL(row, null);
   await logAudit({ user: req.user, action: 'create', entityType: 'deal_vl', entityId: row.id, newData: row });
   res.status(201).json(row);
 }));
@@ -228,6 +283,7 @@ router.put('/:id', wrap(async (req, res) => {
     row = db.get(BASE_SELECT + ' WHERE d.id=?', [req.params.id]);
   }
 
+  await syncAeGesamtVL(row, existing);
   await logAudit({ user: req.user, action: 'update', entityType: 'deal_vl', entityId: Number(req.params.id), oldData: existing, newData: row });
   res.json(row);
 }));
@@ -280,6 +336,9 @@ router.delete('/:id', wrap(async (req, res) => {
     ? await db.get('SELECT * FROM deals_vl WHERE id=$1', [req.params.id])
     : db.get('SELECT * FROM deals_vl WHERE id=?', [req.params.id]);
 
+  if (existing?.status === 'Gewonnen') {
+    await syncAeGesamtVL({ ...existing, status: 'Gelöscht' }, existing);
+  }
   const p = db.dialect === 'postgres' ? '$1' : '?';
   await db.run(`DELETE FROM deals_vl WHERE id=${p}`, [req.params.id]);
   await logAudit({ user: req.user, action: 'delete', entityType: 'deal_vl', entityId: Number(req.params.id), oldData: existing });

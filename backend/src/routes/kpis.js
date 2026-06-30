@@ -354,7 +354,7 @@ router.get('/dashboard', wrap(async (req, res) => {
     const vl_ch     = locAE(vlByLoc, monat, ['Schweiz']);
     const vl_gesamt = useAG ? n(ag.vl_gesamt) : totAE(vlTotal, monat);
 
-    const gesamt = useAG ? n(ag.gesamt) : (nk_gesamt + bk_gesamt + vl_gesamt);
+    const gesamt = nk_gesamt + bk_gesamt + vl_gesamt;
     const pct = v => gesamt > 0 ? Math.round((v / gesamt) * 10000) / 100 : 0;
 
     const ziel = Number(zieleRows.find(t => t.monat === monat)?.ziel_gesamt) || 0;
