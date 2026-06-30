@@ -37,23 +37,28 @@ async function syncAeGesamtBK(deal, prev) {
 
   const p1 = d === 'postgres' ? '$1' : '?';
   const emp = await db.get(`SELECT standort FROM employees WHERE id=${p1}`, [deal.kam_id]);
-  if (emp?.standort !== 'Österreich') return;
+  const standort = emp?.standort || '';
 
   const ag = await db.get(`SELECT * FROM ae_gesamt_monthly WHERE monat=${p1}`, [monat]);
   const n = v => Number(v) || 0;
-  if (!ag || n(ag.bk_at_ae) === 0) return; // No baseline set — live data handles it
+  if (!ag) return;
 
-  const newBkAt = Math.max(0, n(ag.bk_at_ae) + aeDelta);
-  if (d === 'postgres') {
-    await db.run(
-      `UPDATE ae_gesamt_monthly SET bk_at_ae=$1, updated_at=NOW() WHERE monat=$2`,
-      [newBkAt, monat]
-    );
-  } else {
-    await db.run(
-      `UPDATE ae_gesamt_monthly SET bk_at_ae=?, updated_at=datetime('now') WHERE monat=?`,
-      [newBkAt, monat]
-    );
+  if (standort === 'Österreich') {
+    if (n(ag.bk_at_ae) === 0) return;
+    const newVal = Math.max(0, n(ag.bk_at_ae) + aeDelta);
+    if (d === 'postgres') {
+      await db.run(`UPDATE ae_gesamt_monthly SET bk_at_ae=$1, updated_at=NOW() WHERE monat=$2`, [newVal, monat]);
+    } else {
+      await db.run(`UPDATE ae_gesamt_monthly SET bk_at_ae=?, updated_at=datetime('now') WHERE monat=?`, [newVal, monat]);
+    }
+  } else if (standort === 'Bonn' || standort === 'Braunschweig') {
+    if (n(ag.bk_de_ae) === 0) return;
+    const newVal = Math.max(0, n(ag.bk_de_ae) + aeDelta);
+    if (d === 'postgres') {
+      await db.run(`UPDATE ae_gesamt_monthly SET bk_de_ae=$1, updated_at=NOW() WHERE monat=$2`, [newVal, monat]);
+    } else {
+      await db.run(`UPDATE ae_gesamt_monthly SET bk_de_ae=?, updated_at=datetime('now') WHERE monat=?`, [newVal, monat]);
+    }
   }
 }
 
