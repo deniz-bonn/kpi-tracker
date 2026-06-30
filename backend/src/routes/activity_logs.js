@@ -14,7 +14,7 @@ const FIELDS = [
   'unqualifiziert','follow_up','beratung_vereinbart',
   'beratungen_geplant','beratungen_stattgefunden',
   'beratungen_verschoben','beratungen_no_show',
-  'beratungen_follow_up_cc2','beratungen_kein_close',
+  'beratungen_follow_up_cc2','beratungen_direkter_close','beratungen_kein_close',
   'inbound_mail','inbound_fax','inbound_ad','kommentar',
 ];
 

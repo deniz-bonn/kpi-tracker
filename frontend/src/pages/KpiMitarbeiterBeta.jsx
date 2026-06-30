@@ -124,8 +124,9 @@ function ActivityModal({ employee, datum, existing, companyId, onSave, onClose, 
                     {inpV('beratungen_stattgefunden', 'Beratungsgespräche stattgefunden')}
                     {inpV('beratungen_verschoben',    'Beratungsgespräche verschoben')}
                     {inpV('beratungen_no_show',       'No-Show')}
-                    {inpV('beratungen_follow_up_cc2', 'Follow-Up / Closing Call 2')}
-                    {inpV('beratungen_kein_close',    'Kein Close')}
+                    {inpV('beratungen_follow_up_cc2',    'Follow-Up / Closing Call 2')}
+                    {inpV('beratungen_direkter_close',   'Direkter Close')}
+                    {inpV('beratungen_kein_close',       'Kein Close')}
                   </>;
                 })()}
               </div>
