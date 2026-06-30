@@ -10,7 +10,7 @@ import { useAuth } from '../context/AuthContext';
 const STATUS_OPTS = ['Offen', 'Gewonnen', 'Verloren'];
 const STANDORTE   = ['Bonn', 'Braunschweig', 'Österreich', 'Schweiz'];
 
-const DIENSTLEISTUNGEN_BK = ['RaaS Kontingente','RaaS Kleinkunde Laufzeit','Karriereseite','Karriereseite Wartung','Social-Media','Glaubenssätze','Media-Day','Website','Sonstiges'];
+const DIENSTLEISTUNGEN_BK = ['RaaS Kontingente','RaaS Kleinkunde Laufzeit','Kontingent (Alt)','Karriereseite','Karriereseite Wartung','Social-Media','Glaubenssätze','Media-Day','Website','Sonstiges'];
 const AUTO_VL_OPTS = ['Ja', 'Nein'];
 const ABGERECHNET_OPTS = ['Nein', 'Ja', 'On Hold'];
 

@@ -342,12 +342,11 @@ router.get('/dashboard', wrap(async (req, res) => {
     const nk_ch_anz   = useAG ? n(ag.nk_ch_anz)   : locCnt(nkCntByLoc, monat, ['Schweiz']);
     const nk_gesamt_anz = nk_bonn_anz + nk_bs_anz + nk_at_anz + nk_ch_anz;
 
-    // BK / VL – Gesamt aus ae_gesamt_monthly; Standort-Aufschlüsselung immer aus Live-Deals
-    // (ae_gesamt_monthly hat keine standortspezifischen BK/VL-Felder)
+    // BK – Österreich aus ag.bk_at_ae wenn explizit gesetzt, sonst aus Live-Deals
     const bk_de     = locAE(bkByLoc, monat, ['Bonn', 'Braunschweig']);
-    const bk_at     = locAE(bkByLoc, monat, ['Österreich']);
+    const bk_at     = (useAG && n(ag.bk_at_ae) > 0) ? n(ag.bk_at_ae) : locAE(bkByLoc, monat, ['Österreich']);
     const bk_ch     = locAE(bkByLoc, monat, ['Schweiz']);
-    const bk_gesamt = useAG ? n(ag.bk_gesamt) : totAE(bkTotal, monat);
+    const bk_gesamt = bk_de + bk_at + bk_ch;
 
     const vl_de     = locAE(vlByLoc, monat, ['Bonn', 'Braunschweig']);
     const vl_at     = locAE(vlByLoc, monat, ['Österreich']);

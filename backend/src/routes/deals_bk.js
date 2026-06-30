@@ -13,6 +13,8 @@ const BASE_SELECT = `
   LEFT JOIN employees k ON k.id = d.kam_id
 `;
 
+// Syncs bk_at_ae in ae_gesamt_monthly for Österreich deals.
+// Other standorts (Bonn, BS, CH) are always read live from deals_bk — no sync needed.
 async function syncAeGesamtBK(deal, prev) {
   const d = db.dialect;
   const wasGewonnen = prev?.status === 'Gewonnen';
@@ -34,36 +36,24 @@ async function syncAeGesamtBK(deal, prev) {
   if (!monat) return;
 
   const p1 = d === 'postgres' ? '$1' : '?';
-  const ag = await db.get(`SELECT * FROM ae_gesamt_monthly WHERE monat=${p1}`, [monat]);
-  const n = v => Number(v) || 0;
+  const emp = await db.get(`SELECT standort FROM employees WHERE id=${p1}`, [deal.kam_id]);
+  if (emp?.standort !== 'Österreich') return;
 
-  if (ag) {
-    const newBk     = Math.max(0, n(ag.bk_gesamt) + aeDelta);
-    const newNk     = n(ag.nk_bonn_ae) + n(ag.nk_bs_ae) + n(ag.nk_at_ae) + n(ag.nk_ch_ae);
-    const newGesamt = newNk + newBk + n(ag.vl_gesamt);
-    if (d === 'postgres') {
-      await db.run(
-        `UPDATE ae_gesamt_monthly SET bk_gesamt=$1, gesamt=$2, updated_at=NOW() WHERE monat=$3`,
-        [newBk, newGesamt, monat]
-      );
-    } else {
-      await db.run(
-        `UPDATE ae_gesamt_monthly SET bk_gesamt=?, gesamt=?, updated_at=datetime('now') WHERE monat=?`,
-        [newBk, newGesamt, monat]
-      );
-    }
-  } else if (aeDelta > 0) {
-    if (d === 'postgres') {
-      await db.run(
-        `INSERT INTO ae_gesamt_monthly (monat, bk_gesamt, gesamt) VALUES ($1,$2,$2)`,
-        [monat, aeDelta]
-      );
-    } else {
-      await db.run(
-        `INSERT OR IGNORE INTO ae_gesamt_monthly (monat, bk_gesamt, gesamt) VALUES (?,?,?)`,
-        [monat, aeDelta, aeDelta]
-      );
-    }
+  const ag = await db.get(`SELECT bk_at_ae FROM ae_gesamt_monthly WHERE monat=${p1}`, [monat]);
+  const n = v => Number(v) || 0;
+  if (!ag || n(ag.bk_at_ae) === 0) return; // No baseline set — live data handles it
+
+  const newBkAt = Math.max(0, n(ag.bk_at_ae) + aeDelta);
+  if (d === 'postgres') {
+    await db.run(
+      `UPDATE ae_gesamt_monthly SET bk_at_ae=$1, updated_at=NOW() WHERE monat=$2`,
+      [newBkAt, monat]
+    );
+  } else {
+    await db.run(
+      `UPDATE ae_gesamt_monthly SET bk_at_ae=?, updated_at=datetime('now') WHERE monat=?`,
+      [newBkAt, monat]
+    );
   }
 }
 
