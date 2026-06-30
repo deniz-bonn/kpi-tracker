@@ -18,6 +18,7 @@ const ROLE_LABELS = { superadmin:'Super Admin', admin:'Admin', vertriebsleitung:
 // ── Zugriffssteuerung (superadmin only) ────────────────────────────────────
 const CONTROLLED_FEATURES = [
   { key: 'kpi_beta', label: 'KPI Mitarbeiter Beta', desc: 'Beta-Dashboard mit täglichem Activity-Tracking' },
+  { key: 'backup',   label: 'Datensicherung',       desc: 'Backup-Export und automatische Datensicherung herunterladen' },
 ];
 const CONTROLLABLE_ROLES = [
   { value: 'admin',            label: 'Admin' },
@@ -121,7 +122,7 @@ const ACTION_LABELS = { create: 'Erstellt', update: 'Bearbeitet', delete: 'Gelö
 const ACTION_COLORS = { create:'text-green-600', update:'text-blue-600', delete:'text-red-600', undo:'text-amber-600' };
 
 export default function Settings() {
-  const { user: me, isAdmin, isSuperAdmin } = useAuth();
+  const { user: me, isAdmin, isSuperAdmin, canSeeBackup } = useAuth();
   const qc = useQueryClient();
   const [tab, setTab] = useState(() => isSuperAdmin ? 'access' : isAdmin ? 'users' : 'password');
 
@@ -294,8 +295,8 @@ export default function Settings() {
       { id: 'companies', label: 'Companies' },
       { id: 'targets',   label: 'Monatsziele' },
       { id: 'audit',     label: 'Änderungslog' },
-      { id: 'backup',    label: 'Datensicherung' },
     ] : []),
+    ...(canSeeBackup ? [{ id: 'backup', label: 'Datensicherung' }] : []),
     { id: 'password', label: 'Passwort' },
   ];
 
@@ -663,7 +664,7 @@ export default function Settings() {
       )}
 
       {/* ── TAB: Datensicherung ────────────────────────────────────── */}
-      {tab === 'backup' && isAdmin && (
+      {tab === 'backup' && canSeeBackup && (
         <div className="space-y-4">
 
           {/* Manual export */}

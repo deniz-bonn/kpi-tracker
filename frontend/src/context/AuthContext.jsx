@@ -98,13 +98,17 @@ export function AuthProvider({ children }) {
   const canSeeKpiBeta = isSuperAdmin || (
     featureFlags !== null && (featureFlags['kpi_beta'] || []).includes(user?.role)
   );
+  // admins always see backup; other roles depend on the feature flag
+  const canSeeBackup = isAdmin || (
+    featureFlags !== null && (featureFlags['backup'] || []).includes(user?.role)
+  );
 
   return (
     <AuthContext.Provider value={{
       user, token, login, logout, loading,
       isSuperAdmin, isAdmin, isBackoffice, isVertriebsleitung,
       canSeeNK, canSeeBK, canSeeVL, canSeeAdmin, canSeeAll,
-      canSeeKpiBeta, featureFlags, refreshFeatureFlags,
+      canSeeKpiBeta, canSeeBackup, featureFlags, refreshFeatureFlags,
     }}>
       {children}
     </AuthContext.Provider>

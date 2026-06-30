@@ -48,7 +48,7 @@ function storeAutoBackup(data) {
 }
 
 // GET /api/backup/export — manual download
-router.get('/export', requireRole('admin', 'superadmin'), wrap(async (req, res) => {
+router.get('/export', requireRole('admin', 'superadmin', 'backoffice', 'vertriebsleitung'), wrap(async (req, res) => {
   const backup   = await generateBackup();
   const filename = `kpi-backup-${backup.generated_at.slice(0, 10)}.json`;
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -57,12 +57,12 @@ router.get('/export', requireRole('admin', 'superadmin'), wrap(async (req, res) 
 }));
 
 // GET /api/backup/info — when was last auto-backup
-router.get('/info', requireRole('admin', 'superadmin'), wrap(async (_req, res) => {
+router.get('/info', requireRole('admin', 'superadmin', 'backoffice', 'vertriebsleitung'), wrap(async (_req, res) => {
   res.json({ last_auto_backup: lastAutoBackup?.generated_at || null });
 }));
 
 // GET /api/backup/scheduled — download last auto-backup
-router.get('/scheduled', requireRole('admin', 'superadmin'), wrap(async (_req, res) => {
+router.get('/scheduled', requireRole('admin', 'superadmin', 'backoffice', 'vertriebsleitung'), wrap(async (_req, res) => {
   if (!lastAutoBackup) {
     return res.status(404).json({ error: 'Noch kein automatisches Backup vorhanden. Nächstes um 23:00 Uhr.' });
   }
