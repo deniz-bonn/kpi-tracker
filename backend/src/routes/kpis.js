@@ -332,7 +332,9 @@ router.get('/dashboard', wrap(async (req, res) => {
     const nk_bs     = useAG ? n(ag.nk_bs_ae)   : locAE(nkByLoc, monat, ['Braunschweig']);
     const nk_at     = useAG ? n(ag.nk_at_ae)   : locAE(nkByLoc, monat, ['Österreich']);
     const nk_ch     = useAG ? n(ag.nk_ch_ae)   : locAE(nkByLoc, monat, ['Schweiz']);
-    const nk_gesamt = useAG ? n(ag.nk_gesamt)  : totAE(nkTotal, monat);
+    // nk_gesamt is always computed from standort parts — ag.nk_gesamt was incorrectly
+    // set to only the Österreich value in some historical migrations.
+    const nk_gesamt = nk_bonn + nk_bs + nk_at + nk_ch;
 
     const nk_bonn_anz = useAG ? n(ag.nk_bonn_anz) : locCnt(nkCntByLoc, monat, ['Bonn']);
     const nk_bs_anz   = useAG ? n(ag.nk_bs_anz)   : locCnt(nkCntByLoc, monat, ['Braunschweig']);
