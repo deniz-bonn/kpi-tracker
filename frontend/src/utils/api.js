@@ -125,6 +125,42 @@ export const auditApi = {
   undo: (id) => api.post(`/audit/${id}/undo`).then(r => r.data),
 };
 
+export const backupApi = {
+  exportDownload: async () => {
+    const token    = localStorage.getItem('kpi_token');
+    const res      = await fetch('/api/backup/export', { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error('Export fehlgeschlagen');
+    const blob     = await res.blob();
+    const cd       = res.headers.get('Content-Disposition') || '';
+    const match    = cd.match(/filename="([^"]+)"/);
+    const filename = match ? match[1] : `kpi-backup-${new Date().toISOString().slice(0,10)}.json`;
+    const a        = document.createElement('a');
+    a.href         = URL.createObjectURL(blob);
+    a.download     = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  },
+  scheduledDownload: async () => {
+    const token    = localStorage.getItem('kpi_token');
+    const res      = await fetch('/api/backup/scheduled', { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Kein automatisches Backup vorhanden');
+    }
+    const blob     = await res.blob();
+    const cd       = res.headers.get('Content-Disposition') || '';
+    const match    = cd.match(/filename="([^"]+)"/);
+    const filename = match ? match[1] : 'kpi-backup-auto.json';
+    const a        = document.createElement('a');
+    a.href         = URL.createObjectURL(blob);
+    a.download     = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  },
+  info:          () => api.get('/backup/info').then(r => r.data),
+  importBackup:  (data) => api.post('/backup/import', data).then(r => r.data),
+};
+
 export const exportApi = {
   download: async (path, filename, params = {}) => {
     const token = localStorage.getItem('kpi_token');

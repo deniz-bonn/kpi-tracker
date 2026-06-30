@@ -50,6 +50,19 @@ app.use('/api/upsale-deals',   require('./routes/upsale_deals'));   // requireAu
 app.use('/api/admin',          require('./routes/admin'));       // requireAuth + requireRole inside
 app.use('/api/audit',          require('./routes/audit'));       // requireAuth inside
 app.use('/api/export',         require('./routes/export'));      // requireAuth inside
+const { router: backupRouter, generateBackup, storeAutoBackup } = require('./routes/backup');
+const cron = require('node-cron');
+app.use('/api/backup',         backupRouter);                   // requireAuth + requireRole inside
+// Daily auto-backup at 23:00
+cron.schedule('0 23 * * *', async () => {
+  try {
+    const data = await generateBackup();
+    storeAutoBackup(data);
+    console.log('[backup] Auto-Backup erstellt:', data.generated_at);
+  } catch (err) {
+    console.error('[backup] Auto-Backup fehlgeschlagen:', err.message);
+  }
+});
 
 // ── Serve built React frontend (production / Railway) ────────────────────────
 const publicPath = path.join(__dirname, '../public');

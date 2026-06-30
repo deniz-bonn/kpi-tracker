@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { companiesApi, targetsApi, adminApi, auditApi, employeesApi, featureFlagsApi } from '../utils/api';
+import { companiesApi, targetsApi, adminApi, auditApi, employeesApi, featureFlagsApi, backupApi } from '../utils/api';
 import { currentMonat } from '../utils/format';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
@@ -240,6 +240,49 @@ export default function Settings() {
     onSuccess: () => { qc.invalidateQueries({queryKey:['audit-logs']}); qc.invalidateQueries({queryKey:['deals-nk']}); qc.invalidateQueries({queryKey:['deals-bk']}); qc.invalidateQueries({queryKey:['deals-vl']}); },
   });
 
+  // ── Backup (admin only) ───────────────────────────────────────────────────
+  const [backupExporting, setBackupExporting] = useState(false);
+  const [restoreFile,     setRestoreFile]     = useState(null);
+  const [restoreMsg,      setRestoreMsg]      = useState(null);
+  const [restoreLoading,  setRestoreLoading]  = useState(false);
+
+  const { data: backupInfo } = useQuery({
+    queryKey: ['backup-info'],
+    queryFn:  backupApi.info,
+    enabled:  isAdmin && tab === 'backup',
+    refetchInterval: tab === 'backup' ? 30_000 : false,
+  });
+
+  const handleManualExport = async () => {
+    setBackupExporting(true);
+    try { await backupApi.exportDownload(); }
+    catch (err) { alert(err.message || 'Export fehlgeschlagen'); }
+    finally { setBackupExporting(false); }
+  };
+
+  const handleScheduledDownload = async () => {
+    try { await backupApi.scheduledDownload(); }
+    catch (err) { alert(err.message); }
+  };
+
+  const handleRestore = async () => {
+    if (!restoreFile) return;
+    if (!confirm('Alle vorhandenen Datensätze werden durch das Backup ersetzt. Dieser Vorgang kann nicht rückgängig gemacht werden. Fortfahren?')) return;
+    setRestoreLoading(true);
+    setRestoreMsg(null);
+    try {
+      const text   = await restoreFile.text();
+      const json   = JSON.parse(text);
+      const result = await backupApi.importBackup(json);
+      setRestoreMsg({ ok: `Wiederhergestellt: ${result.restored} Tabellen (${result.tables.join(', ')})` });
+      setRestoreFile(null);
+    } catch (err) {
+      setRestoreMsg({ err: err.response?.data?.error || err.message || 'Fehler beim Wiederherstellen' });
+    } finally {
+      setRestoreLoading(false);
+    }
+  };
+
   const TABS = [
     ...(isSuperAdmin ? [
       { id: 'access',         label: 'Zugriffssteuerung' },
@@ -251,6 +294,7 @@ export default function Settings() {
       { id: 'companies', label: 'Companies' },
       { id: 'targets',   label: 'Monatsziele' },
       { id: 'audit',     label: 'Änderungslog' },
+      { id: 'backup',    label: 'Datensicherung' },
     ] : []),
     { id: 'password', label: 'Passwort' },
   ];
@@ -616,6 +660,81 @@ export default function Settings() {
             </table>
           </div>
         </section>
+      )}
+
+      {/* ── TAB: Datensicherung ────────────────────────────────────── */}
+      {tab === 'backup' && isAdmin && (
+        <div className="space-y-4">
+
+          {/* Manual export */}
+          <section className="rounded-xl border border-gray-200 bg-white p-5">
+            <h2 className="text-sm font-semibold text-gray-700 mb-1">Manuelles Backup</h2>
+            <p className="text-xs text-gray-400 mb-4">Erstellt eine vollständige Sicherungskopie aller Datensätze als JSON-Datei.</p>
+            <button
+              onClick={handleManualExport}
+              disabled={backupExporting}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded disabled:opacity-50"
+            >
+              {backupExporting ? 'Exportiere...' : 'Backup jetzt herunterladen'}
+            </button>
+          </section>
+
+          {/* Auto backup */}
+          <section className="rounded-xl border border-gray-200 bg-white p-5">
+            <h2 className="text-sm font-semibold text-gray-700 mb-1">Automatisches Backup</h2>
+            <p className="text-xs text-gray-400 mb-3">Täglich um 23:00 Uhr wird automatisch ein Backup im Speicher erstellt.</p>
+            {backupInfo ? (
+              backupInfo.last_auto_backup ? (
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="text-xs text-gray-600">
+                    Letztes Backup: <strong>{new Date(backupInfo.last_auto_backup).toLocaleString('de-DE')}</strong>
+                  </span>
+                  <button
+                    onClick={handleScheduledDownload}
+                    className="text-xs px-3 py-1 border border-gray-300 rounded hover:bg-gray-50"
+                  >
+                    Herunterladen
+                  </button>
+                </div>
+              ) : (
+                <p className="text-xs text-amber-600">Noch kein automatisches Backup vorhanden. Nächstes um 23:00 Uhr.</p>
+              )
+            ) : (
+              <p className="text-xs text-gray-400">Lade...</p>
+            )}
+          </section>
+
+          {/* Restore (superadmin only) */}
+          {isSuperAdmin && (
+            <section className="rounded-xl border border-red-200 bg-white p-5">
+              <h2 className="text-sm font-semibold text-red-700 mb-1">Backup wiederherstellen</h2>
+              <p className="text-xs text-gray-400 mb-3">
+                Lädt eine JSON-Backup-Datei hoch und ersetzt alle vorhandenen Datensätze. Dieser Vorgang kann nicht rückgängig gemacht werden.
+              </p>
+              {restoreMsg && (
+                <div className={`text-xs rounded px-3 py-2 mb-3 ${restoreMsg.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                  {restoreMsg.ok || restoreMsg.err}
+                </div>
+              )}
+              <div className="flex items-center gap-3 flex-wrap">
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={e => { setRestoreFile(e.target.files[0] || null); setRestoreMsg(null); }}
+                  className="text-sm text-gray-600"
+                />
+                <button
+                  onClick={handleRestore}
+                  disabled={!restoreFile || restoreLoading}
+                  className="px-4 py-1.5 bg-red-600 hover:bg-red-500 text-white text-sm rounded disabled:opacity-50"
+                >
+                  {restoreLoading ? 'Wiederherstellung läuft...' : 'Wiederherstellen'}
+                </button>
+              </div>
+            </section>
+          )}
+
+        </div>
       )}
 
       {/* ── TAB: Passwort ──────────────────────────────────────────── */}
