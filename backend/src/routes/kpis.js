@@ -321,27 +321,24 @@ router.get('/dashboard', wrap(async (req, res) => {
   const rows = months.map(monat => {
     const ag = aeGesamt(monat); // authoritative AE Gesamt record (may be null)
 
-    // Use ae_gesamt_monthly whenever a non-zero record exists.
-    // This covers past months AND the current month when it has been frozen via migration.
-    const useAG = ag && ag.gesamt > 0;
-
-    // NK – prefer AE Gesamt values when available
-    // Number() cast handles BigInt (node:sqlite default) and string returns from SQLite
+    // NK – immer aus Live-Deals (deals_nk), damit neue gewonnene Deals sofort erscheinen
+    // und nk_gesamt korrekt als Summe aller Standorte ausgewiesen wird.
     const n = (v) => Number(v ?? 0) || 0;
-    const nk_bonn   = useAG ? n(ag.nk_bonn_ae) : locAE(nkByLoc, monat, ['Bonn']);
-    const nk_bs     = useAG ? n(ag.nk_bs_ae)   : locAE(nkByLoc, monat, ['Braunschweig']);
-    const nk_at     = useAG ? n(ag.nk_at_ae)   : locAE(nkByLoc, monat, ['Österreich']);
-    const nk_ch     = useAG ? n(ag.nk_ch_ae)   : locAE(nkByLoc, monat, ['Schweiz']);
-    const nk_gesamt = useAG ? n(ag.nk_gesamt)  : totAE(nkTotal, monat);
+    const useAG = ag && ag.gesamt > 0; // noch für BK/VL-Gesamt-Overrides genutzt
 
-    const nk_bonn_anz = useAG ? n(ag.nk_bonn_anz) : locCnt(nkCntByLoc, monat, ['Bonn']);
-    const nk_bs_anz   = useAG ? n(ag.nk_bs_anz)   : locCnt(nkCntByLoc, monat, ['Braunschweig']);
-    const nk_at_anz   = useAG ? n(ag.nk_at_anz)   : locCnt(nkCntByLoc, monat, ['Österreich']);
-    const nk_ch_anz   = useAG ? n(ag.nk_ch_anz)   : locCnt(nkCntByLoc, monat, ['Schweiz']);
+    const nk_bonn   = locAE(nkByLoc, monat, ['Bonn']);
+    const nk_bs     = locAE(nkByLoc, monat, ['Braunschweig']);
+    const nk_at     = locAE(nkByLoc, monat, ['Österreich']);
+    const nk_ch     = locAE(nkByLoc, monat, ['Schweiz']);
+    const nk_gesamt = nk_bonn + nk_bs + nk_at + nk_ch;
+
+    const nk_bonn_anz = locCnt(nkCntByLoc, monat, ['Bonn']);
+    const nk_bs_anz   = locCnt(nkCntByLoc, monat, ['Braunschweig']);
+    const nk_at_anz   = locCnt(nkCntByLoc, monat, ['Österreich']);
+    const nk_ch_anz   = locCnt(nkCntByLoc, monat, ['Schweiz']);
     const nk_gesamt_anz = nk_bonn_anz + nk_bs_anz + nk_at_anz + nk_ch_anz;
 
-    // BK / VL – Gesamt aus ae_gesamt_monthly; Standort-Aufschlüsselung immer aus Live-Deals
-    // (ae_gesamt_monthly hat keine standortspezifischen BK/VL-Felder)
+    // BK / VL – Gesamt aus ae_gesamt_monthly als Override; Standort-Aufschlüsselung immer Live
     const bk_de     = locAE(bkByLoc, monat, ['Bonn', 'Braunschweig']);
     const bk_at     = locAE(bkByLoc, monat, ['Österreich']);
     const bk_ch     = locAE(bkByLoc, monat, ['Schweiz']);
@@ -352,7 +349,7 @@ router.get('/dashboard', wrap(async (req, res) => {
     const vl_ch     = locAE(vlByLoc, monat, ['Schweiz']);
     const vl_gesamt = useAG ? n(ag.vl_gesamt) : totAE(vlTotal, monat);
 
-    const gesamt = useAG ? n(ag.gesamt) : (nk_gesamt + bk_gesamt + vl_gesamt);
+    const gesamt = nk_gesamt + bk_gesamt + vl_gesamt;
     const pct = v => gesamt > 0 ? Math.round((v / gesamt) * 10000) / 100 : 0;
 
     const ziel = Number(zieleRows.find(t => t.monat === monat)?.ziel_gesamt) || 0;
