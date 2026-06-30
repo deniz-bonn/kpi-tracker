@@ -192,7 +192,7 @@ router.post('/', wrap(async (req, res) => {
     row = { id: result.lastInsertRowid, ...body, gewonnen_datum, gewonnen_monat };
   }
 
-  await syncAeGesamtNK(row, null);
+  try { await syncAeGesamtNK(row, null); } catch (e) { console.error('[sync-nk] POST:', e.message); }
   await logAudit({ user: req.user, action: 'create', entityType: 'deal_nk', entityId: row.id, newData: row });
   res.status(201).json(row);
 }));
@@ -226,7 +226,7 @@ router.put('/:id', wrap(async (req, res) => {
     row = db.get(BASE_SELECT + ' WHERE d.id=?', [req.params.id]);
   }
 
-  await syncAeGesamtNK(row, existing);
+  try { await syncAeGesamtNK(row, existing); } catch (e) { console.error('[sync-nk] PUT:', e.message); }
   await logAudit({ user: req.user, action: 'update', entityType: 'deal_nk', entityId: Number(req.params.id), oldData: existing, newData: row });
   res.json(row);
 }));
@@ -237,7 +237,7 @@ router.delete('/:id', wrap(async (req, res) => {
     : db.get('SELECT * FROM deals_nk WHERE id=?', [req.params.id]);
 
   if (existing?.status === 'Gewonnen') {
-    await syncAeGesamtNK({ ...existing, status: 'Gelöscht' }, existing);
+    try { await syncAeGesamtNK({ ...existing, status: 'Gelöscht' }, existing); } catch (e) { console.error('[sync-nk] DELETE:', e.message); }
   }
   const p = db.dialect === 'postgres' ? '$1' : '?';
   await db.run(`DELETE FROM deals_nk WHERE id=${p}`, [req.params.id]);

@@ -39,7 +39,7 @@ async function syncAeGesamtBK(deal, prev) {
   const emp = await db.get(`SELECT standort FROM employees WHERE id=${p1}`, [deal.kam_id]);
   if (emp?.standort !== 'Österreich') return;
 
-  const ag = await db.get(`SELECT bk_at_ae FROM ae_gesamt_monthly WHERE monat=${p1}`, [monat]);
+  const ag = await db.get(`SELECT * FROM ae_gesamt_monthly WHERE monat=${p1}`, [monat]);
   const n = v => Number(v) || 0;
   if (!ag || n(ag.bk_at_ae) === 0) return; // No baseline set — live data handles it
 
@@ -127,7 +127,7 @@ router.post('/', wrap(async (req, res) => {
     row = { id: result.lastInsertRowid, ...body, gewonnen_datum, gewonnen_monat };
   }
 
-  await syncAeGesamtBK(row, null);
+  try { await syncAeGesamtBK(row, null); } catch (e) { console.error('[sync-bk] POST:', e.message); }
   await logAudit({ user: req.user, action: 'create', entityType: 'deal_bk', entityId: row.id, newData: row });
   res.status(201).json(row);
 }));
@@ -161,7 +161,7 @@ router.put('/:id', wrap(async (req, res) => {
     row = db.get(BASE_SELECT + ' WHERE d.id=?', [req.params.id]);
   }
 
-  await syncAeGesamtBK(row, existing);
+  try { await syncAeGesamtBK(row, existing); } catch (e) { console.error('[sync-bk] PUT:', e.message); }
   await logAudit({ user: req.user, action: 'update', entityType: 'deal_bk', entityId: Number(req.params.id), oldData: existing, newData: row });
   res.json(row);
 }));
@@ -172,7 +172,7 @@ router.delete('/:id', wrap(async (req, res) => {
     : db.get('SELECT * FROM deals_bk WHERE id=?', [req.params.id]);
 
   if (existing?.status === 'Gewonnen') {
-    await syncAeGesamtBK({ ...existing, status: 'Gelöscht' }, existing);
+    try { await syncAeGesamtBK({ ...existing, status: 'Gelöscht' }, existing); } catch (e) { console.error('[sync-bk] DELETE:', e.message); }
   }
   const p = db.dialect === 'postgres' ? '$1' : '?';
   await db.run(`DELETE FROM deals_bk WHERE id=${p}`, [req.params.id]);

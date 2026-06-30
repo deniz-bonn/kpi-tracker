@@ -229,7 +229,7 @@ router.post('/', wrap(async (req, res) => {
     row = { id: result.lastInsertRowid, ...body, gewonnen_datum, gewonnen_monat };
   }
 
-  await syncAeGesamtVL(row, null);
+  try { await syncAeGesamtVL(row, null); } catch (e) { console.error('[sync-vl] POST:', e.message); }
   await logAudit({ user: req.user, action: 'create', entityType: 'deal_vl', entityId: row.id, newData: row });
   res.status(201).json(row);
 }));
@@ -283,7 +283,7 @@ router.put('/:id', wrap(async (req, res) => {
     row = db.get(BASE_SELECT + ' WHERE d.id=?', [req.params.id]);
   }
 
-  await syncAeGesamtVL(row, existing);
+  try { await syncAeGesamtVL(row, existing); } catch (e) { console.error('[sync-vl] PUT:', e.message); }
   await logAudit({ user: req.user, action: 'update', entityType: 'deal_vl', entityId: Number(req.params.id), oldData: existing, newData: row });
   res.json(row);
 }));
@@ -337,7 +337,7 @@ router.delete('/:id', wrap(async (req, res) => {
     : db.get('SELECT * FROM deals_vl WHERE id=?', [req.params.id]);
 
   if (existing?.status === 'Gewonnen') {
-    await syncAeGesamtVL({ ...existing, status: 'Gelöscht' }, existing);
+    try { await syncAeGesamtVL({ ...existing, status: 'Gelöscht' }, existing); } catch (e) { console.error('[sync-vl] DELETE:', e.message); }
   }
   const p = db.dialect === 'postgres' ? '$1' : '?';
   await db.run(`DELETE FROM deals_vl WHERE id=${p}`, [req.params.id]);
