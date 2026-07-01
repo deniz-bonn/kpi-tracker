@@ -26,7 +26,7 @@ const ZERO_FORM = {
   kommentar: '',
 };
 
-const INBOUND_ZERO = { inbound_mail: '', inbound_fax: '', inbound_ad: '', kommentar: '' };
+const INBOUND_ZERO = { inbound_mail: '', inbound_fax: '', inbound_ad: '', terminiert_mail: '', terminiert_fax: '', terminiert_ad: '', kommentar: '' };
 
 // ── Eingabe-Input helper ───────────────────────────────────────────────────────
 const INPUT_CLS = 'w-16 text-right text-sm text-gray-900 bg-white border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-400';
@@ -176,18 +176,21 @@ function InboundModal({ datum, existing, companyId, onSave, onClose, isPending, 
   const handleSave = () => {
     onSave({
       datum,
-      monat:        datum.slice(0, 7),
-      company_id:   companyId,
-      inbound_mail: Number(form.inbound_mail) || 0,
-      inbound_fax:  Number(form.inbound_fax)  || 0,
-      inbound_ad:   Number(form.inbound_ad)   || 0,
-      kommentar:    form.kommentar || null,
+      monat:           datum.slice(0, 7),
+      company_id:      companyId,
+      inbound_mail:    Number(form.inbound_mail)    || 0,
+      inbound_fax:     Number(form.inbound_fax)     || 0,
+      inbound_ad:      Number(form.inbound_ad)      || 0,
+      terminiert_mail: Number(form.terminiert_mail) || 0,
+      terminiert_fax:  Number(form.terminiert_fax)  || 0,
+      terminiert_ad:   Number(form.terminiert_ad)   || 0,
+      kommentar:       form.kommentar || null,
     });
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm flex flex-col">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md flex flex-col">
         <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
           <div>
             <h2 className="text-base font-bold text-gray-900">Inbound erfassen</h2>
@@ -201,10 +204,34 @@ function InboundModal({ datum, existing, companyId, onSave, onClose, isPending, 
             <h3 className="text-[11px] font-bold text-teal-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
               <span>📬</span> Inbound nach Quelle
             </h3>
-            <div className="space-y-2 bg-teal-50 rounded-lg p-3">
-              {inp('inbound_mail', 'Mail-Leads')}
-              {inp('inbound_fax',  'Fax-Leads')}
-              {inp('inbound_ad',   'Ad-Leads')}
+            <div className="bg-teal-50 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2 text-[10px] font-semibold text-teal-600 uppercase tracking-wide">
+                <span className="flex-1">Quelle</span>
+                <span className="w-16 text-center">Inbound</span>
+                <span className="w-16 text-center">Terminiert</span>
+              </div>
+              {[['mail','Mail-Leads'],['fax','Fax-Leads'],['ad','Ad-Leads']].map(([key, label]) => (
+                <div key={key} className="flex items-center gap-2 mb-2">
+                  <label className="text-xs text-gray-600 flex-1">{label}</label>
+                  <input type="number" min="0" value={form[`inbound_${key}`]}
+                    onChange={e => set(`inbound_${key}`, e.target.value)}
+                    className={INPUT_CLS} />
+                  <input type="number" min="0" value={form[`terminiert_${key}`]}
+                    onChange={e => set(`terminiert_${key}`, e.target.value)}
+                    className={INPUT_CLS} />
+                </div>
+              ))}
+              {(() => {
+                const totalIn = (Number(form.inbound_mail)||0)+(Number(form.inbound_fax)||0)+(Number(form.inbound_ad)||0);
+                const totalT  = (Number(form.terminiert_mail)||0)+(Number(form.terminiert_fax)||0)+(Number(form.terminiert_ad)||0);
+                return (
+                  <div className="flex items-center gap-2 border-t border-teal-200 pt-2 mt-1">
+                    <span className="text-xs font-bold text-teal-700 flex-1">Gesamt</span>
+                    <span className="w-16 text-right text-xs font-bold text-teal-700">{totalIn}</span>
+                    <span className="w-16 text-right text-xs font-bold text-teal-700">{totalT}</span>
+                  </div>
+                );
+              })()}
             </div>
           </section>
           <section>
@@ -371,12 +398,19 @@ export default function KpiMitarbeiterBeta() {
     inboundData.forEach(l => {
       const d   = new Date(l.datum);
       const key = `KW ${Math.ceil(d.getDate() / 7)}`;
-      if (!weeks[key]) weeks[key] = { mail: 0, fax: 0, ad: 0 };
-      weeks[key].mail += Number(l.inbound_mail) || 0;
-      weeks[key].fax  += Number(l.inbound_fax)  || 0;
-      weeks[key].ad   += Number(l.inbound_ad)   || 0;
+      if (!weeks[key]) weeks[key] = { mail: 0, fax: 0, ad: 0, tmail: 0, tfax: 0, tad: 0 };
+      weeks[key].mail  += Number(l.inbound_mail)    || 0;
+      weeks[key].fax   += Number(l.inbound_fax)     || 0;
+      weeks[key].ad    += Number(l.inbound_ad)      || 0;
+      weeks[key].tmail += Number(l.terminiert_mail) || 0;
+      weeks[key].tfax  += Number(l.terminiert_fax)  || 0;
+      weeks[key].tad   += Number(l.terminiert_ad)   || 0;
     });
-    return Object.entries(weeks).map(([week, v]) => ({ week, ...v, total: v.mail + v.fax + v.ad }));
+    return Object.entries(weeks).map(([week, v]) => {
+      const total      = v.mail + v.fax + v.ad;
+      const terminiert = v.tmail + v.tfax + v.tad;
+      return { week, ...v, total, terminiert, quote: total > 0 ? Math.round((terminiert/total)*100) : 0 };
+    });
   }, [inboundData]);
 
   const sel = "bg-white border border-gray-300 text-gray-700 text-xs rounded px-2 py-1.5";
@@ -473,17 +507,25 @@ export default function KpiMitarbeiterBeta() {
               </button>
             </div>
             <div className="px-4 py-3">
-              {currentInbound ? (
-                <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs">
-                  <span className="text-gray-600">Mail-Leads: <span className="font-bold text-teal-700">{currentInbound.inbound_mail || 0}</span></span>
-                  <span className="text-gray-600">Fax-Leads: <span className="font-bold text-teal-700">{currentInbound.inbound_fax || 0}</span></span>
-                  <span className="text-gray-600">Ad-Leads: <span className="font-bold text-teal-700">{currentInbound.inbound_ad || 0}</span></span>
-                  <span className="text-gray-400">·</span>
-                  <span className="font-bold text-teal-800">
-                    Gesamt: {(currentInbound.inbound_mail||0) + (currentInbound.inbound_fax||0) + (currentInbound.inbound_ad||0)}
-                  </span>
-                </div>
-              ) : (
+              {currentInbound ? (() => {
+                const totalIn = (currentInbound.inbound_mail||0)+(currentInbound.inbound_fax||0)+(currentInbound.inbound_ad||0);
+                const totalT  = (currentInbound.terminiert_mail||0)+(currentInbound.terminiert_fax||0)+(currentInbound.terminiert_ad||0);
+                const quote   = totalIn > 0 ? Math.round((totalT/totalIn)*100) : 0;
+                return (
+                  <div className="space-y-1 text-xs">
+                    <div className="flex flex-wrap gap-x-6 gap-y-1">
+                      <span className="text-gray-600">Mail: <b className="text-teal-700">{currentInbound.inbound_mail||0}</b></span>
+                      <span className="text-gray-600">Fax: <b className="text-teal-700">{currentInbound.inbound_fax||0}</b></span>
+                      <span className="text-gray-600">Ad: <b className="text-teal-700">{currentInbound.inbound_ad||0}</b></span>
+                      <span className="font-bold text-teal-800">Gesamt: {totalIn}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-x-6 gap-y-1 text-teal-600">
+                      <span>Terminiert: <b>{totalT}</b></span>
+                      <span>Quote: <b>{quote} %</b></span>
+                    </div>
+                  </div>
+                );
+              })() : (
                 <p className="text-xs text-gray-400">Noch kein Eintrag für diesen Tag.</p>
               )}
             </div>
@@ -722,10 +764,12 @@ export default function KpiMitarbeiterBeta() {
                 <thead>
                   <tr className="bg-teal-50 border-b border-teal-100 text-teal-700 font-medium">
                     <th className="px-3 py-2 text-left">Woche</th>
-                    <th className="px-3 py-2 text-right">Mail-Leads</th>
-                    <th className="px-3 py-2 text-right">Fax-Leads</th>
-                    <th className="px-3 py-2 text-right">Ad-Leads</th>
+                    <th className="px-3 py-2 text-right">Mail</th>
+                    <th className="px-3 py-2 text-right">Fax</th>
+                    <th className="px-3 py-2 text-right">Ad</th>
                     <th className="px-3 py-2 text-right font-bold">Gesamt</th>
+                    <th className="px-3 py-2 text-right">Terminiert</th>
+                    <th className="px-3 py-2 text-right">Quote</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-teal-50">
@@ -736,19 +780,28 @@ export default function KpiMitarbeiterBeta() {
                       <td className="px-3 py-2 text-right text-gray-600">{w.fax}</td>
                       <td className="px-3 py-2 text-right text-gray-600">{w.ad}</td>
                       <td className="px-3 py-2 text-right font-bold text-teal-700">{w.total}</td>
+                      <td className="px-3 py-2 text-right font-medium text-teal-600">{w.terminiert}</td>
+                      <td className="px-3 py-2 text-right font-medium text-teal-600">{w.quote} %</td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr className="bg-teal-700 text-white font-bold text-xs">
-                    <td className="px-3 py-2">Gesamt</td>
-                    <td className="px-3 py-2 text-right">{sum(inboundData,'inbound_mail')}</td>
-                    <td className="px-3 py-2 text-right">{sum(inboundData,'inbound_fax')}</td>
-                    <td className="px-3 py-2 text-right">{sum(inboundData,'inbound_ad')}</td>
-                    <td className="px-3 py-2 text-right">
-                      {sum(inboundData,'inbound_mail') + sum(inboundData,'inbound_fax') + sum(inboundData,'inbound_ad')}
-                    </td>
-                  </tr>
+                  {(() => {
+                    const totalIn = sum(inboundData,'inbound_mail')+sum(inboundData,'inbound_fax')+sum(inboundData,'inbound_ad');
+                    const totalT  = sum(inboundData,'terminiert_mail')+sum(inboundData,'terminiert_fax')+sum(inboundData,'terminiert_ad');
+                    const quote   = totalIn > 0 ? Math.round((totalT/totalIn)*100) : 0;
+                    return (
+                      <tr className="bg-teal-700 text-white font-bold text-xs">
+                        <td className="px-3 py-2">Gesamt</td>
+                        <td className="px-3 py-2 text-right">{sum(inboundData,'inbound_mail')}</td>
+                        <td className="px-3 py-2 text-right">{sum(inboundData,'inbound_fax')}</td>
+                        <td className="px-3 py-2 text-right">{sum(inboundData,'inbound_ad')}</td>
+                        <td className="px-3 py-2 text-right">{totalIn}</td>
+                        <td className="px-3 py-2 text-right">{totalT}</td>
+                        <td className="px-3 py-2 text-right">{quote} %</td>
+                      </tr>
+                    );
+                  })()}
                 </tfoot>
               </table>
             )}

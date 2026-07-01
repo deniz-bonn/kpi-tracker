@@ -5,7 +5,7 @@ const { requireAuth } = require('../middleware/auth');
 
 router.use(requireAuth);
 
-const FIELDS = ['company_id','datum','monat','inbound_mail','inbound_fax','inbound_ad','kommentar'];
+const FIELDS = ['company_id','datum','monat','inbound_mail','inbound_fax','inbound_ad','terminiert_mail','terminiert_fax','terminiert_ad','kommentar'];
 
 router.get('/', wrap(async (req, res) => {
   const { company_id, monat, datum } = req.query;
