@@ -90,31 +90,8 @@ async function syncAeGesamtNK(deal, prev) {
         [newBonn, newBonnAnz, newBs, newBsAnz, newAt, newAtAnz, newCh, newChAnz, newNk, newGesamt, monat]
       );
     }
-  } else if (aeDelta > 0) {
-    const ae = aeDelta;
-    const anz = Math.max(0, anzDelta);
-    const bonnV = col === 'nk_bonn' ? [ae, anz] : [0, 0];
-    const bsV   = col === 'nk_bs'   ? [ae, anz] : [0, 0];
-    const atV   = col === 'nk_at'   ? [ae, anz] : [0, 0];
-    const chV   = col === 'nk_ch'   ? [ae, anz] : [0, 0];
-
-    if (d === 'postgres') {
-      await db.run(
-        `INSERT INTO ae_gesamt_monthly
-          (monat, nk_bonn_ae, nk_bonn_anz, nk_bs_ae, nk_bs_anz,
-           nk_at_ae, nk_at_anz, nk_ch_ae, nk_ch_anz, nk_gesamt, bk_gesamt, vl_gesamt, gesamt)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,0,0,$10)`,
-        [monat, ...bonnV, ...bsV, ...atV, ...chV, ae]
-      );
-    } else {
-      await db.run(
-        `INSERT OR IGNORE INTO ae_gesamt_monthly
-          (monat, nk_bonn_ae, nk_bonn_anz, nk_bs_ae, nk_bs_anz,
-           nk_at_ae, nk_at_anz, nk_ch_ae, nk_ch_anz, nk_gesamt, bk_gesamt, vl_gesamt, gesamt)
-        VALUES (?,?,?,?,?,?,?,?,?,?,0,0,?)`,
-        [monat, ...bonnV, ...bsV, ...atV, ...chV, ae]
-      );
-    }
+  // Kein INSERT für neue Monate — Live-Daten aus deals_nk werden direkt im Dashboard angezeigt
+  // wenn kein ae_gesamt_monthly-Row existiert (useAG=false). INSERT würde zu Teilwerten führen.
   }
 }
 
