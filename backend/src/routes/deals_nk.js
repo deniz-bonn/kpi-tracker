@@ -165,9 +165,9 @@ router.get('/:id', wrap(async (req, res) => {
 }));
 
 router.post('/', wrap(async (req, res) => {
-  // Auto-assign closer_id for non-admin users
+  // Auto-assign closer_id for non-admin users (nk_vertrieb and bk_vertrieb)
   const body = { ...req.body };
-  if (['nk_vertrieb'].includes(req.user.role) && req.user.employee_id) {
+  if (['nk_vertrieb', 'bk_vertrieb'].includes(req.user.role) && req.user.employee_id) {
     body.closer_id = req.user.employee_id;
   }
 
