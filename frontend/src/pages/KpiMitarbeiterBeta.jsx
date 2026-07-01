@@ -19,7 +19,7 @@ const ZERO_FORM = {
   terminiert_cold_calls: '', terminiert_inbound: '',
   settings_geplant: '', settings_stattgefunden: '',
   setting_abgesagt: '', setting_verschoben: '', nicht_erreicht: '',
-  settings_direkt: '', beratung_vereinbart_direkt: '',
+  settings_direkt: '', beratung_vereinbart_direkt: '', unqualifiziert_direkt: '', follow_up_direkt: '',
   unqualifiziert: '', follow_up: '', beratung_vereinbart: '',
   beratungen_geplant: '', beratungen_stattgefunden: '',
   beratungen_verschoben: '', beratungen_no_show: '',
@@ -106,6 +106,8 @@ function ActivityModal({ employee, datum, existing, companyId, onSave, onClose, 
                   <p className="text-[10px] text-indigo-500 font-medium mb-1.5">Direkte Settings:</p>
                   {inp('settings_direkt',            'Direkte Settings')}
                   {inp('beratung_vereinbart_direkt',  'Beratungsgespr. vereinbart (direkt)')}
+                  {inp('unqualifiziert_direkt',       'Unqualifiziert (direkt)')}
+                  {inp('follow_up_direkt',            'Follow-Up (direkt)')}
                 </div>
                 <div className="border-t border-indigo-100 pt-2 mt-1">
                   <p className="text-[10px] text-indigo-500 font-medium mb-1.5">Nachbearbeitung:</p>

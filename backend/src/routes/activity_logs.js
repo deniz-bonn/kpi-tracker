@@ -11,7 +11,7 @@ const FIELDS = [
   'terminiert_cold_calls','terminiert_inbound',
   'settings_geplant','settings_stattgefunden',
   'setting_abgesagt','setting_verschoben','nicht_erreicht',
-  'settings_direkt','beratung_vereinbart_direkt',
+  'settings_direkt','beratung_vereinbart_direkt','unqualifiziert_direkt','follow_up_direkt',
   'unqualifiziert','follow_up','beratung_vereinbart',
   'beratungen_geplant','beratungen_stattgefunden',
   'beratungen_verschoben','beratungen_no_show',
