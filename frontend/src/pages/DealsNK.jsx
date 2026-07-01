@@ -70,12 +70,10 @@ export default function DealsNK() {
     { name: 'kunde',          label: 'Kunde',                                     required: true },
     { name: 'kundennummer',   label: 'HubSpot ID' },
     { name: 'dienstleistung', label: 'Dienstleistung',            type: 'select', options: DIENSTLEISTUNGEN_NK, required: f => f.status === 'Gewonnen' },
-    // Employee fields only visible to admin/backoffice
-    ...(canSeeAll ? [
-      { name: 'closer_id', label: 'Closer', type: 'select', options: closerOptions },
-      { name: 'opener_id', label: 'Opener', type: 'select', options: openerOptions },
-      { name: 'setter_id', label: 'Setter', type: 'select', options: setterOptions },
-    ] : []),
+    // Closer nur für Admin/Backoffice (nk_vertrieb bekommt closer_id auto-gesetzt)
+    ...(canSeeAll ? [{ name: 'closer_id', label: 'Closer', type: 'select', options: closerOptions }] : []),
+    { name: 'opener_id', label: 'Opener', type: 'select', options: openerOptions },
+    { name: 'setter_id', label: 'Setter', type: 'select', options: setterOptions },
     { name: 'quelle',         label: 'Quelle',                   type: 'select', options: QUELLEN },
     { name: 'angebotswert',   label: 'Angebotswert (€)',          type: 'number', required: true },
     { name: 'ae_wert',        label: 'AE-Wert (€)',               type: 'number', required: f => f.status === 'Gewonnen' },
