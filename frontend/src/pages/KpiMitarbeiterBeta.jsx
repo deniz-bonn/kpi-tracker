@@ -97,6 +97,12 @@ function ActivityModal({ employee, datum, existing, companyId, onSave, onClose, 
                 {inp('settings_geplant',       'Settings geplant')}
                 {inp('settings_stattgefunden', 'Settings stattgefunden')}
                 <div className="border-t border-indigo-100 pt-2 mt-1">
+                  <p className="text-[10px] text-indigo-500 font-medium mb-1.5">Ergebnis (geplante Settings):</p>
+                  {inp('unqualifiziert',      'Unqualifiziert')}
+                  {inp('follow_up',           'Follow-Up')}
+                  {inp('beratung_vereinbart', 'Beratungsgespr. vereinbart')}
+                </div>
+                <div className="border-t border-indigo-100 pt-2 mt-1">
                   <p className="text-[10px] text-indigo-500 font-medium mb-1.5">Nicht stattgefunden:</p>
                   {inp('setting_abgesagt',   'Setting abgesagt')}
                   {inp('setting_verschoben', 'Setting verschoben')}
@@ -108,12 +114,6 @@ function ActivityModal({ employee, datum, existing, companyId, onSave, onClose, 
                   {inp('beratung_vereinbart_direkt',  'Beratungsgespr. vereinbart (direkt)')}
                   {inp('unqualifiziert_direkt',       'Unqualifiziert (direkt)')}
                   {inp('follow_up_direkt',            'Follow-Up (direkt)')}
-                </div>
-                <div className="border-t border-indigo-100 pt-2 mt-1">
-                  <p className="text-[10px] text-indigo-500 font-medium mb-1.5">Nachbearbeitung:</p>
-                  {inp('unqualifiziert',      'Unqualifiziert')}
-                  {inp('follow_up',           'Follow-Up')}
-                  {inp('beratung_vereinbart', 'Beratungsgespr. vereinbart (geplante Settings)')}
                 </div>
               </div>
             </section>
