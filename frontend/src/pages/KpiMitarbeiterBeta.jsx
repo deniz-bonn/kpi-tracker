@@ -469,13 +469,6 @@ export default function KpiMitarbeiterBeta() {
     return Object.values(map).sort((a, b) => a.name?.localeCompare(b.name));
   }, [activeLogs]);
 
-  // Closing-Deals: gefiltert nach closer_standort — FIX für C2C-KPI
-  const closingDeals = useMemo(() => {
-    const won = monthDeals.filter(d => d.status === 'Gewonnen');
-    if (!standortFilter) return won;
-    return won.filter(d => d.closer_standort === standortFilter);
-  }, [monthDeals, standortFilter]);
-
   // Inbound Wochenübersicht
   const inboundWeeks = useMemo(() => {
     const weeks = {};
@@ -509,9 +502,6 @@ export default function KpiMitarbeiterBeta() {
             return logs.filter(l => empSet.has(l.employee_id));
           })()
         : logs;
-      const wonDeals = standortFilter
-        ? deals.filter(d => d.status === 'Gewonnen' && d.closer_standort === standortFilter)
-        : deals.filter(d => d.status === 'Gewonnen');
       return {
         monat: m, loading,
         entscheider:  sum(filteredLogs, 'entscheider_erreicht'),
@@ -520,7 +510,6 @@ export default function KpiMitarbeiterBeta() {
         setStattg:    sum(filteredLogs, 'settings_stattgefunden'),
         berGeplant:   sum(filteredLogs, 'beratungen_geplant'),
         berStattg:    sum(filteredLogs, 'beratungen_stattgefunden'),
-        closes:       wonDeals.length,
       };
     });
   }, [trendMonths, trendLogResults, trendDealResults, standortFilter, employees]);
@@ -530,8 +519,6 @@ export default function KpiMitarbeiterBeta() {
   const fTerminiert  = sum(activeLogs, 'entscheider_terminiert');
   const fSettings    = sum(activeLogs, 'settings_stattgefunden');
   const fBeratungen  = sum(activeLogs, 'beratungen_stattgefunden');
-  const fCloses      = zeitbasis === 'monat' ? closingDeals.length : 0;
-
   const activeLabel  = zeitbasis === 'tag'
     ? new Date(datum + 'T12:00:00').toLocaleDateString('de-DE', { day:'2-digit', month:'short', year:'numeric' })
     : fmtMonth(monat);
@@ -760,24 +747,16 @@ export default function KpiMitarbeiterBeta() {
                     { label: 'Entscheider', value: fEntscheider, sub: 'erreicht',  bg: 'bg-blue-600',   conv: pct(fTerminiert, fEntscheider) },
                     { label: 'Terminiert',  value: fTerminiert,  sub: 'termine',   bg: 'bg-teal-600',   conv: pct(fSettings,   fTerminiert) },
                     { label: 'Settings',    value: fSettings,    sub: 'stattgef.', bg: 'bg-violet-600', conv: pct(fBeratungen, fSettings) },
-                    { label: 'Beratungen',  value: fBeratungen,  sub: 'stattgef.', bg: 'bg-green-600',  conv: zeitbasis === 'monat' ? pct(fCloses, fBeratungen) : undefined },
-                    ...(zeitbasis === 'monat' ? [{ label: 'Closes', value: fCloses, sub: 'gewonnen', bg: 'bg-green-800' }] : []),
+                    { label: 'Beratungen',  value: fBeratungen,  sub: 'stattgef.', bg: 'bg-green-600' },
                   ]} />
-                  {zeitbasis === 'tag' && (
-                    <p className="text-[11px] text-gray-400 text-center mt-2">Close-Rate nur auf Monatsbasis verfügbar</p>
-                  )}
                 </div>
               </SectionBox>
 
               {/* Metriken-Übersicht */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <MetricCard color="blue"   label="Entscheider erreicht"   value={fEntscheider} sub={`${fTerminiert} terminiert`} />
                 <MetricCard color="violet" label="Settings stattgef."     value={fSettings}    sub={pct(fSettings, sum(activeLogs,'settings_geplant')) + ' Show-Rate'} />
                 <MetricCard color="green"  label="Beratungen stattgef."   value={fBeratungen}  sub={pct(fBeratungen, sum(activeLogs,'beratungen_geplant')) + ' Show-Rate'} />
-                {zeitbasis === 'monat'
-                  ? <MetricCard color="slate" label="Closing-to-Close"      value={pct(fCloses, fBeratungen)} sub={`${fCloses} Deals gewonnen`} />
-                  : <MetricCard color="slate" label="Closing-to-Close"      value="—" sub="Nur Monatsbasis" />
-                }
               </div>
 
               {/* Terminierungsquoten */}
@@ -804,18 +783,13 @@ export default function KpiMitarbeiterBeta() {
                         <th className="px-3 py-2 text-right">Show-R.Set.</th>
                         <th className="px-3 py-2 text-right">Ber.stattg.</th>
                         <th className="px-3 py-2 text-right">Show-R.Ber.</th>
-                        {zeitbasis === 'monat' && <th className="px-3 py-2 text-right">Closes</th>}
-                        {zeitbasis === 'monat' && <th className="px-3 py-2 text-right">C2C %</th>}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {perEmployee.length === 0
-                        ? <tr><td colSpan={11} className="px-3 py-5 text-center text-gray-400">Keine Daten für diesen Zeitraum</td></tr>
+                        ? <tr><td colSpan={9} className="px-3 py-5 text-center text-gray-400">Keine Daten für diesen Zeitraum</td></tr>
                         : perEmployee.map((ep, i) => {
                           const ls = ep.logs;
-                          const empCloses = zeitbasis === 'monat'
-                            ? closingDeals.filter(d => d.closer_name === ep.name).length
-                            : 0;
                           return (
                             <tr key={ep.name} className={`hover:bg-gray-50 ${i%2===0?'bg-white':'bg-gray-50/50'}`}>
                               <td className="px-3 py-2.5 font-medium text-gray-900 whitespace-nowrap">{ep.name}</td>
@@ -827,8 +801,6 @@ export default function KpiMitarbeiterBeta() {
                               <td className="px-3 py-2.5 text-right text-violet-700 font-medium">{IS_OPENER(ep.rolle) ? pct(sum(ls,'settings_stattgefunden'),sum(ls,'settings_geplant')) : '—'}</td>
                               <td className="px-3 py-2.5 text-right font-medium text-gray-900">{IS_CLOSER(ep.rolle) ? sum(ls,'beratungen_stattgefunden') : '—'}</td>
                               <td className="px-3 py-2.5 text-right text-green-700 font-medium">{IS_CLOSER(ep.rolle) ? pct(sum(ls,'beratungen_stattgefunden'),sum(ls,'beratungen_geplant')) : '—'}</td>
-                              {zeitbasis === 'monat' && <td className="px-3 py-2.5 text-right font-bold text-green-800">{IS_CLOSER(ep.rolle) ? empCloses : '—'}</td>}
-                              {zeitbasis === 'monat' && <td className="px-3 py-2.5 text-right font-bold text-green-700">{IS_CLOSER(ep.rolle) ? pct(empCloses,sum(ls,'beratungen_stattgefunden')) : '—'}</td>}
                             </tr>
                           );
                         })
@@ -845,8 +817,6 @@ export default function KpiMitarbeiterBeta() {
                           <td className="px-3 py-2 text-right">{pct(sum(activeLogs,'settings_stattgefunden'),sum(activeLogs,'settings_geplant'))}</td>
                           <td className="px-3 py-2 text-right">{sum(activeLogs,'beratungen_stattgefunden')}</td>
                           <td className="px-3 py-2 text-right">{pct(sum(activeLogs,'beratungen_stattgefunden'),sum(activeLogs,'beratungen_geplant'))}</td>
-                          {zeitbasis === 'monat' && <td className="px-3 py-2 text-right">{fCloses}</td>}
-                          {zeitbasis === 'monat' && <td className="px-3 py-2 text-right">{pct(fCloses,fBeratungen)}</td>}
                         </tr>
                       </tfoot>
                     )}
@@ -983,14 +953,10 @@ export default function KpiMitarbeiterBeta() {
           {/* ── Closing ── */}
           {auswertTab === 'closing' && (
             <div className="space-y-3">
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <KpiCard color="green"  label="Beratungen geplant"       value={sum(activeLogs,'beratungen_geplant')} />
                 <KpiCard color="green"  label="Beratungen stattgefunden" value={sum(activeLogs,'beratungen_stattgefunden')} />
                 <KpiCard color="green"  label="Show-Rate Beratungen"     value={pct(sum(activeLogs,'beratungen_stattgefunden'),sum(activeLogs,'beratungen_geplant'))} desc={`${sum(activeLogs,'beratungen_stattgefunden')} / ${sum(activeLogs,'beratungen_geplant')}`} />
-                {zeitbasis === 'monat'
-                  ? <KpiCard color="green" label="Closing-to-Close" value={pct(fCloses,fBeratungen)} desc={`${fCloses} Deals (aus Closing-Call-Monat${standortFilter ? ', '+standortFilter : ''})`} />
-                  : <KpiCard color="teal"  label="Closing-to-Close" value="—"                       desc="Nicht auf Tagesbasis verfügbar" />
-                }
               </div>
 
               <div className="grid grid-cols-3 gap-3">
@@ -998,12 +964,6 @@ export default function KpiMitarbeiterBeta() {
                 <KpiCard color="amber" label="Verschoben"       value={sum(activeLogs,'beratungen_verschoben')}    desc={pct(sum(activeLogs,'beratungen_verschoben'),sum(activeLogs,'beratungen_geplant'))+' von geplanten'} />
                 <KpiCard color="indigo" label="Follow-Up / CC2" value={sum(activeLogs,'beratungen_follow_up_cc2')} desc={pct(sum(activeLogs,'beratungen_follow_up_cc2'),sum(activeLogs,'beratungen_stattgefunden'))+' der stattgef. Beratungen'} />
               </div>
-
-              {zeitbasis === 'monat' && standortFilter && (
-                <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 text-xs text-blue-700">
-                  <strong>Closing-to-Close-Methodik:</strong> Gezählt werden Deals, deren Closing-Call in {fmtMonth(monat)} stattfand (Angebotsdatum = {monat}) und die einem Closer aus <strong>{standortFilter}</strong> zugeordnet sind — unabhängig vom Zeitpunkt des Vertragsabschlusses.
-                </div>
-              )}
 
               <SectionBox
                 header={<span className="text-xs font-bold text-white uppercase tracking-wide">Closing — Pro Mitarbeiter</span>}
@@ -1018,8 +978,6 @@ export default function KpiMitarbeiterBeta() {
                         <th className="px-3 py-2 text-right">Show-Rate</th>
                         <th className="px-3 py-2 text-right">No-Show</th>
                         <th className="px-3 py-2 text-right">Follow-Up</th>
-                        {zeitbasis === 'monat' && <th className="px-3 py-2 text-right">Closes</th>}
-                        {zeitbasis === 'monat' && <th className="px-3 py-2 text-right">Close-Rate</th>}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-green-50">
@@ -1027,7 +985,6 @@ export default function KpiMitarbeiterBeta() {
                         const ls = ep.logs;
                         const gepl   = sum(ls,'beratungen_geplant');
                         const stattg = sum(ls,'beratungen_stattgefunden');
-                        const closes = zeitbasis === 'monat' ? closingDeals.filter(d => d.closer_name === ep.name).length : 0;
                         return (
                           <tr key={ep.name} className={i%2===0?'bg-white':'bg-green-50/30'}>
                             <td className="px-3 py-2.5 font-medium text-gray-900">{ep.name}</td>
@@ -1036,13 +993,11 @@ export default function KpiMitarbeiterBeta() {
                             <td className="px-3 py-2.5 text-right font-bold text-green-700">{pct(stattg,gepl)}</td>
                             <td className="px-3 py-2.5 text-right text-red-500">{sum(ls,'beratungen_no_show')}</td>
                             <td className="px-3 py-2.5 text-right text-amber-600">{sum(ls,'beratungen_follow_up_cc2')}</td>
-                            {zeitbasis === 'monat' && <td className="px-3 py-2.5 text-right font-bold text-green-800">{closes}</td>}
-                            {zeitbasis === 'monat' && <td className="px-3 py-2.5 text-right font-bold text-green-700">{pct(closes,stattg)}</td>}
                           </tr>
                         );
                       })}
                       {perEmployee.filter(ep => IS_CLOSER(ep.rolle)).length === 0 && (
-                        <tr><td colSpan={8} className="px-3 py-5 text-center text-gray-400">Keine Closer-Daten</td></tr>
+                        <tr><td colSpan={6} className="px-3 py-5 text-center text-gray-400">Keine Closer-Daten</td></tr>
                       )}
                     </tbody>
                   </table>
@@ -1111,8 +1066,6 @@ export default function KpiMitarbeiterBeta() {
                     { label: 'Show-Rate Beratungen',    fn: (ls) => pct(sum(ls,'beratungen_stattgefunden'),sum(ls,'beratungen_geplant')), show: ep => IS_CLOSER(ep.rolle), highlight: true },
                     { label: 'No-Shows',                fn: (ls) => sum(ls,'beratungen_no_show'), show: ep => IS_CLOSER(ep.rolle) },
                     { label: 'Follow-Up / CC2',         fn: (ls) => sum(ls,'beratungen_follow_up_cc2'), show: ep => IS_CLOSER(ep.rolle) },
-                    ...(zeitbasis === 'monat' ? [{ label: 'Closes (C2C)', fn: (_ls, ep) => closingDeals.filter(d => d.closer_name === ep.name).length, show: ep => IS_CLOSER(ep.rolle) }] : []),
-                    ...(zeitbasis === 'monat' ? [{ label: 'Closing-to-Close %', fn: (ls, ep) => pct(closingDeals.filter(d => d.closer_name === ep.name).length, sum(ls,'beratungen_stattgefunden')), show: ep => IS_CLOSER(ep.rolle), highlight: true }] : []),
                   ];
                   return (
                     <div className="rounded-xl border border-gray-200 overflow-hidden overflow-x-auto">
@@ -1190,8 +1143,6 @@ export default function KpiMitarbeiterBeta() {
                       { label: 'Show-Rate Settings',      key: null, fn: d => pct(d.setStattg, d.setGeplant), section: 'setting', pct: true },
                       { label: 'Beratungen stattgef.',    key: 'berStattg',   section: 'closing' },
                       { label: 'Show-Rate Beratungen',    key: null, fn: d => pct(d.berStattg, d.berGeplant), section: 'closing', pct: true },
-                      { label: 'Closes (C2C-Methode)',    key: 'closes',      section: 'closing' },
-                      { label: 'Closing-to-Close %',      key: null, fn: d => pct(d.closes, d.berStattg), section: 'closing', pct: true },
                     ].map((row, ri) => (
                       <tr key={ri} className={`${
                         row.section === 'opening' ? (ri%2===0?'bg-blue-50/30':'bg-blue-50/60')
@@ -1228,17 +1179,10 @@ export default function KpiMitarbeiterBeta() {
               {trendData.every(td => !td.loading) && trendData.length >= 2 && (() => {
                 const last = trendData[trendData.length-1];
                 const prev = trendData[trendData.length-2];
-                const c2cNow  = pctNum(last.closes, last.berStattg);
-                const c2cPrev = pctNum(prev.closes, prev.berStattg);
                 const tqNow   = pctNum(last.terminiert, last.entscheider);
                 const tqPrev  = pctNum(prev.terminiert, prev.entscheider);
                 return (
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className={`rounded-xl border p-4 ${c2cNow >= c2cPrev ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-                      <div className="text-[11px] font-semibold opacity-70 uppercase tracking-wide mb-1">C2C {fmtMonth(monat)}</div>
-                      <div className={`text-2xl font-black ${c2cNow >= c2cPrev ? 'text-green-700' : 'text-red-600'}`}>{pct(last.closes, last.berStattg)}</div>
-                      <div className="text-[11px] opacity-60 mt-0.5">vs. {fmtMonth(prev.monat)}: {pct(prev.closes, prev.berStattg)}</div>
-                    </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <div className={`rounded-xl border p-4 ${tqNow >= tqPrev ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
                       <div className="text-[11px] font-semibold opacity-70 uppercase tracking-wide mb-1">Term.quote {fmtMonth(monat)}</div>
                       <div className={`text-2xl font-black ${tqNow >= tqPrev ? 'text-green-700' : 'text-red-600'}`}>{pct(last.terminiert, last.entscheider)}</div>

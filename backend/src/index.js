@@ -64,6 +64,25 @@ cron.schedule('0 23 * * *', async () => {
   }
 });
 
+// Daily reports at 22:00
+cron.schedule('0 22 * * *', async () => {
+  try {
+    const { sendDailyDashboard, sendDailyKpi } = require('./utils/email');
+    const { buildDashboardEmailData, buildKpiEmailData } = require('./utils/dailyReport');
+    const today = new Date().toISOString().slice(0, 10);
+    const monat = today.slice(0, 7);
+    const [dashData, kpiData] = await Promise.all([
+      buildDashboardEmailData(monat, today),
+      buildKpiEmailData(today, monat),
+    ]);
+    await sendDailyDashboard(dashData);
+    await sendDailyKpi(kpiData);
+    console.log('[daily-report] Tagesberichte verschickt für', today);
+  } catch (err) {
+    console.error('[daily-report] Fehlgeschlagen:', err.message);
+  }
+});
+
 // ── Serve built React frontend (production / Railway) ────────────────────────
 const publicPath = path.join(__dirname, '../public');
 if (fs.existsSync(publicPath)) {
