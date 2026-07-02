@@ -66,7 +66,7 @@ cron.schedule('0 23 * * *', async () => {
 
 // POST /api/admin/test-daily-report — löst beide Tagesberichte sofort aus (nur Admin)
 app.post('/api/admin/test-daily-report', requireAuth, async (req, res) => {
-  if (!['admin', 'vertriebsleitung'].includes(req.user?.role)) {
+  if (!['superadmin', 'admin', 'vertriebsleitung'].includes(req.user?.role)) {
     return res.status(403).json({ error: 'Keine Berechtigung' });
   }
   try {
