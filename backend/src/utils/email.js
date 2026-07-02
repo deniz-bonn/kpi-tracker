@@ -1,12 +1,23 @@
 const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
+// ── Absender-Adresse ─────────────────────────────────────────────────────────
+const FROM = process.env.SMTP_FROM || 'KPI Tracker <noreply@kpi-tracker.app>';
+
+// ── Resend (bevorzugt auf Railway, läuft über HTTPS) ─────────────────────────
+function getResendClient() {
+  if (!process.env.RESEND_API_KEY) return null;
+  return new Resend(process.env.RESEND_API_KEY);
+}
+
+// ── SMTP (Fallback für lokale Entwicklung) ───────────────────────────────────
 function createTransporter() {
   if (!process.env.SMTP_HOST) return null;
   return nodemailer.createTransport({
     host:              process.env.SMTP_HOST,
     port:              Number(process.env.SMTP_PORT) || 587,
     secure:            process.env.SMTP_SECURE === 'true',
-    family:            4,   // IPv4 erzwingen (Railway unterstützt kein IPv6)
+    family:            4,
     connectionTimeout: 15000,
     greetingTimeout:   30000,
     socketTimeout:     180000,
@@ -17,23 +28,50 @@ function createTransporter() {
   });
 }
 
-const FROM = process.env.SMTP_FROM || 'KPI Tracker <noreply@kpi-tracker.app>';
+// ── Einheitliche Versand-Funktion ─────────────────────────────────────────────
+async function sendEmail({ to, subject, html }) {
+  const resend = getResendClient();
+  if (resend) {
+    const toArr = Array.isArray(to) ? to : to.split(',').map(s => s.trim());
+    const { error } = await resend.emails.send({ from: FROM, to: toArr, subject, html });
+    if (error) throw new Error(error.message || JSON.stringify(error));
+    return;
+  }
+  const transporter = createTransporter();
+  if (!transporter) {
+    console.log(`[EMAIL - kein SMTP/Resend konfiguriert]\nSubject: ${subject}\nTo: ${to}`);
+    return;
+  }
+  await transporter.sendMail({ from: FROM, to, subject, html });
+}
+
+// ── Verbindungstest ───────────────────────────────────────────────────────────
+async function testEmailConnection() {
+  const resend = getResendClient();
+  if (resend) {
+    // Resend hat keinen separaten verify()-Aufruf — API-Key-Format prüfen
+    if (!process.env.RESEND_API_KEY.startsWith('re_')) {
+      return { ok: false, method: 'resend', reason: 'RESEND_API_KEY hat ungültiges Format (muss mit "re_" beginnen)' };
+    }
+    return { ok: true, method: 'resend' };
+  }
+  const transporter = createTransporter();
+  if (!transporter) return { ok: false, method: 'none', reason: 'Weder RESEND_API_KEY noch SMTP_HOST konfiguriert' };
+  try {
+    await transporter.verify();
+    return { ok: true, method: 'smtp' };
+  } catch (err) {
+    return { ok: false, method: 'smtp', reason: err.message };
+  }
+}
 const APP_URL = process.env.APP_URL ||
   (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : 'http://localhost:5173');
 
 async function sendInvite(email, name, token) {
   const link = `${APP_URL}/set-password?token=${token}`;
-  const transporter = createTransporter();
-
-  if (!transporter) {
-    console.log(`\n[INVITE EMAIL - no SMTP configured]\nTo: ${email}\nLink: ${link}\n`);
-    return { link, email_sent: false };
-  }
-
   try {
-    await transporter.sendMail({
-      from: FROM,
-      to:   email,
+    await sendEmail({
+      to: email,
       subject: 'Einladung zum KPI Tracker',
       html: `
         <p>Hallo ${name},</p>
@@ -44,24 +82,16 @@ async function sendInvite(email, name, token) {
     });
     return { link, email_sent: true };
   } catch (err) {
-    console.error('[sendInvite SMTP error]', err.message);
+    console.error('[sendInvite error]', err.message);
     return { link, email_sent: false };
   }
 }
 
 async function sendPasswordReset(email, name, token) {
   const link = `${APP_URL}/set-password?token=${token}&mode=reset`;
-  const transporter = createTransporter();
-
-  if (!transporter) {
-    console.log(`\n[RESET EMAIL - no SMTP configured]\nTo: ${email}\nLink: ${link}\n`);
-    return { link, email_sent: false };
-  }
-
   try {
-    await transporter.sendMail({
-      from: FROM,
-      to:   email,
+    await sendEmail({
+      to: email,
       subject: 'Passwort zurücksetzen – KPI Tracker',
       html: `
         <p>Hallo ${name},</p>
@@ -72,7 +102,7 @@ async function sendPasswordReset(email, name, token) {
     });
     return { link, email_sent: true };
   } catch (err) {
-    console.error('[sendPasswordReset SMTP error]', err.message);
+    console.error('[sendPasswordReset error]', err.message);
     return { link, email_sent: false };
   }
 }
@@ -313,24 +343,17 @@ function buildKpiHtml(data) {
 }
 
 async function sendDailyDashboard(data) {
-  const transporter = createTransporter();
+  if (REPORT_RECIPIENTS.length === 0) {
+    console.log('[daily-report] Kein REPORT_EMAIL konfiguriert — Dashboard-E-Mail übersprungen');
+    return;
+  }
   const dateLabel = data.today
     ? new Date(data.today + 'T12:00:00').toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' })
     : data.today;
   const totalToday = (data.nkToday?.length || 0) + (data.bkToday?.length || 0) + (data.vlToday?.length || 0);
   const subject = `📊 Dashboard ${fmtMonth(data.monat)} – ${dateLabel} | ${totalToday} neue Abschlüsse`;
-  const html = buildDashboardHtml(data);
-
-  if (!transporter) {
-    console.log(`\n[DAILY DASHBOARD EMAIL - no SMTP]\nSubject: ${subject}\nRecipients: ${REPORT_RECIPIENTS.join(', ')}\n`);
-    return;
-  }
-  if (REPORT_RECIPIENTS.length === 0) {
-    console.log('[daily-report] Kein REPORT_EMAIL konfiguriert — E-Mail übersprungen');
-    return;
-  }
   try {
-    await transporter.sendMail({ from: FROM, to: REPORT_RECIPIENTS.join(','), subject, html });
+    await sendEmail({ to: REPORT_RECIPIENTS.join(','), subject, html: buildDashboardHtml(data) });
     console.log(`[daily-report] Dashboard-E-Mail verschickt an ${REPORT_RECIPIENTS.join(', ')}`);
   } catch (err) {
     console.error('[daily-report] Dashboard-E-Mail fehlgeschlagen:', err.message);
@@ -338,36 +361,18 @@ async function sendDailyDashboard(data) {
 }
 
 async function sendDailyKpi(data) {
-  const transporter = createTransporter();
+  if (REPORT_RECIPIENTS.length === 0) {
+    console.log('[daily-report] Kein REPORT_EMAIL konfiguriert — KPI-E-Mail übersprungen');
+    return;
+  }
   const dateLabel = new Date(data.datum + 'T12:00:00').toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' });
   const subject = `📈 KPI Mitarbeiter – ${dateLabel} | ${data.perEmployee.length} Einträge`;
-  const html = buildKpiHtml(data);
-
-  if (!transporter) {
-    console.log(`\n[DAILY KPI EMAIL - no SMTP]\nSubject: ${subject}\nRecipients: ${REPORT_RECIPIENTS.join(', ')}\n`);
-    return;
-  }
-  if (REPORT_RECIPIENTS.length === 0) {
-    console.log('[daily-report] Kein REPORT_EMAIL konfiguriert — E-Mail übersprungen');
-    return;
-  }
   try {
-    await transporter.sendMail({ from: FROM, to: REPORT_RECIPIENTS.join(','), subject, html });
+    await sendEmail({ to: REPORT_RECIPIENTS.join(','), subject, html: buildKpiHtml(data) });
     console.log(`[daily-report] KPI-E-Mail verschickt an ${REPORT_RECIPIENTS.join(', ')}`);
   } catch (err) {
     console.error('[daily-report] KPI-E-Mail fehlgeschlagen:', err.message);
   }
 }
 
-async function testSmtpConnection() {
-  const t = createTransporter();
-  if (!t) return { ok: false, reason: 'SMTP_HOST ist nicht konfiguriert' };
-  try {
-    await t.verify();
-    return { ok: true };
-  } catch (err) {
-    return { ok: false, reason: err.message };
-  }
-}
-
-module.exports = { sendInvite, sendPasswordReset, sendDailyDashboard, sendDailyKpi, testSmtpConnection };
+module.exports = { sendInvite, sendPasswordReset, sendDailyDashboard, sendDailyKpi, testEmailConnection };

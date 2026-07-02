@@ -73,7 +73,7 @@ app.post('/api/admin/test-daily-report', requireAuth, async (req, res) => {
   const step = (msg) => console.log('[test-daily-report]', msg);
 
   const run = async () => {
-    const { sendDailyDashboard, sendDailyKpi, testSmtpConnection } = require('./utils/email');
+    const { sendDailyDashboard, sendDailyKpi, testEmailConnection } = require('./utils/email');
     const { buildDashboardEmailData, buildKpiEmailData } = require('./utils/dailyReport');
 
     const today = new Date().toISOString().slice(0, 10);
@@ -81,13 +81,13 @@ app.post('/api/admin/test-daily-report', requireAuth, async (req, res) => {
     step(`START today=${today} monat=${monat}`);
 
     // 1. SMTP-Verbindung prüfen (sofortige Rückmeldung bei falschen Credentials)
-    step('Prüfe SMTP-Verbindung…');
-    const smtpCheck = await testSmtpConnection();
-    if (!smtpCheck.ok) {
-      step(`SMTP-Fehler: ${smtpCheck.reason}`);
-      return { ok: false, smtp: false, message: `SMTP-Verbindung fehlgeschlagen: ${smtpCheck.reason}` };
+    step('Prüfe E-Mail-Verbindung…');
+    const emailCheck = await testEmailConnection();
+    if (!emailCheck.ok) {
+      step(`E-Mail-Fehler (${emailCheck.method}): ${emailCheck.reason}`);
+      return { ok: false, message: `E-Mail-Verbindung fehlgeschlagen: ${emailCheck.reason}` };
     }
-    step('SMTP-Verbindung OK');
+    step(`E-Mail-Verbindung OK (${emailCheck.method})`);
 
     const recipients = process.env.REPORT_EMAIL || '(nicht konfiguriert)';
 
