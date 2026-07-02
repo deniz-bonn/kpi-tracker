@@ -6,6 +6,7 @@ function createTransporter() {
     host:              process.env.SMTP_HOST,
     port:              Number(process.env.SMTP_PORT) || 587,
     secure:            process.env.SMTP_SECURE === 'true',
+    family:            4,   // IPv4 erzwingen (Railway unterstützt kein IPv6)
     connectionTimeout: 15000,
     greetingTimeout:   30000,
     socketTimeout:     180000,
