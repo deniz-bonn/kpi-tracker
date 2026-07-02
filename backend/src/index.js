@@ -92,26 +92,23 @@ app.post('/api/admin/test-daily-report', requireAuth, async (req, res) => {
     const recipients = process.env.REPORT_EMAIL || '(nicht konfiguriert)';
     step(`SMTP_HOST=${smtpOk ? 'gesetzt' : 'nicht gesetzt'} REPORT_EMAIL=${recipients}`);
 
-    step('Sende Dashboard-E-Mail…');
-    await sendDailyDashboard(dashData);
-    step('Dashboard-E-Mail fertig');
-
-    step('Sende KPI-E-Mail…');
-    await sendDailyKpi(kpiData);
-    step('KPI-E-Mail fertig');
+    // Fire-and-forget: nicht awaiten, damit der Endpoint sofort antwortet.
+    // Der SMTP-Versand läuft im Hintergrund (sichtbar in Railway-Logs).
+    sendDailyDashboard(dashData)
+      .then(() => step('Dashboard-E-Mail fertig'))
+      .catch(e  => console.error('[test-daily-report] Dashboard-E-Mail FEHLER:', e.message));
+    sendDailyKpi(kpiData)
+      .then(() => step('KPI-E-Mail fertig'))
+      .catch(e  => console.error('[test-daily-report] KPI-E-Mail FEHLER:', e.message));
 
     const msg = smtpOk
-      ? `Beide E-Mails verschickt an ${recipients}.`
-      : `Kein SMTP konfiguriert – Berichte wurden in Railway-Logs ausgegeben (SMTP_HOST fehlt).`;
+      ? `E-Mails werden gesendet an ${recipients} – bitte in wenigen Minuten prüfen.`
+      : `Kein SMTP konfiguriert – Berichte in Railway-Logs ausgegeben (SMTP_HOST fehlt).`;
     return { ok: true, today, monat, smtp: smtpOk, message: msg };
   };
 
-  const timeout = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('Timeout (20 s) – bitte Railway-Logs prüfen, bei welchem Schritt es hängt')), 20000)
-  );
-
   try {
-    const result = await Promise.race([run(), timeout]);
+    const result = await run();
     res.json(result);
   } catch (err) {
     console.error('[test-daily-report] FEHLER:', err.message);
