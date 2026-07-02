@@ -1,19 +1,38 @@
 import { useState, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { activityLogsApi, inboundDailyApi, employeesApi, dealsApi } from '../utils/api';
 import { currentMonat } from '../utils/format';
 
 const TODAY = new Date().toISOString().slice(0, 10);
-
-const TRACKED_ROLES = ['Opener', 'Setter', 'Multi', 'Multi BS', 'NKV-Closer'];
+const TRACKED_ROLES = ['Opener', 'Setter', 'Multi', 'Multi BS', 'NKV-Closer', 'Closer-KAM'];
 const IS_OPENER = r => ['Opener', 'Setter', 'Multi', 'Multi BS'].includes(r);
-const IS_CLOSER = r => ['NKV-Closer', 'Multi', 'Multi BS'].includes(r);
-
-const pct = (num, den) => den > 0 ? `${(num / den * 100).toFixed(1)}%` : '—';
-const sum = (arr, key) => arr.reduce((s, r) => s + (Number(r[key]) || 0), 0);
+const IS_CLOSER = r => ['NKV-Closer', 'Multi', 'Multi BS', 'Closer-KAM'].includes(r);
+const pct    = (n, d) => d > 0 ? `${(n / d * 100).toFixed(1)}%` : '—';
+const pctNum = (n, d) => d > 0 ? +(n / d * 100).toFixed(1) : 0;
+const sum    = (arr, key) => arr.reduce((s, r) => s + (Number(r[key]) || 0), 0);
 const errMsg = mut => mut.error?.response?.data?.message || mut.error?.message || 'Fehler beim Speichern';
 
+const fmtMonth = m => {
+  if (!m) return '';
+  const [y, mo] = m.split('-');
+  return `${['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'][+mo-1]} ${y}`;
+};
+
+const convColor = v =>
+  v === '—' ? 'text-gray-400'
+  : parseFloat(v) >= 50 ? 'text-green-600 font-bold'
+  : parseFloat(v) >= 25 ? 'text-amber-500 font-bold'
+  : 'text-red-500 font-bold';
+
+const trendIcon = (cur, prev) => {
+  if (prev == null) return null;
+  if (cur > prev) return <span className="text-green-500 text-[10px] ml-0.5">↑</span>;
+  if (cur < prev) return <span className="text-red-400 text-[10px] ml-0.5">↓</span>;
+  return null;
+};
+
+// ── Form constants ─────────────────────────────────────────────────────────────
 const ZERO_FORM = {
   entscheider_erreicht: '', entscheider_terminiert: '',
   terminiert_cold_calls: '', terminiert_inbound: '',
@@ -26,31 +45,22 @@ const ZERO_FORM = {
   beratungen_follow_up_cc2: '', beratungen_kein_close: '',
   kommentar: '',
 };
-
 const INBOUND_ZERO = { inbound_mail: '', inbound_fax: '', inbound_ad: '', terminiert_mail: '', terminiert_fax: '', terminiert_ad: '', kommentar: '' };
-
-// ── Eingabe-Input helper ───────────────────────────────────────────────────────
 const INPUT_CLS = 'w-16 text-right text-sm text-gray-900 bg-white border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-400';
-
 const makeInp = (form, set) => (key, label) => (
   <div key={key} className="flex items-center justify-between gap-2">
     <label className="text-xs text-gray-600 flex-1">{label}</label>
-    <input
-      type="number" min="0"
-      value={form[key]}
-      onChange={e => set(key, e.target.value)}
-      className={INPUT_CLS}
-    />
+    <input type="number" min="0" value={form[key]}
+      onChange={e => set(key, e.target.value)} className={INPUT_CLS} />
   </div>
 );
 
-// ── Mitarbeiter-Dateneingabe Modal ─────────────────────────────────────────────
+// ── Activity Modal ─────────────────────────────────────────────────────────────
 function ActivityModal({ employee, datum, existing, companyId, onSave, onClose, isPending, isError, error }) {
   const rolle = employee.rolle;
   const [form, setForm] = useState(() => existing
     ? { ...ZERO_FORM, ...Object.fromEntries(Object.keys(ZERO_FORM).map(k => [k, existing[k] ?? ''])) }
-    : { ...ZERO_FORM }
-  );
+    : { ...ZERO_FORM });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const inp = makeInp(form, set);
 
@@ -72,13 +82,10 @@ function ActivityModal({ employee, datum, existing, companyId, onSave, onClose, 
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
         </div>
-
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
           {IS_OPENER(rolle) && (
             <section>
-              <h3 className="text-[11px] font-bold text-indigo-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <span>📞</span> Entscheider &amp; Terminierung
-              </h3>
+              <h3 className="text-[11px] font-bold text-indigo-700 uppercase tracking-wider mb-2">📞 Entscheider &amp; Terminierung</h3>
               <div className="space-y-2 bg-indigo-50 rounded-lg p-3">
                 {inp('entscheider_erreicht',   'Entscheider erreicht')}
                 {inp('entscheider_terminiert', 'Entscheider terminiert')}
@@ -87,12 +94,9 @@ function ActivityModal({ employee, datum, existing, companyId, onSave, onClose, 
               </div>
             </section>
           )}
-
           {IS_OPENER(rolle) && (
             <section>
-              <h3 className="text-[11px] font-bold text-indigo-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <span>📅</span> Settings
-              </h3>
+              <h3 className="text-[11px] font-bold text-indigo-700 uppercase tracking-wider mb-2">📅 Settings</h3>
               <div className="space-y-2 bg-indigo-50 rounded-lg p-3">
                 {inp('settings_geplant',       'Settings geplant')}
                 {inp('settings_stattgefunden', 'Settings stattgefunden')}
@@ -118,50 +122,29 @@ function ActivityModal({ employee, datum, existing, companyId, onSave, onClose, 
               </div>
             </section>
           )}
-
           {IS_CLOSER(rolle) && (
             <section>
-              <h3 className="text-[11px] font-bold text-violet-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <span>🤝</span> Beratungsgespräche
-              </h3>
+              <h3 className="text-[11px] font-bold text-violet-700 uppercase tracking-wider mb-2">🤝 Beratungsgespräche</h3>
               <div className="space-y-2 bg-violet-50 rounded-lg p-3">
-                {(() => {
-                  const inpV = makeInp(form, set);
-                  return <>
-                    {inpV('beratungen_geplant',       'Beratungsgespräche geplant')}
-                    {inpV('beratungen_stattgefunden', 'Beratungsgespräche stattgefunden')}
-                    {inpV('beratungen_verschoben',    'Beratungsgespräche verschoben')}
-                    {inpV('beratungen_no_show',       'No-Show')}
-                    {inpV('beratungen_follow_up_cc2',    'Follow-Up / Closing Call 2')}
-                    {inpV('beratungen_direkter_close',   'Direkter Close')}
-                    {inpV('beratungen_kein_close',       'Kein Close')}
-                  </>;
-                })()}
+                {inp('beratungen_geplant',         'Beratungsgespräche geplant')}
+                {inp('beratungen_stattgefunden',   'Beratungsgespräche stattgefunden')}
+                {inp('beratungen_verschoben',      'Beratungsgespräche verschoben')}
+                {inp('beratungen_no_show',         'No-Show')}
+                {inp('beratungen_follow_up_cc2',   'Follow-Up / Closing Call 2')}
+                {inp('beratungen_kein_close',      'Kein Close')}
               </div>
             </section>
           )}
-
           <section>
             <h3 className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Kommentar</h3>
-            <textarea
-              value={form.kommentar} onChange={e => set('kommentar', e.target.value)}
-              rows={2}
-              className="w-full text-sm text-gray-900 bg-white border border-gray-300 rounded px-3 py-2
-                focus:outline-none focus:ring-1 focus:ring-indigo-400 resize-none"
-              placeholder="Optional…"
-            />
+            <textarea value={form.kommentar} onChange={e => set('kommentar', e.target.value)}
+              rows={2} placeholder="Optional…"
+              className="w-full text-sm text-gray-900 bg-white border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-400 resize-none" />
           </section>
         </div>
-
         <div className="px-5 py-3 border-t border-gray-200 flex items-center gap-2">
-          {isError
-            ? <p className="text-xs text-red-600 flex-1 min-w-0 truncate">{error}</p>
-            : <div className="flex-1" />
-          }
-          <button onClick={onClose}
-            className="px-4 py-1.5 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50">
-            Abbrechen
-          </button>
+          {isError ? <p className="text-xs text-red-600 flex-1 min-w-0 truncate">{error}</p> : <div className="flex-1" />}
+          <button onClick={onClose} className="px-4 py-1.5 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50">Abbrechen</button>
           <button onClick={handleSave} disabled={isPending}
             className="px-4 py-1.5 text-sm bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white rounded font-medium">
             {isPending ? 'Speichert…' : 'Speichern'}
@@ -172,20 +155,17 @@ function ActivityModal({ employee, datum, existing, companyId, onSave, onClose, 
   );
 }
 
-// ── Globaler Inbound-Modal ─────────────────────────────────────────────────────
+// ── Inbound Modal ──────────────────────────────────────────────────────────────
 function InboundModal({ datum, existing, companyId, onSave, onClose, isPending, isError, error }) {
   const [form, setForm] = useState(() => existing
     ? { ...INBOUND_ZERO, ...Object.fromEntries(Object.keys(INBOUND_ZERO).map(k => [k, existing[k] ?? ''])) }
-    : { ...INBOUND_ZERO }
-  );
+    : { ...INBOUND_ZERO });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const inp = makeInp(form, set);
 
   const handleSave = () => {
     onSave({
-      datum,
-      monat:           datum.slice(0, 7),
-      company_id:      companyId,
+      datum, monat: datum.slice(0, 7), company_id: companyId,
       inbound_mail:    Number(form.inbound_mail)    || 0,
       inbound_fax:     Number(form.inbound_fax)     || 0,
       inbound_ad:      Number(form.inbound_ad)      || 0,
@@ -206,12 +186,9 @@ function InboundModal({ datum, existing, companyId, onSave, onClose, isPending, 
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
         </div>
-
         <div className="px-5 py-4 space-y-4">
           <section>
-            <h3 className="text-[11px] font-bold text-teal-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <span>📬</span> Inbound nach Quelle
-            </h3>
+            <h3 className="text-[11px] font-bold text-teal-700 uppercase tracking-wider mb-2">📬 Inbound nach Quelle</h3>
             <div className="bg-teal-50 rounded-lg p-3">
               <div className="flex items-center gap-2 mb-2 text-[10px] font-semibold text-teal-600 uppercase tracking-wide">
                 <span className="flex-1">Quelle</span>
@@ -222,21 +199,19 @@ function InboundModal({ datum, existing, companyId, onSave, onClose, isPending, 
                 <div key={key} className="flex items-center gap-2 mb-2">
                   <label className="text-xs text-gray-600 flex-1">{label}</label>
                   <input type="number" min="0" value={form[`inbound_${key}`]}
-                    onChange={e => set(`inbound_${key}`, e.target.value)}
-                    className={INPUT_CLS} />
+                    onChange={e => set(`inbound_${key}`, e.target.value)} className={INPUT_CLS} />
                   <input type="number" min="0" value={form[`terminiert_${key}`]}
-                    onChange={e => set(`terminiert_${key}`, e.target.value)}
-                    className={INPUT_CLS} />
+                    onChange={e => set(`terminiert_${key}`, e.target.value)} className={INPUT_CLS} />
                 </div>
               ))}
               {(() => {
-                const totalIn = (Number(form.inbound_mail)||0)+(Number(form.inbound_fax)||0)+(Number(form.inbound_ad)||0);
-                const totalT  = (Number(form.terminiert_mail)||0)+(Number(form.terminiert_fax)||0)+(Number(form.terminiert_ad)||0);
+                const i = (Number(form.inbound_mail)||0)+(Number(form.inbound_fax)||0)+(Number(form.inbound_ad)||0);
+                const t = (Number(form.terminiert_mail)||0)+(Number(form.terminiert_fax)||0)+(Number(form.terminiert_ad)||0);
                 return (
                   <div className="flex items-center gap-2 border-t border-teal-200 pt-2 mt-1">
                     <span className="text-xs font-bold text-teal-700 flex-1">Gesamt</span>
-                    <span className="w-16 text-right text-xs font-bold text-teal-700">{totalIn}</span>
-                    <span className="w-16 text-right text-xs font-bold text-teal-700">{totalT}</span>
+                    <span className="w-16 text-right text-xs font-bold text-teal-700">{i}</span>
+                    <span className="w-16 text-right text-xs font-bold text-teal-700">{t}</span>
                   </div>
                 );
               })()}
@@ -244,24 +219,14 @@ function InboundModal({ datum, existing, companyId, onSave, onClose, isPending, 
           </section>
           <section>
             <h3 className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Kommentar</h3>
-            <textarea
-              value={form.kommentar} onChange={e => set('kommentar', e.target.value)}
-              rows={2}
-              className="w-full text-sm text-gray-900 bg-white border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-400 resize-none"
-              placeholder="Optional…"
-            />
+            <textarea value={form.kommentar} onChange={e => set('kommentar', e.target.value)}
+              rows={2} placeholder="Optional…"
+              className="w-full text-sm text-gray-900 bg-white border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-400 resize-none" />
           </section>
         </div>
-
         <div className="px-5 py-3 border-t border-gray-200 flex items-center gap-2">
-          {isError
-            ? <p className="text-xs text-red-600 flex-1 min-w-0 truncate">{error}</p>
-            : <div className="flex-1" />
-          }
-          <button onClick={onClose}
-            className="px-4 py-1.5 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50">
-            Abbrechen
-          </button>
+          {isError ? <p className="text-xs text-red-600 flex-1 min-w-0 truncate">{error}</p> : <div className="flex-1" />}
+          <button onClick={onClose} className="px-4 py-1.5 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50">Abbrechen</button>
           <button onClick={handleSave} disabled={isPending}
             className="px-4 py-1.5 text-sm bg-teal-600 hover:bg-teal-500 disabled:opacity-60 text-white rounded font-medium">
             {isPending ? 'Speichert…' : 'Speichern'}
@@ -272,43 +237,109 @@ function InboundModal({ datum, existing, companyId, onSave, onClose, isPending, 
   );
 }
 
-// ── KPI-Karte ──────────────────────────────────────────────────────────────────
+// ── UI-Bausteine ───────────────────────────────────────────────────────────────
 function KpiCard({ label, value, desc, color = 'indigo' }) {
-  const colors = {
-    indigo: 'bg-indigo-50 border-indigo-200 text-indigo-700',
-    violet: 'bg-violet-50 border-violet-200 text-violet-700',
-    teal:   'bg-teal-50   border-teal-200   text-teal-700',
-    green:  'bg-green-50  border-green-200  text-green-700',
-  };
+  const cls = {
+    indigo: 'bg-indigo-50 border-indigo-200 text-indigo-800',
+    violet: 'bg-violet-50 border-violet-200 text-violet-800',
+    teal:   'bg-teal-50   border-teal-200   text-teal-800',
+    green:  'bg-green-50  border-green-200  text-green-800',
+    blue:   'bg-blue-50   border-blue-200   text-blue-800',
+    amber:  'bg-amber-50  border-amber-200  text-amber-800',
+    red:    'bg-red-50    border-red-200    text-red-800',
+  }[color] || 'bg-indigo-50 border-indigo-200 text-indigo-800';
   return (
-    <div className={`rounded-lg border p-3 ${colors[color] || colors.indigo}`}>
-      <div className="text-[11px] font-medium mb-1">{label}</div>
-      <div className="text-xl font-bold">{value}</div>
-      {desc && <div className="text-[10px] opacity-70 mt-0.5">{desc}</div>}
+    <div className={`rounded-xl border p-4 ${cls}`}>
+      <div className="text-[11px] font-semibold uppercase tracking-wide opacity-70 mb-1">{label}</div>
+      <div className="text-2xl font-black">{value}</div>
+      {desc && <div className="text-[11px] opacity-60 mt-0.5">{desc}</div>}
     </div>
   );
 }
 
-// ── Hauptseite ─────────────────────────────────────────────────────────────────
+function MetricCard({ label, value, sub, color = 'indigo' }) {
+  const bg = {
+    blue:   'bg-blue-600',   indigo: 'bg-indigo-600', violet: 'bg-violet-600',
+    green:  'bg-green-600',  teal:   'bg-teal-600',   amber:  'bg-amber-500',
+    slate:  'bg-slate-700',  red:    'bg-red-600',
+  }[color] || 'bg-indigo-600';
+  return (
+    <div className={`rounded-xl p-4 ${bg} text-white shadow-sm`}>
+      <div className="text-[11px] font-semibold opacity-75 uppercase tracking-wider mb-1">{label}</div>
+      <div className="text-3xl font-black">{value}</div>
+      {sub && <div className="text-[11px] opacity-70 mt-1">{sub}</div>}
+    </div>
+  );
+}
+
+function RoleBadge({ rolle }) {
+  const cls = IS_OPENER(rolle) && IS_CLOSER(rolle) ? 'bg-purple-100 text-purple-700'
+    : IS_CLOSER(rolle) ? 'bg-violet-100 text-violet-700'
+    : 'bg-blue-100 text-blue-700';
+  return <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cls}`}>{rolle}</span>;
+}
+
+function SectionBox({ header, headerColor = 'bg-indigo-700', children }) {
+  return (
+    <div className="rounded-xl border border-gray-200 overflow-hidden">
+      <div className={`px-3 py-2.5 ${headerColor} flex items-center justify-between`}>
+        {header}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Funnel({ steps }) {
+  return (
+    <div className="flex items-center justify-center flex-wrap gap-0 py-2 px-2">
+      {steps.map((step, i) => (
+        <div key={step.label} className="flex items-center">
+          <div className={`rounded-xl ${step.bg} px-4 py-3 text-white text-center shadow-sm`} style={{ minWidth: 88 }}>
+            <div className="text-[10px] font-semibold opacity-75 uppercase tracking-wide mb-1 whitespace-nowrap">{step.label}</div>
+            <div className="text-2xl font-black">{step.value}</div>
+            {step.sub && <div className="text-[10px] opacity-60 mt-0.5">{step.sub}</div>}
+          </div>
+          {i < steps.length - 1 && (
+            <div className="flex flex-col items-center px-1" style={{ minWidth: 48 }}>
+              <div className={`text-[12px] leading-tight ${convColor(step.conv || '—')}`}>{step.conv || '—'}</div>
+              <div className="text-gray-300 text-base leading-none mt-0.5">→</div>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Hauptkomponente ────────────────────────────────────────────────────────────
 export default function KpiMitarbeiterBeta() {
   const { company } = useOutletContext();
   const qc = useQueryClient();
 
+  // Tabs & view state
   const [tab,          setTab]          = useState('eingabe');
-  const [datum,        setDatum]        = useState(TODAY);
-  const [monat,        setMonat]        = useState(currentMonat());
-  const [modal,        setModal]        = useState(null);   // { employee, existing? }
-  const [inboundModal, setInboundModal] = useState(false);
-  const [empFilter,    setEmpFilter]    = useState('');
+  const [auswertTab,   setAuswertTab]   = useState('dashboard');
+  const [zeitbasis,    setZeitbasis]    = useState('monat');    // 'tag' | 'monat'
+  const [vergleichEmps,setVergleichEmps] = useState(new Set()); // Set<number>
+
+  // Datums / Monat
+  const [datum, setDatum] = useState(TODAY);
+  const [monat, setMonat] = useState(currentMonat());
+
+  // Modals & Filter
+  const [modal,          setModal]          = useState(null);
+  const [inboundModal,   setInboundModal]   = useState(false);
+  const [empFilter,      setEmpFilter]      = useState('');
   const [standortFilter, setStandortFilter] = useState('');
 
-  const shiftDatum = (delta) => {
+  const companyId = Number(company) || 1;
+
+  const shiftDatum = delta => {
     const [y, m, d] = datum.split('-').map(Number);
     const date = new Date(y, m - 1, d + delta);
     setDatum(`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`);
   };
-
-  const companyId = Number(company) || 1;
 
   // ── Queries ──────────────────────────────────────────────────────────────────
   const { data: employees = [] } = useQuery({
@@ -344,30 +375,52 @@ export default function KpiMitarbeiterBeta() {
     enabled:  tab === 'auswertung',
   });
 
+  // Trend: letzte 6 Monate
+  const trendMonths = useMemo(() => {
+    const months = [];
+    const [y, m] = monat.split('-').map(Number);
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(y, m - 1 - i, 1);
+      months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+    }
+    return months;
+  }, [monat]);
+
+  const trendLogResults = useQueries({
+    queries: trendMonths.map(tm => ({
+      queryKey: ['activity-logs-month', tm, company],
+      queryFn:  () => activityLogsApi.list({ monat: tm, ...(company && { company_id: company }) }),
+      enabled:  tab === 'auswertung' && auswertTab === 'trend',
+    })),
+  });
+
+  const trendDealResults = useQueries({
+    queries: trendMonths.map(tm => ({
+      queryKey: ['deals-nk-beta', tm, company],
+      queryFn:  () => dealsApi.nk.list({ monat: tm, ...(company && { company_id: company }) }),
+      enabled:  tab === 'auswertung' && auswertTab === 'trend',
+    })),
+  });
+
   // ── Mutations ─────────────────────────────────────────────────────────────────
   const saveMut = useMutation({
     mutationFn: activityLogsApi.upsert,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['activity-logs-day'] });
-      qc.invalidateQueries({ queryKey: ['activity-logs-month'] });
-      setModal(null);
-    },
+    onSuccess:  () => { qc.invalidateQueries({ queryKey: ['activity-logs-day'] }); qc.invalidateQueries({ queryKey: ['activity-logs-month'] }); setModal(null); },
   });
 
   const saveInboundMut = useMutation({
     mutationFn: inboundDailyApi.upsert,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['inbound-daily-day'] });
-      qc.invalidateQueries({ queryKey: ['inbound-daily-month'] });
-      setInboundModal(false);
-    },
+    onSuccess:  () => { qc.invalidateQueries({ queryKey: ['inbound-daily-day'] }); qc.invalidateQueries({ queryKey: ['inbound-daily-month'] }); setInboundModal(false); },
   });
 
   // ── Computed ──────────────────────────────────────────────────────────────────
+  const standorte = useMemo(() =>
+    [...new Set(employees.filter(e => TRACKED_ROLES.includes(e.rolle) && e.show_in_kpi !== 0 && e.standort).map(e => e.standort))].sort()
+  , [employees]);
+
   const tracked = useMemo(() =>
     employees
-      .filter(e => TRACKED_ROLES.includes(e.rolle))
-      .filter(e => e.show_in_kpi !== 0)
+      .filter(e => TRACKED_ROLES.includes(e.rolle) && e.show_in_kpi !== 0)
       .filter(e => !empFilter || String(e.id) === empFilter)
       .filter(e => !standortFilter || e.standort === standortFilter)
       .sort((a, b) => a.name.localeCompare(b.name))
@@ -381,30 +434,53 @@ export default function KpiMitarbeiterBeta() {
 
   const currentInbound = (inboundByDay.data || [])[0] || null;
 
-  const monthLogs   = logsByMonth.data  || [];
-  const monthDeals  = nkDeals.data      || [];
+  const monthLogs  = logsByMonth.data  || [];
+  const monthDeals = nkDeals.data      || [];
   const inboundData = inboundByMonth.data || [];
 
+  // Standort-gefilterte Monatslogs
   const auswertungLogs = useMemo(() => {
     if (!standortFilter) return monthLogs;
     const empSet = new Set(employees.filter(e => e.standort === standortFilter).map(e => e.id));
     return monthLogs.filter(l => empSet.has(l.employee_id));
   }, [monthLogs, employees, standortFilter]);
 
+  // Aktive Logs je nach Zeitbasis
+  const activeLogs = useMemo(() => {
+    if (zeitbasis === 'tag') {
+      let all = logsByDay.data || [];
+      if (standortFilter) {
+        const empSet = new Set(employees.filter(e => e.standort === standortFilter).map(e => e.id));
+        all = all.filter(l => empSet.has(l.employee_id));
+      }
+      return all;
+    }
+    return auswertungLogs;
+  }, [zeitbasis, logsByDay.data, auswertungLogs, standortFilter, employees]);
+
+  // Per-Employee-Aggregation
   const perEmployee = useMemo(() => {
     const map = {};
-    auswertungLogs.forEach(l => {
+    activeLogs.forEach(l => {
       if (!map[l.employee_id])
-        map[l.employee_id] = { name: l.employee_name, rolle: l.employee_rolle, logs: [] };
+        map[l.employee_id] = { id: l.employee_id, name: l.employee_name, rolle: l.employee_rolle, logs: [] };
       map[l.employee_id].logs.push(l);
     });
     return Object.values(map).sort((a, b) => a.name?.localeCompare(b.name));
-  }, [auswertungLogs]);
+  }, [activeLogs]);
 
+  // Closing-Deals: gefiltert nach closer_standort — FIX für C2C-KPI
+  const closingDeals = useMemo(() => {
+    const won = monthDeals.filter(d => d.status === 'Gewonnen');
+    if (!standortFilter) return won;
+    return won.filter(d => d.closer_standort === standortFilter);
+  }, [monthDeals, standortFilter]);
+
+  // Inbound Wochenübersicht
   const inboundWeeks = useMemo(() => {
     const weeks = {};
     inboundData.forEach(l => {
-      const d   = new Date(l.datum);
+      const d = new Date(l.datum);
       const key = `KW ${Math.ceil(d.getDate() / 7)}`;
       if (!weeks[key]) weeks[key] = { mail: 0, fax: 0, ad: 0, tmail: 0, tfax: 0, tad: 0 };
       weeks[key].mail  += Number(l.inbound_mail)    || 0;
@@ -415,27 +491,58 @@ export default function KpiMitarbeiterBeta() {
       weeks[key].tad   += Number(l.terminiert_ad)   || 0;
     });
     return Object.entries(weeks).map(([week, v]) => {
-      const total      = v.mail + v.fax + v.ad;
-      const terminiert = v.tmail + v.tfax + v.tad;
-      return { week, ...v, total, terminiert, quote: total > 0 ? Math.round((terminiert/total)*100) : 0 };
+      const total = v.mail + v.fax + v.ad;
+      const term  = v.tmail + v.tfax + v.tad;
+      return { week, ...v, total, terminiert: term, quote: total > 0 ? Math.round(term/total*100) : 0 };
     });
   }, [inboundData]);
 
-  const sel = "bg-white border border-gray-300 text-gray-700 text-xs rounded px-2 py-1.5";
+  // Trend-Daten
+  const trendData = useMemo(() => {
+    return trendMonths.map((m, i) => {
+      const logs  = trendLogResults[i]?.data  || [];
+      const deals = trendDealResults[i]?.data || [];
+      const loading = trendLogResults[i]?.isLoading || trendDealResults[i]?.isLoading;
+      const filteredLogs = standortFilter
+        ? (() => {
+            const empSet = new Set(employees.filter(e => e.standort === standortFilter).map(e => e.id));
+            return logs.filter(l => empSet.has(l.employee_id));
+          })()
+        : logs;
+      const wonDeals = standortFilter
+        ? deals.filter(d => d.status === 'Gewonnen' && d.closer_standort === standortFilter)
+        : deals.filter(d => d.status === 'Gewonnen');
+      return {
+        monat: m, loading,
+        entscheider:  sum(filteredLogs, 'entscheider_erreicht'),
+        terminiert:   sum(filteredLogs, 'entscheider_terminiert'),
+        setGeplant:   sum(filteredLogs, 'settings_geplant'),
+        setStattg:    sum(filteredLogs, 'settings_stattgefunden'),
+        berGeplant:   sum(filteredLogs, 'beratungen_geplant'),
+        berStattg:    sum(filteredLogs, 'beratungen_stattgefunden'),
+        closes:       wonDeals.length,
+      };
+    });
+  }, [trendMonths, trendLogResults, trendDealResults, standortFilter, employees]);
 
-  const standorte = useMemo(() =>
-    [...new Set(
-      employees
-        .filter(e => TRACKED_ROLES.includes(e.rolle) && e.show_in_kpi !== 0 && e.standort)
-        .map(e => e.standort)
-    )].sort()
-  , [employees]);
+  // Funnel-Daten (für Dashboard)
+  const fEntscheider = sum(activeLogs, 'entscheider_erreicht');
+  const fTerminiert  = sum(activeLogs, 'entscheider_terminiert');
+  const fSettings    = sum(activeLogs, 'settings_stattgefunden');
+  const fBeratungen  = sum(activeLogs, 'beratungen_stattgefunden');
+  const fCloses      = zeitbasis === 'monat' ? closingDeals.length : 0;
+
+  const activeLabel  = zeitbasis === 'tag'
+    ? new Date(datum + 'T12:00:00').toLocaleDateString('de-DE', { day:'2-digit', month:'short', year:'numeric' })
+    : fmtMonth(monat);
+
+  const sel = 'bg-white border border-gray-300 text-gray-700 text-xs rounded px-2 py-1.5';
 
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-4">
 
-      {/* Header */}
+      {/* ── Header ── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <div className="flex items-center gap-2">
@@ -445,18 +552,18 @@ export default function KpiMitarbeiterBeta() {
           <p className="text-xs text-gray-500 mt-0.5">Tägliches Sales-Tracking · Opener / Setter / Closer</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Tab Toggle */}
           <div className="flex rounded-lg border border-gray-300 overflow-hidden text-xs">
             <button onClick={() => setTab('eingabe')}
-              className={`px-3 py-1.5 font-medium transition-colors ${tab === 'eingabe'
-                ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
+              className={`px-3 py-1.5 font-medium transition-colors ${tab === 'eingabe' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
               Dateneingabe
             </button>
             <button onClick={() => setTab('auswertung')}
-              className={`px-3 py-1.5 font-medium transition-colors border-l border-gray-300 ${tab === 'auswertung'
-                ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
+              className={`px-3 py-1.5 font-medium transition-colors border-l border-gray-300 ${tab === 'auswertung' ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
               KPI-Auswertung
             </button>
           </div>
+          {/* Filter */}
           <select value={empFilter} onChange={e => setEmpFilter(e.target.value)} className={sel}>
             <option value="">Alle Mitarbeiter</option>
             {employees.filter(e => TRACKED_ROLES.includes(e.rolle) && e.show_in_kpi !== 0).map(e =>
@@ -467,6 +574,7 @@ export default function KpiMitarbeiterBeta() {
             <option value="">Alle Standorte</option>
             {standorte.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
+          {/* Datum/Monat */}
           {tab === 'eingabe'
             ? <div className="flex items-center gap-1">
                 <button type="button" onClick={() => shiftDatum(-1)}
@@ -477,7 +585,7 @@ export default function KpiMitarbeiterBeta() {
                   className="px-2 py-1.5 bg-white border border-gray-300 text-gray-500 rounded hover:bg-gray-50 text-sm leading-none">›</button>
                 {datum !== TODAY && (
                   <button type="button" onClick={() => setDatum(TODAY)}
-                    className="px-2 py-1 bg-indigo-50 border border-indigo-300 text-indigo-600 text-xs rounded hover:bg-indigo-100 font-medium whitespace-nowrap">
+                    className="px-2 py-1 bg-indigo-50 border border-indigo-300 text-indigo-600 text-xs rounded hover:bg-indigo-100 font-medium">
                     Heute
                   </button>
                 )}
@@ -488,14 +596,13 @@ export default function KpiMitarbeiterBeta() {
         </div>
       </div>
 
-      {/* ── TAB: DATENEINGABE ──────────────────────────────────────────────────── */}
+      {/* ── TAB: DATENEINGABE ────────────────────────────────────────────────────── */}
       {tab === 'eingabe' && (
         <div className="space-y-3">
-
           {/* Statusleiste */}
           <div className="flex items-center gap-4 px-4 py-2.5 bg-white rounded-lg border border-gray-200 text-xs text-gray-500">
             <span className="font-medium text-gray-700">
-              {new Date(datum).toLocaleDateString('de-DE', { weekday:'long', day:'2-digit', month:'long', year:'numeric' })}
+              {new Date(datum + 'T12:00:00').toLocaleDateString('de-DE', { weekday:'long', day:'2-digit', month:'long', year:'numeric' })}
             </span>
             <span>·</span>
             <span className="flex items-center gap-1">
@@ -504,38 +611,34 @@ export default function KpiMitarbeiterBeta() {
             </span>
           </div>
 
-          {/* Globaler Tages-Inbound */}
+          {/* Inbound */}
           <div className="rounded-lg border border-teal-200 bg-white overflow-hidden">
             <div className="px-3 py-2 bg-teal-700 flex items-center justify-between">
               <span className="text-xs font-bold text-white uppercase tracking-wide">📬 Tages-Inbound (global)</span>
-              <button
-                onClick={() => setInboundModal(true)}
+              <button onClick={() => setInboundModal(true)}
                 className="text-xs text-teal-200 hover:text-white font-medium transition-colors">
                 {currentInbound ? 'Bearbeiten' : '+ Eintragen'}
               </button>
             </div>
             <div className="px-4 py-3">
               {currentInbound ? (() => {
-                const totalIn = (currentInbound.inbound_mail||0)+(currentInbound.inbound_fax||0)+(currentInbound.inbound_ad||0);
-                const totalT  = (currentInbound.terminiert_mail||0)+(currentInbound.terminiert_fax||0)+(currentInbound.terminiert_ad||0);
-                const quote   = totalIn > 0 ? Math.round((totalT/totalIn)*100) : 0;
+                const ti = (currentInbound.inbound_mail||0)+(currentInbound.inbound_fax||0)+(currentInbound.inbound_ad||0);
+                const tt = (currentInbound.terminiert_mail||0)+(currentInbound.terminiert_fax||0)+(currentInbound.terminiert_ad||0);
                 return (
                   <div className="space-y-1 text-xs">
                     <div className="flex flex-wrap gap-x-6 gap-y-1">
                       <span className="text-gray-600">Mail: <b className="text-teal-700">{currentInbound.inbound_mail||0}</b></span>
                       <span className="text-gray-600">Fax: <b className="text-teal-700">{currentInbound.inbound_fax||0}</b></span>
                       <span className="text-gray-600">Ad: <b className="text-teal-700">{currentInbound.inbound_ad||0}</b></span>
-                      <span className="font-bold text-teal-800">Gesamt: {totalIn}</span>
+                      <span className="font-bold text-teal-800">Gesamt: {ti}</span>
                     </div>
                     <div className="flex flex-wrap gap-x-6 gap-y-1 text-teal-600">
-                      <span>Terminiert: <b>{totalT}</b></span>
-                      <span>Quote: <b>{quote} %</b></span>
+                      <span>Terminiert: <b>{tt}</b></span>
+                      <span>Quote: <b>{ti > 0 ? Math.round(tt/ti*100) : 0} %</b></span>
                     </div>
                   </div>
                 );
-              })() : (
-                <p className="text-xs text-gray-400">Noch kein Eintrag für diesen Tag.</p>
-              )}
+              })() : <p className="text-xs text-gray-400">Noch kein Eintrag für diesen Tag.</p>}
             </div>
           </div>
 
@@ -557,293 +660,676 @@ export default function KpiMitarbeiterBeta() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {tracked.length === 0 ? (
-                  <tr><td colSpan={10} className="text-center py-8 text-gray-400">Keine Mitarbeiter gefunden</td></tr>
-                ) : tracked.map((emp, i) => {
-                  const log      = dayMap[emp.id];
-                  const hasEntry = !!log;
-                  return (
-                    <tr key={emp.id} className={`hover:bg-indigo-50 transition-colors ${i%2===0?'bg-white':'bg-gray-50'}`}>
-                      <td className="px-3 py-2 font-medium text-gray-900">{emp.name}</td>
-                      <td className="px-3 py-2">
-                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                          IS_OPENER(emp.rolle) && IS_CLOSER(emp.rolle) ? 'bg-purple-100 text-purple-700'
-                          : IS_CLOSER(emp.rolle)                       ? 'bg-violet-100 text-violet-700'
-                          :                                               'bg-indigo-100 text-indigo-700'
-                        }`}>{emp.rolle}</span>
-                      </td>
-                      <td className="px-3 py-2 text-right text-gray-600">{hasEntry && IS_OPENER(emp.rolle) ? log.entscheider_erreicht   : '—'}</td>
-                      <td className="px-3 py-2 text-right text-gray-600">{hasEntry && IS_OPENER(emp.rolle) ? log.entscheider_terminiert : '—'}</td>
-                      <td className="px-3 py-2 text-right text-gray-600">{hasEntry && IS_OPENER(emp.rolle) ? log.settings_geplant        : '—'}</td>
-                      <td className="px-3 py-2 text-right font-medium text-gray-900">{hasEntry && IS_OPENER(emp.rolle) ? log.settings_stattgefunden : '—'}</td>
-                      <td className="px-3 py-2 text-right text-gray-600">{hasEntry && IS_CLOSER(emp.rolle) ? log.beratungen_geplant      : '—'}</td>
-                      <td className="px-3 py-2 text-right font-medium text-gray-900">{hasEntry && IS_CLOSER(emp.rolle) ? log.beratungen_stattgefunden : '—'}</td>
-                      <td className="px-3 py-2 text-center">
-                        {hasEntry
-                          ? <span className="inline-flex items-center gap-1 text-green-700 text-[10px] font-medium">
-                              <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span> Erfasst
-                            </span>
-                          : <span className="inline-flex items-center gap-1 text-amber-600 text-[10px] font-medium">
-                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span> Offen
-                            </span>
-                        }
-                      </td>
-                      <td className="px-3 py-2">
-                        <button
-                          onClick={() => setModal({ employee: emp, existing: log || null })}
-                          className="text-xs text-indigo-600 hover:text-indigo-800 font-medium whitespace-nowrap">
-                          {hasEntry ? 'Bearbeiten' : '+ Eintragen'}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {tracked.length === 0
+                  ? <tr><td colSpan={10} className="text-center py-8 text-gray-400">Keine Mitarbeiter gefunden</td></tr>
+                  : tracked.map((emp, i) => {
+                    const log = dayMap[emp.id];
+                    const hasEntry = !!log;
+                    return (
+                      <tr key={emp.id} className={`hover:bg-indigo-50 transition-colors ${i%2===0?'bg-white':'bg-gray-50'}`}>
+                        <td className="px-3 py-2 font-medium text-gray-900">{emp.name}</td>
+                        <td className="px-3 py-2"><RoleBadge rolle={emp.rolle} /></td>
+                        <td className="px-3 py-2 text-right text-gray-600">{hasEntry && IS_OPENER(emp.rolle) ? log.entscheider_erreicht   : '—'}</td>
+                        <td className="px-3 py-2 text-right text-gray-600">{hasEntry && IS_OPENER(emp.rolle) ? log.entscheider_terminiert : '—'}</td>
+                        <td className="px-3 py-2 text-right text-gray-600">{hasEntry && IS_OPENER(emp.rolle) ? log.settings_geplant        : '—'}</td>
+                        <td className="px-3 py-2 text-right font-medium text-gray-900">{hasEntry && IS_OPENER(emp.rolle) ? log.settings_stattgefunden : '—'}</td>
+                        <td className="px-3 py-2 text-right text-gray-600">{hasEntry && IS_CLOSER(emp.rolle) ? log.beratungen_geplant      : '—'}</td>
+                        <td className="px-3 py-2 text-right font-medium text-gray-900">{hasEntry && IS_CLOSER(emp.rolle) ? log.beratungen_stattgefunden : '—'}</td>
+                        <td className="px-3 py-2 text-center">
+                          {hasEntry
+                            ? <span className="inline-flex items-center gap-1 text-green-700 text-[10px] font-medium"><span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>Erfasst</span>
+                            : <span className="inline-flex items-center gap-1 text-amber-600 text-[10px] font-medium"><span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>Offen</span>
+                          }
+                        </td>
+                        <td className="px-3 py-2">
+                          <button onClick={() => setModal({ employee: emp, existing: log || null })}
+                            className="text-xs text-indigo-600 hover:text-indigo-800 font-medium whitespace-nowrap">
+                            {hasEntry ? 'Bearbeiten' : '+ Eintragen'}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                }
               </tbody>
             </table>
           </div>
         </div>
       )}
 
-      {/* ── TAB: AUSWERTUNG ───────────────────────────────────────────────────── */}
+      {/* ── TAB: AUSWERTUNG ──────────────────────────────────────────────────────── */}
       {tab === 'auswertung' && (
-        <div className="space-y-4">
+        <div className="space-y-3">
 
-          {/* KPI-Kategorien */}
-          {monthLogs.length === 0 ? (
-            <div className="rounded-lg border border-indigo-200 overflow-hidden">
-              <div className="px-3 py-2 bg-indigo-700">
-                <span className="text-xs font-bold text-white uppercase tracking-wide">KPI-Übersicht — {monat}</span>
-              </div>
-              <div className="px-4 py-6 text-sm text-gray-400 text-center bg-indigo-50">
-                Noch keine Activity-Logs für {monat} erfasst.
+          {/* Auswertung Controls */}
+          <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center flex-wrap gap-3">
+            {/* Zeitbasis */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-gray-500 font-medium">Zeitbasis:</span>
+              <div className="flex rounded-lg border border-gray-300 overflow-hidden text-xs">
+                {[['tag','Tagesbasis'],['monat','Monatsbasis']].map(([v, l]) => (
+                  <button key={v} onClick={() => setZeitbasis(v)}
+                    className={`px-3 py-1.5 font-medium transition-colors ${zeitbasis === v ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-50'} ${v === 'monat' ? 'border-l border-gray-300' : ''}`}>
+                    {l}
+                  </button>
+                ))}
               </div>
             </div>
-          ) : (
+            {/* Datum für Tagesbasis */}
+            {zeitbasis === 'tag' && (
+              <input type="date" value={datum} onChange={e => setDatum(e.target.value)}
+                className="bg-white border border-gray-300 text-gray-700 text-xs rounded px-2 py-1.5" />
+            )}
+            <div className="flex-1" />
+            <span className="text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1.5 rounded-lg">
+              {zeitbasis === 'trend' ? 'Letztes Halbjahr' : activeLabel}
+            </span>
+          </div>
+
+          {/* Sub-Navigation */}
+          <div className="flex overflow-x-auto gap-1 pb-1">
+            {[
+              { id: 'dashboard', label: 'Dashboard',  icon: '📊' },
+              { id: 'opening',   label: 'Opening',    icon: '📞' },
+              { id: 'setting',   label: 'Setting',    icon: '📅' },
+              { id: 'closing',   label: 'Closing',    icon: '🤝' },
+              { id: 'vergleich', label: 'Vergleich',  icon: '⚖️' },
+              { id: 'trend',     label: 'Trend / Verlauf', icon: '📈' },
+            ].map(t => (
+              <button key={t.id}
+                onClick={() => setAuswertTab(t.id)}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                  auswertTab === t.id
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'bg-white border border-gray-200 text-gray-600 hover:bg-indigo-50 hover:border-indigo-200'
+                }`}>
+                <span>{t.icon}</span> {t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* ── Dashboard ── */}
+          {auswertTab === 'dashboard' && (
             <div className="space-y-3">
-              {/* Opening */}
-              <div className="rounded-lg border border-indigo-200 overflow-hidden">
-                <div className="px-3 py-2 bg-indigo-700">
-                  <span className="text-xs font-bold text-white uppercase tracking-wide">Opening — Entscheider</span>
+              {/* Funnel */}
+              <SectionBox
+                header={<span className="text-xs font-bold text-white uppercase tracking-wide">Sales-Funnel — {activeLabel}</span>}
+                headerColor="bg-slate-800">
+                <div className="p-4 bg-gradient-to-br from-slate-50 to-gray-100">
+                  <Funnel steps={[
+                    { label: 'Entscheider', value: fEntscheider, sub: 'erreicht',  bg: 'bg-blue-600',   conv: pct(fTerminiert, fEntscheider) },
+                    { label: 'Terminiert',  value: fTerminiert,  sub: 'termine',   bg: 'bg-teal-600',   conv: pct(fSettings,   fTerminiert) },
+                    { label: 'Settings',    value: fSettings,    sub: 'stattgef.', bg: 'bg-violet-600', conv: pct(fBeratungen, fSettings) },
+                    { label: 'Beratungen',  value: fBeratungen,  sub: 'stattgef.', bg: 'bg-green-600',  conv: zeitbasis === 'monat' ? pct(fCloses, fBeratungen) : undefined },
+                    ...(zeitbasis === 'monat' ? [{ label: 'Closes', value: fCloses, sub: 'gewonnen', bg: 'bg-green-800' }] : []),
+                  ]} />
+                  {zeitbasis === 'tag' && (
+                    <p className="text-[11px] text-gray-400 text-center mt-2">Close-Rate nur auf Monatsbasis verfügbar</p>
+                  )}
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 bg-indigo-50">
-                  <KpiCard color="indigo" label="Entscheider erreicht"   value={sum(auswertungLogs,'entscheider_erreicht')} />
-                  <KpiCard color="indigo" label="Entscheider terminiert" value={sum(auswertungLogs,'entscheider_terminiert')} />
-                  <KpiCard color="indigo" label="Entscheider → Termin"
-                    value={pct(sum(auswertungLogs,'entscheider_terminiert'), sum(auswertungLogs,'entscheider_erreicht'))}
-                    desc={`${sum(auswertungLogs,'entscheider_terminiert')} von ${sum(auswertungLogs,'entscheider_erreicht')}`} />
-                </div>
+              </SectionBox>
+
+              {/* Metriken-Übersicht */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <MetricCard color="blue"   label="Entscheider erreicht"   value={fEntscheider} sub={`${fTerminiert} terminiert`} />
+                <MetricCard color="violet" label="Settings stattgef."     value={fSettings}    sub={pct(fSettings, sum(activeLogs,'settings_geplant')) + ' Show-Rate'} />
+                <MetricCard color="green"  label="Beratungen stattgef."   value={fBeratungen}  sub={pct(fBeratungen, sum(activeLogs,'beratungen_geplant')) + ' Show-Rate'} />
+                {zeitbasis === 'monat'
+                  ? <MetricCard color="slate" label="Closing-to-Close"      value={pct(fCloses, fBeratungen)} sub={`${fCloses} Deals gewonnen`} />
+                  : <MetricCard color="slate" label="Closing-to-Close"      value="—" sub="Nur Monatsbasis" />
+                }
               </div>
-              {/* Terminierungen */}
-              <div className="rounded-lg border border-teal-200 overflow-hidden">
-                <div className="px-3 py-2 bg-teal-700">
-                  <span className="text-xs font-bold text-white uppercase tracking-wide">Terminierungen</span>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 bg-teal-50">
-                  <KpiCard color="teal"   label="Terminiert gesamt"
-                    value={sum(auswertungLogs,'entscheider_terminiert')} />
-                  <KpiCard color="indigo" label="Anteil Cold Calls"
-                    value={pct(sum(auswertungLogs,'terminiert_cold_calls'), sum(auswertungLogs,'entscheider_terminiert'))}
-                    desc={`${sum(auswertungLogs,'terminiert_cold_calls')} CC-Termine`} />
-                  <KpiCard color="teal"   label="Anteil Inbound"
-                    value={pct(sum(auswertungLogs,'terminiert_inbound'), sum(auswertungLogs,'entscheider_terminiert'))}
-                    desc={`${sum(auswertungLogs,'terminiert_inbound')} Inbound-Termine`} />
-                </div>
+
+              {/* Terminierungsquoten */}
+              <div className="grid grid-cols-3 gap-3">
+                <KpiCard color="blue"   label="Terminierungsquote"         value={pct(fTerminiert, fEntscheider)}              desc={`${fTerminiert} / ${fEntscheider} Entscheider`} />
+                <KpiCard color="teal"   label="CC-Anteil an Terminen"      value={pct(sum(activeLogs,'terminiert_cold_calls'), fTerminiert)} desc={`${sum(activeLogs,'terminiert_cold_calls')} Cold-Call-Termine`} />
+                <KpiCard color="teal"   label="Inbound-Anteil an Terminen" value={pct(sum(activeLogs,'terminiert_inbound'), fTerminiert)}    desc={`${sum(activeLogs,'terminiert_inbound')} Inbound-Termine`} />
               </div>
-              {/* Setting */}
-              <div className="rounded-lg border border-violet-200 overflow-hidden">
-                <div className="px-3 py-2 bg-violet-700">
-                  <span className="text-xs font-bold text-white uppercase tracking-wide">Setting</span>
+
+              {/* Pro-Mitarbeiter Übersicht */}
+              <SectionBox
+                header={<><span className="text-xs font-bold text-white uppercase tracking-wide">Übersicht pro Mitarbeiter</span><span className="text-xs text-white/60">{activeLogs.length} Einträge</span></>}
+                headerColor="bg-[#2d2e30]">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 font-medium">
+                        <th className="px-3 py-2 text-left">Mitarbeiter</th>
+                        <th className="px-3 py-2 text-left">Rolle</th>
+                        <th className="px-3 py-2 text-right">Err.</th>
+                        <th className="px-3 py-2 text-right">Term.</th>
+                        <th className="px-3 py-2 text-right">E→T %</th>
+                        <th className="px-3 py-2 text-right">Set.stattg.</th>
+                        <th className="px-3 py-2 text-right">Show-R.Set.</th>
+                        <th className="px-3 py-2 text-right">Ber.stattg.</th>
+                        <th className="px-3 py-2 text-right">Show-R.Ber.</th>
+                        {zeitbasis === 'monat' && <th className="px-3 py-2 text-right">Closes</th>}
+                        {zeitbasis === 'monat' && <th className="px-3 py-2 text-right">C2C %</th>}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {perEmployee.length === 0
+                        ? <tr><td colSpan={11} className="px-3 py-5 text-center text-gray-400">Keine Daten für diesen Zeitraum</td></tr>
+                        : perEmployee.map((ep, i) => {
+                          const ls = ep.logs;
+                          const empCloses = zeitbasis === 'monat'
+                            ? closingDeals.filter(d => d.closer_name === ep.name).length
+                            : 0;
+                          return (
+                            <tr key={ep.name} className={`hover:bg-gray-50 ${i%2===0?'bg-white':'bg-gray-50/50'}`}>
+                              <td className="px-3 py-2.5 font-medium text-gray-900 whitespace-nowrap">{ep.name}</td>
+                              <td className="px-3 py-2.5"><RoleBadge rolle={ep.rolle} /></td>
+                              <td className="px-3 py-2.5 text-right text-gray-600">{IS_OPENER(ep.rolle) ? sum(ls,'entscheider_erreicht')   : '—'}</td>
+                              <td className="px-3 py-2.5 text-right text-gray-600">{IS_OPENER(ep.rolle) ? sum(ls,'entscheider_terminiert') : '—'}</td>
+                              <td className="px-3 py-2.5 text-right text-indigo-700 font-medium">{IS_OPENER(ep.rolle) ? pct(sum(ls,'entscheider_terminiert'),sum(ls,'entscheider_erreicht')) : '—'}</td>
+                              <td className="px-3 py-2.5 text-right font-medium text-gray-900">{IS_OPENER(ep.rolle) ? sum(ls,'settings_stattgefunden') : '—'}</td>
+                              <td className="px-3 py-2.5 text-right text-violet-700 font-medium">{IS_OPENER(ep.rolle) ? pct(sum(ls,'settings_stattgefunden'),sum(ls,'settings_geplant')) : '—'}</td>
+                              <td className="px-3 py-2.5 text-right font-medium text-gray-900">{IS_CLOSER(ep.rolle) ? sum(ls,'beratungen_stattgefunden') : '—'}</td>
+                              <td className="px-3 py-2.5 text-right text-green-700 font-medium">{IS_CLOSER(ep.rolle) ? pct(sum(ls,'beratungen_stattgefunden'),sum(ls,'beratungen_geplant')) : '—'}</td>
+                              {zeitbasis === 'monat' && <td className="px-3 py-2.5 text-right font-bold text-green-800">{IS_CLOSER(ep.rolle) ? empCloses : '—'}</td>}
+                              {zeitbasis === 'monat' && <td className="px-3 py-2.5 text-right font-bold text-green-700">{IS_CLOSER(ep.rolle) ? pct(empCloses,sum(ls,'beratungen_stattgefunden')) : '—'}</td>}
+                            </tr>
+                          );
+                        })
+                      }
+                    </tbody>
+                    {perEmployee.length > 0 && (
+                      <tfoot>
+                        <tr className="bg-[#2d2e30] text-white font-bold text-xs">
+                          <td className="px-3 py-2" colSpan={2}>Gesamt</td>
+                          <td className="px-3 py-2 text-right">{sum(activeLogs,'entscheider_erreicht')}</td>
+                          <td className="px-3 py-2 text-right">{sum(activeLogs,'entscheider_terminiert')}</td>
+                          <td className="px-3 py-2 text-right">{pct(sum(activeLogs,'entscheider_terminiert'),sum(activeLogs,'entscheider_erreicht'))}</td>
+                          <td className="px-3 py-2 text-right">{sum(activeLogs,'settings_stattgefunden')}</td>
+                          <td className="px-3 py-2 text-right">{pct(sum(activeLogs,'settings_stattgefunden'),sum(activeLogs,'settings_geplant'))}</td>
+                          <td className="px-3 py-2 text-right">{sum(activeLogs,'beratungen_stattgefunden')}</td>
+                          <td className="px-3 py-2 text-right">{pct(sum(activeLogs,'beratungen_stattgefunden'),sum(activeLogs,'beratungen_geplant'))}</td>
+                          {zeitbasis === 'monat' && <td className="px-3 py-2 text-right">{fCloses}</td>}
+                          {zeitbasis === 'monat' && <td className="px-3 py-2 text-right">{pct(fCloses,fBeratungen)}</td>}
+                        </tr>
+                      </tfoot>
+                    )}
+                  </table>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 bg-violet-50">
-                  <KpiCard color="violet" label="Settings geplant"       value={sum(auswertungLogs,'settings_geplant')} />
-                  <KpiCard color="violet" label="Settings stattgefunden" value={sum(auswertungLogs,'settings_stattgefunden')} />
-                  <KpiCard color="violet" label="Show-Rate Settings"
-                    value={pct(sum(auswertungLogs,'settings_stattgefunden'), sum(auswertungLogs,'settings_geplant'))}
-                    desc={`${sum(auswertungLogs,'settings_stattgefunden')} von ${sum(auswertungLogs,'settings_geplant')}`} />
-                  <KpiCard color="violet" label="Setting → Closing"
-                    value={pct(sum(auswertungLogs,'beratungen_geplant'), sum(auswertungLogs,'settings_stattgefunden'))}
-                    desc={`${sum(auswertungLogs,'beratungen_geplant')} Beratungen terminiert`} />
-                </div>
-              </div>
-              {/* Beratungsgespräche / Closing */}
-              <div className="rounded-lg border border-green-200 overflow-hidden">
-                <div className="px-3 py-2 bg-green-700">
-                  <span className="text-xs font-bold text-white uppercase tracking-wide">Beratungsgespräche / Closing</span>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 bg-green-50">
-                  <KpiCard color="violet" label="Beratungen geplant"       value={sum(auswertungLogs,'beratungen_geplant')} />
-                  <KpiCard color="violet" label="Beratungen stattgefunden" value={sum(auswertungLogs,'beratungen_stattgefunden')} />
-                  <KpiCard color="violet" label="Show-Rate Closing"
-                    value={pct(sum(auswertungLogs,'beratungen_stattgefunden'), sum(auswertungLogs,'beratungen_geplant'))}
-                    desc={`${sum(auswertungLogs,'beratungen_stattgefunden')} von ${sum(auswertungLogs,'beratungen_geplant')}`} />
-                  <KpiCard color="green"  label="Closing → Close"
-                    value={pct(monthDeals.filter(d => d.status==='Gewonnen').length, sum(auswertungLogs,'beratungen_stattgefunden'))}
-                    desc={`${monthDeals.filter(d => d.status==='Gewonnen').length} Deals gewonnen`} />
-                </div>
-              </div>
+              </SectionBox>
             </div>
           )}
 
-          {/* Pro-Mitarbeiter Tabelle */}
-          <div className="rounded-lg border border-gray-200 overflow-hidden">
-            <div className="px-3 py-2 bg-[#2d2e30] flex items-center justify-between">
-              <span className="text-xs font-bold text-white uppercase tracking-wide">Zahlen gesamt — {monat}</span>
-              <span className="text-xs text-gray-400">{auswertungLogs.length} Einträge</span>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 font-medium">
-                    <th className="px-3 py-2 text-left">Mitarbeiter</th>
-                    <th className="px-3 py-2 text-left">Rolle</th>
-                    <th className="px-3 py-2 text-right">Err.</th>
-                    <th className="px-3 py-2 text-right">Term.</th>
-                    <th className="px-3 py-2 text-right">Set. gepl.</th>
-                    <th className="px-3 py-2 text-right">Set. stattg.</th>
-                    <th className="px-3 py-2 text-right">Ber. gepl.</th>
-                    <th className="px-3 py-2 text-right">Ber. stattg.</th>
-                    <th className="px-3 py-2 text-right">Show-R. Set.</th>
-                    <th className="px-3 py-2 text-right">Set.→Close</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {perEmployee.length === 0 ? (
-                    <tr><td colSpan={10} className="px-3 py-4 text-center text-gray-400">Keine Daten</td></tr>
-                  ) : perEmployee.map((ep, i) => {
-                    const ls       = ep.logs;
-                    const empDeals = monthDeals.filter(d =>
-                      d.status === 'Gewonnen' &&
-                      (d.closer_name === ep.name || d.setter_name === ep.name)
-                    );
-                    return (
-                      <tr key={ep.name} className={`hover:bg-gray-50 ${i%2===0?'bg-white':'bg-gray-50'}`}>
-                        <td className="px-3 py-2 font-medium text-gray-900">{ep.name}</td>
-                        <td className="px-3 py-2 text-gray-500">{ep.rolle}</td>
-                        <td className="px-3 py-2 text-right text-gray-600">{sum(ls,'entscheider_erreicht')}</td>
-                        <td className="px-3 py-2 text-right text-gray-600">{sum(ls,'entscheider_terminiert')}</td>
-                        <td className="px-3 py-2 text-right text-gray-600">{sum(ls,'settings_geplant')}</td>
-                        <td className="px-3 py-2 text-right font-medium text-gray-900">{sum(ls,'settings_stattgefunden')}</td>
-                        <td className="px-3 py-2 text-right text-gray-600">{sum(ls,'beratungen_geplant')}</td>
-                        <td className="px-3 py-2 text-right font-medium text-gray-900">{sum(ls,'beratungen_stattgefunden')}</td>
-                        <td className="px-3 py-2 text-right text-indigo-700 font-medium">
-                          {pct(sum(ls,'settings_stattgefunden'), sum(ls,'settings_geplant'))}
-                        </td>
-                        <td className="px-3 py-2 text-right text-green-700 font-medium">
-                          {pct(empDeals.length, sum(ls,'settings_stattgefunden'))}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-                {perEmployee.length > 0 && (
-                  <tfoot>
-                    <tr className="bg-[#2d2e30] text-white font-bold text-xs">
-                      <td className="px-3 py-2" colSpan={2}>Gesamt</td>
-                      <td className="px-3 py-2 text-right">{sum(auswertungLogs,'entscheider_erreicht')}</td>
-                      <td className="px-3 py-2 text-right">{sum(auswertungLogs,'entscheider_terminiert')}</td>
-                      <td className="px-3 py-2 text-right">{sum(auswertungLogs,'settings_geplant')}</td>
-                      <td className="px-3 py-2 text-right">{sum(auswertungLogs,'settings_stattgefunden')}</td>
-                      <td className="px-3 py-2 text-right">{sum(auswertungLogs,'beratungen_geplant')}</td>
-                      <td className="px-3 py-2 text-right">{sum(auswertungLogs,'beratungen_stattgefunden')}</td>
-                      <td className="px-3 py-2 text-right">
-                        {pct(sum(auswertungLogs,'settings_stattgefunden'), sum(auswertungLogs,'settings_geplant'))}
-                      </td>
-                      <td className="px-3 py-2 text-right">
-                        {pct(monthDeals.filter(d=>d.status==='Gewonnen').length, sum(auswertungLogs,'settings_stattgefunden'))}
-                      </td>
-                    </tr>
-                  </tfoot>
-                )}
-              </table>
-            </div>
-          </div>
-
-          {/* Inbound Wochenübersicht */}
-          <div className="rounded-lg border border-teal-200 overflow-hidden">
-            <div className="px-3 py-2 bg-teal-700">
-              <span className="text-xs font-bold text-white uppercase tracking-wide">Inbound nach Quelle — {monat}</span>
-            </div>
-            {inboundWeeks.length === 0 ? (
-              <div className="px-4 py-4 text-sm text-gray-400 bg-teal-50 text-center">
-                Keine Inbound-Daten für {monat}
+          {/* ── Opening ── */}
+          {auswertTab === 'opening' && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                <KpiCard color="blue"   label="Entscheider erreicht"    value={sum(activeLogs,'entscheider_erreicht')} />
+                <KpiCard color="blue"   label="Entscheider terminiert"  value={sum(activeLogs,'entscheider_terminiert')} />
+                <KpiCard color="indigo" label="Terminierungsquote"      value={pct(sum(activeLogs,'entscheider_terminiert'),sum(activeLogs,'entscheider_erreicht'))} desc={`${sum(activeLogs,'entscheider_terminiert')} von ${sum(activeLogs,'entscheider_erreicht')}`} />
+                <KpiCard color="teal"   label="Termine gesamt"          value={sum(activeLogs,'entscheider_terminiert')} desc="Cold Call + Inbound" />
+                <KpiCard color="teal"   label="davon Cold Call"         value={sum(activeLogs,'terminiert_cold_calls')} desc={pct(sum(activeLogs,'terminiert_cold_calls'),sum(activeLogs,'entscheider_terminiert'))+' aller Termine'} />
+                <KpiCard color="teal"   label="davon Inbound"           value={sum(activeLogs,'terminiert_inbound')}    desc={pct(sum(activeLogs,'terminiert_inbound'),sum(activeLogs,'entscheider_terminiert'))+' aller Termine'} />
               </div>
-            ) : (
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="bg-teal-50 border-b border-teal-100 text-teal-700 font-medium">
-                    <th className="px-3 py-2 text-left">Woche</th>
-                    <th className="px-3 py-2 text-right">Mail</th>
-                    <th className="px-3 py-2 text-right">Fax</th>
-                    <th className="px-3 py-2 text-right">Ad</th>
-                    <th className="px-3 py-2 text-right font-bold">Gesamt</th>
-                    <th className="px-3 py-2 text-right">Terminiert</th>
-                    <th className="px-3 py-2 text-right">Quote</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-teal-50">
-                  {inboundWeeks.map((w, i) => (
-                    <tr key={w.week} className={i%2===0?'bg-white':'bg-teal-50'}>
-                      <td className="px-3 py-2 font-medium text-gray-700">{w.week}</td>
-                      <td className="px-3 py-2 text-right text-gray-600">{w.mail}</td>
-                      <td className="px-3 py-2 text-right text-gray-600">{w.fax}</td>
-                      <td className="px-3 py-2 text-right text-gray-600">{w.ad}</td>
-                      <td className="px-3 py-2 text-right font-bold text-teal-700">{w.total}</td>
-                      <td className="px-3 py-2 text-right font-medium text-teal-600">{w.terminiert}</td>
-                      <td className="px-3 py-2 text-right font-medium text-teal-600">{w.quote} %</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  {(() => {
-                    const totalIn = sum(inboundData,'inbound_mail')+sum(inboundData,'inbound_fax')+sum(inboundData,'inbound_ad');
-                    const totalT  = sum(inboundData,'terminiert_mail')+sum(inboundData,'terminiert_fax')+sum(inboundData,'terminiert_ad');
-                    const quote   = totalIn > 0 ? Math.round((totalT/totalIn)*100) : 0;
-                    return (
-                      <tr className="bg-teal-700 text-white font-bold text-xs">
-                        <td className="px-3 py-2">Gesamt</td>
-                        <td className="px-3 py-2 text-right">{sum(inboundData,'inbound_mail')}</td>
-                        <td className="px-3 py-2 text-right">{sum(inboundData,'inbound_fax')}</td>
-                        <td className="px-3 py-2 text-right">{sum(inboundData,'inbound_ad')}</td>
-                        <td className="px-3 py-2 text-right">{totalIn}</td>
-                        <td className="px-3 py-2 text-right">{totalT}</td>
-                        <td className="px-3 py-2 text-right">{quote} %</td>
+
+              <SectionBox
+                header={<span className="text-xs font-bold text-white uppercase tracking-wide">Opening — Pro Mitarbeiter</span>}
+                headerColor="bg-blue-700">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-blue-50 border-b border-blue-100 text-blue-800 font-medium">
+                        <th className="px-3 py-2 text-left">Mitarbeiter</th>
+                        <th className="px-3 py-2 text-right">Err.</th>
+                        <th className="px-3 py-2 text-right">Term.</th>
+                        <th className="px-3 py-2 text-right">E→T %</th>
+                        <th className="px-3 py-2 text-right">Cold Call</th>
+                        <th className="px-3 py-2 text-right">Inbound</th>
+                        <th className="px-3 py-2 text-right">% CC</th>
+                        <th className="px-3 py-2 text-right">% IB</th>
                       </tr>
-                    );
-                  })()}
-                </tfoot>
-              </table>
-            )}
-          </div>
+                    </thead>
+                    <tbody className="divide-y divide-blue-50">
+                      {perEmployee.filter(ep => IS_OPENER(ep.rolle)).map((ep, i) => {
+                        const ls = ep.logs;
+                        const err  = sum(ls,'entscheider_erreicht');
+                        const term = sum(ls,'entscheider_terminiert');
+                        const cc   = sum(ls,'terminiert_cold_calls');
+                        const ib   = sum(ls,'terminiert_inbound');
+                        return (
+                          <tr key={ep.name} className={i%2===0?'bg-white':'bg-blue-50/30'}>
+                            <td className="px-3 py-2.5 font-medium text-gray-900">{ep.name}</td>
+                            <td className="px-3 py-2.5 text-right text-gray-600">{err}</td>
+                            <td className="px-3 py-2.5 text-right font-medium text-gray-900">{term}</td>
+                            <td className="px-3 py-2.5 text-right font-bold text-blue-700">{pct(term,err)}</td>
+                            <td className="px-3 py-2.5 text-right text-gray-600">{cc}</td>
+                            <td className="px-3 py-2.5 text-right text-gray-600">{ib}</td>
+                            <td className="px-3 py-2.5 text-right text-teal-700">{pct(cc,term)}</td>
+                            <td className="px-3 py-2.5 text-right text-teal-700">{pct(ib,term)}</td>
+                          </tr>
+                        );
+                      })}
+                      {perEmployee.filter(ep => IS_OPENER(ep.rolle)).length === 0 && (
+                        <tr><td colSpan={8} className="px-3 py-5 text-center text-gray-400">Keine Opener-Daten</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </SectionBox>
+            </div>
+          )}
+
+          {/* ── Setting ── */}
+          {auswertTab === 'setting' && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                <KpiCard color="violet" label="Settings geplant"        value={sum(activeLogs,'settings_geplant')} />
+                <KpiCard color="violet" label="Settings stattgefunden"  value={sum(activeLogs,'settings_stattgefunden')} />
+                <KpiCard color="violet" label="Show-Rate Settings"      value={pct(sum(activeLogs,'settings_stattgefunden'),sum(activeLogs,'settings_geplant'))} desc={`${sum(activeLogs,'settings_stattgefunden')} / ${sum(activeLogs,'settings_geplant')}`} />
+                <KpiCard color="indigo" label="Setting → Beratung"      value={pct(sum(activeLogs,'beratung_vereinbart'),sum(activeLogs,'settings_stattgefunden'))} desc={`${sum(activeLogs,'beratung_vereinbart')} Beratungsgespräche vereinbart`} />
+                <KpiCard color="indigo" label="Direkte Settings"        value={sum(activeLogs,'settings_direkt')} desc={`${sum(activeLogs,'beratung_vereinbart_direkt')} direkte Beratungen`} />
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <KpiCard color="amber" label="Setting abgesagt"    value={sum(activeLogs,'setting_abgesagt')}  desc={pct(sum(activeLogs,'setting_abgesagt'),sum(activeLogs,'settings_geplant'))+' von geplanten'} />
+                <KpiCard color="amber" label="Setting verschoben"  value={sum(activeLogs,'setting_verschoben')} desc={pct(sum(activeLogs,'setting_verschoben'),sum(activeLogs,'settings_geplant'))+' von geplanten'} />
+                <KpiCard color="red"   label="Nicht erreicht"      value={sum(activeLogs,'nicht_erreicht')}     desc={pct(sum(activeLogs,'nicht_erreicht'),sum(activeLogs,'settings_geplant'))+' von geplanten'} />
+              </div>
+
+              <SectionBox
+                header={<span className="text-xs font-bold text-white uppercase tracking-wide">Setting — Pro Mitarbeiter</span>}
+                headerColor="bg-violet-700">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-violet-50 border-b border-violet-100 text-violet-800 font-medium">
+                        <th className="px-3 py-2 text-left">Mitarbeiter</th>
+                        <th className="px-3 py-2 text-right">Gepl.</th>
+                        <th className="px-3 py-2 text-right">Stattg.</th>
+                        <th className="px-3 py-2 text-right">Show-Rate</th>
+                        <th className="px-3 py-2 text-right">→ Beratung</th>
+                        <th className="px-3 py-2 text-right">Set.→Ber.%</th>
+                        <th className="px-3 py-2 text-right">Direkt</th>
+                        <th className="px-3 py-2 text-right">Abgesagt</th>
+                        <th className="px-3 py-2 text-right">Verschoben</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-violet-50">
+                      {perEmployee.filter(ep => IS_OPENER(ep.rolle)).map((ep, i) => {
+                        const ls = ep.logs;
+                        const gepl   = sum(ls,'settings_geplant');
+                        const stattg = sum(ls,'settings_stattgefunden');
+                        const bv     = sum(ls,'beratung_vereinbart');
+                        return (
+                          <tr key={ep.name} className={i%2===0?'bg-white':'bg-violet-50/30'}>
+                            <td className="px-3 py-2.5 font-medium text-gray-900">{ep.name}</td>
+                            <td className="px-3 py-2.5 text-right text-gray-600">{gepl}</td>
+                            <td className="px-3 py-2.5 text-right font-medium text-gray-900">{stattg}</td>
+                            <td className="px-3 py-2.5 text-right font-bold text-violet-700">{pct(stattg,gepl)}</td>
+                            <td className="px-3 py-2.5 text-right text-gray-600">{bv}</td>
+                            <td className="px-3 py-2.5 text-right font-bold text-indigo-700">{pct(bv,stattg)}</td>
+                            <td className="px-3 py-2.5 text-right text-gray-600">{sum(ls,'settings_direkt')}</td>
+                            <td className="px-3 py-2.5 text-right text-amber-600">{sum(ls,'setting_abgesagt')}</td>
+                            <td className="px-3 py-2.5 text-right text-amber-600">{sum(ls,'setting_verschoben')}</td>
+                          </tr>
+                        );
+                      })}
+                      {perEmployee.filter(ep => IS_OPENER(ep.rolle)).length === 0 && (
+                        <tr><td colSpan={9} className="px-3 py-5 text-center text-gray-400">Keine Setting-Daten</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </SectionBox>
+            </div>
+          )}
+
+          {/* ── Closing ── */}
+          {auswertTab === 'closing' && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                <KpiCard color="green"  label="Beratungen geplant"       value={sum(activeLogs,'beratungen_geplant')} />
+                <KpiCard color="green"  label="Beratungen stattgefunden" value={sum(activeLogs,'beratungen_stattgefunden')} />
+                <KpiCard color="green"  label="Show-Rate Beratungen"     value={pct(sum(activeLogs,'beratungen_stattgefunden'),sum(activeLogs,'beratungen_geplant'))} desc={`${sum(activeLogs,'beratungen_stattgefunden')} / ${sum(activeLogs,'beratungen_geplant')}`} />
+                {zeitbasis === 'monat'
+                  ? <KpiCard color="green" label="Closing-to-Close" value={pct(fCloses,fBeratungen)} desc={`${fCloses} Deals (aus Closing-Call-Monat${standortFilter ? ', '+standortFilter : ''})`} />
+                  : <KpiCard color="teal"  label="Closing-to-Close" value="—"                       desc="Nicht auf Tagesbasis verfügbar" />
+                }
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <KpiCard color="amber" label="No-Shows"         value={sum(activeLogs,'beratungen_no_show')}       desc={pct(sum(activeLogs,'beratungen_no_show'),sum(activeLogs,'beratungen_geplant'))+' von geplanten'} />
+                <KpiCard color="amber" label="Verschoben"       value={sum(activeLogs,'beratungen_verschoben')}    desc={pct(sum(activeLogs,'beratungen_verschoben'),sum(activeLogs,'beratungen_geplant'))+' von geplanten'} />
+                <KpiCard color="indigo" label="Follow-Up / CC2" value={sum(activeLogs,'beratungen_follow_up_cc2')} desc={pct(sum(activeLogs,'beratungen_follow_up_cc2'),sum(activeLogs,'beratungen_stattgefunden'))+' der stattgef. Beratungen'} />
+              </div>
+
+              {zeitbasis === 'monat' && standortFilter && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 text-xs text-blue-700">
+                  <strong>Closing-to-Close-Methodik:</strong> Gezählt werden Deals, deren Closing-Call in {fmtMonth(monat)} stattfand (Angebotsdatum = {monat}) und die einem Closer aus <strong>{standortFilter}</strong> zugeordnet sind — unabhängig vom Zeitpunkt des Vertragsabschlusses.
+                </div>
+              )}
+
+              <SectionBox
+                header={<span className="text-xs font-bold text-white uppercase tracking-wide">Closing — Pro Mitarbeiter</span>}
+                headerColor="bg-green-700">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-green-50 border-b border-green-100 text-green-800 font-medium">
+                        <th className="px-3 py-2 text-left">Mitarbeiter</th>
+                        <th className="px-3 py-2 text-right">Gepl.</th>
+                        <th className="px-3 py-2 text-right">Stattg.</th>
+                        <th className="px-3 py-2 text-right">Show-Rate</th>
+                        <th className="px-3 py-2 text-right">No-Show</th>
+                        <th className="px-3 py-2 text-right">Follow-Up</th>
+                        {zeitbasis === 'monat' && <th className="px-3 py-2 text-right">Closes</th>}
+                        {zeitbasis === 'monat' && <th className="px-3 py-2 text-right">Close-Rate</th>}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-green-50">
+                      {perEmployee.filter(ep => IS_CLOSER(ep.rolle)).map((ep, i) => {
+                        const ls = ep.logs;
+                        const gepl   = sum(ls,'beratungen_geplant');
+                        const stattg = sum(ls,'beratungen_stattgefunden');
+                        const closes = zeitbasis === 'monat' ? closingDeals.filter(d => d.closer_name === ep.name).length : 0;
+                        return (
+                          <tr key={ep.name} className={i%2===0?'bg-white':'bg-green-50/30'}>
+                            <td className="px-3 py-2.5 font-medium text-gray-900">{ep.name}</td>
+                            <td className="px-3 py-2.5 text-right text-gray-600">{gepl}</td>
+                            <td className="px-3 py-2.5 text-right font-medium text-gray-900">{stattg}</td>
+                            <td className="px-3 py-2.5 text-right font-bold text-green-700">{pct(stattg,gepl)}</td>
+                            <td className="px-3 py-2.5 text-right text-red-500">{sum(ls,'beratungen_no_show')}</td>
+                            <td className="px-3 py-2.5 text-right text-amber-600">{sum(ls,'beratungen_follow_up_cc2')}</td>
+                            {zeitbasis === 'monat' && <td className="px-3 py-2.5 text-right font-bold text-green-800">{closes}</td>}
+                            {zeitbasis === 'monat' && <td className="px-3 py-2.5 text-right font-bold text-green-700">{pct(closes,stattg)}</td>}
+                          </tr>
+                        );
+                      })}
+                      {perEmployee.filter(ep => IS_CLOSER(ep.rolle)).length === 0 && (
+                        <tr><td colSpan={8} className="px-3 py-5 text-center text-gray-400">Keine Closer-Daten</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </SectionBox>
+            </div>
+          )}
+
+          {/* ── Vergleich ── */}
+          {auswertTab === 'vergleich' && (
+            <div className="space-y-3">
+              {/* Mitarbeiter-Auswahl */}
+              <SectionBox
+                header={<span className="text-xs font-bold text-white uppercase tracking-wide">Mitarbeiter auswählen</span>}
+                headerColor="bg-indigo-700">
+                <div className="p-3 flex flex-wrap gap-2">
+                  {perEmployee.length === 0
+                    ? <p className="text-xs text-gray-400 py-2">Keine Daten für diesen Zeitraum.</p>
+                    : perEmployee.map(ep => {
+                      const sel2 = vergleichEmps.has(ep.id);
+                      return (
+                        <button key={ep.id}
+                          onClick={() => setVergleichEmps(prev => {
+                            const n = new Set(prev);
+                            if (n.has(ep.id)) n.delete(ep.id); else n.add(ep.id);
+                            return n;
+                          })}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                            sel2 ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-400'
+                          }`}>
+                          <span>{ep.name}</span>
+                          <span className="opacity-60 text-[10px]">({ep.rolle})</span>
+                        </button>
+                      );
+                    })
+                  }
+                  {vergleichEmps.size > 0 && (
+                    <button onClick={() => setVergleichEmps(new Set())}
+                      className="ml-auto text-xs text-gray-400 hover:text-gray-600 px-2 py-1">
+                      Auswahl löschen ✕
+                    </button>
+                  )}
+                </div>
+              </SectionBox>
+
+              {/* Vergleichstabelle */}
+              {vergleichEmps.size === 0
+                ? <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-8 text-center text-sm text-gray-400">
+                    Bitte mindestens einen Mitarbeiter auswählen.
+                  </div>
+                : (() => {
+                  const selEmps = perEmployee.filter(ep => vergleichEmps.has(ep.id));
+                  const rows = [
+                    { label: '— Opening', header: true },
+                    { label: 'Entscheider erreicht',   fn: (ls) => sum(ls,'entscheider_erreicht'),   show: ep => IS_OPENER(ep.rolle) },
+                    { label: 'Entscheider terminiert',  fn: (ls) => sum(ls,'entscheider_terminiert'), show: ep => IS_OPENER(ep.rolle) },
+                    { label: 'Terminierungsquote',      fn: (ls) => pct(sum(ls,'entscheider_terminiert'),sum(ls,'entscheider_erreicht')), show: ep => IS_OPENER(ep.rolle), highlight: true },
+                    { label: '— Setting', header: true },
+                    { label: 'Settings geplant',        fn: (ls) => sum(ls,'settings_geplant'),       show: ep => IS_OPENER(ep.rolle) },
+                    { label: 'Settings stattgefunden',  fn: (ls) => sum(ls,'settings_stattgefunden'), show: ep => IS_OPENER(ep.rolle) },
+                    { label: 'Show-Rate Settings',      fn: (ls) => pct(sum(ls,'settings_stattgefunden'),sum(ls,'settings_geplant')), show: ep => IS_OPENER(ep.rolle), highlight: true },
+                    { label: 'Setting → Beratung %',    fn: (ls) => pct(sum(ls,'beratung_vereinbart'),sum(ls,'settings_stattgefunden')), show: ep => IS_OPENER(ep.rolle), highlight: true },
+                    { label: '— Closing', header: true },
+                    { label: 'Beratungen geplant',      fn: (ls) => sum(ls,'beratungen_geplant'),       show: ep => IS_CLOSER(ep.rolle) },
+                    { label: 'Beratungen stattgef.',    fn: (ls) => sum(ls,'beratungen_stattgefunden'), show: ep => IS_CLOSER(ep.rolle) },
+                    { label: 'Show-Rate Beratungen',    fn: (ls) => pct(sum(ls,'beratungen_stattgefunden'),sum(ls,'beratungen_geplant')), show: ep => IS_CLOSER(ep.rolle), highlight: true },
+                    { label: 'No-Shows',                fn: (ls) => sum(ls,'beratungen_no_show'), show: ep => IS_CLOSER(ep.rolle) },
+                    { label: 'Follow-Up / CC2',         fn: (ls) => sum(ls,'beratungen_follow_up_cc2'), show: ep => IS_CLOSER(ep.rolle) },
+                    ...(zeitbasis === 'monat' ? [{ label: 'Closes (C2C)', fn: (_ls, ep) => closingDeals.filter(d => d.closer_name === ep.name).length, show: ep => IS_CLOSER(ep.rolle) }] : []),
+                    ...(zeitbasis === 'monat' ? [{ label: 'Closing-to-Close %', fn: (ls, ep) => pct(closingDeals.filter(d => d.closer_name === ep.name).length, sum(ls,'beratungen_stattgefunden')), show: ep => IS_CLOSER(ep.rolle), highlight: true }] : []),
+                  ];
+                  return (
+                    <div className="rounded-xl border border-gray-200 overflow-hidden overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="bg-[#2d2e30] text-white">
+                            <th className="px-3 py-2.5 text-left font-medium sticky left-0 bg-[#2d2e30]" style={{ minWidth: 160 }}>KPI</th>
+                            {selEmps.map(ep => (
+                              <th key={ep.id} className="px-3 py-2.5 text-center font-medium whitespace-nowrap">
+                                {ep.name}<br /><span className="text-[10px] opacity-60">{ep.rolle}</span>
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {rows.map((row, ri) => {
+                            if (row.header) {
+                              return (
+                                <tr key={ri} className="bg-gray-100">
+                                  <td className="px-3 py-1.5 font-bold text-gray-600 uppercase tracking-wide text-[10px]" colSpan={selEmps.length + 1}>{row.label.replace('— ', '')}</td>
+                                </tr>
+                              );
+                            }
+                            return (
+                              <tr key={ri} className={`${ri%2===0?'bg-white':'bg-gray-50/50'} hover:bg-indigo-50/30`}>
+                                <td className="px-3 py-2 text-gray-600">{row.label}</td>
+                                {selEmps.map(ep => {
+                                  const shows = !row.show || row.show(ep);
+                                  const val = shows ? row.fn(ep.logs, ep) : '—';
+                                  return (
+                                    <td key={ep.id} className={`px-3 py-2 text-center ${shows && row.highlight ? 'font-bold text-indigo-700' : 'text-gray-700'}`}>
+                                      {shows ? val : <span className="text-gray-300">—</span>}
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()
+              }
+            </div>
+          )}
+
+          {/* ── Trend / Verlauf ── */}
+          {auswertTab === 'trend' && (
+            <div className="space-y-3">
+              <div className="bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-2.5 text-xs text-indigo-700">
+                Zeigt die <strong>letzten 6 Monate</strong> bis einschließlich <strong>{fmtMonth(monat)}</strong>.{standortFilter ? ` Gefiltert nach Standort: ${standortFilter}.` : ''}
+              </div>
+
+              {/* Trend KPI-Tabelle */}
+              <div className="rounded-xl border border-gray-200 overflow-hidden overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-[#2d2e30] text-white">
+                      <th className="px-3 py-2.5 text-left font-medium sticky left-0 bg-[#2d2e30]" style={{ minWidth: 160 }}>KPI</th>
+                      {trendData.map(td => (
+                        <th key={td.monat} className="px-3 py-2.5 text-center font-medium whitespace-nowrap">
+                          {fmtMonth(td.monat)}
+                          {td.loading && <span className="ml-1 opacity-50 text-[10px]">…</span>}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { label: 'Entscheider erreicht',    key: 'entscheider', section: 'opening' },
+                      { label: 'Terminiert',              key: 'terminiert',  section: 'opening' },
+                      { label: 'Terminierungsquote',      key: null, fn: d => pct(d.terminiert, d.entscheider), section: 'opening', pct: true },
+                      { label: 'Settings stattgef.',      key: 'setStattg',   section: 'setting' },
+                      { label: 'Show-Rate Settings',      key: null, fn: d => pct(d.setStattg, d.setGeplant), section: 'setting', pct: true },
+                      { label: 'Beratungen stattgef.',    key: 'berStattg',   section: 'closing' },
+                      { label: 'Show-Rate Beratungen',    key: null, fn: d => pct(d.berStattg, d.berGeplant), section: 'closing', pct: true },
+                      { label: 'Closes (C2C-Methode)',    key: 'closes',      section: 'closing' },
+                      { label: 'Closing-to-Close %',      key: null, fn: d => pct(d.closes, d.berStattg), section: 'closing', pct: true },
+                    ].map((row, ri) => (
+                      <tr key={ri} className={`${
+                        row.section === 'opening' ? (ri%2===0?'bg-blue-50/30':'bg-blue-50/60')
+                        : row.section === 'setting' ? (ri%2===0?'bg-violet-50/30':'bg-violet-50/60')
+                        : ri%2===0?'bg-green-50/30':'bg-green-50/60'
+                      } hover:bg-indigo-50/40`}>
+                        <td className="px-3 py-2.5 font-medium text-gray-700 sticky left-0 bg-inherit">{row.label}</td>
+                        {trendData.map((td, ti) => {
+                          const val  = row.fn ? row.fn(td) : td[row.key];
+                          const prev = ti > 0 ? (row.fn ? (() => {
+                            const p = trendData[ti-1];
+                            const pStr = row.fn(p);
+                            return pStr === '—' ? null : parseFloat(pStr);
+                          })() : trendData[ti-1][row.key]) : null;
+                          const numVal = row.pct ? (val === '—' ? null : parseFloat(val)) : (typeof val === 'number' ? val : null);
+                          return (
+                            <td key={td.monat} className={`px-3 py-2.5 text-center ${row.pct ? 'font-bold text-gray-800' : 'text-gray-700'}`}>
+                              {td.loading ? <span className="text-gray-300">…</span> : (
+                                <span className="flex items-center justify-center gap-0.5">
+                                  {val}
+                                  {numVal !== null && trendIcon(numVal, typeof prev === 'number' ? prev : null)}
+                                </span>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Trend-Highlights */}
+              {trendData.every(td => !td.loading) && trendData.length >= 2 && (() => {
+                const last = trendData[trendData.length-1];
+                const prev = trendData[trendData.length-2];
+                const c2cNow  = pctNum(last.closes, last.berStattg);
+                const c2cPrev = pctNum(prev.closes, prev.berStattg);
+                const tqNow   = pctNum(last.terminiert, last.entscheider);
+                const tqPrev  = pctNum(prev.terminiert, prev.entscheider);
+                return (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className={`rounded-xl border p-4 ${c2cNow >= c2cPrev ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                      <div className="text-[11px] font-semibold opacity-70 uppercase tracking-wide mb-1">C2C {fmtMonth(monat)}</div>
+                      <div className={`text-2xl font-black ${c2cNow >= c2cPrev ? 'text-green-700' : 'text-red-600'}`}>{pct(last.closes, last.berStattg)}</div>
+                      <div className="text-[11px] opacity-60 mt-0.5">vs. {fmtMonth(prev.monat)}: {pct(prev.closes, prev.berStattg)}</div>
+                    </div>
+                    <div className={`rounded-xl border p-4 ${tqNow >= tqPrev ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                      <div className="text-[11px] font-semibold opacity-70 uppercase tracking-wide mb-1">Term.quote {fmtMonth(monat)}</div>
+                      <div className={`text-2xl font-black ${tqNow >= tqPrev ? 'text-green-700' : 'text-red-600'}`}>{pct(last.terminiert, last.entscheider)}</div>
+                      <div className="text-[11px] opacity-60 mt-0.5">vs. {fmtMonth(prev.monat)}: {pct(prev.terminiert, prev.entscheider)}</div>
+                    </div>
+                    <div className="rounded-xl border bg-violet-50 border-violet-200 p-4">
+                      <div className="text-[11px] font-semibold opacity-70 uppercase tracking-wide mb-1">Beratungen {fmtMonth(monat)}</div>
+                      <div className="text-2xl font-black text-violet-700">{last.berStattg}</div>
+                      <div className="text-[11px] opacity-60 mt-0.5">vs. {fmtMonth(prev.monat)}: {prev.berStattg}</div>
+                    </div>
+                    <div className="rounded-xl border bg-blue-50 border-blue-200 p-4">
+                      <div className="text-[11px] font-semibold opacity-70 uppercase tracking-wide mb-1">Entscheider {fmtMonth(monat)}</div>
+                      <div className="text-2xl font-black text-blue-700">{last.entscheider}</div>
+                      <div className="text-[11px] opacity-60 mt-0.5">vs. {fmtMonth(prev.monat)}: {prev.entscheider}</div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* Inbound-Übersicht am Ende des Auswertungs-Tabs */}
+          {(auswertTab === 'dashboard' || auswertTab === 'opening') && (
+            <SectionBox
+              header={<><span className="text-xs font-bold text-white uppercase tracking-wide">Inbound nach Quelle — {fmtMonth(monat)}</span></>}
+              headerColor="bg-teal-700">
+              {inboundWeeks.length === 0
+                ? <div className="px-4 py-4 text-sm text-gray-400 bg-teal-50 text-center">Keine Inbound-Daten für {fmtMonth(monat)}</div>
+                : <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-teal-50 border-b border-teal-100 text-teal-700 font-medium">
+                        <th className="px-3 py-2 text-left">Woche</th>
+                        <th className="px-3 py-2 text-right">Mail</th>
+                        <th className="px-3 py-2 text-right">Fax</th>
+                        <th className="px-3 py-2 text-right">Ad</th>
+                        <th className="px-3 py-2 text-right font-bold">Gesamt</th>
+                        <th className="px-3 py-2 text-right">Terminiert</th>
+                        <th className="px-3 py-2 text-right">Quote</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-teal-50">
+                      {inboundWeeks.map((w, i) => (
+                        <tr key={w.week} className={i%2===0?'bg-white':'bg-teal-50/40'}>
+                          <td className="px-3 py-2 font-medium text-gray-700">{w.week}</td>
+                          <td className="px-3 py-2 text-right text-gray-600">{w.mail}</td>
+                          <td className="px-3 py-2 text-right text-gray-600">{w.fax}</td>
+                          <td className="px-3 py-2 text-right text-gray-600">{w.ad}</td>
+                          <td className="px-3 py-2 text-right font-bold text-teal-700">{w.total}</td>
+                          <td className="px-3 py-2 text-right font-medium text-teal-600">{w.terminiert}</td>
+                          <td className="px-3 py-2 text-right font-medium text-teal-600">{w.quote} %</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      {(() => {
+                        const ti = sum(inboundData,'inbound_mail')+sum(inboundData,'inbound_fax')+sum(inboundData,'inbound_ad');
+                        const tt = sum(inboundData,'terminiert_mail')+sum(inboundData,'terminiert_fax')+sum(inboundData,'terminiert_ad');
+                        return (
+                          <tr className="bg-teal-700 text-white font-bold text-xs">
+                            <td className="px-3 py-2">Gesamt</td>
+                            <td className="px-3 py-2 text-right">{sum(inboundData,'inbound_mail')}</td>
+                            <td className="px-3 py-2 text-right">{sum(inboundData,'inbound_fax')}</td>
+                            <td className="px-3 py-2 text-right">{sum(inboundData,'inbound_ad')}</td>
+                            <td className="px-3 py-2 text-right">{ti}</td>
+                            <td className="px-3 py-2 text-right">{tt}</td>
+                            <td className="px-3 py-2 text-right">{ti > 0 ? Math.round(tt/ti*100) : 0} %</td>
+                          </tr>
+                        );
+                      })()}
+                    </tfoot>
+                  </table>
+              }
+            </SectionBox>
+          )}
         </div>
       )}
 
-      {/* ActivityModal */}
+      {/* Modals */}
       {modal && (
         <ActivityModal
-          employee={modal.employee}
-          datum={datum}
-          existing={modal.existing}
-          companyId={companyId}
+          employee={modal.employee} datum={datum} existing={modal.existing} companyId={companyId}
           onSave={data => saveMut.mutate(data)}
           onClose={() => { setModal(null); saveMut.reset(); }}
-          isPending={saveMut.isPending}
-          isError={saveMut.isError}
-          error={errMsg(saveMut)}
-        />
+          isPending={saveMut.isPending} isError={saveMut.isError} error={errMsg(saveMut)} />
       )}
-
-      {/* InboundModal */}
       {inboundModal && (
         <InboundModal
-          datum={datum}
-          existing={currentInbound}
-          companyId={companyId}
+          datum={datum} existing={currentInbound} companyId={companyId}
           onSave={data => saveInboundMut.mutate(data)}
           onClose={() => { setInboundModal(false); saveInboundMut.reset(); }}
-          isPending={saveInboundMut.isPending}
-          isError={saveInboundMut.isError}
-          error={errMsg(saveInboundMut)}
-        />
+          isPending={saveInboundMut.isPending} isError={saveInboundMut.isError} error={errMsg(saveInboundMut)} />
       )}
     </div>
   );
