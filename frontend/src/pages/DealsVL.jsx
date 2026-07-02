@@ -10,7 +10,7 @@ import { useAuth } from '../context/AuthContext';
 const STATUS_OPTS = ['Offen', 'Gewonnen', 'Verloren'];
 const STANDORTE   = ['Bonn', 'Braunschweig', 'Österreich', 'Schweiz'];
 
-const DIENSTLEISTUNGEN_VL = ['RaaS Kontingente','RaaS Kleinkunde Laufzeit','Karriereseite','Karriereseite Wartung','Social-Media','Glaubenssätze','Media-Day','Website','Sonstiges'];
+const DIENSTLEISTUNGEN_VL = ['RaaS Kontingente','RaaS Kleinkunde Laufzeit','Kontingent (Alt)','Karriereseite','Karriereseite Wartung','Social-Media','Glaubenssätze','Media-Day','Website','Sonstiges'];
 const ABGERECHNET_OPTS = ['Nein', 'Ja', 'On Hold'];
 
 // ── KPIs aus einem Deal-Array berechnen ──────────────────────────────────────
