@@ -69,20 +69,52 @@ app.post('/api/admin/test-daily-report', requireAuth, async (req, res) => {
   if (!['superadmin', 'admin', 'vertriebsleitung'].includes(req.user?.role)) {
     return res.status(403).json({ error: 'Keine Berechtigung' });
   }
-  try {
+
+  const step = (msg) => console.log('[test-daily-report]', msg);
+
+  const run = async () => {
     const { sendDailyDashboard, sendDailyKpi } = require('./utils/email');
     const { buildDashboardEmailData, buildKpiEmailData } = require('./utils/dailyReport');
+
     const today = new Date().toISOString().slice(0, 10);
     const monat = today.slice(0, 7);
-    const [dashData, kpiData] = await Promise.all([
-      buildDashboardEmailData(monat, today),
-      buildKpiEmailData(today, monat),
-    ]);
+    step(`START today=${today} monat=${monat}`);
+
+    step('Baue Dashboard-Daten (DB-Abfragen)…');
+    const dashData = await buildDashboardEmailData(monat, today);
+    step('Dashboard-Daten OK');
+
+    step('Baue KPI-Daten (DB-Abfragen)…');
+    const kpiData = await buildKpiEmailData(today, monat);
+    step('KPI-Daten OK');
+
+    const smtpOk = !!process.env.SMTP_HOST;
+    const recipients = process.env.REPORT_EMAIL || '(nicht konfiguriert)';
+    step(`SMTP_HOST=${smtpOk ? 'gesetzt' : 'nicht gesetzt'} REPORT_EMAIL=${recipients}`);
+
+    step('Sende Dashboard-E-Mail…');
     await sendDailyDashboard(dashData);
+    step('Dashboard-E-Mail fertig');
+
+    step('Sende KPI-E-Mail…');
     await sendDailyKpi(kpiData);
-    res.json({ ok: true, today, monat, message: 'Beide E-Mails wurden verschickt.' });
+    step('KPI-E-Mail fertig');
+
+    const msg = smtpOk
+      ? `Beide E-Mails verschickt an ${recipients}.`
+      : `Kein SMTP konfiguriert – Berichte wurden in Railway-Logs ausgegeben (SMTP_HOST fehlt).`;
+    return { ok: true, today, monat, smtp: smtpOk, message: msg };
+  };
+
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('Timeout (20 s) – bitte Railway-Logs prüfen, bei welchem Schritt es hängt')), 20000)
+  );
+
+  try {
+    const result = await Promise.race([run(), timeout]);
+    res.json(result);
   } catch (err) {
-    console.error('[test-daily-report]', err.message);
+    console.error('[test-daily-report] FEHLER:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -94,15 +126,14 @@ cron.schedule('0 22 * * *', async () => {
     const { buildDashboardEmailData, buildKpiEmailData } = require('./utils/dailyReport');
     const today = new Date().toISOString().slice(0, 10);
     const monat = today.slice(0, 7);
-    const [dashData, kpiData] = await Promise.all([
-      buildDashboardEmailData(monat, today),
-      buildKpiEmailData(today, monat),
-    ]);
+    console.log('[daily-report] Starte Tagesberichte für', today);
+    const dashData = await buildDashboardEmailData(monat, today);
+    const kpiData  = await buildKpiEmailData(today, monat);
     await sendDailyDashboard(dashData);
     await sendDailyKpi(kpiData);
     console.log('[daily-report] Tagesberichte verschickt für', today);
   } catch (err) {
-    console.error('[daily-report] Fehlgeschlagen:', err.message);
+    console.error('[daily-report] Fehlgeschlagen:', err.message, err.stack?.split('\n')[1] || '');
   }
 });
 
