@@ -47,13 +47,14 @@ function calcKpis(deals) {
 // ── Hauptkomponente ──────────────────────────────────────────────────────────
 export default function DealsBK() {
   const { company, companies } = useOutletContext();
-  const { canSeeAll } = useAuth();
+  const { canSeeAll, user } = useAuth();
   const qc = useQueryClient();
   const [monat, setMonat]               = useState(currentMonat());
   const [showAllMonths, setShowAllMonths] = useState(false);
   const [modal, setModal]               = useState(null);
   const [showKpis, setShowKpis]         = useState(true);
 
+  const [viewMode,       setViewMode]       = useState('alle');
   const [filterKam,      setFilterKam]      = useState('');
   const [filterStatus,   setFilterStatus]   = useState('');
   const [filterStandort, setFilterStandort] = useState('');
@@ -121,10 +122,11 @@ export default function DealsBK() {
 
   // Gefilterte Deals
   const filtered = useMemo(() => deals.filter(d =>
+    (canSeeAll || viewMode === 'alle' || String(d.kam_id) === String(user?.employee_id)) &&
     (!filterKam      || String(d.kam_id)    === filterKam) &&
     (!filterStatus   || d.status            === filterStatus) &&
     (!filterStandort || d.kam_standort      === filterStandort)
-  ), [deals, filterKam, filterStatus, filterStandort]);
+  ), [deals, filterKam, filterStatus, filterStandort, viewMode, canSeeAll, user?.employee_id]);
 
   // Gesamt-KPIs
   const gesamtKpis = useMemo(() => calcKpis(filtered), [filtered]);
@@ -180,6 +182,22 @@ export default function DealsBK() {
             className="px-3 py-1.5 bg-white border border-gray-300 hover:border-gray-400 text-gray-600 text-sm rounded">
             ↓ CSV
           </button>
+          {!canSeeAll && (
+            <div className="flex rounded border border-gray-300 overflow-hidden text-xs">
+              <button
+                onClick={() => setViewMode('alle')}
+                className={`px-3 py-1.5 ${viewMode === 'alle' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+              >
+                Alle Angebote
+              </button>
+              <button
+                onClick={() => setViewMode('eigene')}
+                className={`px-3 py-1.5 border-l border-gray-300 ${viewMode === 'eigene' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+              >
+                Nur meine
+              </button>
+            </div>
+          )}
           <button onClick={() => setModal({ mode: 'create', data: { status: 'Offen', datum: new Date().toISOString().slice(0,10), monat } })}
             className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded">
             + Neuer Deal
