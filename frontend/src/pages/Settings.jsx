@@ -241,6 +241,23 @@ export default function Settings() {
     onSuccess: () => { qc.invalidateQueries({queryKey:['audit-logs']}); qc.invalidateQueries({queryKey:['deals-nk']}); qc.invalidateQueries({queryKey:['deals-bk']}); qc.invalidateQueries({queryKey:['deals-vl']}); },
   });
 
+  // ── Daily Report Test (admin only) ───────────────────────────────────────
+  const [testEmailLoading, setTestEmailLoading] = useState(false);
+  const [testEmailMsg,     setTestEmailMsg]     = useState(null);
+
+  const handleTestDailyReport = async () => {
+    setTestEmailLoading(true);
+    setTestEmailMsg(null);
+    try {
+      const result = await adminApi.testDailyReport();
+      setTestEmailMsg({ ok: result.message || 'E-Mails wurden verschickt.' });
+    } catch (err) {
+      setTestEmailMsg({ err: err.response?.data?.error || 'Fehler beim Versand' });
+    } finally {
+      setTestEmailLoading(false);
+    }
+  };
+
   // ── Backup (admin only) ───────────────────────────────────────────────────
   const [backupExporting, setBackupExporting] = useState(false);
   const [restoreFile,     setRestoreFile]     = useState(null);
@@ -703,6 +720,27 @@ export default function Settings() {
             ) : (
               <p className="text-xs text-gray-400">Lade...</p>
             )}
+          </section>
+
+          {/* Tägliche E-Mail-Berichte */}
+          <section className="rounded-xl border border-gray-200 bg-white p-5">
+            <h2 className="text-sm font-semibold text-gray-700 mb-1">Tägliche E-Mail-Berichte</h2>
+            <p className="text-xs text-gray-400 mb-4">
+              Täglich um 22:00 Uhr werden automatisch zwei E-Mails verschickt: Dashboard-Auftragseingang und KPI-Mitarbeiter-Auswertung.
+              Mit dem Button kannst du den Versand sofort auslösen, um die Konfiguration zu testen.
+            </p>
+            {testEmailMsg && (
+              <div className={`text-xs rounded px-3 py-2 mb-3 ${testEmailMsg.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                {testEmailMsg.ok || testEmailMsg.err}
+              </div>
+            )}
+            <button
+              onClick={handleTestDailyReport}
+              disabled={testEmailLoading}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded disabled:opacity-50"
+            >
+              {testEmailLoading ? 'Wird verschickt…' : '📧 Tagesberichte jetzt senden'}
+            </button>
           </section>
 
           {/* Restore (superadmin only) */}

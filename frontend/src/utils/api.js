@@ -95,6 +95,7 @@ export const adminApi = {
   resetPassword: (id, new_password) => api.post(`/admin/users/${id}/reset-password`, { new_password }).then(r => r.data),
   loginLogs: () => api.get('/admin/login-logs').then(r => r.data),
   onlineUsers: () => api.get('/admin/online-users').then(r => r.data),
+  testDailyReport: () => api.post('/admin/test-daily-report').then(r => r.data),
 };
 
 export const activityLogsApi = {
