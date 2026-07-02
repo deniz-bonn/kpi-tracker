@@ -11,7 +11,7 @@ const IS_CLOSER = r => ['NKV-Closer', 'Multi', 'Multi BS', 'Closer-KAM'].include
 const pct    = (n, d) => d > 0 ? `${(n / d * 100).toFixed(1)}%` : '—';
 const pctNum = (n, d) => d > 0 ? +(n / d * 100).toFixed(1) : 0;
 const sum    = (arr, key) => arr.reduce((s, r) => s + (Number(r[key]) || 0), 0);
-const errMsg = mut => mut.error?.response?.data?.message || mut.error?.message || 'Fehler beim Speichern';
+const errMsg = mut => mut.error?.response?.data?.message || mut.error?.response?.data?.error || mut.error?.message || 'Fehler beim Speichern';
 
 const fmtMonth = m => {
   if (!m) return '';
