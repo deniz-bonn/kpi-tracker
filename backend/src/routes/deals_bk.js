@@ -114,7 +114,8 @@ router.post('/', wrap(async (req, res) => {
   const { gewonnen_datum, gewonnen_monat } = resolveGewonnenFelder(body);
   const fields = ['datum','monat','company_id','kam_id','kunde','angebotsnummer','dienstleistung',
     'angebotswert','laufzeit_monate','status','ae_wert','kommentar',
-    'automatische_verlaengerung','abgerechnet','kundennummer','gewonnen_datum','gewonnen_monat'];
+    'automatische_verlaengerung','abgerechnet','kundennummer','gewonnen_datum','gewonnen_monat',
+    'termin_mit_daniel'];
   const values = fields.map(f => {
     if (f === 'gewonnen_datum') return gewonnen_datum;
     if (f === 'gewonnen_monat') return gewonnen_monat;
@@ -145,7 +146,8 @@ router.put('/:id', wrap(async (req, res) => {
   const { gewonnen_datum, gewonnen_monat } = resolveGewonnenFelder(req.body, existing);
   const fields = ['datum','monat','company_id','kam_id','kunde','angebotsnummer','dienstleistung',
     'angebotswert','laufzeit_monate','status','ae_wert','kommentar',
-    'automatische_verlaengerung','abgerechnet','kundennummer','gewonnen_datum','gewonnen_monat'];
+    'automatische_verlaengerung','abgerechnet','kundennummer','gewonnen_datum','gewonnen_monat',
+    'termin_mit_daniel'];
   const values = fields.map(f => {
     if (f === 'gewonnen_datum') return gewonnen_datum;
     if (f === 'gewonnen_monat') return gewonnen_monat;

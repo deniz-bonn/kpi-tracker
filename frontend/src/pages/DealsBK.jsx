@@ -20,8 +20,10 @@ function calcKpis(deals) {
   const ae  = gew.reduce((s, d) => s + (Number(d.ae_wert)       || 0), 0);
   const agw = deals.reduce((s, d) => s + (Number(d.angebotswert) || 0), 0);
   const n   = deals.length;
-  const autoJ = gew.filter(d => d.automatische_verlaengerung === 'Ja').length;
-  const abgJ  = gew.filter(d => d.abgerechnet === 'Ja').length;
+  const autoJ     = gew.filter(d => d.automatische_verlaengerung === 'Ja').length;
+  const abgJ      = gew.filter(d => d.abgerechnet === 'Ja').length;
+  const danielJ   = deals.filter(d => d.termin_mit_daniel === 'Ja').length;
+  const danielGew = gew.filter(d => d.termin_mit_daniel === 'Ja').length;
   return {
     total:               n,
     gewonnen:            gew.length,
@@ -36,6 +38,9 @@ function calcKpis(deals) {
     auto_verlaengerung_quote: gew.length > 0 ? (autoJ / gew.length * 100).toFixed(1) : '0.0',
     abgerechnet_ja:           abgJ,
     abgerechnet_quote:        gew.length > 0 ? (abgJ / gew.length * 100).toFixed(1) : '0.0',
+    daniel_termine:           danielJ,
+    daniel_gewonnen:          danielGew,
+    daniel_quote:             danielJ > 0 ? (danielGew / danielJ * 100).toFixed(0) : '—',
   };
 }
 
@@ -89,6 +94,7 @@ export default function DealsBK() {
     { name: 'angebotswert',   label: 'Angebotswert (€)',  type: 'number', required: true },
     { name: 'ae_wert',        label: 'AE-Wert (€)',       type: 'number', required: f => f.status === 'Gewonnen' },
     { name: 'laufzeit_monate',label: 'Laufzeit (Monate)', type: 'number', required: f => f.status === 'Gewonnen' },
+    { name: 'termin_mit_daniel', label: 'Termin mit Daniel?', type: 'select', options: ['Ja', 'Nein'], required: true },
     { name: 'automatische_verlaengerung', label: 'Automatische Verlängerung', type: 'select', options: AUTO_VL_OPTS, required: true },
     { name: 'status',         label: 'Status',            type: 'select', options: STATUS_OPTS, required: true },
     {
@@ -219,8 +225,11 @@ export default function DealsBK() {
                 ['AE realisiert', formatEuro(gesamtKpis.ae_summe)],
                 ['Angebotswert',  formatEuro(gesamtKpis.angebotswert_gesamt)],
                 ['Offen (Wert)',  formatEuro(gesamtKpis.wert_offen)],
-                ['Auto-VL',       `${gesamtKpis.auto_verlaengerung} (${gesamtKpis.auto_verlaengerung_quote}%)`],
-                ['Abgerechnet',   `${gesamtKpis.abgerechnet_ja} (${gesamtKpis.abgerechnet_quote}%)`],
+                ['Auto-VL',           `${gesamtKpis.auto_verlaengerung} (${gesamtKpis.auto_verlaengerung_quote}%)`],
+                ['Abgerechnet',       `${gesamtKpis.abgerechnet_ja} (${gesamtKpis.abgerechnet_quote}%)`],
+                ['Termine m. Daniel', gesamtKpis.daniel_termine],
+                ['Gewonnen m. Daniel',gesamtKpis.daniel_gewonnen],
+                ['Win-Rate Daniel',   gesamtKpis.daniel_termine > 0 ? `${gesamtKpis.daniel_quote}%` : '—'],
               ].map(([label, val]) => (
                 <div key={label} className="text-xs">
                   <div className="text-gray-500 mb-0.5">{label}</div>
@@ -248,11 +257,13 @@ export default function DealsBK() {
                     <th className="px-3 py-2 text-right">Angebotswert</th>
                     <th className="px-3 py-2 text-right">Auto-VL</th>
                     <th className="px-3 py-2 text-right">Abgerechnet</th>
+                    <th className="px-3 py-2 text-right">Termine m. Daniel</th>
+                    <th className="px-3 py-2 text-right">Gewonnen m. Daniel</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {kamKpis.length === 0
-                    ? <tr><td colSpan={9} className="px-3 py-4 text-center text-gray-400">Keine Daten</td></tr>
+                    ? <tr><td colSpan={11} className="px-3 py-4 text-center text-gray-400">Keine Daten</td></tr>
                     : kamKpis.map(k => {
                         const q = parseFloat(k.kpis.quote_angebote);
                         return (
@@ -268,6 +279,11 @@ export default function DealsBK() {
                             <td className="px-3 py-2 text-right text-gray-500 whitespace-nowrap">{formatEuro(k.kpis.angebotswert_gesamt)}</td>
                             <td className="px-3 py-2 text-right text-gray-500 whitespace-nowrap">{k.kpis.auto_verlaengerung} ({k.kpis.auto_verlaengerung_quote}%)</td>
                             <td className="px-3 py-2 text-right text-gray-500 whitespace-nowrap">{k.kpis.abgerechnet_ja} ({k.kpis.abgerechnet_quote}%)</td>
+                            <td className="px-3 py-2 text-right text-gray-500">{k.kpis.daniel_termine}</td>
+                            <td className="px-3 py-2 text-right text-gray-500 whitespace-nowrap">
+                              {k.kpis.daniel_gewonnen}
+                              {k.kpis.daniel_termine > 0 && <span className="text-gray-400 ml-1">({k.kpis.daniel_quote}%)</span>}
+                            </td>
                           </tr>
                         );
                       })
@@ -284,14 +300,14 @@ export default function DealsBK() {
         <table className="w-full text-sm">
           <thead className="bg-[#2d2e30] text-gray-300 text-xs uppercase">
             <tr>
-              {['Datum','Kunde','KAM','Dienstleistung','Angebotswert','AE-Wert','Laufzeit','Status','Auto-VL','Abgerechnet','Notiz',''].map(h => (
+              {['Datum','Kunde','KAM','Dienstleistung','Angebotswert','AE-Wert','Laufzeit','Status','Daniel','Auto-VL','Abgerechnet','Notiz',''].map(h => (
                 <th key={h} className="px-3 py-2 text-left font-medium">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {filtered.length === 0 ? (
-              <tr><td colSpan={12} className="text-center py-8 text-gray-400">Keine Deals gefunden</td></tr>
+              <tr><td colSpan={13} className="text-center py-8 text-gray-400">Keine Deals gefunden</td></tr>
             ) : filtered.map(d => (
               <tr key={d.id} className="hover:bg-gray-50">
                 <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{d.datum?.slice(0,10)}</td>
@@ -305,6 +321,11 @@ export default function DealsBK() {
                 <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{d.ae_wert ? formatEuro(d.ae_wert) : '—'}</td>
                 <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{d.laufzeit_monate ? `${d.laufzeit_monate}M` : '—'}</td>
                 <td className="px-3 py-2"><StatusBadge status={d.status} /></td>
+                <td className="px-3 py-2 text-xs whitespace-nowrap">
+                  {d.termin_mit_daniel
+                    ? <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${d.termin_mit_daniel === 'Ja' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-500'}`}>{d.termin_mit_daniel}</span>
+                    : <span className="text-gray-300">—</span>}
+                </td>
                 <td className="px-3 py-2 text-xs whitespace-nowrap">
                   {d.automatische_verlaengerung
                     ? <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${d.automatische_verlaengerung === 'Ja' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>{d.automatische_verlaengerung}</span>
