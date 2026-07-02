@@ -73,13 +73,25 @@ app.post('/api/admin/test-daily-report', requireAuth, async (req, res) => {
   const step = (msg) => console.log('[test-daily-report]', msg);
 
   const run = async () => {
-    const { sendDailyDashboard, sendDailyKpi } = require('./utils/email');
+    const { sendDailyDashboard, sendDailyKpi, testSmtpConnection } = require('./utils/email');
     const { buildDashboardEmailData, buildKpiEmailData } = require('./utils/dailyReport');
 
     const today = new Date().toISOString().slice(0, 10);
     const monat = today.slice(0, 7);
     step(`START today=${today} monat=${monat}`);
 
+    // 1. SMTP-Verbindung prüfen (sofortige Rückmeldung bei falschen Credentials)
+    step('Prüfe SMTP-Verbindung…');
+    const smtpCheck = await testSmtpConnection();
+    if (!smtpCheck.ok) {
+      step(`SMTP-Fehler: ${smtpCheck.reason}`);
+      return { ok: false, smtp: false, message: `SMTP-Verbindung fehlgeschlagen: ${smtpCheck.reason}` };
+    }
+    step('SMTP-Verbindung OK');
+
+    const recipients = process.env.REPORT_EMAIL || '(nicht konfiguriert)';
+
+    // 2. Daten aus DB holen
     step('Baue Dashboard-Daten (DB-Abfragen)…');
     const dashData = await buildDashboardEmailData(monat, today);
     step('Dashboard-Daten OK');
@@ -88,12 +100,7 @@ app.post('/api/admin/test-daily-report', requireAuth, async (req, res) => {
     const kpiData = await buildKpiEmailData(today, monat);
     step('KPI-Daten OK');
 
-    const smtpOk = !!process.env.SMTP_HOST;
-    const recipients = process.env.REPORT_EMAIL || '(nicht konfiguriert)';
-    step(`SMTP_HOST=${smtpOk ? 'gesetzt' : 'nicht gesetzt'} REPORT_EMAIL=${recipients}`);
-
-    // Fire-and-forget: nicht awaiten, damit der Endpoint sofort antwortet.
-    // Der SMTP-Versand läuft im Hintergrund (sichtbar in Railway-Logs).
+    // 3. E-Mails fire-and-forget (laufen im Hintergrund, da Versand bis zu 2 Min. dauern kann)
     sendDailyDashboard(dashData)
       .then(() => step('Dashboard-E-Mail fertig'))
       .catch(e  => console.error('[test-daily-report] Dashboard-E-Mail FEHLER:', e.message));
@@ -101,10 +108,7 @@ app.post('/api/admin/test-daily-report', requireAuth, async (req, res) => {
       .then(() => step('KPI-E-Mail fertig'))
       .catch(e  => console.error('[test-daily-report] KPI-E-Mail FEHLER:', e.message));
 
-    const msg = smtpOk
-      ? `E-Mails werden gesendet an ${recipients} – bitte in wenigen Minuten prüfen.`
-      : `Kein SMTP konfiguriert – Berichte in Railway-Logs ausgegeben (SMTP_HOST fehlt).`;
-    return { ok: true, today, monat, smtp: smtpOk, message: msg };
+    return { ok: true, today, monat, smtp: true, message: `E-Mails werden gesendet an ${recipients} – bitte in 1–3 Minuten prüfen.` };
   };
 
   try {

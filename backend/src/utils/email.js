@@ -358,4 +358,15 @@ async function sendDailyKpi(data) {
   }
 }
 
-module.exports = { sendInvite, sendPasswordReset, sendDailyDashboard, sendDailyKpi };
+async function testSmtpConnection() {
+  const t = createTransporter();
+  if (!t) return { ok: false, reason: 'SMTP_HOST ist nicht konfiguriert' };
+  try {
+    await t.verify();
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, reason: err.message };
+  }
+}
+
+module.exports = { sendInvite, sendPasswordReset, sendDailyDashboard, sendDailyKpi, testSmtpConnection };
