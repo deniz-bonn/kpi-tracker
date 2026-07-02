@@ -56,7 +56,7 @@ export default function DealsNK() {
 
   const empOptions  = employees.map(e => ({ value: e.id, label: `${e.name} (${e.company_name})` }));
   const compOpts    = companies.map(c => ({ value: c.id, label: c.name }));
-  const closerList  = employees.filter(e => ['NKV-Closer', 'Multi'].includes(e.rolle));
+  const closerList  = employees.filter(e => ['NKV-Closer', 'Multi', 'Closer-KAM'].includes(e.rolle));
   const openerList  = employees.filter(e => ['Opener', 'Multi'].includes(e.rolle));
   const setterList  = employees.filter(e => ['Setter', 'Multi'].includes(e.rolle));
   const closerOptions = closerList.map(e => ({ value: e.id, label: `${e.name} (${e.company_name})` }));
