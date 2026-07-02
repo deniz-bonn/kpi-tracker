@@ -64,6 +64,29 @@ cron.schedule('0 23 * * *', async () => {
   }
 });
 
+// POST /api/admin/test-daily-report — löst beide Tagesberichte sofort aus (nur Admin)
+app.post('/api/admin/test-daily-report', requireAuth, async (req, res) => {
+  if (!['admin', 'vertriebsleitung'].includes(req.user?.role)) {
+    return res.status(403).json({ error: 'Keine Berechtigung' });
+  }
+  try {
+    const { sendDailyDashboard, sendDailyKpi } = require('./utils/email');
+    const { buildDashboardEmailData, buildKpiEmailData } = require('./utils/dailyReport');
+    const today = new Date().toISOString().slice(0, 10);
+    const monat = today.slice(0, 7);
+    const [dashData, kpiData] = await Promise.all([
+      buildDashboardEmailData(monat, today),
+      buildKpiEmailData(today, monat),
+    ]);
+    await sendDailyDashboard(dashData);
+    await sendDailyKpi(kpiData);
+    res.json({ ok: true, today, monat, message: 'Beide E-Mails wurden verschickt.' });
+  } catch (err) {
+    console.error('[test-daily-report]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Daily reports at 22:00
 cron.schedule('0 22 * * *', async () => {
   try {
