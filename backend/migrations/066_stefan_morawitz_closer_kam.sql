@@ -3,4 +3,5 @@
 UPDATE employees
 SET rolle      = 'Closer-KAM',
     updated_at = datetime('now')
-WHERE LOWER(email) = 'office@morawitzconsulting.at';
+WHERE name = 'Stefan Morawitz'
+  AND company_id = 3;
