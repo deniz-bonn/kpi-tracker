@@ -388,7 +388,8 @@ export default function DealsVL() {
       </div>
 
       {modal && (
-        <DealModal title={modal.mode === 'create' ? 'Neue Verlängerung' : 'Verlängerung bearbeiten'}
+        <DealModal key={modal.mode === 'create' ? 'new' : modal.data?.id}
+          title={modal.mode === 'create' ? 'Neue Verlängerung' : 'Verlängerung bearbeiten'}
           fields={fields} initial={modal.data} onSave={handleSave} onClose={() => setModal(null)} />
       )}
     </div>

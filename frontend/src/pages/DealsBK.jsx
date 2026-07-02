@@ -356,7 +356,8 @@ export default function DealsBK() {
       </div>
 
       {modal && (
-        <DealModal title={modal.mode === 'create' ? 'Neuer BK-Deal' : 'BK-Deal bearbeiten'}
+        <DealModal key={modal.mode === 'create' ? 'new' : modal.data?.id}
+          title={modal.mode === 'create' ? 'Neuer BK-Deal' : 'BK-Deal bearbeiten'}
           fields={fields} initial={modal.data} onSave={handleSave} onClose={() => setModal(null)} />
       )}
     </div>

@@ -1,10 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 export default function DealModal({ title, fields, initial = {}, onSave, onClose }) {
-  const [form, setForm]     = useState({});
+  const [form, setForm]     = useState(initial);
   const [errors, setErrors] = useState({});
-
-  useEffect(() => { setForm(initial); setErrors({}); }, [initial]);
 
   // Set a field value, then run autoFill for all other fields that depend on this change
   const set = (k, v) => {

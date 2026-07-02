@@ -416,6 +416,7 @@ export default function DealsNK() {
 
       {modal && (
         <DealModal
+          key={modal.mode === 'create' ? 'new' : modal.data?.id}
           title={modal.mode === 'create' ? 'Neuer NK-Deal' : 'NK-Deal bearbeiten'}
           fields={fields} initial={modal.data} onSave={handleSave} onClose={() => setModal(null)}
         />
