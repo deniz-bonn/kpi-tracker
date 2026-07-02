@@ -20,9 +20,8 @@ if (usePostgres) {
       };
   const pool = new Pool({
     ...poolConfig,
-    connectionTimeoutMillis: 10000, // fail fast if pool is exhausted
+    connectionTimeoutMillis: 10000,
     idleTimeoutMillis:       30000,
-    options:                 '--statement_timeout=25000', // 25s query limit
   });
 
   db = {
