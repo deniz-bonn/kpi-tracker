@@ -145,6 +145,22 @@ export default function DealsNK() {
     };
   }, [filtered]);
 
+  // Standort-Statistiken (nur wenn alle Standorte sichtbar)
+  const standortStats = useMemo(() => STANDORTE.map(standort => {
+    const s = filtered.filter(d => d.closer_standort === standort);
+    const gew = s.filter(d => d.status === 'Gewonnen').length;
+    const ver = s.filter(d => d.status === 'Verloren').length;
+    return {
+      standort,
+      total:    s.length,
+      gewonnen: gew,
+      verloren: ver,
+      offen:    s.filter(d => !['Gewonnen','Verloren'].includes(d.status)).length,
+      ae_summe: s.filter(d => d.status === 'Gewonnen').reduce((sum, d) => sum + (Number(d.ae_wert) || 0), 0),
+      quote:    s.length > 0 ? (gew / s.length * 100).toFixed(2) : '0.00',
+    };
+  }), [filtered]);
+
   // Setter-Statistiken
   const setterStats = useMemo(() => {
     const m = {};
@@ -355,6 +371,46 @@ export default function DealsNK() {
               </table>
             </div>
           </div>
+
+          {/* Standortvergleich — nur sichtbar wenn alle Standorte */}
+          {!filterStandort && (
+            <div className="rounded-lg border border-gray-200 overflow-hidden">
+              <div className="px-3 py-2 bg-[#2d2e30] border-b border-[#444]">
+                <span className="text-xs font-bold text-white uppercase tracking-wide">Vergleich nach Standort</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 font-medium">
+                      <th className="px-3 py-2 text-left">Standort</th>
+                      <th className="px-3 py-2 text-right">Angebote</th>
+                      <th className="px-3 py-2 text-right">Gewonnen</th>
+                      <th className="px-3 py-2 text-right">Verloren</th>
+                      <th className="px-3 py-2 text-right">Offen</th>
+                      <th className="px-3 py-2 text-right">Quote</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {standortStats.map(s => {
+                      const q = parseFloat(s.quote);
+                      return (
+                        <tr key={s.standort} className="hover:bg-gray-50">
+                          <td className="px-3 py-1.5 text-gray-700 font-medium">{s.standort}</td>
+                          <td className="px-3 py-1.5 text-right text-gray-600">{s.total}</td>
+                          <td className="px-3 py-1.5 text-right text-green-700 font-medium">{s.gewonnen}</td>
+                          <td className="px-3 py-1.5 text-right text-red-600">{s.verloren}</td>
+                          <td className="px-3 py-1.5 text-right text-gray-500">{s.offen}</td>
+                          <td className={`px-3 py-1.5 text-right font-bold ${q >= 30 ? 'text-green-600' : q > 0 ? 'text-amber-600' : 'text-gray-400'}`}>
+                            {s.total > 0 ? `${s.quote}%` : '—'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
