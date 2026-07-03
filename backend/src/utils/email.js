@@ -29,11 +29,19 @@ function createTransporter() {
 }
 
 // ── Einheitliche Versand-Funktion ─────────────────────────────────────────────
-async function sendEmail({ to, subject, html }) {
+// attachments: [{ filename: string, content: string|Buffer }]
+async function sendEmail({ to, subject, html, attachments = [] }) {
   const resend = getResendClient();
   if (resend) {
     const toArr = Array.isArray(to) ? to : to.split(',').map(s => s.trim());
-    const { error } = await resend.emails.send({ from: FROM, to: toArr, subject, html });
+    const opts = { from: FROM, to: toArr, subject, html };
+    if (attachments.length) {
+      opts.attachments = attachments.map(a => ({
+        filename: a.filename,
+        content: Buffer.isBuffer(a.content) ? a.content : Buffer.from(a.content),
+      }));
+    }
+    const { error } = await resend.emails.send(opts);
     if (error) throw new Error(error.message || JSON.stringify(error));
     return;
   }
@@ -42,7 +50,7 @@ async function sendEmail({ to, subject, html }) {
     console.log(`[EMAIL - kein SMTP/Resend konfiguriert]\nSubject: ${subject}\nTo: ${to}`);
     return;
   }
-  await transporter.sendMail({ from: FROM, to, subject, html });
+  await transporter.sendMail({ from: FROM, to, subject, html, attachments });
 }
 
 // ── Verbindungstest ───────────────────────────────────────────────────────────
@@ -375,4 +383,39 @@ async function sendDailyKpi(data) {
   }
 }
 
-module.exports = { sendInvite, sendPasswordReset, sendDailyDashboard, sendDailyKpi, testEmailConnection };
+async function sendBackupEmail(backupData) {
+  if (REPORT_RECIPIENTS.length === 0) {
+    console.log('[backup-email] Kein REPORT_EMAIL konfiguriert — Backup-E-Mail übersprungen');
+    return;
+  }
+  const dateStr = backupData.generated_at.slice(0, 10);
+  const filename = `kpi-backup-${dateStr}.json`;
+  const subject = `💾 KPI Tracker Backup – ${dateStr}`;
+  const html = `<!DOCTYPE html><html><body style="margin:0;padding:20px;background:#f1f5f9;font-family:Arial,sans-serif">
+  <div style="max-width:500px;margin:0 auto">
+    <div style="background:#1e293b;color:#fff;border-radius:8px 8px 0 0;padding:16px 20px">
+      <div style="font-size:18px;font-weight:bold">💾 Automatisches Backup</div>
+      <div style="opacity:.7;font-size:12px;margin-top:4px">KPI Tracker · ${dateStr}</div>
+    </div>
+    <div style="background:#fff;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;padding:16px 20px">
+      <p style="margin:0 0 12px;color:#334155">Das tägliche automatische Backup wurde erfolgreich erstellt und ist als Anhang beigefügt.</p>
+      <p style="margin:0 0 8px;font-size:13px;color:#64748b">Datei: <strong>${filename}</strong></p>
+      <p style="margin:0;font-size:12px;color:#94a3b8">Erstellt am ${dateStr} um 23:00 Uhr (automatisch)</p>
+    </div>
+    <div style="text-align:center;color:#94a3b8;font-size:11px;padding:12px">KPI Tracker · Automatisches Tages-Backup</div>
+  </div>
+</body></html>`;
+  try {
+    await sendEmail({
+      to: REPORT_RECIPIENTS.join(','),
+      subject,
+      html,
+      attachments: [{ filename, content: JSON.stringify(backupData, null, 2) }],
+    });
+    console.log(`[backup-email] Backup-E-Mail verschickt an ${REPORT_RECIPIENTS.join(', ')}`);
+  } catch (err) {
+    console.error('[backup-email] Backup-E-Mail fehlgeschlagen:', err.message);
+  }
+}
+
+module.exports = { sendInvite, sendPasswordReset, sendDailyDashboard, sendDailyKpi, sendBackupEmail, testEmailConnection };

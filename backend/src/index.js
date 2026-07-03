@@ -53,16 +53,18 @@ app.use('/api/export',         require('./routes/export'));      // requireAuth 
 const { router: backupRouter, generateBackup, storeAutoBackup } = require('./routes/backup');
 const cron = require('node-cron');
 app.use('/api/backup',         backupRouter);                   // requireAuth + requireRole inside
-// Daily auto-backup at 23:00
+// Daily auto-backup at 23:00 Berlin time — generates backup + sends it via email
 cron.schedule('0 23 * * *', async () => {
   try {
+    const { sendBackupEmail } = require('./utils/email');
     const data = await generateBackup();
     storeAutoBackup(data);
     console.log('[backup] Auto-Backup erstellt:', data.generated_at);
+    await sendBackupEmail(data);
   } catch (err) {
     console.error('[backup] Auto-Backup fehlgeschlagen:', err.message);
   }
-});
+}, { timezone: 'Europe/Berlin' });
 
 // POST /api/admin/test-daily-report — löst beide Tagesberichte sofort aus (nur Admin)
 app.post('/api/admin/test-daily-report', requireAuth, async (req, res) => {
@@ -120,7 +122,7 @@ app.post('/api/admin/test-daily-report', requireAuth, async (req, res) => {
   }
 });
 
-// Daily reports at 22:00
+// Daily reports at 22:00 Berlin time
 cron.schedule('0 22 * * *', async () => {
   try {
     const { sendDailyDashboard, sendDailyKpi } = require('./utils/email');
@@ -136,7 +138,7 @@ cron.schedule('0 22 * * *', async () => {
   } catch (err) {
     console.error('[daily-report] Fehlgeschlagen:', err.message, err.stack?.split('\n')[1] || '');
   }
-});
+}, { timezone: 'Europe/Berlin' });
 
 // ── Serve built React frontend (production / Railway) ────────────────────────
 const publicPath = path.join(__dirname, '../public');
