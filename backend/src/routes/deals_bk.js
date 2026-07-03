@@ -70,23 +70,12 @@ function resolveGewonnenFelder(body, existing = null) {
   return { gewonnen_datum: null, gewonnen_monat: null };
 }
 
-function ownFilter(req) {
-  const user = req.user;
-  if (['bk_vertrieb'].includes(user.role) && user.employee_id) {
-    return { field: 'd.kam_id', value: user.employee_id };
-  }
-  return null;
-}
-
 router.get('/', wrap(async (req, res) => {
   const { company_id, monat, gewonnen_monat, status, kam_id } = req.query;
   const conditions = [];
   const params = [];
   let i = 1;
   const p = () => db.dialect === 'postgres' ? `$${i++}` : '?';
-
-  const own = ownFilter(req);
-  if (own) { conditions.push(`${own.field} = ${p()}`); params.push(own.value); }
 
   if (company_id)    { conditions.push(`d.company_id = ${p()}`);    params.push(company_id); }
   if (monat)         { conditions.push(`d.monat = ${p()}`);         params.push(monat); }
