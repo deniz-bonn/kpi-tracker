@@ -42,7 +42,8 @@ const ZERO_FORM = {
   unqualifiziert: '', follow_up: '', beratung_vereinbart: '',
   beratungen_geplant: '', beratungen_stattgefunden: '',
   beratungen_verschoben: '', beratungen_no_show: '',
-  beratungen_follow_up_cc2: '', beratungen_kein_close: '',
+  beratungen_direkter_close: '', beratungen_follow_up_cc2: '',
+  beratungen_unqualifiziert: '', beratungen_kein_close: '',
   kommentar: '',
 };
 const INBOUND_ZERO = { inbound_mail: '', inbound_fax: '', inbound_ad: '', terminiert_mail: '', terminiert_fax: '', terminiert_ad: '', kommentar: '' };
@@ -130,7 +131,9 @@ function ActivityModal({ employee, datum, existing, companyId, onSave, onClose, 
                 {inp('beratungen_stattgefunden',   'Beratungsgespräche stattgefunden')}
                 {inp('beratungen_verschoben',      'Beratungsgespräche verschoben')}
                 {inp('beratungen_no_show',         'No-Show')}
+                {inp('beratungen_direkter_close',  'Direkter Close')}
                 {inp('beratungen_follow_up_cc2',   'Follow-Up / Closing Call 2')}
+                {inp('beratungen_unqualifiziert',  'Unqualifiziert')}
                 {inp('beratungen_kein_close',      'Kein Close')}
               </div>
             </section>
@@ -959,10 +962,11 @@ export default function KpiMitarbeiterBeta() {
                 <KpiCard color="green"  label="Show-Rate Beratungen"     value={pct(sum(activeLogs,'beratungen_stattgefunden'),sum(activeLogs,'beratungen_geplant'))} desc={`${sum(activeLogs,'beratungen_stattgefunden')} / ${sum(activeLogs,'beratungen_geplant')}`} />
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
-                <KpiCard color="amber" label="No-Shows"         value={sum(activeLogs,'beratungen_no_show')}       desc={pct(sum(activeLogs,'beratungen_no_show'),sum(activeLogs,'beratungen_geplant'))+' von geplanten'} />
-                <KpiCard color="amber" label="Verschoben"       value={sum(activeLogs,'beratungen_verschoben')}    desc={pct(sum(activeLogs,'beratungen_verschoben'),sum(activeLogs,'beratungen_geplant'))+' von geplanten'} />
-                <KpiCard color="indigo" label="Follow-Up / CC2" value={sum(activeLogs,'beratungen_follow_up_cc2')} desc={pct(sum(activeLogs,'beratungen_follow_up_cc2'),sum(activeLogs,'beratungen_stattgefunden'))+' der stattgef. Beratungen'} />
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <KpiCard color="green"  label="Direkter Close"  value={sum(activeLogs,'beratungen_direkter_close')} desc={pct(sum(activeLogs,'beratungen_direkter_close'),sum(activeLogs,'beratungen_stattgefunden'))+' der stattgef. Beratungen'} />
+                <KpiCard color="indigo" label="Follow-Up / CC2" value={sum(activeLogs,'beratungen_follow_up_cc2')}  desc={pct(sum(activeLogs,'beratungen_follow_up_cc2'),sum(activeLogs,'beratungen_stattgefunden'))+' der stattgef. Beratungen'} />
+                <KpiCard color="amber"  label="Unqualifiziert"  value={sum(activeLogs,'beratungen_unqualifiziert')} desc={pct(sum(activeLogs,'beratungen_unqualifiziert'),sum(activeLogs,'beratungen_stattgefunden'))+' der stattgef. Beratungen'} />
+                <KpiCard color="amber"  label="No-Shows"        value={sum(activeLogs,'beratungen_no_show')}        desc={pct(sum(activeLogs,'beratungen_no_show'),sum(activeLogs,'beratungen_geplant'))+' von geplanten'} />
               </div>
 
               <SectionBox
@@ -977,7 +981,9 @@ export default function KpiMitarbeiterBeta() {
                         <th className="px-3 py-2 text-right">Stattg.</th>
                         <th className="px-3 py-2 text-right">Show-Rate</th>
                         <th className="px-3 py-2 text-right">No-Show</th>
+                        <th className="px-3 py-2 text-right">Dir. Close</th>
                         <th className="px-3 py-2 text-right">Follow-Up</th>
+                        <th className="px-3 py-2 text-right">Unqual.</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-green-50">
@@ -992,12 +998,14 @@ export default function KpiMitarbeiterBeta() {
                             <td className="px-3 py-2.5 text-right font-medium text-gray-900">{stattg}</td>
                             <td className="px-3 py-2.5 text-right font-bold text-green-700">{pct(stattg,gepl)}</td>
                             <td className="px-3 py-2.5 text-right text-red-500">{sum(ls,'beratungen_no_show')}</td>
+                            <td className="px-3 py-2.5 text-right text-green-600 font-medium">{sum(ls,'beratungen_direkter_close')}</td>
                             <td className="px-3 py-2.5 text-right text-amber-600">{sum(ls,'beratungen_follow_up_cc2')}</td>
+                            <td className="px-3 py-2.5 text-right text-gray-500">{sum(ls,'beratungen_unqualifiziert')}</td>
                           </tr>
                         );
                       })}
                       {perEmployee.filter(ep => IS_CLOSER(ep.rolle)).length === 0 && (
-                        <tr><td colSpan={6} className="px-3 py-5 text-center text-gray-400">Keine Closer-Daten</td></tr>
+                        <tr><td colSpan={8} className="px-3 py-5 text-center text-gray-400">Keine Closer-Daten</td></tr>
                       )}
                     </tbody>
                   </table>
