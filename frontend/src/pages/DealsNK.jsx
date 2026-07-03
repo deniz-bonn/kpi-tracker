@@ -388,6 +388,7 @@ export default function DealsNK() {
                       <th className="px-3 py-2 text-right">Verloren</th>
                       <th className="px-3 py-2 text-right">Offen</th>
                       <th className="px-3 py-2 text-right">Quote</th>
+                      <th className="px-3 py-2 text-right">Realisierte AE</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -402,6 +403,9 @@ export default function DealsNK() {
                           <td className="px-3 py-1.5 text-right text-gray-500">{s.offen}</td>
                           <td className={`px-3 py-1.5 text-right font-bold ${q >= 30 ? 'text-green-600' : q > 0 ? 'text-amber-600' : 'text-gray-400'}`}>
                             {s.total > 0 ? `${s.quote}%` : '—'}
+                          </td>
+                          <td className="px-3 py-1.5 text-right text-blue-700 font-medium">
+                            {s.ae_summe > 0 ? formatEuro(s.ae_summe) : '—'}
                           </td>
                         </tr>
                       );
