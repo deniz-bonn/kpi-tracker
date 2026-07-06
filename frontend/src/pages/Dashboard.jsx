@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { kpisApi, monthlyTargetsApi, auswertungApi } from '../utils/api';
 import { formatEuro } from '../utils/format';
+import { useAuth } from '../context/AuthContext';
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
 const MONTH_NAMES_LONG = [
@@ -170,6 +171,8 @@ function MonthSection({ row, isExpanded, onToggle, isCurrent }) {
 // ── Hauptkomponente ───────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { company } = useOutletContext();
+  const { user } = useAuth();
+  const canSeeTargets = ['superadmin', 'admin', 'vertriebsleitung'].includes(user?.role);
   const qc = useQueryClient();
   const currentYear = new Date().getFullYear();
   const currentMonat = `${currentYear}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
@@ -265,8 +268,8 @@ export default function Dashboard() {
               <th colSpan={5} className={`${th} text-green-300 border-l border-[#444] text-center`}>Bestandskunden BK</th>
               <th colSpan={5} className={`${th} text-purple-300 border-l border-[#444] text-center`}>Verlängerungen VL</th>
               <th className={`${th} text-white border-l border-[#444]`} rowSpan={2}>Umsatz Gesamt</th>
-              <th className={`${th} text-amber-300 border-l border-[#444]`} rowSpan={2}>Ziel</th>
-              <th className={`${th} text-white border-l border-[#444]`} rowSpan={2}>Differenz</th>
+              {canSeeTargets && <th className={`${th} text-amber-300 border-l border-[#444]`} rowSpan={2}>Ziel</th>}
+              {canSeeTargets && <th className={`${th} text-white border-l border-[#444]`} rowSpan={2}>Differenz</th>}
             </tr>
             <tr className="bg-[#3a3a3a] border-b border-[#444] text-gray-400 text-xs">
               <th className={`${th} border-l border-[#444]`}>Bonn</th>
@@ -340,33 +343,37 @@ export default function Dashboard() {
                     <EuroCell value={row.gesamt} bold />
                   </td>
 
-                  {/* Ziel – inline editierbar */}
-                  <td className={`${td} border-l border-gray-200`}>
-                    {editZiel?.monat === row.monat ? (
-                      <input
-                        type="number"
-                        value={editZiel.value}
-                        onChange={e => setEditZiel(z => ({ ...z, value: e.target.value }))}
-                        onBlur={saveZiel}
-                        onKeyDown={e => { if (e.key === 'Enter') saveZiel(); if (e.key === 'Escape') setEditZiel(null); }}
-                        autoFocus
-                        className="w-28 bg-white border border-blue-500 text-gray-800 text-xs rounded px-2 py-0.5"
-                      />
-                    ) : (
-                      <span
-                        onClick={() => setEditZiel({ monat: row.monat, value: row.ziel || '' })}
-                        className={`cursor-pointer ${row.ziel ? 'text-amber-600' : 'text-gray-300 italic hover:text-gray-500'}`}
-                        title="Klicken zum Eintragen"
-                      >
-                        {row.ziel ? formatEuro(row.ziel) : '+ Ziel'}
-                      </span>
-                    )}
-                  </td>
+                  {/* Ziel – inline editierbar, nur für Admins/Vertriebsleitung */}
+                  {canSeeTargets && (
+                    <td className={`${td} border-l border-gray-200`}>
+                      {editZiel?.monat === row.monat ? (
+                        <input
+                          type="number"
+                          value={editZiel.value}
+                          onChange={e => setEditZiel(z => ({ ...z, value: e.target.value }))}
+                          onBlur={saveZiel}
+                          onKeyDown={e => { if (e.key === 'Enter') saveZiel(); if (e.key === 'Escape') setEditZiel(null); }}
+                          autoFocus
+                          className="w-28 bg-white border border-blue-500 text-gray-800 text-xs rounded px-2 py-0.5"
+                        />
+                      ) : (
+                        <span
+                          onClick={() => setEditZiel({ monat: row.monat, value: row.ziel || '' })}
+                          className={`cursor-pointer ${row.ziel ? 'text-amber-600' : 'text-gray-300 italic hover:text-gray-500'}`}
+                          title="Klicken zum Eintragen"
+                        >
+                          {row.ziel ? formatEuro(row.ziel) : '+ Ziel'}
+                        </span>
+                      )}
+                    </td>
+                  )}
 
                   {/* Differenz */}
-                  <td className={`${td} border-l border-gray-200`}>
-                    <DiffCell value={row.differenz} />
-                  </td>
+                  {canSeeTargets && (
+                    <td className={`${td} border-l border-gray-200`}>
+                      <DiffCell value={row.differenz} />
+                    </td>
+                  )}
                 </tr>
               );
             })}
@@ -409,16 +416,18 @@ export default function Dashboard() {
               <td className={td}><span className="text-white">{totals.vl_anteil ? `${totals.vl_anteil.toFixed(2).replace('.', ',')}%` : <span className="text-gray-500">—</span>}</span></td>
               {/* Gesamt + Ziel + Differenz */}
               <td className={`${td} border-l border-[#444]`}><span className="text-white">{totals.gesamt ? formatEuro(totals.gesamt) : '—'}</span></td>
-              <td className={`${td} border-l border-[#444]`}><span className="text-amber-300">{totals.ziel ? formatEuro(totals.ziel) : <span className="text-gray-500">—</span>}</span></td>
-              <td className={`${td} border-l border-[#444]`}><DiffCell value={totals.differenz} dark /></td>
+              {canSeeTargets && <td className={`${td} border-l border-[#444]`}><span className="text-amber-300">{totals.ziel ? formatEuro(totals.ziel) : <span className="text-gray-500">—</span>}</span></td>}
+              {canSeeTargets && <td className={`${td} border-l border-[#444]`}><DiffCell value={totals.differenz} dark /></td>}
             </tr>
           </tbody>
         </table>
       </div>
 
-      <p className="text-xs text-gray-400 -mt-3">
-        💡 Ziel-Spalte: auf eine Zelle klicken → Zahl eingeben → Enter · NK-Zellen zeigen Auftragsvolumen + Anzahl gewonnener Neukunden
-      </p>
+      {canSeeTargets && (
+        <p className="text-xs text-gray-400 -mt-3">
+          💡 Ziel-Spalte: auf eine Zelle klicken → Zahl eingeben → Enter · NK-Zellen zeigen Auftragsvolumen + Anzahl gewonnener Neukunden
+        </p>
+      )}
 
       {/* ── Auftragseingang ── */}
       <div className="space-y-3">
