@@ -762,9 +762,16 @@ export default function KpiMitarbeiterBeta() {
                 <MetricCard color="green"  label="Beratungen stattgef."   value={fBeratungen}  sub={pct(fBeratungen, sum(activeLogs,'beratungen_geplant')) + ' Show-Rate'} />
               </div>
 
+              {/* Konversionsraten-Übersicht */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <KpiCard color="blue"   label="Terminierungsquote"   value={pct(fTerminiert, fEntscheider)}                              desc={`${fTerminiert} / ${fEntscheider} Entscheider terminiert`} />
+                <KpiCard color="violet" label="Show-Rate Settings"   value={pct(fSettings, sum(activeLogs,'settings_geplant'))}          desc={`${fSettings} stattgef. / ${sum(activeLogs,'settings_geplant')} geplant`} />
+                <KpiCard color="green"  label="Show-Rate Beratungen" value={pct(fBeratungen, sum(activeLogs,'beratungen_geplant'))}      desc={`${fBeratungen} stattgef. / ${sum(activeLogs,'beratungen_geplant')} geplant`} />
+                <KpiCard color="indigo" label="Durchstellungsquote"  value={pct(fBeratungen, fSettings)}                                 desc={`${fBeratungen} Beratungen aus ${fSettings} Settings`} />
+              </div>
+
               {/* Terminierungsquoten */}
-              <div className="grid grid-cols-3 gap-3">
-                <KpiCard color="blue"   label="Terminierungsquote"         value={pct(fTerminiert, fEntscheider)}              desc={`${fTerminiert} / ${fEntscheider} Entscheider`} />
+              <div className="grid grid-cols-2 gap-3">
                 <KpiCard color="teal"   label="CC-Anteil an Terminen"      value={pct(sum(activeLogs,'terminiert_cold_calls'), fTerminiert)} desc={`${sum(activeLogs,'terminiert_cold_calls')} Cold-Call-Termine`} />
                 <KpiCard color="teal"   label="Inbound-Anteil an Terminen" value={pct(sum(activeLogs,'terminiert_inbound'), fTerminiert)}    desc={`${sum(activeLogs,'terminiert_inbound')} Inbound-Termine`} />
               </div>
@@ -786,11 +793,12 @@ export default function KpiMitarbeiterBeta() {
                         <th className="px-3 py-2 text-right">Show-R.Set.</th>
                         <th className="px-3 py-2 text-right">Ber.stattg.</th>
                         <th className="px-3 py-2 text-right">Show-R.Ber.</th>
+                        <th className="px-3 py-2 text-right" title="Durchstellungsquote: Beratungen stattgef. / Settings stattgef.">Durchst.%</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {perEmployee.length === 0
-                        ? <tr><td colSpan={9} className="px-3 py-5 text-center text-gray-400">Keine Daten für diesen Zeitraum</td></tr>
+                        ? <tr><td colSpan={10} className="px-3 py-5 text-center text-gray-400">Keine Daten für diesen Zeitraum</td></tr>
                         : perEmployee.map((ep, i) => {
                           const ls = ep.logs;
                           return (
@@ -804,6 +812,7 @@ export default function KpiMitarbeiterBeta() {
                               <td className="px-3 py-2.5 text-right text-violet-700 font-medium">{IS_OPENER(ep.rolle) ? pct(sum(ls,'settings_stattgefunden'),sum(ls,'settings_geplant')) : '—'}</td>
                               <td className="px-3 py-2.5 text-right font-medium text-gray-900">{IS_CLOSER(ep.rolle) ? sum(ls,'beratungen_stattgefunden') : '—'}</td>
                               <td className="px-3 py-2.5 text-right text-green-700 font-medium">{IS_CLOSER(ep.rolle) ? pct(sum(ls,'beratungen_stattgefunden'),sum(ls,'beratungen_geplant')) : '—'}</td>
+                              <td className="px-3 py-2.5 text-right text-indigo-700 font-bold">—</td>
                             </tr>
                           );
                         })
@@ -820,6 +829,7 @@ export default function KpiMitarbeiterBeta() {
                           <td className="px-3 py-2 text-right">{pct(sum(activeLogs,'settings_stattgefunden'),sum(activeLogs,'settings_geplant'))}</td>
                           <td className="px-3 py-2 text-right">{sum(activeLogs,'beratungen_stattgefunden')}</td>
                           <td className="px-3 py-2 text-right">{pct(sum(activeLogs,'beratungen_stattgefunden'),sum(activeLogs,'beratungen_geplant'))}</td>
+                          <td className="px-3 py-2 text-right">{pct(sum(activeLogs,'beratungen_stattgefunden'),sum(activeLogs,'settings_stattgefunden'))}</td>
                         </tr>
                       </tfoot>
                     )}
@@ -891,12 +901,16 @@ export default function KpiMitarbeiterBeta() {
           {/* ── Setting ── */}
           {auswertTab === 'setting' && (
             <div className="space-y-3">
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                <KpiCard color="violet" label="Settings geplant"        value={sum(activeLogs,'settings_geplant')} />
-                <KpiCard color="violet" label="Settings stattgefunden"  value={sum(activeLogs,'settings_stattgefunden')} />
-                <KpiCard color="violet" label="Show-Rate Settings"      value={pct(sum(activeLogs,'settings_stattgefunden'),sum(activeLogs,'settings_geplant'))} desc={`${sum(activeLogs,'settings_stattgefunden')} / ${sum(activeLogs,'settings_geplant')}`} />
-                <KpiCard color="indigo" label="Setting → Beratung"      value={pct(sum(activeLogs,'beratung_vereinbart'),sum(activeLogs,'settings_stattgefunden'))} desc={`${sum(activeLogs,'beratung_vereinbart')} Beratungsgespräche vereinbart`} />
-                <KpiCard color="indigo" label="Direkte Settings"        value={sum(activeLogs,'settings_direkt')} desc={`${sum(activeLogs,'beratung_vereinbart_direkt')} direkte Beratungen`} />
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <KpiCard color="violet" label="Settings geplant"       value={sum(activeLogs,'settings_geplant')} />
+                <KpiCard color="violet" label="Settings stattgefunden" value={sum(activeLogs,'settings_stattgefunden')} />
+                <KpiCard color="violet" label="Show-Rate Settings"     value={pct(sum(activeLogs,'settings_stattgefunden'),sum(activeLogs,'settings_geplant'))} desc={`${sum(activeLogs,'settings_stattgefunden')} stattgef. / ${sum(activeLogs,'settings_geplant')} geplant (täglich)`} />
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <KpiCard color="indigo" label="Durchstellungsquote"              value={pct(sum(activeLogs,'beratungen_stattgefunden'),sum(activeLogs,'settings_stattgefunden'))} desc={`${sum(activeLogs,'beratungen_stattgefunden')} Beratungen aus ${sum(activeLogs,'settings_stattgefunden')} Settings`} />
+                <KpiCard color="indigo" label="Buchungsrate (Setting → Beratung)" value={pct(sum(activeLogs,'beratung_vereinbart'),sum(activeLogs,'settings_stattgefunden'))}      desc={`${sum(activeLogs,'beratung_vereinbart')} Beratungsgespräche vereinbart`} />
+                <KpiCard color="indigo" label="Direkte Settings"                  value={sum(activeLogs,'settings_direkt')}                                                        desc={`${sum(activeLogs,'beratung_vereinbart_direkt')} direkte Beratungen`} />
               </div>
 
               <div className="grid grid-cols-3 gap-3">
