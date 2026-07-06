@@ -26,6 +26,7 @@ export default function DealsNK() {
   const [modal, setModal] = useState(null);
   const [showKpis, setShowKpis] = useState(true);
   const [showOpener, setShowOpener] = useState(false);
+  const [showStandort, setShowStandort] = useState(false);
 
   const [filterQuelle, setFilterQuelle]     = useState('');
   const [filterCloser, setFilterCloser]     = useState('');
@@ -443,44 +444,50 @@ export default function DealsNK() {
           {/* Standortvergleich — nur sichtbar wenn alle Standorte */}
           {!filterStandort && (
             <div className="rounded-lg border border-gray-200 overflow-hidden">
-              <div className="px-3 py-2 bg-[#2d2e30] border-b border-[#444]">
+              <button
+                onClick={() => setShowStandort(v => !v)}
+                className="w-full flex items-center justify-between px-3 py-2 bg-[#2d2e30] hover:bg-[#3a3a3a] transition-colors"
+              >
                 <span className="text-xs font-bold text-white uppercase tracking-wide">Vergleich nach Standort</span>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 font-medium">
-                      <th className="px-3 py-2 text-left">Standort</th>
-                      <th className="px-3 py-2 text-right">Angebote</th>
-                      <th className="px-3 py-2 text-right">Gewonnen</th>
-                      <th className="px-3 py-2 text-right">Verloren</th>
-                      <th className="px-3 py-2 text-right">Offen</th>
-                      <th className="px-3 py-2 text-right">Quote</th>
-                      <th className="px-3 py-2 text-right">Realisierte AE</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {standortStats.map(s => {
-                      const q = parseFloat(s.quote);
-                      return (
-                        <tr key={s.standort} className="hover:bg-gray-50">
-                          <td className="px-3 py-1.5 text-gray-700 font-medium">{s.standort}</td>
-                          <td className="px-3 py-1.5 text-right text-gray-600">{s.total}</td>
-                          <td className="px-3 py-1.5 text-right text-green-700 font-medium">{s.gewonnen}</td>
-                          <td className="px-3 py-1.5 text-right text-red-600">{s.verloren}</td>
-                          <td className="px-3 py-1.5 text-right text-gray-500">{s.offen}</td>
-                          <td className={`px-3 py-1.5 text-right font-bold ${q >= 30 ? 'text-green-600' : q > 0 ? 'text-amber-600' : 'text-gray-400'}`}>
-                            {s.total > 0 ? `${s.quote}%` : '—'}
-                          </td>
-                          <td className="px-3 py-1.5 text-right text-blue-700 font-medium">
-                            {s.ae_summe > 0 ? formatEuro(s.ae_summe) : '—'}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                <span className="text-gray-400 text-xs">{showStandort ? '▲ Einklappen' : '▼ Anzeigen'}</span>
+              </button>
+              {showStandort && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 font-medium">
+                        <th className="px-3 py-2 text-left">Standort</th>
+                        <th className="px-3 py-2 text-right">Angebote</th>
+                        <th className="px-3 py-2 text-right">Gewonnen</th>
+                        <th className="px-3 py-2 text-right">Verloren</th>
+                        <th className="px-3 py-2 text-right">Offen</th>
+                        <th className="px-3 py-2 text-right">Quote</th>
+                        <th className="px-3 py-2 text-right">Realisierte AE</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {standortStats.map(s => {
+                        const q = parseFloat(s.quote);
+                        return (
+                          <tr key={s.standort} className="hover:bg-gray-50">
+                            <td className="px-3 py-1.5 text-gray-700 font-medium">{s.standort}</td>
+                            <td className="px-3 py-1.5 text-right text-gray-600">{s.total}</td>
+                            <td className="px-3 py-1.5 text-right text-green-700 font-medium">{s.gewonnen}</td>
+                            <td className="px-3 py-1.5 text-right text-red-600">{s.verloren}</td>
+                            <td className="px-3 py-1.5 text-right text-gray-500">{s.offen}</td>
+                            <td className={`px-3 py-1.5 text-right font-bold ${q >= 30 ? 'text-green-600' : q > 0 ? 'text-amber-600' : 'text-gray-400'}`}>
+                              {s.total > 0 ? `${s.quote}%` : '—'}
+                            </td>
+                            <td className="px-3 py-1.5 text-right text-blue-700 font-medium">
+                              {s.ae_summe > 0 ? formatEuro(s.ae_summe) : '—'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
         </div>
