@@ -293,84 +293,85 @@ function SectionBox({ header, headerColor = 'bg-indigo-700', children }) {
   );
 }
 
-function SalesFunnel({ fEntscheider, fTerminiert, fSetGepl, fSetStattg, fBerGepl, fBerStattg }) {
-  const conv = (a, b) => b > 0 ? Math.round(a / b * 100) + '%' : '—';
-  const rateColor = v => {
-    const n = parseInt(v);
-    if (isNaN(n)) return 'text-gray-400';
-    return n >= 80 ? 'text-green-500' : n >= 60 ? 'text-amber-500' : 'text-red-400';
-  };
+function SalesFunnel({ fEntscheider, fTerminiert, fSetGepl, fSetStattg, fBerVereinbart, fBerGepl, fBerStattg }) {
+  const fmt = (a, b) => b > 0 ? Math.round(a / b * 100) + '%' : '—';
+  const num = (a, b) => b > 0 ? Math.round(a / b * 100) : 0;
+  const tc  = v => v >= 80 ? 'text-green-400' : v >= 60 ? 'text-amber-400' : v > 0 ? 'text-red-400' : 'text-gray-400';
 
-  const termQ   = conv(fTerminiert, fEntscheider);
-  const setShow = conv(fSetStattg,  fSetGepl);
-  const berShow = conv(fBerStattg,  fBerGepl);
-  const durchst = conv(fBerStattg,  fSetStattg);
-
-  const Card = ({ label, value, sub, bg }) => (
-    <div className={`flex-1 ${bg} rounded-2xl p-5 text-white text-center shadow-md`}>
-      <div className="text-[10px] font-semibold opacity-65 uppercase tracking-widest mb-1">{label}</div>
-      <div className="text-5xl font-black leading-none">{value}</div>
-      {sub && <div className="text-[11px] opacity-55 mt-1.5">{sub}</div>}
+  const BigCard = ({ grad, label, value, sub }) => (
+    <div className={`flex-1 ${grad} rounded-2xl p-6 text-white text-center shadow-lg`}>
+      <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-2">{label}</div>
+      <div className="text-6xl font-black leading-none tabular-nums">{value}</div>
+      {sub && <div className="text-xs opacity-50 mt-2">{sub}</div>}
     </div>
   );
 
-  const ConvArrow = ({ rate, label }) => (
-    <div className="flex flex-col items-center justify-center shrink-0 px-3 gap-0.5">
-      <div className="text-[9px] text-gray-400 uppercase tracking-wide">{label}</div>
-      <div className={`text-xl font-black ${rateColor(rate)}`}>{rate}</div>
-      <div className="text-gray-300 text-lg leading-none">→</div>
+  const Arrow = ({ a, b, label }) => (
+    <div className="shrink-0 flex flex-col items-center justify-center w-28 gap-1.5 px-2">
+      <div className="text-[9px] text-gray-400 uppercase tracking-wide text-center leading-tight">{label}</div>
+      <div className={`text-3xl font-black ${tc(num(a, b))}`}>{fmt(a, b)}</div>
+      <svg width="36" height="14" viewBox="0 0 36 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="0" y1="7" x2="28" y2="7" stroke="#d1d5db" strokeWidth="1.5" strokeLinecap="round"/>
+        <path d="M24 2L32 7L24 12" stroke="#d1d5db" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
     </div>
   );
 
-  const PhaseTag = ({ label, color }) => (
-    <div className="shrink-0 w-16 flex items-center justify-end pr-3">
-      <span className={`text-[9px] font-bold uppercase tracking-widest ${color}`}>{label}</span>
+  const PhaseLabel = ({ dot, label }) => (
+    <div className="flex items-center gap-2 mb-3">
+      <div className={`w-1.5 h-5 rounded-full ${dot}`} />
+      <span className="text-[11px] font-black uppercase tracking-widest text-gray-500">{label}</span>
     </div>
   );
 
   return (
-    <div className="p-5 space-y-3">
-      {/* ── Opening ── */}
-      <div className="flex items-stretch gap-0">
-        <PhaseTag label="Opening" color="text-blue-400" />
-        <div className="flex-1 flex items-center min-w-0">
-          <Card label="Entscheider" value={fEntscheider} sub="erreicht" bg="bg-blue-600" />
-          <ConvArrow rate={termQ} label="Term.quote" />
-          <Card label="Terminiert" value={fTerminiert} sub="Termine gelegt" bg="bg-teal-600" />
-        </div>
-      </div>
+    <div className="p-6 space-y-5">
 
-      {/* ── Durchstellungsquote — Brücke zwischen Setting und Closing ── */}
-      <div className="flex items-center gap-0">
-        <div className="w-16 shrink-0" />
-        <div className="flex-1 flex justify-center">
-          <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-50 border border-indigo-200">
-            <span className="text-[9px] font-semibold text-indigo-400 uppercase tracking-wide">Durchstellungsquote</span>
-            <span className={`text-base font-black ${rateColor(durchst)}`}>{durchst}</span>
-            <span className="text-[9px] text-indigo-300">Settings → Beratungen</span>
-          </div>
+      {/* ── Opening ── */}
+      <div>
+        <PhaseLabel dot="bg-blue-500" label="Opening" />
+        <div className="flex items-stretch gap-0">
+          <BigCard grad="bg-gradient-to-br from-blue-500 to-blue-700"    label="Entscheider erreicht" value={fEntscheider} sub="Entscheider" />
+          <Arrow a={fTerminiert}  b={fEntscheider} label="Terminierungsquote" />
+          <BigCard grad="bg-gradient-to-br from-teal-500 to-teal-700"    label="Terminiert"           value={fTerminiert}  sub="Termine gelegt" />
         </div>
       </div>
 
       {/* ── Setting ── */}
-      <div className="flex items-stretch gap-0">
-        <PhaseTag label="Setting" color="text-violet-400" />
-        <div className="flex-1 flex items-center min-w-0">
-          <Card label="Geplant" value={fSetGepl} sub="Settings" bg="bg-violet-500" />
-          <ConvArrow rate={setShow} label="Show-Rate" />
-          <Card label="Stattgef." value={fSetStattg} sub="Settings" bg="bg-violet-700" />
+      <div>
+        <PhaseLabel dot="bg-violet-500" label="Setting" />
+        <div className="flex items-stretch gap-0">
+          <BigCard grad="bg-gradient-to-br from-violet-400 to-violet-600" label="Settings geplant"    value={fSetGepl}   sub="geplant" />
+          <Arrow a={fSetStattg} b={fSetGepl}     label="Show-Rate Settings" />
+          <BigCard grad="bg-gradient-to-br from-violet-600 to-violet-800" label="Settings stattgef."  value={fSetStattg} sub="stattgefunden" />
+        </div>
+      </div>
+
+      {/* ── Durchstellungsquote ── */}
+      <div className="flex items-center gap-5 rounded-2xl border-2 border-indigo-200 bg-gradient-to-r from-indigo-50 to-white px-6 py-4">
+        <div className="flex-1 min-w-0">
+          <div className="text-[11px] font-black uppercase tracking-widest text-indigo-500 mb-1">Durchstellungsquote</div>
+          <div className="text-sm text-indigo-400">
+            <span className="font-bold text-indigo-700">{fBerVereinbart}</span> Beratungen vereinbart
+            {' '}aus{' '}
+            <span className="font-bold text-indigo-700">{fSetStattg}</span> stattgef. Settings
+          </div>
+        </div>
+        <div className={`text-5xl font-black shrink-0 ${tc(num(fBerVereinbart, fSetStattg))}`}>
+          {fmt(fBerVereinbart, fSetStattg)}
         </div>
       </div>
 
       {/* ── Closing ── */}
-      <div className="flex items-stretch gap-0">
-        <PhaseTag label="Closing" color="text-green-500" />
-        <div className="flex-1 flex items-center min-w-0">
-          <Card label="Geplant" value={fBerGepl} sub="Beratungen" bg="bg-green-500" />
-          <ConvArrow rate={berShow} label="Show-Rate" />
-          <Card label="Stattgef." value={fBerStattg} sub="Beratungen" bg="bg-green-700" />
+      <div>
+        <PhaseLabel dot="bg-green-500" label="Closing" />
+        <div className="flex items-stretch gap-0">
+          <BigCard grad="bg-gradient-to-br from-green-400 to-green-600"  label="Beratungen geplant"   value={fBerGepl}    sub="geplant" />
+          <Arrow a={fBerStattg} b={fBerGepl}    label="Show-Rate Beratungen" />
+          <BigCard grad="bg-gradient-to-br from-green-600 to-green-800"  label="Beratungen stattgef." value={fBerStattg}  sub="stattgefunden" />
         </div>
       </div>
+
     </div>
   );
 }
@@ -578,12 +579,13 @@ export default function KpiMitarbeiterBeta() {
   }, [trendMonths, trendLogResults, trendDealResults, standortFilter, employees]);
 
   // Funnel-Daten (für Dashboard)
-  const fEntscheider = sum(activeLogs, 'entscheider_erreicht');
-  const fTerminiert  = sum(activeLogs, 'entscheider_terminiert');
-  const fSetGepl     = sum(activeLogs, 'settings_geplant');
-  const fSettings    = sum(activeLogs, 'settings_stattgefunden');
-  const fBerGepl     = sum(activeLogs, 'beratungen_geplant');
-  const fBeratungen  = sum(activeLogs, 'beratungen_stattgefunden');
+  const fEntscheider   = sum(activeLogs, 'entscheider_erreicht');
+  const fTerminiert    = sum(activeLogs, 'entscheider_terminiert');
+  const fSetGepl       = sum(activeLogs, 'settings_geplant');
+  const fSettings      = sum(activeLogs, 'settings_stattgefunden');
+  const fBerVereinbart = sum(activeLogs, 'beratung_vereinbart');
+  const fBerGepl       = sum(activeLogs, 'beratungen_geplant');
+  const fBeratungen    = sum(activeLogs, 'beratungen_stattgefunden');
   const activeLabel  = zeitbasis === 'tag'
     ? new Date(datum + 'T12:00:00').toLocaleDateString('de-DE', { day:'2-digit', month:'short', year:'numeric' })
     : fmtMonth(monat);
@@ -813,6 +815,7 @@ export default function KpiMitarbeiterBeta() {
                     fTerminiert={fTerminiert}
                     fSetGepl={fSetGepl}
                     fSetStattg={fSettings}
+                    fBerVereinbart={fBerVereinbart}
                     fBerGepl={fBerGepl}
                     fBerStattg={fBeratungen}
                   />
@@ -831,7 +834,7 @@ export default function KpiMitarbeiterBeta() {
                 <KpiCard color="blue"   label="Terminierungsquote"   value={pct(fTerminiert, fEntscheider)}                              desc={`${fTerminiert} / ${fEntscheider} Entscheider terminiert`} />
                 <KpiCard color="violet" label="Show-Rate Settings"   value={pct(fSettings, sum(activeLogs,'settings_geplant'))}          desc={`${fSettings} stattgef. / ${sum(activeLogs,'settings_geplant')} geplant`} />
                 <KpiCard color="green"  label="Show-Rate Beratungen" value={pct(fBeratungen, sum(activeLogs,'beratungen_geplant'))}      desc={`${fBeratungen} stattgef. / ${sum(activeLogs,'beratungen_geplant')} geplant`} />
-                <KpiCard color="indigo" label="Durchstellungsquote"  value={pct(fBeratungen, fSettings)}                                 desc={`${fBeratungen} Beratungen aus ${fSettings} Settings`} />
+                <KpiCard color="indigo" label="Durchstellungsquote"  value={pct(fBerVereinbart, fSettings)}                              desc={`${fBerVereinbart} ber. vereinbart aus ${fSettings} Settings`} />
               </div>
 
               {/* Terminierungsquoten */}
