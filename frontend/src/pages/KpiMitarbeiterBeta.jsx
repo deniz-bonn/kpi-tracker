@@ -296,65 +296,79 @@ function SectionBox({ header, headerColor = 'bg-indigo-700', children }) {
 function SalesFunnel({ fEntscheider, fTerminiert, fSetGepl, fSetStattg, fBerGepl, fBerStattg }) {
   const conv = (a, b) => b > 0 ? Math.round(a / b * 100) + '%' : '—';
   const rateColor = v => {
-    const n = parseInt(v); if (isNaN(n)) return 'text-gray-400';
+    const n = parseInt(v);
+    if (isNaN(n)) return 'text-gray-400';
     return n >= 80 ? 'text-green-500' : n >= 60 ? 'text-amber-500' : 'text-red-400';
   };
 
-  const Block = ({ label, value, sub, bg, small }) => (
-    <div className={`rounded-xl ${bg} text-white text-center shadow-sm ${small ? 'px-3 py-2.5' : 'px-4 py-3'}`} style={{ minWidth: small ? 80 : 96 }}>
-      <div className="text-[9px] font-semibold opacity-70 uppercase tracking-wide mb-0.5 whitespace-nowrap">{label}</div>
-      <div className={`font-black ${small ? 'text-xl' : 'text-2xl'}`}>{value}</div>
-      {sub && <div className="text-[9px] opacity-55 mt-0.5">{sub}</div>}
+  const termQ   = conv(fTerminiert, fEntscheider);
+  const setShow = conv(fSetStattg,  fSetGepl);
+  const berShow = conv(fBerStattg,  fBerGepl);
+  const durchst = conv(fBerStattg,  fSetStattg);
+
+  const Card = ({ label, value, sub, bg }) => (
+    <div className={`flex-1 ${bg} rounded-2xl p-5 text-white text-center shadow-md`}>
+      <div className="text-[10px] font-semibold opacity-65 uppercase tracking-widest mb-1">{label}</div>
+      <div className="text-5xl font-black leading-none">{value}</div>
+      {sub && <div className="text-[11px] opacity-55 mt-1.5">{sub}</div>}
     </div>
   );
 
-  const Arrow = ({ rate, color, label }) => (
-    <div className="flex flex-col items-center px-1.5" style={{ minWidth: 44 }}>
-      {label && <div className="text-[8px] text-gray-400 mb-0.5 whitespace-nowrap">{label}</div>}
-      <div className={`text-[11px] font-bold leading-tight ${color || rateColor(rate)}`}>{rate}</div>
-      <div className="text-gray-300 text-sm leading-none">→</div>
+  const ConvArrow = ({ rate, label }) => (
+    <div className="flex flex-col items-center justify-center shrink-0 px-3 gap-0.5">
+      <div className="text-[9px] text-gray-400 uppercase tracking-wide">{label}</div>
+      <div className={`text-xl font-black ${rateColor(rate)}`}>{rate}</div>
+      <div className="text-gray-300 text-lg leading-none">→</div>
     </div>
   );
 
-  const termQ    = conv(fTerminiert, fEntscheider);
-  const setShow  = conv(fSetStattg,  fSetGepl);
-  const berShow  = conv(fBerStattg,  fBerGepl);
-  const durchst  = conv(fBerStattg,  fSetStattg);
+  const PhaseTag = ({ label, color }) => (
+    <div className="shrink-0 w-16 flex items-center justify-end pr-3">
+      <span className={`text-[9px] font-bold uppercase tracking-widest ${color}`}>{label}</span>
+    </div>
+  );
 
   return (
-    <div className="py-3 px-4 space-y-3">
-      {/* ── Row 1: Opening ─────────────────────────────────── */}
-      <div className="flex items-center gap-0">
-        <div className="text-[9px] text-gray-400 uppercase tracking-wider w-14 shrink-0 text-right pr-2">Opening</div>
-        <div className="flex items-center flex-wrap gap-0">
-          <Block label="Entscheider" value={fEntscheider} sub="erreicht" bg="bg-blue-600" />
-          <Arrow rate={termQ} color="text-amber-500" label="Term.quote" />
-          <Block label="Terminiert" value={fTerminiert} sub="Termine" bg="bg-teal-600" />
+    <div className="p-5 space-y-3">
+      {/* ── Opening ── */}
+      <div className="flex items-stretch gap-0">
+        <PhaseTag label="Opening" color="text-blue-400" />
+        <div className="flex-1 flex items-center min-w-0">
+          <Card label="Entscheider" value={fEntscheider} sub="erreicht" bg="bg-blue-600" />
+          <ConvArrow rate={termQ} label="Term.quote" />
+          <Card label="Terminiert" value={fTerminiert} sub="Termine gelegt" bg="bg-teal-600" />
         </div>
       </div>
 
-      {/* ── Row 2: Setting ─────────────────────────────────── */}
+      {/* ── Durchstellungsquote — Brücke zwischen Setting und Closing ── */}
       <div className="flex items-center gap-0">
-        <div className="text-[9px] text-gray-400 uppercase tracking-wider w-14 shrink-0 text-right pr-2">Setting</div>
-        <div className="flex items-center flex-wrap gap-0">
-          <Block label="Gepl." value={fSetGepl} sub="geplant" bg="bg-violet-500" small />
-          <Arrow rate={setShow} label="Show-Rate" />
-          <Block label="Stattgef." value={fSetStattg} sub="stattgef." bg="bg-violet-700" small />
-          <Arrow rate={durchst} color="text-indigo-400" label="Durchst.%" />
-          <div className="flex flex-col items-center justify-center px-1 py-1 rounded-lg bg-indigo-50 border border-indigo-200" style={{ minWidth: 56 }}>
-            <div className="text-[8px] text-indigo-400 uppercase tracking-wider">→ Ber.</div>
-            <div className="text-sm font-black text-indigo-700">{fBerStattg}</div>
+        <div className="w-16 shrink-0" />
+        <div className="flex-1 flex justify-center">
+          <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-50 border border-indigo-200">
+            <span className="text-[9px] font-semibold text-indigo-400 uppercase tracking-wide">Durchstellungsquote</span>
+            <span className={`text-base font-black ${rateColor(durchst)}`}>{durchst}</span>
+            <span className="text-[9px] text-indigo-300">Settings → Beratungen</span>
           </div>
         </div>
       </div>
 
-      {/* ── Row 3: Closing ─────────────────────────────────── */}
-      <div className="flex items-center gap-0">
-        <div className="text-[9px] text-gray-400 uppercase tracking-wider w-14 shrink-0 text-right pr-2">Closing</div>
-        <div className="flex items-center flex-wrap gap-0">
-          <Block label="Gepl." value={fBerGepl} sub="geplant" bg="bg-green-500" small />
-          <Arrow rate={berShow} label="Show-Rate" />
-          <Block label="Stattgef." value={fBerStattg} sub="stattgef." bg="bg-green-700" small />
+      {/* ── Setting ── */}
+      <div className="flex items-stretch gap-0">
+        <PhaseTag label="Setting" color="text-violet-400" />
+        <div className="flex-1 flex items-center min-w-0">
+          <Card label="Geplant" value={fSetGepl} sub="Settings" bg="bg-violet-500" />
+          <ConvArrow rate={setShow} label="Show-Rate" />
+          <Card label="Stattgef." value={fSetStattg} sub="Settings" bg="bg-violet-700" />
+        </div>
+      </div>
+
+      {/* ── Closing ── */}
+      <div className="flex items-stretch gap-0">
+        <PhaseTag label="Closing" color="text-green-500" />
+        <div className="flex-1 flex items-center min-w-0">
+          <Card label="Geplant" value={fBerGepl} sub="Beratungen" bg="bg-green-500" />
+          <ConvArrow rate={berShow} label="Show-Rate" />
+          <Card label="Stattgef." value={fBerStattg} sub="Beratungen" bg="bg-green-700" />
         </div>
       </div>
     </div>
