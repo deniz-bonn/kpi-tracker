@@ -8,7 +8,12 @@ import { formatEuro, currentMonat } from '../utils/format';
 import { useAuth } from '../context/AuthContext';
 
 const STATUS_OPTS = ['Offen', 'Gewonnen', 'Verloren'];
-const STANDORTE   = ['Bonn', 'Braunschweig', 'Österreich', 'Schweiz'];
+const STANDORTE   = ['Bonn / Braunschweig', 'Österreich', 'Schweiz'];
+const matchStandort = (kamStandort, filter) => {
+  if (!filter) return true;
+  if (filter === 'Bonn / Braunschweig') return kamStandort === 'Bonn' || kamStandort === 'Braunschweig';
+  return kamStandort === filter;
+};
 
 const DIENSTLEISTUNGEN_BK = ['RaaS Kontingente','RaaS Kleinkunde Laufzeit','Kontingent (Alt)','Karriereseite','Karriereseite Wartung','Social-Media','Glaubenssätze','Media-Day','Website','Sonstiges'];
 const AUTO_VL_OPTS = ['Ja', 'Nein'];
@@ -125,7 +130,7 @@ export default function DealsBK() {
     (canSeeAll || viewMode === 'alle' || String(d.kam_id) === String(user?.employee_id)) &&
     (!filterKam      || String(d.kam_id)    === filterKam) &&
     (!filterStatus   || d.status            === filterStatus) &&
-    (!filterStandort || d.kam_standort      === filterStandort)
+    matchStandort(d.kam_standort, filterStandort)
   ), [deals, filterKam, filterStatus, filterStandort, viewMode, canSeeAll, user?.employee_id]);
 
   // Gesamt-KPIs
@@ -137,7 +142,7 @@ export default function DealsBK() {
     // KAMs vorinitialisieren — bei Standort-/KAM-Filter entsprechend einschränken
     employees
       .filter(e => ['KAM', 'Closer-KAM'].includes(e.rolle))
-      .filter(e => !filterStandort || e.standort === filterStandort)
+      .filter(e => matchStandort(e.standort, filterStandort))
       .filter(e => !filterKam      || String(e.id) === filterKam)
       .forEach(e => { m[e.id] = { id: e.id, name: e.name, deals: [] }; });
     // Gefilterte Deals zuordnen
