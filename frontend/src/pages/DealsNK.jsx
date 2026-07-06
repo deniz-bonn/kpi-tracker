@@ -25,6 +25,7 @@ export default function DealsNK() {
   const [showAllMonths, setShowAllMonths] = useState(false);
   const [modal, setModal] = useState(null);
   const [showKpis, setShowKpis] = useState(true);
+  const [showOpener, setShowOpener] = useState(false);
 
   const [filterQuelle, setFilterQuelle]     = useState('');
   const [filterCloser, setFilterCloser]     = useState('');
@@ -180,7 +181,7 @@ export default function DealsNK() {
     const m = {};
     filtered.forEach(d => {
       if (!d.opener_id) return;
-      if (!m[d.opener_id]) m[d.opener_id] = { name: d.opener_name, total: 0, gewonnen: 0, ae_summe: 0 };
+      if (!m[d.opener_id]) m[d.opener_id] = { name: d.opener_name, standort: d.opener_standort, total: 0, gewonnen: 0, ae_summe: 0 };
       m[d.opener_id].total++;
       if (d.status === 'Gewonnen') { m[d.opener_id].gewonnen++; m[d.opener_id].ae_summe += Number(d.ae_wert) || 0; }
     });
@@ -388,47 +389,55 @@ export default function DealsNK() {
             </div>
           </div>
 
-          {/* Opener-Tabelle */}
+          {/* Opener-Tabelle — auf-/zuklappbar */}
           <div className="rounded-lg border border-gray-200 overflow-hidden">
-            <div className="px-3 py-2 bg-[#2d2e30] border-b border-[#444]">
+            <button
+              onClick={() => setShowOpener(v => !v)}
+              className="w-full flex items-center justify-between px-3 py-2 bg-[#2d2e30] hover:bg-[#3a3a3a] transition-colors"
+            >
               <span className="text-xs font-bold text-white uppercase tracking-wide">Abschlussquote nach Opener</span>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 font-medium">
-                    <th className="px-3 py-2 text-left">Opener</th>
-                    <th className="px-3 py-2 text-right">Angebote</th>
-                    <th className="px-3 py-2 text-right">Gewonnen</th>
-                    <th className="px-3 py-2 text-right">Verloren</th>
-                    <th className="px-3 py-2 text-right">Annahmequote</th>
-                    <th className="px-3 py-2 text-right">Realisierte AE</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {openerStats.length === 0
-                    ? <tr><td colSpan={6} className="px-3 py-4 text-center text-gray-400">Keine Daten</td></tr>
-                    : openerStats.map((o, i) => {
-                        const q = parseFloat(o.quote);
-                        return (
-                          <tr key={i} className="hover:bg-gray-50">
-                            <td className="px-3 py-1.5 text-gray-700 font-medium">{o.name}</td>
-                            <td className="px-3 py-1.5 text-right text-gray-600">{o.total}</td>
-                            <td className="px-3 py-1.5 text-right text-green-700 font-medium">{o.gewonnen}</td>
-                            <td className="px-3 py-1.5 text-right text-red-600">{o.total - o.gewonnen}</td>
-                            <td className={`px-3 py-1.5 text-right font-bold ${q >= 30 ? 'text-green-600' : q > 0 ? 'text-amber-600' : 'text-gray-400'}`}>
-                              {o.total > 0 ? `${o.quote}%` : '—'}
-                            </td>
-                            <td className="px-3 py-1.5 text-right text-blue-700 font-medium">
-                              {o.ae_summe > 0 ? formatEuro(o.ae_summe) : '—'}
-                            </td>
-                          </tr>
-                        );
-                      })
-                  }
-                </tbody>
-              </table>
-            </div>
+              <span className="text-gray-400 text-xs">{showOpener ? '▲ Einklappen' : '▼ Anzeigen'}</span>
+            </button>
+            {showOpener && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 font-medium">
+                      <th className="px-3 py-2 text-left">Opener</th>
+                      <th className="px-3 py-2 text-left">Standort</th>
+                      <th className="px-3 py-2 text-right">Angebote</th>
+                      <th className="px-3 py-2 text-right">Gewonnen</th>
+                      <th className="px-3 py-2 text-right">Verloren</th>
+                      <th className="px-3 py-2 text-right">Annahmequote</th>
+                      <th className="px-3 py-2 text-right">Realisierte AE</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {openerStats.length === 0
+                      ? <tr><td colSpan={7} className="px-3 py-4 text-center text-gray-400">Keine Daten</td></tr>
+                      : openerStats.map((o, i) => {
+                          const q = parseFloat(o.quote);
+                          return (
+                            <tr key={i} className="hover:bg-gray-50">
+                              <td className="px-3 py-1.5 text-gray-700 font-medium">{o.name}</td>
+                              <td className="px-3 py-1.5 text-gray-400">{o.standort || '—'}</td>
+                              <td className="px-3 py-1.5 text-right text-gray-600">{o.total}</td>
+                              <td className="px-3 py-1.5 text-right text-green-700 font-medium">{o.gewonnen}</td>
+                              <td className="px-3 py-1.5 text-right text-red-600">{o.total - o.gewonnen}</td>
+                              <td className={`px-3 py-1.5 text-right font-bold ${q >= 30 ? 'text-green-600' : q > 0 ? 'text-amber-600' : 'text-gray-400'}`}>
+                                {o.total > 0 ? `${o.quote}%` : '—'}
+                              </td>
+                              <td className="px-3 py-1.5 text-right text-blue-700 font-medium">
+                                {o.ae_summe > 0 ? formatEuro(o.ae_summe) : '—'}
+                              </td>
+                            </tr>
+                          );
+                        })
+                    }
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           {/* Standortvergleich — nur sichtbar wenn alle Standorte */}
