@@ -187,7 +187,7 @@ export default function DealsNK() {
     });
     return Object.values(m)
       .map(c => ({ ...c, offen: c.total - c.gewonnen - c.verloren, quote: c.total > 0 ? (c.gewonnen / c.total * 100).toFixed(2) : '0.00' }))
-      .sort((a, b) => b.total - a.total);
+      .sort((a, b) => b.ae_summe - a.ae_summe);
   }, [filtered]);
 
   const sel = "bg-white border border-gray-300 text-gray-700 text-xs rounded px-2 py-1.5";
