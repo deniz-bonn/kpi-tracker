@@ -159,20 +159,20 @@ export default function DealsNK() {
       ae_summe: s.filter(d => d.status === 'Gewonnen').reduce((sum, d) => sum + (Number(d.ae_wert) || 0), 0),
       quote:    s.length > 0 ? (gew / s.length * 100).toFixed(2) : '0.00',
     };
-  }), [filtered]);
+  }).sort((a, b) => b.ae_summe - a.ae_summe), [filtered]);
 
   // Setter-Statistiken
   const setterStats = useMemo(() => {
     const m = {};
     filtered.forEach(d => {
       if (!d.setter_id) return;
-      if (!m[d.setter_id]) m[d.setter_id] = { name: d.setter_name, total: 0, gewonnen: 0 };
+      if (!m[d.setter_id]) m[d.setter_id] = { name: d.setter_name, total: 0, gewonnen: 0, ae_summe: 0 };
       m[d.setter_id].total++;
-      if (d.status === 'Gewonnen') m[d.setter_id].gewonnen++;
+      if (d.status === 'Gewonnen') { m[d.setter_id].gewonnen++; m[d.setter_id].ae_summe += Number(d.ae_wert) || 0; }
     });
     return Object.values(m)
       .map(s => ({ ...s, quote: s.total > 0 ? (s.gewonnen / s.total * 100).toFixed(2) : '0.00' }))
-      .sort((a, b) => parseFloat(b.quote) - parseFloat(a.quote));
+      .sort((a, b) => b.ae_summe - a.ae_summe);
   }, [filtered]);
 
   // Closer-Statistiken
@@ -350,11 +350,12 @@ export default function DealsNK() {
                     <th className="px-3 py-2 text-right">Settings</th>
                     <th className="px-3 py-2 text-right">Gewonnen</th>
                     <th className="px-3 py-2 text-right">Quote</th>
+                    <th className="px-3 py-2 text-right">Realisierte AE</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {setterStats.length === 0
-                    ? <tr><td colSpan={4} className="px-3 py-4 text-center text-gray-400">Keine Daten</td></tr>
+                    ? <tr><td colSpan={5} className="px-3 py-4 text-center text-gray-400">Keine Daten</td></tr>
                     : setterStats.map((s, i) => {
                         const q = parseFloat(s.quote);
                         return (
@@ -363,6 +364,7 @@ export default function DealsNK() {
                             <td className="px-3 py-1.5 text-right text-gray-600">{s.total}</td>
                             <td className="px-3 py-1.5 text-right text-green-700 font-medium">{s.gewonnen}</td>
                             <td className={`px-3 py-1.5 text-right font-bold ${q >= 30 ? 'text-green-600' : q > 0 ? 'text-amber-600' : 'text-gray-400'}`}>{s.quote}%</td>
+                            <td className="px-3 py-1.5 text-right text-blue-700 font-medium">{s.ae_summe > 0 ? formatEuro(s.ae_summe) : '—'}</td>
                           </tr>
                         );
                       })
