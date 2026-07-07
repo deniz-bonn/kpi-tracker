@@ -82,14 +82,44 @@ async function buildKpiEmailData(datum, monat) {
   const d = db.dialect;
   const p = i => d === 'postgres' ? `$${i}` : '?';
 
-  const logs = await db.all(
-    `SELECT a.*, e.name AS employee_name, e.rolle AS employee_rolle, e.standort
-     FROM activity_logs a
-     LEFT JOIN employees e ON e.id = a.employee_id
-     WHERE a.datum=${p(1)}
-     ORDER BY e.name`,
-    [datum]
-  );
+  const [logs, monthAgg, inboundAgg, nkAgg] = await Promise.all([
+    db.all(
+      `SELECT a.*, e.name AS employee_name, e.rolle AS employee_rolle, e.standort
+       FROM activity_logs a
+       LEFT JOIN employees e ON e.id = a.employee_id
+       WHERE a.datum=${p(1)}
+       ORDER BY e.name`,
+      [datum]
+    ),
+    // Monat kumuliert
+    db.get(
+      `SELECT
+         COALESCE(SUM(entscheider_erreicht),0)     AS entscheider,
+         COALESCE(SUM(entscheider_terminiert),0)   AS terminiert,
+         COALESCE(SUM(settings_geplant),0)         AS settings_geplant,
+         COALESCE(SUM(settings_stattgefunden),0)   AS settings,
+         COALESCE(SUM(beratung_vereinbart),0)      AS beratung_vereinbart,
+         COALESCE(SUM(beratungen_geplant),0)       AS beratungen_geplant,
+         COALESCE(SUM(beratungen_stattgefunden),0) AS beratungen
+       FROM activity_logs WHERE monat=${p(1)}`,
+      [monat]
+    ),
+    // Inbound-Leads Monat (für Lead-Terminierungsquote)
+    db.get(
+      `SELECT
+         COALESCE(SUM(COALESCE(inbound_mail,0)+COALESCE(inbound_fax,0)+COALESCE(inbound_ad,0)),0)          AS leads,
+         COALESCE(SUM(COALESCE(terminiert_mail,0)+COALESCE(terminiert_fax,0)+COALESCE(terminiert_ad,0)),0) AS terminiert
+       FROM inbound_daily WHERE monat=${p(1)}`,
+      [monat]
+    ),
+    // NK-Deals Monat (für Closing-Rate)
+    db.get(
+      `SELECT COUNT(*) AS angebote,
+         COALESCE(SUM(CASE WHEN status='Gewonnen' THEN 1 ELSE 0 END),0) AS gewonnen
+       FROM deals_nk WHERE monat=${p(1)}`,
+      [monat]
+    ),
+  ]);
 
   const n = (v) => Number(v) || 0;
 
@@ -112,7 +142,39 @@ async function buildKpiEmailData(datum, monat) {
     beratungen:  sum('beratungen'),
   };
 
-  return { datum, monat, perEmployee, totals };
+  // Tages-Detailsummen (für Quoten heute)
+  const day = {
+    settings_geplant:    logs.reduce((s, l) => s + n(l.settings_geplant), 0),
+    beratung_vereinbart: logs.reduce((s, l) => s + n(l.beratung_vereinbart), 0),
+    beratungen_geplant:  logs.reduce((s, l) => s + n(l.beratungen_geplant), 0),
+  };
+
+  // Arbeitstage (Mo–Fr): gesamt + bis einschließlich `datum` vergangen
+  const [y, m] = monat.split('-').map(Number);
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const elapsedUntil = datum.startsWith(monat) ? Number(datum.slice(8, 10)) : daysInMonth;
+  let workdays = 0, elapsedWorkdays = 0;
+  for (let dd = 1; dd <= daysInMonth; dd++) {
+    const wd = new Date(y, m - 1, dd).getDay();
+    if (wd !== 0 && wd !== 6) {
+      workdays++;
+      if (dd <= elapsedUntil) elapsedWorkdays++;
+    }
+  }
+
+  const month = {
+    entscheider:         n(monthAgg?.entscheider),
+    terminiert:          n(monthAgg?.terminiert),
+    settings_geplant:    n(monthAgg?.settings_geplant),
+    settings:            n(monthAgg?.settings),
+    beratung_vereinbart: n(monthAgg?.beratung_vereinbart),
+    beratungen_geplant:  n(monthAgg?.beratungen_geplant),
+    beratungen:          n(monthAgg?.beratungen),
+  };
+  const inbound = { leads: n(inboundAgg?.leads), terminiert: n(inboundAgg?.terminiert) };
+  const nk      = { angebote: n(nkAgg?.angebote), gewonnen: n(nkAgg?.gewonnen) };
+
+  return { datum, monat, perEmployee, totals, day, month, inbound, nk, workdays, elapsedWorkdays };
 }
 
 module.exports = { buildDashboardEmailData, buildKpiEmailData, fmtEuro, fmt, fmtMonth };

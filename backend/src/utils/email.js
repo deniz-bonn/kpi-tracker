@@ -318,10 +318,71 @@ function buildDashboardHtml(data) {
 </body></html>`;
 }
 
+// Ziele analog Frontend (KpiMitarbeiterBeta)
+const KPI_DAILY_GOAL_SC       = 12;
+const KPI_DAILY_GOAL_SETTINGS = 37;
+const KPI_QUOTEN_SOLL = [
+  { label: 'Lead-Terminierungsquote',      soll: 45, n: d => (d.inbound || {}).terminiert,        dd: d => (d.inbound || {}).leads },
+  { label: 'Show-Rate Setting',            soll: 80, n: d => (d.month || {}).settings,            dd: d => (d.month || {}).settings_geplant },
+  { label: 'Durchstellungsquote',          soll: 40, n: d => (d.month || {}).beratung_vereinbart, dd: d => (d.month || {}).settings },
+  { label: 'Show-Rate Closing',            soll: 80, n: d => (d.month || {}).beratungen,          dd: d => (d.month || {}).beratungen_geplant },
+  { label: 'Closing-Rate',                 soll: 50, n: d => (d.nk || {}).gewonnen,               dd: d => (d.nk || {}).angebote },
+];
+
 function buildKpiHtml(data) {
-  const { datum, perEmployee, totals } = data;
+  const { datum, perEmployee, totals, month = {}, inbound = {}, nk = {}, workdays = 0, elapsedWorkdays = 0 } = data;
   const dateStr = new Date(datum + 'T12:00:00').toLocaleDateString('de-DE', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
   const pct = (a, b) => b > 0 ? Math.round(a / b * 100) + '%' : '—';
+  const num = v => Number(v) || 0;
+
+  // ── Tagesziele ──
+  const goalColor = p => p >= 100 ? '#059669' : p >= 70 ? '#d97706' : '#dc2626';
+  const goalCard = (label, ist, ziel) => {
+    const p = ziel > 0 ? Math.round(ist / ziel * 100) : 0;
+    const c = goalColor(p);
+    return `
+      <div style="flex:1;min-width:200px;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px">
+        <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em">${label}</div>
+        <div style="font-size:30px;font-weight:900;color:${c};margin-top:2px">${ist} <span style="font-size:16px;color:#94a3b8;font-weight:600">/ ${ziel}</span></div>
+        <div style="background:#e2e8f0;border-radius:6px;height:10px;overflow:hidden;margin-top:8px">
+          <div style="background:${c};height:10px;width:${Math.min(100, p)}%"></div>
+        </div>
+        <div style="font-size:11px;color:#64748b;margin-top:5px">${p}% des Tagesziels</div>
+      </div>`;
+  };
+
+  // ── Monatsziele & Pace ──
+  const paceRow = (label, ist, dailyGoal, i) => {
+    const bg = i % 2 === 0 ? '#f8fafc' : '#fff';
+    const sollHeute  = dailyGoal * elapsedWorkdays;
+    const monatsziel = dailyGoal * workdays;
+    const abw = ist - sollHeute;
+    const abwColor = abw >= 0 ? '#059669' : '#dc2626';
+    return `<tr>
+      <td style="${styleTd(bg)};font-weight:500">${label}</td>
+      <td style="${styleTdR(bg)};font-weight:bold">${ist}</td>
+      <td style="${styleTdR(bg)}">${sollHeute}</td>
+      <td style="${styleTdR(bg)};font-weight:bold;color:${abwColor}">${abw >= 0 ? '+' : ''}${abw}</td>
+      <td style="${styleTdR(bg)}">${monatsziel}</td>
+      <td style="${styleTdR(bg)};color:#6d28d9;font-weight:bold">${pct(ist, monatsziel)}</td>
+    </tr>`;
+  };
+
+  // ── Quoten vs. Soll ──
+  const quoteRows = KPI_QUOTEN_SOLL.map((q, i) => {
+    const bg = i % 2 === 0 ? '#f8fafc' : '#fff';
+    const n = num(q.n(data)), d = num(q.dd(data));
+    const ist = d > 0 ? n / d * 100 : null;
+    const abw = ist === null ? null : ist - q.soll;
+    const abwColor = abw === null ? '#94a3b8' : abw >= 0 ? '#059669' : '#dc2626';
+    return `<tr>
+      <td style="${styleTd(bg)};font-weight:500">${q.label}</td>
+      <td style="${styleTdR(bg)};font-weight:bold">${ist === null ? '—' : ist.toFixed(1).replace('.', ',') + '%'}</td>
+      <td style="${styleTdR(bg)};color:#64748b">${q.soll}%</td>
+      <td style="${styleTdR(bg)};font-weight:bold;color:${abwColor}">${abw === null ? '—' : (abw >= 0 ? '+' : '') + abw.toFixed(1).replace('.', ',') + ' pp'}</td>
+      <td style="${styleTdR(bg)};color:#64748b">${n} / ${d}</td>
+    </tr>`;
+  }).join('');
 
   const rows = perEmployee.map((e, i) => {
     const bg = i % 2 === 0 ? '#f8fafc' : '#fff';
@@ -343,11 +404,48 @@ function buildKpiHtml(data) {
   <div style="max-width:760px;margin:0 auto">
     <div style="background:#312e81;color:#fff;border-radius:8px 8px 0 0;padding:20px 24px">
       <div style="font-size:20px;font-weight:bold">📈 KPI Mitarbeiter-Auswertung</div>
-      <div style="opacity:.7;font-size:13px;margin-top:4px">${dateStr} · Tagesbasis</div>
+      <div style="opacity:.7;font-size:13px;margin-top:4px">${dateStr} · Arbeitstag ${elapsedWorkdays} von ${workdays}</div>
     </div>
     <div style="background:#fff;border-radius:0 0 8px 8px;padding:20px 24px">
 
-      <!-- Gesamtzahlen -->
+      <!-- Tagesziele -->
+      <div style="font-size:13px;font-weight:bold;color:#1e293b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">🎯 Tagesziele heute</div>
+      <div style="display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap">
+        ${goalCard('Sales Calls (Beratungen)', num(totals.beratungen), KPI_DAILY_GOAL_SC)}
+        ${goalCard('Settings stattgefunden',   num(totals.settings),   KPI_DAILY_GOAL_SETTINGS)}
+      </div>
+
+      <!-- Monatsziele & Pace -->
+      <table style="${styleTable()};margin-bottom:6px">
+        ${sectionHeader(`📈 Monatsziele &amp; Pace — Stand Arbeitstag ${elapsedWorkdays}/${workdays}`, '#312e81')}
+        <tr>
+          <th style="${styleTh()}">KPI</th>
+          <th style="${styleThR()}">Ist (Monat)</th>
+          <th style="${styleThR()}">Soll bis heute</th>
+          <th style="${styleThR()}">Abw.</th>
+          <th style="${styleThR()}">Monatsziel</th>
+          <th style="${styleThR()}">Erreicht</th>
+        </tr>
+        ${paceRow('Sales Calls (Beratungen)', num(month.beratungen), KPI_DAILY_GOAL_SC, 0)}
+        ${paceRow('Settings stattgefunden',   num(month.settings),   KPI_DAILY_GOAL_SETTINGS, 1)}
+      </table>
+      <div style="font-size:11px;color:#94a3b8;margin-bottom:24px">Soll bis heute = Tagesziel × vergangene Arbeitstage (Mo–Fr)</div>
+
+      <!-- Quoten vs. Soll -->
+      <table style="${styleTable()};margin-bottom:24px">
+        ${sectionHeader('⚖️ Quoten vs. Soll — Monat kumuliert', '#0f766e')}
+        <tr>
+          <th style="${styleTh()}">KPI</th>
+          <th style="${styleThR()}">Ist</th>
+          <th style="${styleThR()}">Soll</th>
+          <th style="${styleThR()}">Abweichung</th>
+          <th style="${styleThR()}">Absolut</th>
+        </tr>
+        ${quoteRows}
+      </table>
+
+      <!-- Gesamtzahlen heute -->
+      <div style="font-size:13px;font-weight:bold;color:#1e293b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Tageszahlen</div>
       <div style="display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap">
         ${[
           ['Entscheider', totals.entscheider, '#2563eb'],
@@ -417,7 +515,7 @@ async function sendDailyKpi(data) {
     return;
   }
   const dateLabel = new Date(data.datum + 'T12:00:00').toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' });
-  const subject = `📈 KPI Mitarbeiter – ${dateLabel} | ${data.perEmployee.length} Einträge`;
+  const subject = `📈 KPI Mitarbeiter – ${dateLabel} | SC ${data.totals.beratungen}/${KPI_DAILY_GOAL_SC} · Settings ${data.totals.settings}/${KPI_DAILY_GOAL_SETTINGS}`;
   try {
     await sendEmail({ to: REPORT_RECIPIENTS.join(','), subject, html: buildKpiHtml(data) });
     console.log(`[daily-report] KPI-E-Mail verschickt an ${REPORT_RECIPIENTS.join(', ')}`);
@@ -461,4 +559,4 @@ async function sendBackupEmail(backupData) {
   }
 }
 
-module.exports = { sendInvite, sendPasswordReset, sendDailyDashboard, sendDailyKpi, sendBackupEmail, testEmailConnection };
+module.exports = { sendInvite, sendPasswordReset, sendDailyDashboard, sendDailyKpi, sendBackupEmail, testEmailConnection, buildKpiHtml };
