@@ -244,11 +244,12 @@ function InboundModal({ datum, existing, companyId, onSave, onClose, isPending, 
 const SOLL = {
   lead_terminierung:  45,
   show_rate_setting:  80,
-  durchstellung:      45,
+  durchstellung:      40,
   show_rate_closing:  80,
-  angebotsquote:      85,
   closing_rate:       50,
 };
+const DAILY_GOAL_SETTINGS = 37;
+const DAILY_GOAL_SC       = 12;
 
 // ── UI-Bausteine ───────────────────────────────────────────────────────────────
 function KpiCard({ label, value, desc, color = 'indigo' }) {
@@ -298,7 +299,6 @@ function SollAbweichung({ kpis, label }) {
     { key: 'show_rate_setting',  label: 'Show-Rate Setting',               soll: SOLL.show_rate_setting,  ist: kpis.show_rate_setting,  basis: 'Settings stattgef. / geplant' },
     { key: 'durchstellung',      label: 'Durchstellungsquote (Set→Close)',  soll: SOLL.durchstellung,      ist: kpis.durchstellung,      basis: 'Beratung vereinbart / Settings stattgef.' },
     { key: 'show_rate_closing',  label: 'Show-Rate Closing',               soll: SOLL.show_rate_closing,  ist: kpis.show_rate_closing,  basis: 'Beratungen stattgef. / geplant' },
-    { key: 'angebotsquote',      label: 'Angebotsquote (SC → Angebot)',    soll: SOLL.angebotsquote,      ist: kpis.angebotsquote,      basis: 'NK-Angebote / Beratungen stattgef.' },
     { key: 'closing_rate',       label: 'Closing-Rate (NK)',               soll: SOLL.closing_rate,       ist: kpis.closing_rate,       basis: 'Gewonnen / NK-Angebote gesamt' },
   ];
 
@@ -473,6 +473,7 @@ export default function KpiMitarbeiterBeta() {
   const [inboundModal,   setInboundModal]   = useState(false);
   const [empFilter,      setEmpFilter]      = useState('');
   const [standortFilter, setStandortFilter] = useState('');
+  const [showExport,     setShowExport]     = useState(false);
 
   const companyId = Number(company) || 1;
 
@@ -681,8 +682,108 @@ export default function KpiMitarbeiterBeta() {
     show_rate_setting: pctNum(fSettings,    fSetGepl),
     durchstellung:     pctNum(fBerVereinbart, fSettings),
     show_rate_closing: pctNum(fBeratungen,  fBerGepl),
-    angebotsquote:     pctNum(nkAngebote,   fBeratungen),
     closing_rate:      pctNum(nkGewonnen,   nkAngebote),
+  };
+
+  // Tages-Pace (immer aus today-Logs, unabhängig von zeitbasis)
+  const todayLogs = useMemo(() => {
+    let all = logsByDay.data || [];
+    if (standortFilter) {
+      const empSet = new Set(employees.filter(e => e.standort === standortFilter).map(e => e.id));
+      all = all.filter(l => empSet.has(l.employee_id));
+    }
+    return all;
+  }, [logsByDay.data, standortFilter, employees]);
+  const todaySettings     = sum(todayLogs, 'settings_stattgefunden');
+  const todaySettingsGepl = sum(todayLogs, 'settings_geplant');
+  const todaySC           = sum(todayLogs, 'beratungen_stattgefunden');
+  const todayBerVereinb   = sum(todayLogs, 'beratung_vereinbart');
+  // Monatlich kumuliert (aus auswertungLogs = standort-gefiltert, immer Monat)
+  const monthSettings     = sum(auswertungLogs, 'settings_stattgefunden');
+  const monthSettingsGepl = sum(auswertungLogs, 'settings_geplant');
+  const monthBerVereinb   = sum(auswertungLogs, 'beratung_vereinbart');
+
+  // ── Copy-Text (WhatsApp / Slack) ─────────────────────────────────────────────
+  const buildCopyText = () => {
+    const f1 = (n, d) => d > 0 ? `${(n / d * 100).toFixed(1)}%` : '—';
+    const datumStr = new Date(datum + 'T12:00:00').toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' });
+    return [
+      `📊 Sales KPIs — ${datumStr}${standortFilter ? ' · ' + standortFilter : ''}`,
+      ``,
+      `Daily Goal SC: ${DAILY_GOAL_SC}`,
+      `Heute gelegt: ${todaySC}`,
+      `Pace: ${todaySC}/${DAILY_GOAL_SC}`,
+      ``,
+      `Daily Goal Setting: ${DAILY_GOAL_SETTINGS}`,
+      `Heute gelegt: ${todaySettings}`,
+      `Pace: ${todaySettings}/${DAILY_GOAL_SETTINGS}`,
+      `Setting Show-Rate heute: ${f1(todaySettings, todaySettingsGepl)} (${todaySettings}/${todaySettingsGepl})`,
+      `Setting Show-Rate ${fmtMonth(monat)} kumuliert: ${f1(monthSettings, monthSettingsGepl)} (${monthSettings}/${monthSettingsGepl})`,
+      `Durchstellungsquote heute: ${f1(todayBerVereinb, todaySettings)} (${todayBerVereinb}/${todaySettings})`,
+      `Durchstellungsquote ${fmtMonth(monat)} kumuliert: ${f1(monthBerVereinb, monthSettings)} (${monthBerVereinb}/${monthSettings})`,
+    ].join('\n');
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(buildCopyText()).catch(() => {});
+  };
+
+  // ── CSV-Export ────────────────────────────────────────────────────────────────
+  const exportCsv = (section) => {
+    const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const row = arr => arr.map(esc).join(';');
+    const f1  = (n, d) => d > 0 ? (n / d * 100).toFixed(1) + '%' : '—';
+    const lines = [];
+
+    if (section === 'all' || section === 'soll') {
+      lines.push(row(['KPI', 'Ist', 'Soll', 'Abweichung']));
+      const sRows = [
+        ['Lead-Terminierungsquote', sollKpis.lead_terminierung, SOLL.lead_terminierung],
+        ['Show-Rate Setting',       sollKpis.show_rate_setting, SOLL.show_rate_setting],
+        ['Durchstellungsquote',     sollKpis.durchstellung,     SOLL.durchstellung],
+        ['Show-Rate Closing',       sollKpis.show_rate_closing, SOLL.show_rate_closing],
+        ['Closing-Rate (NK)',       sollKpis.closing_rate,      SOLL.closing_rate],
+      ];
+      sRows.forEach(([l, ist, soll]) => lines.push(row([l, ist.toFixed(1)+'%', soll+'%', (ist-soll >= 0 ? '+' : '')+(ist-soll).toFixed(1)+'%'])));
+      lines.push('');
+    }
+    if (section === 'all' || section === 'opening') {
+      lines.push(row(['Mitarbeiter', 'Rolle', 'Standort', 'Entscheider erreicht', 'Terminiert', 'davon CC', 'davon Inbound', 'Term.Quote']));
+      perEmployee.forEach(e => {
+        const ls = e.logs;
+        const er = sum(ls,'entscheider_erreicht'), te = sum(ls,'entscheider_terminiert');
+        lines.push(row([e.name, e.rolle||'', ls[0]?.standort||'', er, te, sum(ls,'terminiert_cold_calls'), sum(ls,'terminiert_inbound'), f1(te,er)]));
+      });
+      lines.push('');
+    }
+    if (section === 'all' || section === 'setting') {
+      lines.push(row(['Mitarbeiter', 'Rolle', 'Standort', 'Settings geplant', 'Settings stattgef.', 'Show-Rate', 'Beratung vereinbart', 'Durchstellungsquote']));
+      perEmployee.forEach(e => {
+        const ls = e.logs;
+        const sg = sum(ls,'settings_geplant'), ss = sum(ls,'settings_stattgefunden'), bv = sum(ls,'beratung_vereinbart');
+        lines.push(row([e.name, e.rolle||'', ls[0]?.standort||'', sg, ss, f1(ss,sg), bv, f1(bv,ss)]));
+      });
+      lines.push('');
+    }
+    if (section === 'all' || section === 'closing') {
+      lines.push(row(['Mitarbeiter', 'Rolle', 'Standort', 'Beratungen geplant', 'Beratungen stattgef.', 'Show-Rate', 'Direkter Close', 'Follow-Up', 'Kein Close']));
+      perEmployee.forEach(e => {
+        const ls = e.logs;
+        const bg = sum(ls,'beratungen_geplant'), bs = sum(ls,'beratungen_stattgefunden');
+        lines.push(row([e.name, e.rolle||'', ls[0]?.standort||'', bg, bs, f1(bs,bg), sum(ls,'beratungen_direkter_close'), sum(ls,'beratungen_follow_up_cc2'), sum(ls,'beratungen_kein_close')]));
+      });
+    }
+
+    const bom = '﻿';
+    const blob = new Blob([bom + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    const label = standortFilter ? standortFilter : 'Gesamt';
+    a.download = `KPI_${monat}_${label}_${section}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setShowExport(false);
   };
 
   const activeLabel  = zeitbasis === 'tag'
@@ -904,6 +1005,83 @@ export default function KpiMitarbeiterBeta() {
           {/* ── Dashboard ── */}
           {auswertTab === 'dashboard' && (
             <div className="space-y-3">
+
+              {/* Tages-Pace + Aktionen */}
+              <div className="rounded-xl border border-gray-200 overflow-hidden">
+                <div className="px-3 py-2.5 bg-[#0f172a] flex items-center justify-between">
+                  <span className="text-xs font-bold text-white uppercase tracking-wide">
+                    Daily Pace — {new Date(datum + 'T12:00:00').toLocaleDateString('de-DE', { weekday:'short', day:'2-digit', month:'short' })}
+                    {standortFilter && <span className="ml-2 text-white/50">· {standortFilter}</span>}
+                  </span>
+                  <div className="flex gap-2">
+                    <button onClick={handleCopy}
+                      className="text-[11px] font-semibold px-2.5 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white transition-colors">
+                      📋 Kopieren
+                    </button>
+                    <div className="relative">
+                      <button onClick={() => setShowExport(v => !v)}
+                        className="text-[11px] font-semibold px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white transition-colors">
+                        ⬇ Export
+                      </button>
+                      {showExport && (
+                        <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg w-52 py-1 text-xs">
+                          <div className="px-3 py-1.5 text-gray-400 font-semibold uppercase tracking-wide text-[10px]">Als CSV exportieren</div>
+                          {[
+                            ['all',     '📊 Komplettes Dashboard'],
+                            ['soll',    '🎯 Soll-Abweichungen'],
+                            ['opening', '📞 Opening-Zahlen'],
+                            ['setting', '⚙️ Setting-Zahlen'],
+                            ['closing', '🤝 Closing-Zahlen'],
+                          ].map(([key, label]) => (
+                            <button key={key} onClick={() => exportCsv(key)}
+                              className="w-full text-left px-3 py-2 hover:bg-gray-50 text-gray-700">
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-gray-100">
+                  {[
+                    { label: 'Sales Calls heute', value: todaySC, goal: DAILY_GOAL_SC, color: 'text-green-700' },
+                    { label: 'Settings heute',    value: todaySettings, goal: DAILY_GOAL_SETTINGS, color: 'text-violet-700' },
+                  ].map(({ label, value, goal, color }) => {
+                    const pct = goal > 0 ? Math.min(Math.round(value / goal * 100), 100) : 0;
+                    const barCol = pct >= 100 ? 'bg-green-500' : pct >= 70 ? 'bg-amber-400' : 'bg-red-400';
+                    return (
+                      <div key={label} className="p-3 col-span-1">
+                        <div className="text-[10px] text-gray-400 uppercase tracking-wide">{label}</div>
+                        <div className={`text-3xl font-black ${color} leading-tight`}>{value}
+                          <span className="text-sm font-normal text-gray-400 ml-1">/ {goal}</span>
+                        </div>
+                        <div className="mt-1.5 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                          <div className={`${barCol} h-full rounded-full transition-all`} style={{ width: `${pct}%` }} />
+                        </div>
+                        <div className="text-[10px] text-gray-400 mt-0.5">Pace {pct}%</div>
+                      </div>
+                    );
+                  })}
+                  <div className="p-3 col-span-1">
+                    <div className="text-[10px] text-gray-400 uppercase tracking-wide">Show-Rate Setting</div>
+                    <div className="text-xl font-bold text-violet-600 leading-tight">
+                      {todaySettingsGepl > 0 ? `${(todaySettings/todaySettingsGepl*100).toFixed(0)}%` : '—'}
+                    </div>
+                    <div className="text-[10px] text-gray-500 mt-1">Heute · Soll {SOLL.show_rate_setting}%</div>
+                    <div className="text-[10px] text-gray-400">Monat: {monthSettingsGepl > 0 ? `${(monthSettings/monthSettingsGepl*100).toFixed(0)}%` : '—'}</div>
+                  </div>
+                  <div className="p-3 col-span-1">
+                    <div className="text-[10px] text-gray-400 uppercase tracking-wide">Durchstellungsquote</div>
+                    <div className="text-xl font-bold text-indigo-600 leading-tight">
+                      {todaySettings > 0 ? `${(todayBerVereinb/todaySettings*100).toFixed(0)}%` : '—'}
+                    </div>
+                    <div className="text-[10px] text-gray-500 mt-1">Heute · Soll {SOLL.durchstellung}%</div>
+                    <div className="text-[10px] text-gray-400">Monat: {monthSettings > 0 ? `${(monthBerVereinb/monthSettings*100).toFixed(0)}%` : '—'}</div>
+                  </div>
+                </div>
+              </div>
+
               {/* Soll-Abweichung */}
               <SollAbweichung
                 kpis={sollKpis}
