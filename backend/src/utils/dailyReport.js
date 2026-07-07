@@ -78,33 +78,39 @@ async function buildDashboardEmailData(monat, today) {
   return { monat, today, nkMonth, bkMonth, vlMonth, nkToday, bkToday, vlToday, monatsziel };
 }
 
+// KPI-Mail bezieht sich nur auf diesen Standort
+const KPI_REPORT_STANDORT = process.env.KPI_REPORT_STANDORT || 'Bonn';
+
 async function buildKpiEmailData(datum, monat) {
   const d = db.dialect;
   const p = i => d === 'postgres' ? `$${i}` : '?';
+  const standort = KPI_REPORT_STANDORT;
 
   const [logs, monthAgg, inboundAgg, nkAgg] = await Promise.all([
     db.all(
       `SELECT a.*, e.name AS employee_name, e.rolle AS employee_rolle, e.standort
        FROM activity_logs a
        LEFT JOIN employees e ON e.id = a.employee_id
-       WHERE a.datum=${p(1)}
+       WHERE a.datum=${p(1)} AND e.standort=${p(2)}
        ORDER BY e.name`,
-      [datum]
+      [datum, standort]
     ),
-    // Monat kumuliert
+    // Monat kumuliert (nur Standort)
     db.get(
       `SELECT
-         COALESCE(SUM(entscheider_erreicht),0)     AS entscheider,
-         COALESCE(SUM(entscheider_terminiert),0)   AS terminiert,
-         COALESCE(SUM(settings_geplant),0)         AS settings_geplant,
-         COALESCE(SUM(settings_stattgefunden),0)   AS settings,
-         COALESCE(SUM(beratung_vereinbart),0)      AS beratung_vereinbart,
-         COALESCE(SUM(beratungen_geplant),0)       AS beratungen_geplant,
-         COALESCE(SUM(beratungen_stattgefunden),0) AS beratungen
-       FROM activity_logs WHERE monat=${p(1)}`,
-      [monat]
+         COALESCE(SUM(a.entscheider_erreicht),0)     AS entscheider,
+         COALESCE(SUM(a.entscheider_terminiert),0)   AS terminiert,
+         COALESCE(SUM(a.settings_geplant),0)         AS settings_geplant,
+         COALESCE(SUM(a.settings_stattgefunden),0)   AS settings,
+         COALESCE(SUM(a.beratung_vereinbart),0)      AS beratung_vereinbart,
+         COALESCE(SUM(a.beratungen_geplant),0)       AS beratungen_geplant,
+         COALESCE(SUM(a.beratungen_stattgefunden),0) AS beratungen
+       FROM activity_logs a
+       LEFT JOIN employees e ON e.id = a.employee_id
+       WHERE a.monat=${p(1)} AND e.standort=${p(2)}`,
+      [monat, standort]
     ),
-    // Inbound-Leads Monat (für Lead-Terminierungsquote)
+    // Inbound-Leads Monat (für Lead-Terminierungsquote — keine Standort-Dimension)
     db.get(
       `SELECT
          COALESCE(SUM(COALESCE(inbound_mail,0)+COALESCE(inbound_fax,0)+COALESCE(inbound_ad,0)),0)          AS leads,
@@ -112,12 +118,15 @@ async function buildKpiEmailData(datum, monat) {
        FROM inbound_daily WHERE monat=${p(1)}`,
       [monat]
     ),
-    // NK-Deals Monat (für Closing-Rate)
+    // NK-Deals Monat (für Closing-Rate — Closer oder Setter am Standort)
     db.get(
       `SELECT COUNT(*) AS angebote,
-         COALESCE(SUM(CASE WHEN status='Gewonnen' THEN 1 ELSE 0 END),0) AS gewonnen
-       FROM deals_nk WHERE monat=${p(1)}`,
-      [monat]
+         COALESCE(SUM(CASE WHEN dl.status='Gewonnen' THEN 1 ELSE 0 END),0) AS gewonnen
+       FROM deals_nk dl
+       LEFT JOIN employees ec ON ec.id = dl.closer_id
+       LEFT JOIN employees es ON es.id = dl.setter_id
+       WHERE dl.monat=${p(1)} AND (ec.standort=${p(2)} OR es.standort=${p(3)})`,
+      [monat, standort, standort]
     ),
   ]);
 
@@ -174,7 +183,7 @@ async function buildKpiEmailData(datum, monat) {
   const inbound = { leads: n(inboundAgg?.leads), terminiert: n(inboundAgg?.terminiert) };
   const nk      = { angebote: n(nkAgg?.angebote), gewonnen: n(nkAgg?.gewonnen) };
 
-  return { datum, monat, perEmployee, totals, day, month, inbound, nk, workdays, elapsedWorkdays };
+  return { datum, monat, standort, perEmployee, totals, day, month, inbound, nk, workdays, elapsedWorkdays };
 }
 
 module.exports = { buildDashboardEmailData, buildKpiEmailData, fmtEuro, fmt, fmtMonth };

@@ -330,7 +330,7 @@ const KPI_QUOTEN_SOLL = [
 ];
 
 function buildKpiHtml(data) {
-  const { datum, perEmployee, totals, month = {}, inbound = {}, nk = {}, workdays = 0, elapsedWorkdays = 0 } = data;
+  const { datum, perEmployee, totals, standort, month = {}, inbound = {}, nk = {}, workdays = 0, elapsedWorkdays = 0 } = data;
   const dateStr = new Date(datum + 'T12:00:00').toLocaleDateString('de-DE', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
   const pct = (a, b) => b > 0 ? Math.round(a / b * 100) + '%' : '—';
   const num = v => Number(v) || 0;
@@ -403,7 +403,7 @@ function buildKpiHtml(data) {
   return `<!DOCTYPE html><html><body style="margin:0;padding:20px;background:#f1f5f9;font-family:Arial,sans-serif">
   <div style="max-width:760px;margin:0 auto">
     <div style="background:#312e81;color:#fff;border-radius:8px 8px 0 0;padding:20px 24px">
-      <div style="font-size:20px;font-weight:bold">📈 KPI Mitarbeiter-Auswertung</div>
+      <div style="font-size:20px;font-weight:bold">📈 KPI Mitarbeiter-Auswertung${standort ? ' — ' + standort : ''}</div>
       <div style="opacity:.7;font-size:13px;margin-top:4px">${dateStr} · Arbeitstag ${elapsedWorkdays} von ${workdays}</div>
     </div>
     <div style="background:#fff;border-radius:0 0 8px 8px;padding:20px 24px">
@@ -515,7 +515,7 @@ async function sendDailyKpi(data) {
     return;
   }
   const dateLabel = new Date(data.datum + 'T12:00:00').toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' });
-  const subject = `📈 KPI Mitarbeiter – ${dateLabel} | SC ${data.totals.beratungen}/${KPI_DAILY_GOAL_SC} · Settings ${data.totals.settings}/${KPI_DAILY_GOAL_SETTINGS}`;
+  const subject = `📈 KPI ${data.standort || 'Mitarbeiter'} – ${dateLabel} | SC ${data.totals.beratungen}/${KPI_DAILY_GOAL_SC} · Settings ${data.totals.settings}/${KPI_DAILY_GOAL_SETTINGS}`;
   try {
     await sendEmail({ to: REPORT_RECIPIENTS.join(','), subject, html: buildKpiHtml(data) });
     console.log(`[daily-report] KPI-E-Mail verschickt an ${REPORT_RECIPIENTS.join(', ')}`);
