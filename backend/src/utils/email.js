@@ -140,7 +140,7 @@ function sectionHeader(title, color) {
 }
 
 function buildDashboardHtml(data) {
-  const { monat, today, nkMonth, bkMonth, vlMonth, nkToday, bkToday, vlToday } = data;
+  const { monat, today, nkMonth, bkMonth, vlMonth, nkToday, bkToday, vlToday, monatsziel } = data;
 
   const standorte = ['Bonn', 'Braunschweig', 'Österreich', 'Schweiz'];
 
@@ -230,6 +230,49 @@ function buildDashboardHtml(data) {
           ${monthTable(vlMonth, '#7c3aed')}
         </table>
       </div>
+
+      <!-- Gesamt-Übersicht -->
+      ${(() => {
+        const sumAe = rows => (rows || []).reduce((s, r) => s + (Number(r.ae) || 0), 0);
+        const nkAe  = sumAe(nkMonth);
+        const bkAe  = sumAe(bkMonth);
+        const vlAe  = sumAe(vlMonth);
+        const gesamt = nkAe + bkAe + vlAe;
+        const ziel   = monatsziel || 0;
+        const rest   = ziel > 0 ? ziel - gesamt : null;
+        const pct    = ziel > 0 ? Math.min(Math.round(gesamt / ziel * 100), 100) : null;
+        const barColor = pct >= 100 ? '#16a34a' : pct >= 75 ? '#ca8a04' : '#dc2626';
+        const restColor = rest !== null && rest <= 0 ? '#16a34a' : '#dc2626';
+
+        return `<div style="margin:0 24px 24px;border-radius:10px;border:2px solid #e2e8f0;overflow:hidden">
+          <div style="background:#0f172a;padding:12px 16px;color:#fff;font-size:13px;font-weight:bold;letter-spacing:.05em;text-transform:uppercase">
+            Gesamt-Übersicht ${fmtMonth(monat)}
+          </div>
+          <div style="display:flex;gap:0;flex-wrap:wrap">
+            <div style="flex:1;min-width:140px;padding:14px 16px;border-right:1px solid #e2e8f0;background:#f8fafc">
+              <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Auftragseingang gesamt</div>
+              <div style="font-size:22px;font-weight:900;color:#0f172a">${fmtEuro(gesamt)}</div>
+              <div style="font-size:11px;color:#64748b;margin-top:4px">NK ${fmtEuro(nkAe)} · BK ${fmtEuro(bkAe)} · VL ${fmtEuro(vlAe)}</div>
+            </div>
+            <div style="flex:1;min-width:140px;padding:14px 16px;border-right:1px solid #e2e8f0;background:#f8fafc">
+              <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Monatsziel</div>
+              <div style="font-size:22px;font-weight:900;color:#d97706">${ziel > 0 ? fmtEuro(ziel) : '—'}</div>
+            </div>
+            <div style="flex:1;min-width:140px;padding:14px 16px;background:#f8fafc">
+              <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">${rest !== null && rest <= 0 ? '🎯 Ziel erreicht!' : 'Noch benötigt'}</div>
+              <div style="font-size:22px;font-weight:900;color:${restColor}">${rest !== null ? (rest <= 0 ? fmtEuro(Math.abs(rest)) + ' über Ziel' : fmtEuro(rest)) : '—'}</div>
+            </div>
+          </div>
+          ${pct !== null ? `<div style="padding:10px 16px;background:#f1f5f9;border-top:1px solid #e2e8f0">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;margin-bottom:4px">
+              <span>Zielerreichung</span><span style="font-weight:bold;color:${barColor}">${pct}%</span>
+            </div>
+            <div style="background:#e2e8f0;border-radius:99px;height:8px;overflow:hidden">
+              <div style="background:${barColor};height:100%;width:${pct}%;border-radius:99px"></div>
+            </div>
+          </div>` : ''}
+        </div>`;
+      })()}
 
       <!-- Heute gewonnen -->
       <div style="padding:0 24px 8px;font-size:16px;font-weight:bold;color:#1e293b;border-top:2px solid #e2e8f0;margin-top:8px;padding-top:16px">

@@ -18,7 +18,7 @@ async function buildDashboardEmailData(monat, today) {
   const d = db.dialect;
   const p = i => d === 'postgres' ? `$${i}` : '?';
 
-  const [nkMonth, bkMonth, vlMonth, nkToday, bkToday, vlToday] = await Promise.all([
+  const [nkMonth, bkMonth, vlMonth, nkToday, bkToday, vlToday, zielRow] = await Promise.all([
     // NK Monatstotals nach Standort
     db.all(
       `SELECT COALESCE(e.standort,'—') as standort, COUNT(*) as cnt, SUM(d.ae_wert) as ae
@@ -67,9 +67,15 @@ async function buildDashboardEmailData(monat, today) {
        ORDER BY d.ae_wert DESC`,
       [today]
     ),
+    // Monatsziel
+    db.get(
+      `SELECT ziel_gesamt FROM monthly_targets WHERE monat=${p(1)}`,
+      [monat]
+    ),
   ]);
 
-  return { monat, today, nkMonth, bkMonth, vlMonth, nkToday, bkToday, vlToday };
+  const monatsziel = Number(zielRow?.ziel_gesamt) || 0;
+  return { monat, today, nkMonth, bkMonth, vlMonth, nkToday, bkToday, vlToday, monatsziel };
 }
 
 async function buildKpiEmailData(datum, monat) {
