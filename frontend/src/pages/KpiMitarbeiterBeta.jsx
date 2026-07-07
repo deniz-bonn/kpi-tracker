@@ -746,28 +746,36 @@ export default function KpiMitarbeiterBeta() {
   const buildCopyText = () => {
     const f1 = (n, d) => d > 0 ? `${(n / d * 100).toFixed(1)}%` : '—';
     const datumStr = new Date(datum + 'T12:00:00').toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' });
-    // Arbeitstage im Monat (Mo–Fr)
+    // Arbeitstage im Monat (Mo–Fr), gesamt + bis einschließlich `datum` vergangen
     const [y, m] = monat.split('-').map(Number);
-    let workdays = 0;
+    let workdays = 0, elapsedWorkdays = 0;
     const daysInMonth = new Date(y, m, 0).getDate();
+    const elapsedUntil = datum.startsWith(monat) ? Number(datum.slice(8, 10)) : daysInMonth;
     for (let d = 1; d <= daysInMonth; d++) {
       const wd = new Date(y, m - 1, d).getDay();
-      if (wd !== 0 && wd !== 6) workdays++;
+      if (wd !== 0 && wd !== 6) {
+        workdays++;
+        if (d <= elapsedUntil) elapsedWorkdays++;
+      }
     }
     const monthGoalSC       = DAILY_GOAL_SC * workdays;
     const monthGoalSettings = DAILY_GOAL_SETTINGS * workdays;
+    const paceGoalSC        = DAILY_GOAL_SC * elapsedWorkdays;
+    const paceGoalSettings  = DAILY_GOAL_SETTINGS * elapsedWorkdays;
     return [
       `📊 Sales KPIs — ${datumStr}${standortFilter ? ' · ' + standortFilter : ''}`,
       ``,
       `Daily Goal SC: ${DAILY_GOAL_SC}`,
       `Heute gelegt: ${todaySC}`,
-      `Pace (daily): ${todaySC}/${DAILY_GOAL_SC}`,
-      `Pace (monthly): ${monthSC}/${monthGoalSC}`,
+      `Tagesziel: ${todaySC}/${DAILY_GOAL_SC}`,
+      `Monatsziel: ${monthSC}/${monthGoalSC}`,
+      `Pace (Soll bis heute): ${monthSC}/${paceGoalSC}`,
       ``,
       `Daily Goal Setting: ${DAILY_GOAL_SETTINGS}`,
       `Heute gelegt: ${todaySettings}`,
-      `Pace (daily): ${todaySettings}/${DAILY_GOAL_SETTINGS}`,
-      `Pace (monthly): ${monthSettings}/${monthGoalSettings}`,
+      `Tagesziel: ${todaySettings}/${DAILY_GOAL_SETTINGS}`,
+      `Monatsziel: ${monthSettings}/${monthGoalSettings}`,
+      `Pace (Soll bis heute): ${monthSettings}/${paceGoalSettings}`,
       `Setting Show-Rate heute: ${f1(todaySettings, todaySettingsGepl)}`,
       `Setting Show-Rate ${fmtMonth(monat)} kumuliert: ${f1(monthSettings, monthSettingsGepl)}`,
       `Durchstellungsquote heute: ${f1(todayBerVereinb, todaySettings)}`,
