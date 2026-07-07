@@ -240,6 +240,16 @@ function InboundModal({ datum, existing, companyId, onSave, onClose, isPending, 
   );
 }
 
+// ── Sollwerte ──────────────────────────────────────────────────────────────────
+const SOLL = {
+  lead_terminierung:  45,
+  show_rate_setting:  80,
+  durchstellung:      45,
+  show_rate_closing:  80,
+  angebotsquote:      85,
+  closing_rate:       50,
+};
+
 // ── UI-Bausteine ───────────────────────────────────────────────────────────────
 function KpiCard({ label, value, desc, color = 'indigo' }) {
   const cls = {
@@ -280,6 +290,73 @@ function RoleBadge({ rolle }) {
     : IS_CLOSER(rolle) ? 'bg-violet-100 text-violet-700'
     : 'bg-blue-100 text-blue-700';
   return <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cls}`}>{rolle}</span>;
+}
+
+function SollAbweichung({ kpis, label }) {
+  const rows = [
+    { key: 'lead_terminierung',  label: 'Lead-Terminierungsquote',         soll: SOLL.lead_terminierung,  ist: kpis.lead_terminierung,  basis: 'Inbound terminiert / Inbound gesamt' },
+    { key: 'show_rate_setting',  label: 'Show-Rate Setting',               soll: SOLL.show_rate_setting,  ist: kpis.show_rate_setting,  basis: 'Settings stattgef. / geplant' },
+    { key: 'durchstellung',      label: 'Durchstellungsquote (Set→Close)',  soll: SOLL.durchstellung,      ist: kpis.durchstellung,      basis: 'Beratung vereinbart / Settings stattgef.' },
+    { key: 'show_rate_closing',  label: 'Show-Rate Closing',               soll: SOLL.show_rate_closing,  ist: kpis.show_rate_closing,  basis: 'Beratungen stattgef. / geplant' },
+    { key: 'angebotsquote',      label: 'Angebotsquote (SC → Angebot)',    soll: SOLL.angebotsquote,      ist: kpis.angebotsquote,      basis: 'NK-Angebote / Beratungen stattgef.' },
+    { key: 'closing_rate',       label: 'Closing-Rate (NK)',               soll: SOLL.closing_rate,       ist: kpis.closing_rate,       basis: 'Gewonnen / NK-Angebote gesamt' },
+  ];
+
+  return (
+    <div className="rounded-xl border border-gray-200 overflow-hidden">
+      <div className="px-3 py-2.5 bg-[#1e293b] flex items-center justify-between">
+        <span className="text-xs font-bold text-white uppercase tracking-wide">Soll-Abweichung — {label}</span>
+        <span className="text-[10px] text-white/50">Zielwerte: Sollquoten Vertrieb</span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 font-medium">
+              <th className="px-3 py-2 text-left">KPI</th>
+              <th className="px-3 py-2 text-right">Ist</th>
+              <th className="px-3 py-2 text-right">Soll</th>
+              <th className="px-3 py-2 text-right">Abweichung</th>
+              <th className="px-3 py-2 text-right w-32">Zielerreichung</th>
+              <th className="px-3 py-2 text-left text-gray-400 font-normal">Basis</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {rows.map(r => {
+              const hasData = r.ist > 0 || r.soll > 0;
+              const diff    = r.ist - r.soll;
+              const ok      = diff >= 0;
+              const pctBar  = r.soll > 0 ? Math.min(Math.round(r.ist / r.soll * 100), 100) : 0;
+              const barCol  = pctBar >= 100 ? 'bg-green-500' : pctBar >= 75 ? 'bg-amber-400' : 'bg-red-500';
+              const diffCol = ok ? 'text-green-600' : 'text-red-600';
+              return (
+                <tr key={r.key} className="hover:bg-gray-50">
+                  <td className="px-3 py-2 text-gray-700 font-medium">{r.label}</td>
+                  <td className={`px-3 py-2 text-right font-bold ${ok ? 'text-green-700' : 'text-red-600'}`}>
+                    {hasData ? `${r.ist.toFixed(1)}%` : '—'}
+                  </td>
+                  <td className="px-3 py-2 text-right text-gray-500">{r.soll}%</td>
+                  <td className={`px-3 py-2 text-right font-bold ${hasData ? diffCol : 'text-gray-400'}`}>
+                    {hasData ? `${diff >= 0 ? '+' : ''}${diff.toFixed(1)}%` : '—'}
+                  </td>
+                  <td className="px-3 py-2">
+                    {hasData ? (
+                      <div className="flex items-center gap-1.5">
+                        <div className="flex-1 bg-gray-200 rounded-full h-2">
+                          <div className={`${barCol} h-2 rounded-full`} style={{ width: `${pctBar}%` }} />
+                        </div>
+                        <span className={`text-[10px] font-bold w-7 text-right ${barCol.replace('bg-','text-').replace('-500','').replace('-400','')}-600`}>{pctBar}%</span>
+                      </div>
+                    ) : <span className="text-gray-300">—</span>}
+                  </td>
+                  <td className="px-3 py-2 text-gray-400">{r.basis}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 }
 
 function SectionBox({ header, headerColor = 'bg-indigo-700', children }) {
@@ -586,6 +663,28 @@ export default function KpiMitarbeiterBeta() {
   const fBerVereinbart = sum(activeLogs, 'beratung_vereinbart');
   const fBerGepl       = sum(activeLogs, 'beratungen_geplant');
   const fBeratungen    = sum(activeLogs, 'beratungen_stattgefunden');
+  // Inbound-Leads (aus inbound_daily)
+  const tiLeads      = sum(inboundData, 'inbound_mail') + sum(inboundData, 'inbound_fax') + sum(inboundData, 'inbound_ad');
+  const tiTerminiert = sum(inboundData, 'terminiert_mail') + sum(inboundData, 'terminiert_fax') + sum(inboundData, 'terminiert_ad');
+
+  // NK-Deals (standort-gefiltert wenn aktiv)
+  const filteredDeals = useMemo(() => {
+    if (!standortFilter) return monthDeals;
+    return monthDeals.filter(d => d.closer_standort === standortFilter || d.setter_standort === standortFilter);
+  }, [monthDeals, standortFilter]);
+  const nkAngebote = filteredDeals.length;
+  const nkGewonnen = filteredDeals.filter(d => d.status === 'Gewonnen').length;
+
+  // Soll-Abweichungs-KPIs
+  const sollKpis = {
+    lead_terminierung: pctNum(tiTerminiert, tiLeads),
+    show_rate_setting: pctNum(fSettings,    fSetGepl),
+    durchstellung:     pctNum(fBerVereinbart, fSettings),
+    show_rate_closing: pctNum(fBeratungen,  fBerGepl),
+    angebotsquote:     pctNum(nkAngebote,   fBeratungen),
+    closing_rate:      pctNum(nkGewonnen,   nkAngebote),
+  };
+
   const activeLabel  = zeitbasis === 'tag'
     ? new Date(datum + 'T12:00:00').toLocaleDateString('de-DE', { day:'2-digit', month:'short', year:'numeric' })
     : fmtMonth(monat);
@@ -805,6 +904,12 @@ export default function KpiMitarbeiterBeta() {
           {/* ── Dashboard ── */}
           {auswertTab === 'dashboard' && (
             <div className="space-y-3">
+              {/* Soll-Abweichung */}
+              <SollAbweichung
+                kpis={sollKpis}
+                label={standortFilter ? standortFilter : `Gesamt (${fmtMonth(monat)})`}
+              />
+
               {/* Funnel */}
               <SectionBox
                 header={<span className="text-xs font-bold text-white uppercase tracking-wide">Sales-Funnel — {activeLabel}</span>}
