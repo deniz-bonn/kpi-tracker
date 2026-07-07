@@ -293,13 +293,13 @@ function RoleBadge({ rolle }) {
   return <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${cls}`}>{rolle}</span>;
 }
 
-function SollAbweichung({ kpis, label }) {
+function SollAbweichung({ kpis, nums = {}, label }) {
   const rows = [
-    { key: 'lead_terminierung',  label: 'Lead-Terminierungsquote',         soll: SOLL.lead_terminierung,  ist: kpis.lead_terminierung,  basis: 'Inbound terminiert / Inbound gesamt' },
-    { key: 'show_rate_setting',  label: 'Show-Rate Setting',               soll: SOLL.show_rate_setting,  ist: kpis.show_rate_setting,  basis: 'Settings stattgef. / geplant' },
-    { key: 'durchstellung',      label: 'Durchstellungsquote (Set→Close)',  soll: SOLL.durchstellung,      ist: kpis.durchstellung,      basis: 'Beratung vereinbart / Settings stattgef.' },
-    { key: 'show_rate_closing',  label: 'Show-Rate Closing',               soll: SOLL.show_rate_closing,  ist: kpis.show_rate_closing,  basis: 'Beratungen stattgef. / geplant' },
-    { key: 'closing_rate',       label: 'Closing-Rate (NK)',               soll: SOLL.closing_rate,       ist: kpis.closing_rate,       basis: 'Gewonnen / NK-Angebote gesamt' },
+    { key: 'lead_terminierung',  label: 'Lead-Terminierungsquote',         soll: SOLL.lead_terminierung,  ist: kpis.lead_terminierung,  nLabel: 'Terminiert', dLabel: 'Inbound gesamt' },
+    { key: 'show_rate_setting',  label: 'Show-Rate Setting',               soll: SOLL.show_rate_setting,  ist: kpis.show_rate_setting,  nLabel: 'Stattgef.',  dLabel: 'Geplant' },
+    { key: 'durchstellung',      label: 'Durchstellungsquote (Set→Close)',  soll: SOLL.durchstellung,      ist: kpis.durchstellung,      nLabel: 'Vereinbart', dLabel: 'Settings stattgef.' },
+    { key: 'show_rate_closing',  label: 'Show-Rate Closing',               soll: SOLL.show_rate_closing,  ist: kpis.show_rate_closing,  nLabel: 'Stattgef.',  dLabel: 'Geplant' },
+    { key: 'closing_rate',       label: 'Closing-Rate (NK)',               soll: SOLL.closing_rate,       ist: kpis.closing_rate,       nLabel: 'Gewonnen',   dLabel: 'Angebote gesamt' },
   ];
 
   return (
@@ -313,11 +313,11 @@ function SollAbweichung({ kpis, label }) {
           <thead>
             <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 font-medium">
               <th className="px-3 py-2 text-left">KPI</th>
+              <th className="px-3 py-2 text-right">Absolut</th>
               <th className="px-3 py-2 text-right">Ist</th>
               <th className="px-3 py-2 text-right">Soll</th>
               <th className="px-3 py-2 text-right">Abweichung</th>
               <th className="px-3 py-2 text-right w-32">Zielerreichung</th>
-              <th className="px-3 py-2 text-left text-gray-400 font-normal">Basis</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -328,9 +328,18 @@ function SollAbweichung({ kpis, label }) {
               const pctBar  = r.soll > 0 ? Math.min(Math.round(r.ist / r.soll * 100), 100) : 0;
               const barCol  = pctBar >= 100 ? 'bg-green-500' : pctBar >= 75 ? 'bg-amber-400' : 'bg-red-500';
               const diffCol = ok ? 'text-green-600' : 'text-red-600';
+              const raw = nums[r.key] || {};
               return (
                 <tr key={r.key} className="hover:bg-gray-50">
                   <td className="px-3 py-2 text-gray-700 font-medium">{r.label}</td>
+                  <td className="px-3 py-2 text-right">
+                    {raw.d > 0 ? (
+                      <div className="flex flex-col items-end gap-0.5">
+                        <span className="font-semibold text-gray-800">{raw.n} / {raw.d}</span>
+                        <span className="text-[10px] text-gray-400">{r.nLabel} / {r.dLabel}</span>
+                      </div>
+                    ) : <span className="text-gray-300">—</span>}
+                  </td>
                   <td className={`px-3 py-2 text-right font-bold ${ok ? 'text-green-700' : 'text-red-600'}`}>
                     {hasData ? `${r.ist.toFixed(1)}%` : '—'}
                   </td>
@@ -348,7 +357,6 @@ function SollAbweichung({ kpis, label }) {
                       </div>
                     ) : <span className="text-gray-300">—</span>}
                   </td>
-                  <td className="px-3 py-2 text-gray-400">{r.basis}</td>
                 </tr>
               );
             })}
@@ -1098,6 +1106,13 @@ export default function KpiMitarbeiterBeta() {
               {/* Soll-Abweichung */}
               <SollAbweichung
                 kpis={sollKpis}
+                nums={{
+                  lead_terminierung: { n: tiTerminiert,    d: tiLeads },
+                  show_rate_setting: { n: fSettings,       d: fSetGepl },
+                  durchstellung:     { n: fBerVereinbart,  d: fSettings },
+                  show_rate_closing: { n: fBeratungen,     d: fBerGepl },
+                  closing_rate:      { n: nkGewonnen,      d: nkAngebote },
+                }}
                 label={standortFilter ? standortFilter : `Gesamt (${fmtMonth(monat)})`}
               />
 
