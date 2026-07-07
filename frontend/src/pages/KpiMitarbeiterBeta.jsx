@@ -89,15 +89,25 @@ function ActivityModal({ employee, datum, existing, companyId, onSave, onClose, 
               <h3 className="text-[11px] font-bold text-indigo-700 uppercase tracking-wider mb-2">📞 Entscheider &amp; Terminierung</h3>
               <div className="space-y-2 bg-indigo-50 rounded-lg p-3">
                 {inp('entscheider_erreicht',   'Entscheider erreicht')}
-                {inp('entscheider_terminiert', 'Entscheider terminiert')}
-                {inp('terminiert_cold_calls',  '→ davon Cold Calls')}
-                {inp('terminiert_inbound',     '→ davon Inbound')}
+                <div className="border-t border-indigo-100 pt-2 mt-1">
+                  <p className="text-[10px] text-indigo-500 font-medium mb-1.5">Terminiert (→ geplantes Setting):</p>
+                  {inp('entscheider_terminiert', 'Entscheider terminiert')}
+                  {inp('terminiert_cold_calls',  '→ davon Cold Calls')}
+                  {inp('terminiert_inbound',     '→ davon Inbound')}
+                </div>
+                <div className="border-t border-indigo-100 pt-2 mt-1">
+                  <p className="text-[10px] text-indigo-500 font-medium mb-1.5">Direkt gesetzt (Setting sofort):</p>
+                  {inp('settings_direkt',            'Direkte Settings')}
+                  {inp('beratung_vereinbart_direkt', '→ Beratungsgespr. vereinbart')}
+                  {inp('follow_up_direkt',           '→ Follow-Up')}
+                  {inp('unqualifiziert_direkt',      '→ Unqualifiziert')}
+                </div>
               </div>
             </section>
           )}
           {IS_OPENER(rolle) && (
             <section>
-              <h3 className="text-[11px] font-bold text-indigo-700 uppercase tracking-wider mb-2">📅 Settings</h3>
+              <h3 className="text-[11px] font-bold text-indigo-700 uppercase tracking-wider mb-2">📅 Settings (geplant / terminiert)</h3>
               <div className="space-y-2 bg-indigo-50 rounded-lg p-3">
                 {inp('settings_geplant',       'Settings geplant')}
                 {inp('settings_stattgefunden', 'Settings stattgefunden')}
@@ -112,13 +122,6 @@ function ActivityModal({ employee, datum, existing, companyId, onSave, onClose, 
                   {inp('setting_abgesagt',   'Setting abgesagt')}
                   {inp('setting_verschoben', 'Setting verschoben')}
                   {inp('nicht_erreicht',     'Nicht erreicht')}
-                </div>
-                <div className="border-t border-indigo-100 pt-2 mt-1">
-                  <p className="text-[10px] text-indigo-500 font-medium mb-1.5">Direkte Settings:</p>
-                  {inp('settings_direkt',            'Direkte Settings')}
-                  {inp('beratung_vereinbart_direkt',  'Beratungsgespr. vereinbart (direkt)')}
-                  {inp('unqualifiziert_direkt',       'Unqualifiziert (direkt)')}
-                  {inp('follow_up_direkt',            'Follow-Up (direkt)')}
                 </div>
               </div>
             </section>
