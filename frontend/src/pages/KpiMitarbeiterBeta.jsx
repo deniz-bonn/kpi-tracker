@@ -469,7 +469,7 @@ export default function KpiMitarbeiterBeta() {
   // Tabs & view state
   const [tab,          setTab]          = useState('eingabe');
   const [auswertTab,   setAuswertTab]   = useState('dashboard');
-  const [zeitbasis,    setZeitbasis]    = useState('monat');    // 'tag' | 'monat'
+  const [zeitbasis,    setZeitbasis]    = useState('monat');    // 'tag' | 'woche' | 'monat'
   const [vergleichEmps,setVergleichEmps] = useState(new Set()); // Set<number>
 
   // Datums / Monat
@@ -595,6 +595,25 @@ export default function KpiMitarbeiterBeta() {
     return monthLogs.filter(l => empSet.has(l.employee_id));
   }, [monthLogs, employees, standortFilter]);
 
+  // ISO-Wochennummer
+  const getISOWeek = d => {
+    const dt = new Date(d); dt.setHours(12, 0, 0, 0);
+    dt.setDate(dt.getDate() + 4 - (dt.getDay() || 7));
+    const y0 = new Date(dt.getFullYear(), 0, 1);
+    return Math.ceil((((dt - y0) / 86400000) + 1) / 7);
+  };
+
+  // Montag–Sonntag der Woche die `datum` enthält
+  const weekRange = useMemo(() => {
+    if (!datum) return null;
+    const d = new Date(datum + 'T12:00:00');
+    const daysFromMon = d.getDay() === 0 ? 6 : d.getDay() - 1;
+    const mon = new Date(d); mon.setDate(d.getDate() - daysFromMon);
+    const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+    const fmt = dt => dt.toISOString().slice(0, 10);
+    return { start: fmt(mon), end: fmt(sun), kw: getISOWeek(mon) };
+  }, [datum]);
+
   // Aktive Logs je nach Zeitbasis
   const activeLogs = useMemo(() => {
     if (zeitbasis === 'tag') {
@@ -605,8 +624,16 @@ export default function KpiMitarbeiterBeta() {
       }
       return all;
     }
+    if (zeitbasis === 'woche' && weekRange) {
+      let all = monthLogs;
+      if (standortFilter) {
+        const empSet = new Set(employees.filter(e => e.standort === standortFilter).map(e => e.id));
+        all = all.filter(l => empSet.has(l.employee_id));
+      }
+      return all.filter(l => l.datum >= weekRange.start && l.datum <= weekRange.end);
+    }
     return auswertungLogs;
-  }, [zeitbasis, logsByDay.data, auswertungLogs, standortFilter, employees]);
+  }, [zeitbasis, logsByDay.data, monthLogs, auswertungLogs, standortFilter, employees, weekRange]);
 
   // Per-Employee-Aggregation
   const perEmployee = useMemo(() => {
@@ -807,9 +834,18 @@ export default function KpiMitarbeiterBeta() {
     setShowExport(false);
   };
 
-  const activeLabel  = zeitbasis === 'tag'
-    ? new Date(datum + 'T12:00:00').toLocaleDateString('de-DE', { day:'2-digit', month:'short', year:'numeric' })
-    : fmtMonth(monat);
+  const activeLabel = useMemo(() => {
+    if (zeitbasis === 'tag') {
+      return new Date(datum + 'T12:00:00').toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+    if (zeitbasis === 'woche' && weekRange) {
+      const s = new Date(weekRange.start + 'T12:00:00');
+      const e = new Date(weekRange.end + 'T12:00:00');
+      const fmtD = d => d.toLocaleDateString('de-DE', { day: '2-digit', month: 'short' });
+      return `KW ${weekRange.kw} · ${fmtD(s)} – ${fmtD(e)} ${e.getFullYear()}`;
+    }
+    return fmtMonth(monat);
+  }, [zeitbasis, datum, monat, weekRange]);
 
   const sel = 'bg-white border border-gray-300 text-gray-700 text-xs rounded px-2 py-1.5';
 
@@ -982,16 +1018,16 @@ export default function KpiMitarbeiterBeta() {
             <div className="flex items-center gap-1.5">
               <span className="text-xs text-gray-500 font-medium">Zeitbasis:</span>
               <div className="flex rounded-lg border border-gray-300 overflow-hidden text-xs">
-                {[['tag','Tagesbasis'],['monat','Monatsbasis']].map(([v, l]) => (
+                {[['tag','Tagesbasis'],['woche','Wochenbasis'],['monat','Monatsbasis']].map(([v, l]) => (
                   <button key={v} onClick={() => setZeitbasis(v)}
-                    className={`px-3 py-1.5 font-medium transition-colors ${zeitbasis === v ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-50'} ${v === 'monat' ? 'border-l border-gray-300' : ''}`}>
+                    className={`px-3 py-1.5 font-medium transition-colors ${zeitbasis === v ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:bg-gray-50'} ${v !== 'tag' ? 'border-l border-gray-300' : ''}`}>
                     {l}
                   </button>
                 ))}
               </div>
             </div>
-            {/* Datum für Tagesbasis */}
-            {zeitbasis === 'tag' && (
+            {/* Datum für Tages- und Wochenbasis */}
+            {(zeitbasis === 'tag' || zeitbasis === 'woche') && (
               <input type="date" value={datum} onChange={e => setDatum(e.target.value)}
                 className="bg-white border border-gray-300 text-gray-700 text-xs rounded px-2 py-1.5" />
             )}
