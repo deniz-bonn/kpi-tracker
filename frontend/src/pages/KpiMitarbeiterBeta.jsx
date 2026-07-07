@@ -699,6 +699,7 @@ export default function KpiMitarbeiterBeta() {
   const todaySC           = sum(todayLogs, 'beratungen_stattgefunden');
   const todayBerVereinb   = sum(todayLogs, 'beratung_vereinbart');
   // Monatlich kumuliert (aus auswertungLogs = standort-gefiltert, immer Monat)
+  const monthSC           = sum(auswertungLogs, 'beratungen_stattgefunden');
   const monthSettings     = sum(auswertungLogs, 'settings_stattgefunden');
   const monthSettingsGepl = sum(auswertungLogs, 'settings_geplant');
   const monthBerVereinb   = sum(auswertungLogs, 'beratung_vereinbart');
@@ -707,20 +708,32 @@ export default function KpiMitarbeiterBeta() {
   const buildCopyText = () => {
     const f1 = (n, d) => d > 0 ? `${(n / d * 100).toFixed(1)}%` : '—';
     const datumStr = new Date(datum + 'T12:00:00').toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' });
+    // Arbeitstage im Monat (Mo–Fr)
+    const [y, m] = monat.split('-').map(Number);
+    let workdays = 0;
+    const daysInMonth = new Date(y, m, 0).getDate();
+    for (let d = 1; d <= daysInMonth; d++) {
+      const wd = new Date(y, m - 1, d).getDay();
+      if (wd !== 0 && wd !== 6) workdays++;
+    }
+    const monthGoalSC       = DAILY_GOAL_SC * workdays;
+    const monthGoalSettings = DAILY_GOAL_SETTINGS * workdays;
     return [
       `📊 Sales KPIs — ${datumStr}${standortFilter ? ' · ' + standortFilter : ''}`,
       ``,
       `Daily Goal SC: ${DAILY_GOAL_SC}`,
       `Heute gelegt: ${todaySC}`,
-      `Pace: ${todaySC}/${DAILY_GOAL_SC}`,
+      `Pace (daily): ${todaySC}/${DAILY_GOAL_SC}`,
+      `Pace (monthly): ${monthSC}/${monthGoalSC}`,
       ``,
       `Daily Goal Setting: ${DAILY_GOAL_SETTINGS}`,
       `Heute gelegt: ${todaySettings}`,
-      `Pace: ${todaySettings}/${DAILY_GOAL_SETTINGS}`,
-      `Setting Show-Rate heute: ${f1(todaySettings, todaySettingsGepl)} (${todaySettings}/${todaySettingsGepl})`,
-      `Setting Show-Rate ${fmtMonth(monat)} kumuliert: ${f1(monthSettings, monthSettingsGepl)} (${monthSettings}/${monthSettingsGepl})`,
-      `Durchstellungsquote heute: ${f1(todayBerVereinb, todaySettings)} (${todayBerVereinb}/${todaySettings})`,
-      `Durchstellungsquote ${fmtMonth(monat)} kumuliert: ${f1(monthBerVereinb, monthSettings)} (${monthBerVereinb}/${monthSettings})`,
+      `Pace (daily): ${todaySettings}/${DAILY_GOAL_SETTINGS}`,
+      `Pace (monthly): ${monthSettings}/${monthGoalSettings}`,
+      `Setting Show-Rate heute: ${f1(todaySettings, todaySettingsGepl)}`,
+      `Setting Show-Rate ${fmtMonth(monat)} kumuliert: ${f1(monthSettings, monthSettingsGepl)}`,
+      `Durchstellungsquote heute: ${f1(todayBerVereinb, todaySettings)}`,
+      `Durchstellungsquote ${fmtMonth(monat)} kumuliert: ${f1(monthBerVereinb, monthSettings)}`,
     ].join('\n');
   };
 
