@@ -742,6 +742,11 @@ export default function KpiMitarbeiterBeta() {
   const monthSettings     = sum(auswertungLogs, 'settings_stattgefunden');
   const monthSettingsGepl = sum(auswertungLogs, 'settings_geplant');
   const monthBerVereinb   = sum(auswertungLogs, 'beratung_vereinbart');
+  // Beratungsgespräche (Closer-Seite) für Sales Show-Rate
+  const todayBerGepl      = sum(todayLogs, 'beratungen_geplant');
+  const todayBerStattg    = sum(todayLogs, 'beratungen_stattgefunden');
+  const monthBerGepl      = sum(auswertungLogs, 'beratungen_geplant');
+  const monthBerStattg    = sum(auswertungLogs, 'beratungen_stattgefunden');
 
   // ── Copy-Text (WhatsApp / Slack) ─────────────────────────────────────────────
   const buildCopyText = () => {
@@ -781,6 +786,11 @@ export default function KpiMitarbeiterBeta() {
       `Setting Show-Rate ${fmtMonth(monat)} kumuliert: ${f1(monthSettings, monthSettingsGepl)}`,
       `Durchstellungsquote heute: ${f1(todayBerVereinb, todaySettings)}`,
       `Durchstellungsquote ${fmtMonth(monat)} kumuliert: ${f1(monthBerVereinb, monthSettings)}`,
+      ``,
+      `Beratungsgespräche geplant heute: ${todayBerGepl}`,
+      `Beratungsgespräche stattgefunden heute: ${todayBerStattg}`,
+      `Sales Show-Rate heute: ${f1(todayBerStattg, todayBerGepl)}`,
+      `Sales Show-Rate ${fmtMonth(monat)} kumuliert: ${f1(monthBerStattg, monthBerGepl)}`,
     ].join('\n');
   };
 
