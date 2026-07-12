@@ -411,8 +411,8 @@ function buildKpiHtml(data) {
       <!-- Tagesziele -->
       <div style="font-size:13px;font-weight:bold;color:#1e293b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">🎯 Tagesziele heute</div>
       <div style="display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap">
-        ${goalCard('Sales Calls (Beratungen)', num(totals.beratungen), KPI_DAILY_GOAL_SC)}
-        ${goalCard('Settings stattgefunden',   num(totals.settings),   KPI_DAILY_GOAL_SETTINGS)}
+        ${goalCard('Sales Calls gelegt',     num(totals.sc_gelegt), KPI_DAILY_GOAL_SC)}
+        ${goalCard('Settings stattgefunden', num(totals.settings),  KPI_DAILY_GOAL_SETTINGS)}
       </div>
 
       <!-- Monatsziele & Pace -->
@@ -426,8 +426,8 @@ function buildKpiHtml(data) {
           <th style="${styleThR()}">Monatsziel</th>
           <th style="${styleThR()}">Erreicht</th>
         </tr>
-        ${paceRow('Sales Calls (Beratungen)', num(month.beratungen), KPI_DAILY_GOAL_SC, 0)}
-        ${paceRow('Settings stattgefunden',   num(month.settings),   KPI_DAILY_GOAL_SETTINGS, 1)}
+        ${paceRow('Sales Calls gelegt',     num(month.sc_gelegt), KPI_DAILY_GOAL_SC, 0)}
+        ${paceRow('Settings stattgefunden', num(month.settings),  KPI_DAILY_GOAL_SETTINGS, 1)}
       </table>
       <div style="font-size:11px;color:#94a3b8;margin-bottom:24px">Soll bis heute = Tagesziel × vergangene Arbeitstage (Mo–Fr)</div>
 
@@ -515,7 +515,7 @@ async function sendDailyKpi(data) {
     return;
   }
   const dateLabel = new Date(data.datum + 'T12:00:00').toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' });
-  const subject = `📈 KPI ${data.standort || 'Mitarbeiter'} – ${dateLabel} | SC ${data.totals.beratungen}/${KPI_DAILY_GOAL_SC} · Settings ${data.totals.settings}/${KPI_DAILY_GOAL_SETTINGS}`;
+  const subject = `📈 KPI ${data.standort || 'Mitarbeiter'} – ${dateLabel} | SC ${Number(data.totals.sc_gelegt) || 0}/${KPI_DAILY_GOAL_SC} · Settings ${data.totals.settings}/${KPI_DAILY_GOAL_SETTINGS}`;
   try {
     await sendEmail({ to: REPORT_RECIPIENTS.join(','), subject, html: buildKpiHtml(data) });
     console.log(`[daily-report] KPI-E-Mail verschickt an ${REPORT_RECIPIENTS.join(', ')}`);

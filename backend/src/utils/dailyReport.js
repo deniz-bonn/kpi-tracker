@@ -103,6 +103,7 @@ async function buildKpiEmailData(datum, monat) {
          COALESCE(SUM(a.settings_geplant),0)         AS settings_geplant,
          COALESCE(SUM(a.settings_stattgefunden),0)   AS settings,
          COALESCE(SUM(a.beratung_vereinbart),0)      AS beratung_vereinbart,
+         COALESCE(SUM(a.beratung_vereinbart_direkt),0) AS beratung_vereinbart_direkt,
          COALESCE(SUM(a.beratungen_geplant),0)       AS beratungen_geplant,
          COALESCE(SUM(a.beratungen_stattgefunden),0) AS beratungen
        FROM activity_logs a
@@ -149,6 +150,8 @@ async function buildKpiEmailData(datum, monat) {
     terminiert:  sum('terminiert'),
     settings:    sum('settings'),
     beratungen:  sum('beratungen'),
+    // "Gelegte" Sales Calls = vereinbarte Beratungsgespräche (geplant + direkt)
+    sc_gelegt:   logs.reduce((s, l) => s + n(l.beratung_vereinbart) + n(l.beratung_vereinbart_direkt), 0),
   };
 
   // Tages-Detailsummen (für Quoten heute)
@@ -179,6 +182,7 @@ async function buildKpiEmailData(datum, monat) {
     beratung_vereinbart: n(monthAgg?.beratung_vereinbart),
     beratungen_geplant:  n(monthAgg?.beratungen_geplant),
     beratungen:          n(monthAgg?.beratungen),
+    sc_gelegt:           n(monthAgg?.beratung_vereinbart) + n(monthAgg?.beratung_vereinbart_direkt),
   };
   const inbound = { leads: n(inboundAgg?.leads), terminiert: n(inboundAgg?.terminiert) };
   const nk      = { angebote: n(nkAgg?.angebote), gewonnen: n(nkAgg?.gewonnen) };

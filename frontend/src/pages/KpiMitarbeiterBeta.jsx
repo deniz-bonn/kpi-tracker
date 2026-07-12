@@ -734,10 +734,11 @@ export default function KpiMitarbeiterBeta() {
   }, [logsByDay.data, standortFilter, employees]);
   const todaySettings     = sum(todayLogs, 'settings_stattgefunden');
   const todaySettingsGepl = sum(todayLogs, 'settings_geplant');
-  const todaySC           = sum(todayLogs, 'beratungen_stattgefunden');
+  // "Gelegte" Sales Calls = vereinbarte Beratungsgespräche (geplant + direkt), Opener-Eingabe
+  const todaySC           = sum(todayLogs, 'beratung_vereinbart') + sum(todayLogs, 'beratung_vereinbart_direkt');
   const todayBerVereinb   = sum(todayLogs, 'beratung_vereinbart');
   // Monatlich kumuliert (aus auswertungLogs = standort-gefiltert, immer Monat)
-  const monthSC           = sum(auswertungLogs, 'beratungen_stattgefunden');
+  const monthSC           = sum(auswertungLogs, 'beratung_vereinbart') + sum(auswertungLogs, 'beratung_vereinbart_direkt');
   const monthSettings     = sum(auswertungLogs, 'settings_stattgefunden');
   const monthSettingsGepl = sum(auswertungLogs, 'settings_geplant');
   const monthBerVereinb   = sum(auswertungLogs, 'beratung_vereinbart');
