@@ -42,6 +42,7 @@ export default function DealsVL() {
   const [bisMonat, setBisMonat]          = useState(currentMonat());
   const [modal, setModal]                = useState(null);
   const [showKpis, setShowKpis]          = useState(true);
+  const [showChurn, setShowChurn]        = useState(false);
 
   const [filterKam,      setFilterKam]      = useState('');
   const [filterStatus,   setFilterStatus]   = useState('');
@@ -320,9 +321,12 @@ export default function DealsVL() {
 
           {/* Churn-Rate nach Verlängerungs-Nummer */}
           <div className="rounded-lg border border-indigo-200 overflow-hidden">
-            <div className="px-3 py-2 bg-indigo-700 border-b border-indigo-600">
+            <button onClick={() => setShowChurn(v => !v)}
+              className="w-full px-3 py-2 bg-indigo-700 hover:bg-indigo-600 flex items-center justify-between transition-colors">
               <span className="text-xs font-bold text-white uppercase tracking-wide">Churn-Rate nach Verlängerung</span>
-            </div>
+              <span className="text-indigo-200 text-xs">{showChurn ? '▲ Einklappen' : '▼ Anzeigen'}</span>
+            </button>
+            {showChurn && (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
@@ -368,9 +372,12 @@ export default function DealsVL() {
                 </tbody>
               </table>
             </div>
+            )}
+            {showChurn && (
             <p className="px-3 py-1.5 text-[10px] text-gray-400 bg-indigo-50/50 border-t border-indigo-100">
               Churn-Rate = (Möglich − Realisiert) / Möglich · offene Verlängerungen zählen noch als nicht realisiert
             </p>
+            )}
           </div>
 
           {/* Pro KAM — kompakte Vergleichstabelle */}
