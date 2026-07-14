@@ -189,7 +189,8 @@ export default function DealsVL() {
   const churnByNr = useMemo(() => {
     const m = {};
     filtered.forEach(d => {
-      const nr = Number(d.wie_vielt_verlaengerung) || 0; // 0 = ohne Angabe
+      const raw = Number(d.wie_vielt_verlaengerung) || 0;
+      const nr = raw >= 1 ? raw : 0; // 0 = ohne Angabe; ungültige Werte (z.B. -2) ebenfalls
       (m[nr] = m[nr] || []).push(d);
     });
     return Object.entries(m)
