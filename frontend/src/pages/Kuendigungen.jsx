@@ -418,6 +418,9 @@ const createDealMut = useMutation({
     const angenommen_n = filtered.filter(d => (upsaleByVlId[d.id] || []).some(u => u.status === 'Gewonnen')).length;
     const angenommen_euro = gewonnenDeals.reduce((s, u) => s + (Number(u.angenommenes_volumen) || 0), 0);
 
+    // Wegfallender AE = Summe der AE-Werte der gekündigten Verträge
+    const wegfall_ae = filtered.reduce((s, d) => s + (Number(d.ae_wert) || 0), 0);
+
     const pct = (n, base) => base > 0 ? (n / base * 100).toFixed(1) : '0.0';
 
     return {
@@ -430,6 +433,8 @@ const createDealMut = useMutation({
       angenommen_pct: pct(angenommen_n, total),
       angenommen_euro,
       angebote_euro_pct: allAngeboteEuro > 0 ? pct(angenommen_euro, allAngeboteEuro) : '0.0',
+      wegfall_ae,
+      netto_wegfall: wegfall_ae - angenommen_euro,
     };
   }, [filtered, upsaleByVlId]);
 
@@ -595,6 +600,11 @@ const createDealMut = useMutation({
             <div className="text-orange-600 mb-0.5">Angenommen (€)</div>
             <div className="font-bold text-gray-900 text-lg">{formatEuro(kpis.angenommen_euro)}</div>
             <div className="text-gray-500">{kpis.angebote_euro_pct}% des angebotenen Volumens</div>
+          </div>
+          <div className="text-xs min-w-[140px]">
+            <div className="text-red-600 mb-0.5">Wegfallender AE</div>
+            <div className="font-bold text-red-700 text-lg">−{formatEuro(kpis.wegfall_ae)}</div>
+            <div className="text-gray-500">netto {kpis.netto_wegfall >= 0 ? '−' : '+'}{formatEuro(Math.abs(kpis.netto_wegfall))} nach Up-Sales</div>
           </div>
         </div>
       </div>
