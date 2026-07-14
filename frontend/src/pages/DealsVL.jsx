@@ -37,7 +37,9 @@ export default function DealsVL() {
   const { canSeeAll } = useAuth();
   const qc = useQueryClient();
   const [monat, setMonat]                = useState(currentMonat());
-  const [showAllMonths, setShowAllMonths] = useState(false);
+  const [zeitMode, setZeitMode]          = useState('monat'); // 'monat' | 'zeitraum' | 'alle'
+  const [vonMonat, setVonMonat]          = useState(currentMonat());
+  const [bisMonat, setBisMonat]          = useState(currentMonat());
   const [modal, setModal]                = useState(null);
   const [showKpis, setShowKpis]          = useState(true);
 
@@ -47,7 +49,8 @@ export default function DealsVL() {
   const [importResult,   setImportResult]   = useState(null);
   const importFileRef = useRef(null);
 
-  const params = { ...(company && { company_id: company }), ...(!showAllMonths && { monat }) };
+  // Nur im Monats-Modus serverseitig filtern; Zeitraum/Alle laden alles (Zeitraum filtert clientseitig)
+  const params = { ...(company && { company_id: company }), ...(zeitMode === 'monat' && { monat }) };
   const { data: deals = [] } = useQuery({
     queryKey: ['deals-vl', params], queryFn: () => dealsApi.vl.list(params),
   });
@@ -154,8 +157,9 @@ export default function DealsVL() {
   const filtered = useMemo(() => deals.filter(d =>
     (!filterKam      || String(d.kam_id)   === filterKam) &&
     (!filterStatus   || d.status           === filterStatus) &&
-    (!filterStandort || d.kam_standort     === filterStandort)
-  ), [deals, filterKam, filterStatus, filterStandort]);
+    (!filterStandort || d.kam_standort     === filterStandort) &&
+    (zeitMode !== 'zeitraum' || ((d.monat || '').trim() >= vonMonat && (d.monat || '').trim() <= bisMonat))
+  ), [deals, filterKam, filterStatus, filterStandort, zeitMode, vonMonat, bisMonat]);
 
   // Gesamt-KPIs
   const gesamtKpis = useMemo(() => calcKpis(filtered), [filtered]);
@@ -177,8 +181,23 @@ export default function DealsVL() {
     });
     return Object.values(m)
       .map(k => ({ ...k, kpis: calcKpis(k.deals) }))
-      .sort((a, b) => b.kpis.total - a.kpis.total);
+      .sort((a, b) => b.kpis.ae_summe - a.kpis.ae_summe);
   }, [filtered, employees]);
+
+  // Churn-Rate aufgeschlüsselt nach Verlängerungs-Nummer (1., 2., 3. …)
+  const churnByNr = useMemo(() => {
+    const m = {};
+    filtered.forEach(d => {
+      const nr = Number(d.wie_vielt_verlaengerung) || 0; // 0 = ohne Angabe
+      (m[nr] = m[nr] || []).push(d);
+    });
+    return Object.entries(m)
+      .map(([nr, ds]) => {
+        const k = calcKpis(ds);
+        return { nr: Number(nr), ...k, offen: k.total - k.gewonnen - k.verloren };
+      })
+      .sort((a, b) => (a.nr || 999) - (b.nr || 999));
+  }, [filtered]);
 
   const sel = "bg-white border border-gray-300 text-gray-700 text-xs rounded px-2 py-1.5";
   const hasFilters = filterKam || filterStatus || filterStandort;
@@ -198,16 +217,29 @@ export default function DealsVL() {
             className="text-xs text-gray-600 hover:text-gray-800 border border-gray-300 rounded px-2 py-1">
             {showKpis ? '▲ KPIs ausblenden' : '▼ KPIs einblenden'}
           </button>
-          <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
-            <input type="checkbox" checked={showAllMonths} onChange={e => setShowAllMonths(e.target.checked)} className="accent-blue-500" />
-            Alle Monate
-          </label>
-          {!showAllMonths && (
+          <div className="flex rounded-lg border border-gray-300 overflow-hidden text-xs">
+            {[['monat','Monat'],['zeitraum','Zeitraum'],['alle','Alle Monate']].map(([v, l]) => (
+              <button key={v} onClick={() => setZeitMode(v)}
+                className={`px-3 py-1.5 font-medium transition-colors ${zeitMode === v ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'} ${v !== 'monat' ? 'border-l border-gray-300' : ''}`}>
+                {l}
+              </button>
+            ))}
+          </div>
+          {zeitMode === 'monat' && (
             <input type="month" value={monat} onChange={e => setMonat(e.target.value)}
               className="bg-white border border-gray-300 text-gray-700 text-sm rounded px-3 py-1.5" />
           )}
+          {zeitMode === 'zeitraum' && (
+            <div className="flex items-center gap-1.5">
+              <input type="month" value={vonMonat} onChange={e => setVonMonat(e.target.value)}
+                className="bg-white border border-gray-300 text-gray-700 text-sm rounded px-3 py-1.5" />
+              <span className="text-gray-400 text-sm">–</span>
+              <input type="month" value={bisMonat} onChange={e => setBisMonat(e.target.value)}
+                className="bg-white border border-gray-300 text-gray-700 text-sm rounded px-3 py-1.5" />
+            </div>
+          )}
           <button
-            onClick={() => exportApi.download('vl.csv', 'verlaengerungen.csv', { ...(company && { company_id: company }), ...(!showAllMonths && { monat }) })}
+            onClick={() => exportApi.download('vl.csv', 'verlaengerungen.csv', { ...(company && { company_id: company }), ...(zeitMode === 'monat' && { monat }) })}
             className="px-3 py-1.5 bg-white border border-gray-300 hover:border-gray-400 text-gray-600 text-sm rounded">
             ↓ CSV
           </button>
@@ -284,6 +316,61 @@ export default function DealsVL() {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Churn-Rate nach Verlängerungs-Nummer */}
+          <div className="rounded-lg border border-indigo-200 overflow-hidden">
+            <div className="px-3 py-2 bg-indigo-700 border-b border-indigo-600">
+              <span className="text-xs font-bold text-white uppercase tracking-wide">Churn-Rate nach Verlängerung</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-indigo-50 border-b border-indigo-100 text-indigo-800 font-medium">
+                    <th className="px-3 py-2 text-left">Verlängerung</th>
+                    <th className="px-3 py-2 text-right">Möglich</th>
+                    <th className="px-3 py-2 text-right">Realisiert</th>
+                    <th className="px-3 py-2 text-right">Offen</th>
+                    <th className="px-3 py-2 text-right">Verloren</th>
+                    <th className="px-3 py-2 text-right">Churn-Rate</th>
+                    <th className="px-3 py-2 text-right">Realisierter AE</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-indigo-50">
+                  {churnByNr.length === 0
+                    ? <tr><td colSpan={7} className="px-3 py-4 text-center text-gray-400">Keine Daten</td></tr>
+                    : churnByNr.map(r => {
+                        const cr = r.churn_rate;
+                        const churnCls = cr > 70 ? 'text-red-600' : cr > 40 ? 'text-amber-600' : 'text-green-600';
+                        return (
+                          <tr key={r.nr} className="hover:bg-indigo-50/40">
+                            <td className="px-3 py-2 font-medium text-gray-700">{r.nr === 0 ? 'Ohne Angabe' : `${r.nr}. Verlängerung`}</td>
+                            <td className="px-3 py-2 text-right text-gray-600">{r.total}</td>
+                            <td className="px-3 py-2 text-right font-medium text-gray-900">{r.gewonnen}</td>
+                            <td className="px-3 py-2 text-right text-gray-500">{r.offen}</td>
+                            <td className="px-3 py-2 text-right text-gray-600">{r.verloren}</td>
+                            <td className={`px-3 py-2 text-right font-bold ${churnCls}`}>{cr.toFixed(1)}%</td>
+                            <td className="px-3 py-2 text-right font-medium text-gray-900 whitespace-nowrap">{formatEuro(r.ae_summe)}</td>
+                          </tr>
+                        );
+                      })}
+                  {churnByNr.length > 0 && (
+                    <tr className="bg-indigo-900 text-white font-bold">
+                      <td className="px-3 py-2">Gesamt</td>
+                      <td className="px-3 py-2 text-right">{gesamtKpis.total}</td>
+                      <td className="px-3 py-2 text-right">{gesamtKpis.gewonnen}</td>
+                      <td className="px-3 py-2 text-right">{gesamtKpis.total - gesamtKpis.gewonnen - gesamtKpis.verloren}</td>
+                      <td className="px-3 py-2 text-right">{gesamtKpis.verloren}</td>
+                      <td className="px-3 py-2 text-right">{gesamtKpis.churn_rate.toFixed(1)}%</td>
+                      <td className="px-3 py-2 text-right whitespace-nowrap">{formatEuro(gesamtKpis.ae_summe)}</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <p className="px-3 py-1.5 text-[10px] text-gray-400 bg-indigo-50/50 border-t border-indigo-100">
+              Churn-Rate = (Möglich − Realisiert) / Möglich · offene Verlängerungen zählen noch als nicht realisiert
+            </p>
           </div>
 
           {/* Pro KAM — kompakte Vergleichstabelle */}
