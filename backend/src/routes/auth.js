@@ -153,7 +153,7 @@ router.post('/reset/request', wrap(async (req, res) => {
   if (!user) return res.json({ ok: true });
 
   const token   = crypto.randomBytes(32).toString('hex');
-  const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 Stunden
 
   if (db.dialect === 'postgres') {
     await db.run(

@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const db     = require('../db');
 const wrap   = require('../middleware/asyncHandler');
 const { requireAuth, requireRole } = require('../middleware/auth');
-const { sendInvite } = require('../utils/email');
+const { sendInvite, sendPasswordReset } = require('../utils/email');
 
 // All admin routes require auth + admin role
 router.use(requireAuth);
@@ -138,6 +138,32 @@ router.post('/users/:id/reset-password', wrap(async (req, res) => {
     db.run(`UPDATE users SET password_hash=? WHERE id=?`, [hash, req.params.id]);
   }
   res.json({ ok: true });
+}));
+
+// ── POST /api/admin/users/:id/reset-link  (Passwort-Reset-Link erzeugen) ─────
+router.post('/users/:id/reset-link', wrap(async (req, res) => {
+  const user = db.dialect === 'postgres'
+    ? await db.get(`SELECT * FROM users WHERE id=$1`, [req.params.id])
+    : db.get(`SELECT * FROM users WHERE id=?`, [req.params.id]);
+  if (!user) return res.status(404).json({ error: 'Benutzer nicht gefunden' });
+
+  const token   = crypto.randomBytes(32).toString('hex');
+  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 Stunden
+
+  if (db.dialect === 'postgres') {
+    await db.run(
+      `UPDATE users SET reset_token=$1, reset_expires=$2 WHERE id=$3`,
+      [token, expires.toISOString(), user.id]
+    );
+  } else {
+    db.run(
+      `UPDATE users SET reset_token=?, reset_expires=? WHERE id=?`,
+      [token, expires.toISOString(), user.id]
+    );
+  }
+
+  const result = await sendPasswordReset(user.email, user.name, token);
+  res.json({ ok: true, email_sent: result.email_sent, reset_link: result.link });
 }));
 
 // ── GET /api/admin/online-users ──────────────────────────────────────────────

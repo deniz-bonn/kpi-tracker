@@ -734,6 +734,9 @@ export default function KpiMitarbeiterBeta() {
   }, [logsByDay.data, standortFilter, employees]);
   const todaySettings     = sum(todayLogs, 'settings_stattgefunden');
   const todaySettingsGepl = sum(todayLogs, 'settings_geplant');
+  // "Gelegte" Settings = terminierte Entscheider (Opener-Eingabe "Entscheider terminiert")
+  const todaySettingsGelegt = sum(todayLogs, 'entscheider_terminiert');
+  const monthSettingsGelegt = sum(auswertungLogs, 'entscheider_terminiert');
   // "Gelegte" Sales Calls = vereinbarte Beratungsgespräche (geplant + direkt), Opener-Eingabe
   const todaySC           = sum(todayLogs, 'beratung_vereinbart') + sum(todayLogs, 'beratung_vereinbart_direkt');
   const todayBerVereinb   = sum(todayLogs, 'beratung_vereinbart');
@@ -778,10 +781,10 @@ export default function KpiMitarbeiterBeta() {
       `Pace (Soll bis heute): ${monthSC}/${paceGoalSC}`,
       ``,
       `Daily Goal Setting: ${DAILY_GOAL_SETTINGS}`,
-      `Heute gelegt: ${todaySettings}`,
-      `Tagesziel: ${todaySettings}/${DAILY_GOAL_SETTINGS}`,
-      `Monatsziel: ${monthSettings}/${monthGoalSettings}`,
-      `Pace (Soll bis heute): ${monthSettings}/${paceGoalSettings}`,
+      `Heute gelegt: ${todaySettingsGelegt}`,
+      `Tagesziel: ${todaySettingsGelegt}/${DAILY_GOAL_SETTINGS}`,
+      `Monatsziel: ${monthSettingsGelegt}/${monthGoalSettings}`,
+      `Pace (Soll bis heute): ${monthSettingsGelegt}/${paceGoalSettings}`,
       `Setting Show-Rate heute: ${f1(todaySettings, todaySettingsGepl)}`,
       `Setting Show-Rate ${fmtMonth(monat)} kumuliert: ${f1(monthSettings, monthSettingsGepl)}`,
       `Durchstellungsquote heute: ${f1(todayBerVereinb, todaySettings)}`,
@@ -1125,7 +1128,7 @@ export default function KpiMitarbeiterBeta() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-gray-100">
                   {[
                     { label: 'Sales Calls heute', value: todaySC, goal: DAILY_GOAL_SC, color: 'text-green-700' },
-                    { label: 'Settings heute',    value: todaySettings, goal: DAILY_GOAL_SETTINGS, color: 'text-violet-700' },
+                    { label: 'Settings terminiert heute', value: todaySettingsGelegt, goal: DAILY_GOAL_SETTINGS, color: 'text-violet-700' },
                   ].map(({ label, value, goal, color }) => {
                     const pct = goal > 0 ? Math.min(Math.round(value / goal * 100), 100) : 0;
                     const barCol = pct >= 100 ? 'bg-green-500' : pct >= 70 ? 'bg-amber-400' : 'bg-red-400';

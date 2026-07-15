@@ -164,6 +164,7 @@ export default function Settings() {
   const [editUser,    setEditUser]   = useState(null);
   const [resetPwId,   setResetPwId]  = useState(null);
   const [resetPwVal,  setResetPwVal] = useState('');
+  const [resetLink,   setResetLink]  = useState(null);
 
   const { data: users     = [] } = useQuery({ queryKey: ['admin-users'], queryFn: adminApi.listUsers, enabled: isAdmin });
   const { data: employees = [] } = useQuery({ queryKey: ['employees'],   queryFn: () => employeesApi.list() });
@@ -205,6 +206,19 @@ export default function Settings() {
     } else {
       setInviteLink(null);
       setUserMsg({ ok: 'Neue Einladungs-E-Mail wurde gesendet!' });
+    }
+  };
+
+  const sendResetLink = async (id) => {
+    try {
+      const data = await adminApi.sendResetLink(id);
+      setResetLink(data.reset_link || null);
+      setInviteLink(null);
+      setUserMsg(data.email_sent
+        ? { ok: 'Reset-E-Mail wurde gesendet. Der Link ist unten zusätzlich kopierbar (24h gültig).' }
+        : { ok: 'Reset-Link erzeugt (24h gültig) — unten kopieren und manuell verschicken.' });
+    } catch (err) {
+      setUserMsg({ err: err.response?.data?.error || 'Fehler beim Erzeugen des Reset-Links' });
     }
   };
 
@@ -347,6 +361,22 @@ export default function Settings() {
                 {userMsg.ok || userMsg.err}
               </div>
             )}
+            {resetLink && (
+              <div className="mb-3 rounded border border-blue-300 bg-blue-50 px-3 py-2.5">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-semibold text-blue-800">Passwort-Reset-Link (24h gültig)</span>
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(resetLink); }}
+                    className="text-xs text-blue-700 hover:text-blue-900 border border-blue-300 rounded px-2 py-0.5 bg-white hover:bg-blue-100"
+                  >
+                    Kopieren
+                  </button>
+                </div>
+                <div className="text-xs text-blue-900 break-all font-mono bg-white border border-blue-200 rounded px-2 py-1.5 select-all">
+                  {resetLink}
+                </div>
+              </div>
+            )}
             {inviteLink && (
               <div className="mb-3 rounded border border-amber-300 bg-amber-50 px-3 py-2.5">
                 <div className="flex items-center justify-between mb-1">
@@ -451,15 +481,16 @@ export default function Settings() {
                         {u.invite_token && (
                           <button onClick={() => resendInvite(u.id)} className="text-xs text-blue-600 hover:underline px-2 py-1">Neu senden</button>
                         )}
+                        <button onClick={() => sendResetLink(u.id)} className="text-xs text-blue-600 hover:underline px-2 py-1 whitespace-nowrap">Reset-Link</button>
                         {resetPwId === u.id ? (
                           <div className="flex gap-1">
                             <input type="password" placeholder="Neues PW" value={resetPwVal} onChange={e => setResetPwVal(e.target.value)}
-                              className="border border-gray-300 rounded px-2 py-1 text-xs w-28" />
+                              className="bg-white text-gray-900 border border-gray-300 rounded px-2 py-1 text-xs w-28" />
                             <button onClick={() => resetUserPw(u.id)} className="text-xs bg-blue-600 text-white px-2 py-1 rounded">OK</button>
                             <button onClick={() => { setResetPwId(null); setResetPwVal(''); }} className="text-xs text-gray-400 px-1">✕</button>
                           </div>
                         ) : (
-                          <button onClick={() => setResetPwId(u.id)} className="text-xs text-gray-500 hover:text-gray-800 px-2 py-1">PW setzen</button>
+                          <button onClick={() => setResetPwId(u.id)} className="text-xs text-gray-500 hover:text-gray-800 px-2 py-1 whitespace-nowrap">PW setzen</button>
                         )}
                         <button onClick={() => setEditUser({...u})} className="text-xs text-gray-500 hover:text-gray-800 px-2 py-1">Bearbeiten</button>
                       </div>
