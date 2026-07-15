@@ -103,10 +103,11 @@ function resolveGewonnenFelder(body, existing = null) {
   return { gewonnen_datum: null, gewonnen_monat: null };
 }
 
-// Restrict non-admin to own deals (by closer_id)
+// Restrict non-admin to own deals (by closer_id).
+// nk_vertrieb sieht bewusst ALLE NK-Deals (gleiche Ansicht wie Vertriebsleitung).
 function ownFilter(req) {
   const user = req.user;
-  if (['nk_vertrieb', 'bk_vertrieb'].includes(user.role) && user.employee_id) {
+  if (user.role === 'bk_vertrieb' && user.employee_id) {
     return { field: 'd.closer_id', value: user.employee_id };
   }
   return null;
