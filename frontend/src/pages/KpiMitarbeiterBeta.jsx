@@ -1350,9 +1350,15 @@ export default function KpiMitarbeiterBeta() {
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <KpiCard color="indigo" label="Durchstellungsquote"              value={pct(sum(activeLogs,'beratungen_stattgefunden'),sum(activeLogs,'settings_stattgefunden'))} desc={`${sum(activeLogs,'beratungen_stattgefunden')} Beratungen aus ${sum(activeLogs,'settings_stattgefunden')} Settings`} />
-                <KpiCard color="indigo" label="Buchungsrate (Setting → Beratung)" value={pct(sum(activeLogs,'beratung_vereinbart'),sum(activeLogs,'settings_stattgefunden'))}      desc={`${sum(activeLogs,'beratung_vereinbart')} Beratungsgespräche vereinbart`} />
-                <KpiCard color="indigo" label="Direkte Settings"                  value={sum(activeLogs,'settings_direkt')}                                                        desc={`${sum(activeLogs,'beratung_vereinbart_direkt')} direkte Beratungen`} />
+                <KpiCard color="indigo" label="Durchstellungsquote" value={pct(sum(activeLogs,'beratung_vereinbart'),sum(activeLogs,'settings_stattgefunden'))} desc={`${sum(activeLogs,'beratung_vereinbart')} Beratungen vereinbart aus ${sum(activeLogs,'settings_stattgefunden')} Settings`} />
+                <KpiCard color="indigo" label="Direkte Settings"    value={sum(activeLogs,'settings_direkt')}                                                  desc={`${sum(activeLogs,'beratung_vereinbart_direkt')} direkte Beratungen`} />
+              </div>
+
+              {/* Gelegte Beratungsgespräche */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <KpiCard color="green"  label="Beratungen gelegt (gesamt)"  value={sum(activeLogs,'beratung_vereinbart') + sum(activeLogs,'beratung_vereinbart_direkt')} desc="vereinbarte Beratungsgespräche" />
+                <KpiCard color="teal"   label="→ nach geplantem Setting"    value={sum(activeLogs,'beratung_vereinbart')}        desc={pct(sum(activeLogs,'beratung_vereinbart'), sum(activeLogs,'beratung_vereinbart') + sum(activeLogs,'beratung_vereinbart_direkt')) + ' der gelegten'} />
+                <KpiCard color="teal"   label="→ nach direktem Setting"     value={sum(activeLogs,'beratung_vereinbart_direkt')} desc={pct(sum(activeLogs,'beratung_vereinbart_direkt'), sum(activeLogs,'beratung_vereinbart') + sum(activeLogs,'beratung_vereinbart_direkt')) + ' der gelegten'} />
               </div>
 
               <div className="grid grid-cols-3 gap-3">
