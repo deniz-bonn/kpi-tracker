@@ -1222,18 +1222,24 @@ export default function KpiMitarbeiterBeta() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 font-medium">
-                        <th className="px-3 py-2 text-left">Mitarbeiter</th>
-                        <th className="px-3 py-2 text-left">Rolle</th>
-                        <th className="px-3 py-2 text-right">Err.</th>
-                        <th className="px-3 py-2 text-right">Term.</th>
-                        <th className="px-3 py-2 text-right">E→T %</th>
-                        <th className="px-3 py-2 text-right">Set.stattg.</th>
-                        <th className="px-3 py-2 text-right">Show-R.Set.</th>
-                        <th className="px-3 py-2 text-right" title="Beratungsgespräche vereinbart (inkl. direkte Settings)">Ber.term.</th>
-                        <th className="px-3 py-2 text-right">Ber.stattg.</th>
-                        <th className="px-3 py-2 text-right">Show-R.Ber.</th>
-                        <th className="px-3 py-2 text-right" title="Durchstellungsquote: Beratungen vereinbart / Settings stattgef.">Durchst.%</th>
+                      <tr className="text-[10px] font-bold uppercase tracking-wider">
+                        <th className="px-3 pt-2 pb-1 bg-gray-50" colSpan={2}></th>
+                        <th className="px-3 pt-2 pb-1 text-center bg-blue-50 text-blue-700 border-l border-blue-100" colSpan={3}>📞 Entscheider</th>
+                        <th className="px-3 pt-2 pb-1 text-center bg-violet-50 text-violet-700 border-l border-violet-100" colSpan={4}>📅 Settings</th>
+                        <th className="px-3 pt-2 pb-1 text-center bg-green-50 text-green-700 border-l border-green-100" colSpan={2}>🤝 Beratungsgespräche</th>
+                      </tr>
+                      <tr className="border-b border-gray-100 text-gray-500 font-medium">
+                        <th className="px-3 py-2 text-left bg-gray-50">Mitarbeiter</th>
+                        <th className="px-3 py-2 text-left bg-gray-50">Rolle</th>
+                        <th className="px-3 py-2 text-right bg-blue-50/50 border-l border-blue-100" title="Wie viele Entscheider wurden erreicht?">Erreicht</th>
+                        <th className="px-3 py-2 text-right bg-blue-50/50" title="Wie viele Entscheider wurden zu einem Setting terminiert?">Terminiert</th>
+                        <th className="px-3 py-2 text-right bg-blue-50/50" title="Terminierungsquote: Terminiert / Erreicht">Quote</th>
+                        <th className="px-3 py-2 text-right bg-violet-50/50 border-l border-violet-100" title="Wie viele Settings haben stattgefunden?">Stattgef.</th>
+                        <th className="px-3 py-2 text-right bg-violet-50/50" title="Show-Rate: Settings stattgefunden / geplant">Show-Rate</th>
+                        <th className="px-3 py-2 text-right bg-violet-50/50" title="Wie viele Beratungsgespräche wurden gelegt? (inkl. direkte Settings)">Ber. gelegt</th>
+                        <th className="px-3 py-2 text-right bg-violet-50/50" title="Durchstellungsquote: Beratungen vereinbart / Settings stattgefunden">Durchst.</th>
+                        <th className="px-3 py-2 text-right bg-green-50/50 border-l border-green-100" title="Wie viele Beratungsgespräche haben stattgefunden?">Stattgef.</th>
+                        <th className="px-3 py-2 text-right bg-green-50/50" title="Show-Rate: Beratungen stattgefunden / geplant">Show-Rate</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -1245,15 +1251,15 @@ export default function KpiMitarbeiterBeta() {
                             <tr key={ep.name} className={`hover:bg-gray-50 ${i%2===0?'bg-white':'bg-gray-50/50'}`}>
                               <td className="px-3 py-2.5 font-medium text-gray-900 whitespace-nowrap">{ep.name}</td>
                               <td className="px-3 py-2.5"><RoleBadge rolle={ep.rolle} /></td>
-                              <td className="px-3 py-2.5 text-right text-gray-600">{IS_OPENER(ep.rolle) ? sum(ls,'entscheider_erreicht')   : '—'}</td>
+                              <td className="px-3 py-2.5 text-right text-gray-600 border-l border-blue-50">{IS_OPENER(ep.rolle) ? sum(ls,'entscheider_erreicht')   : '—'}</td>
                               <td className="px-3 py-2.5 text-right text-gray-600">{IS_OPENER(ep.rolle) ? sum(ls,'entscheider_terminiert') : '—'}</td>
                               <td className="px-3 py-2.5 text-right text-indigo-700 font-medium">{IS_OPENER(ep.rolle) ? pct(sum(ls,'entscheider_terminiert'),sum(ls,'entscheider_erreicht')) : '—'}</td>
-                              <td className="px-3 py-2.5 text-right font-medium text-gray-900">{IS_OPENER(ep.rolle) ? sum(ls,'settings_stattgefunden') : '—'}</td>
+                              <td className="px-3 py-2.5 text-right font-medium text-gray-900 border-l border-violet-50">{IS_OPENER(ep.rolle) ? sum(ls,'settings_stattgefunden') : '—'}</td>
                               <td className="px-3 py-2.5 text-right text-violet-700 font-medium">{IS_OPENER(ep.rolle) ? pct(sum(ls,'settings_stattgefunden'),sum(ls,'settings_geplant')) : '—'}</td>
                               <td className="px-3 py-2.5 text-right font-medium text-gray-900">{IS_OPENER(ep.rolle) ? sum(ls,'beratung_vereinbart') + sum(ls,'beratung_vereinbart_direkt') : '—'}</td>
-                              <td className="px-3 py-2.5 text-right font-medium text-gray-900">{IS_CLOSER(ep.rolle) ? sum(ls,'beratungen_stattgefunden') : '—'}</td>
-                              <td className="px-3 py-2.5 text-right text-green-700 font-medium">{IS_CLOSER(ep.rolle) ? pct(sum(ls,'beratungen_stattgefunden'),sum(ls,'beratungen_geplant')) : '—'}</td>
                               <td className="px-3 py-2.5 text-right text-indigo-700 font-bold">{IS_OPENER(ep.rolle) ? pct(sum(ls,'beratung_vereinbart'),sum(ls,'settings_stattgefunden')) : '—'}</td>
+                              <td className="px-3 py-2.5 text-right font-medium text-gray-900 border-l border-green-50">{IS_CLOSER(ep.rolle) ? sum(ls,'beratungen_stattgefunden') : '—'}</td>
+                              <td className="px-3 py-2.5 text-right text-green-700 font-medium">{IS_CLOSER(ep.rolle) ? pct(sum(ls,'beratungen_stattgefunden'),sum(ls,'beratungen_geplant')) : '—'}</td>
                             </tr>
                           );
                         })
@@ -1269,14 +1275,18 @@ export default function KpiMitarbeiterBeta() {
                           <td className="px-3 py-2 text-right">{sum(activeLogs,'settings_stattgefunden')}</td>
                           <td className="px-3 py-2 text-right">{pct(sum(activeLogs,'settings_stattgefunden'),sum(activeLogs,'settings_geplant'))}</td>
                           <td className="px-3 py-2 text-right">{sum(activeLogs,'beratung_vereinbart') + sum(activeLogs,'beratung_vereinbart_direkt')}</td>
+                          <td className="px-3 py-2 text-right">{pct(sum(activeLogs,'beratung_vereinbart'),sum(activeLogs,'settings_stattgefunden'))}</td>
                           <td className="px-3 py-2 text-right">{sum(activeLogs,'beratungen_stattgefunden')}</td>
                           <td className="px-3 py-2 text-right">{pct(sum(activeLogs,'beratungen_stattgefunden'),sum(activeLogs,'beratungen_geplant'))}</td>
-                          <td className="px-3 py-2 text-right">{pct(sum(activeLogs,'beratung_vereinbart'),sum(activeLogs,'settings_stattgefunden'))}</td>
                         </tr>
                       </tfoot>
                     )}
                   </table>
                 </div>
+                <p className="px-3 py-2 text-[10px] text-gray-400 border-t border-gray-100">
+                  So liest du die Tabelle: 📞 Entscheider erreicht → terminiert → 📅 Setting findet statt → Beratungsgespräch gelegt → 🤝 Beratung findet statt.
+                  „Durchst." = Anteil der Settings, aus denen ein Beratungsgespräch wurde. „—" = für diese Rolle nicht relevant oder keine Daten. Spalten-Tooltips per Maus-Hover.
+                </p>
               </SectionBox>
             </div>
           )}
