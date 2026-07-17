@@ -1230,14 +1230,15 @@ export default function KpiMitarbeiterBeta() {
                         <th className="px-3 py-2 text-right">E→T %</th>
                         <th className="px-3 py-2 text-right">Set.stattg.</th>
                         <th className="px-3 py-2 text-right">Show-R.Set.</th>
+                        <th className="px-3 py-2 text-right" title="Beratungsgespräche vereinbart (inkl. direkte Settings)">Ber.term.</th>
                         <th className="px-3 py-2 text-right">Ber.stattg.</th>
                         <th className="px-3 py-2 text-right">Show-R.Ber.</th>
-                        <th className="px-3 py-2 text-right" title="Durchstellungsquote: Beratungen stattgef. / Settings stattgef.">Durchst.%</th>
+                        <th className="px-3 py-2 text-right" title="Durchstellungsquote: Beratungen vereinbart / Settings stattgef.">Durchst.%</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {perEmployee.length === 0
-                        ? <tr><td colSpan={10} className="px-3 py-5 text-center text-gray-400">Keine Daten für diesen Zeitraum</td></tr>
+                        ? <tr><td colSpan={11} className="px-3 py-5 text-center text-gray-400">Keine Daten für diesen Zeitraum</td></tr>
                         : perEmployee.map((ep, i) => {
                           const ls = ep.logs;
                           return (
@@ -1249,9 +1250,10 @@ export default function KpiMitarbeiterBeta() {
                               <td className="px-3 py-2.5 text-right text-indigo-700 font-medium">{IS_OPENER(ep.rolle) ? pct(sum(ls,'entscheider_terminiert'),sum(ls,'entscheider_erreicht')) : '—'}</td>
                               <td className="px-3 py-2.5 text-right font-medium text-gray-900">{IS_OPENER(ep.rolle) ? sum(ls,'settings_stattgefunden') : '—'}</td>
                               <td className="px-3 py-2.5 text-right text-violet-700 font-medium">{IS_OPENER(ep.rolle) ? pct(sum(ls,'settings_stattgefunden'),sum(ls,'settings_geplant')) : '—'}</td>
+                              <td className="px-3 py-2.5 text-right font-medium text-gray-900">{IS_OPENER(ep.rolle) ? sum(ls,'beratung_vereinbart') + sum(ls,'beratung_vereinbart_direkt') : '—'}</td>
                               <td className="px-3 py-2.5 text-right font-medium text-gray-900">{IS_CLOSER(ep.rolle) ? sum(ls,'beratungen_stattgefunden') : '—'}</td>
                               <td className="px-3 py-2.5 text-right text-green-700 font-medium">{IS_CLOSER(ep.rolle) ? pct(sum(ls,'beratungen_stattgefunden'),sum(ls,'beratungen_geplant')) : '—'}</td>
-                              <td className="px-3 py-2.5 text-right text-indigo-700 font-bold">—</td>
+                              <td className="px-3 py-2.5 text-right text-indigo-700 font-bold">{IS_OPENER(ep.rolle) ? pct(sum(ls,'beratung_vereinbart'),sum(ls,'settings_stattgefunden')) : '—'}</td>
                             </tr>
                           );
                         })
@@ -1266,9 +1268,10 @@ export default function KpiMitarbeiterBeta() {
                           <td className="px-3 py-2 text-right">{pct(sum(activeLogs,'entscheider_terminiert'),sum(activeLogs,'entscheider_erreicht'))}</td>
                           <td className="px-3 py-2 text-right">{sum(activeLogs,'settings_stattgefunden')}</td>
                           <td className="px-3 py-2 text-right">{pct(sum(activeLogs,'settings_stattgefunden'),sum(activeLogs,'settings_geplant'))}</td>
+                          <td className="px-3 py-2 text-right">{sum(activeLogs,'beratung_vereinbart') + sum(activeLogs,'beratung_vereinbart_direkt')}</td>
                           <td className="px-3 py-2 text-right">{sum(activeLogs,'beratungen_stattgefunden')}</td>
                           <td className="px-3 py-2 text-right">{pct(sum(activeLogs,'beratungen_stattgefunden'),sum(activeLogs,'beratungen_geplant'))}</td>
-                          <td className="px-3 py-2 text-right">{pct(sum(activeLogs,'beratungen_stattgefunden'),sum(activeLogs,'settings_stattgefunden'))}</td>
+                          <td className="px-3 py-2 text-right">{pct(sum(activeLogs,'beratung_vereinbart'),sum(activeLogs,'settings_stattgefunden'))}</td>
                         </tr>
                       </tfoot>
                     )}
