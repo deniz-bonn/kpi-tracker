@@ -49,6 +49,9 @@ function calcKpis(deals) {
   };
 }
 
+// Annahmequote-Ampel: <25% rot · 25–33% gelb · >33% grün
+const quoteColor = q => q > 33 ? 'text-green-600' : q >= 25 ? 'text-amber-600' : 'text-red-600';
+
 // ── Hauptkomponente ──────────────────────────────────────────────────────────
 export default function DealsBK() {
   const { company, companies } = useOutletContext();
@@ -256,7 +259,7 @@ export default function DealsBK() {
               ].map(([label, val]) => (
                 <div key={label} className="text-xs">
                   <div className="text-gray-500 mb-0.5">{label}</div>
-                  <div className="font-bold text-gray-900">{val}</div>
+                  <div className={`font-bold ${label === 'Quote' && gesamtKpis.total > 0 ? quoteColor(parseFloat(gesamtKpis.quote_angebote)) : 'text-gray-900'}`}>{val}</div>
                 </div>
               ))}
             </div>
@@ -295,7 +298,7 @@ export default function DealsBK() {
                             <td className="px-3 py-2 text-right text-gray-600">{k.kpis.total}</td>
                             <td className="px-3 py-2 text-right text-gray-600">{k.kpis.gewonnen}</td>
                             <td className="px-3 py-2 text-right text-gray-600">{k.kpis.verloren}</td>
-                            <td className={`px-3 py-2 text-right font-bold ${q >= 50 ? 'text-green-600' : q > 0 ? 'text-amber-600' : 'text-gray-400'}`}>
+                            <td className={`px-3 py-2 text-right font-bold ${k.kpis.total === 0 ? 'text-gray-400' : quoteColor(q)}`}>
                               {k.kpis.quote_angebote}%
                             </td>
                             <td className="px-3 py-2 text-right font-bold text-gray-900 whitespace-nowrap">{formatEuro(k.kpis.ae_summe)}</td>
