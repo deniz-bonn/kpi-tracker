@@ -321,6 +321,9 @@ function buildDashboardHtml(data) {
 // Ziele analog Frontend (KpiMitarbeiterBeta)
 const KPI_DAILY_GOAL_SC       = 12;
 const KPI_DAILY_GOAL_SETTINGS = 37;
+// Fixe Monatsziele (Vorgabe Vertriebsleitung, Stand Juli 2026)
+const KPI_MONTH_GOAL_SC       = 276;
+const KPI_MONTH_GOAL_SETTINGS = 740;
 const KPI_QUOTEN_SOLL = [
   { label: 'Lead-Terminierungsquote',      soll: 45, n: d => (d.inbound || {}).terminiert,        dd: d => (d.inbound || {}).leads },
   { label: 'Show-Rate Setting',            soll: 80, n: d => (d.month || {}).settings,            dd: d => (d.month || {}).settings_geplant },
@@ -352,10 +355,9 @@ function buildKpiHtml(data) {
   };
 
   // ── Monatsziele & Pace ──
-  const paceRow = (label, ist, dailyGoal, i) => {
+  const paceRow = (label, ist, dailyGoal, monatsziel, i) => {
     const bg = i % 2 === 0 ? '#f8fafc' : '#fff';
     const sollHeute  = dailyGoal * elapsedWorkdays;
-    const monatsziel = dailyGoal * workdays;
     const abw = ist - sollHeute;
     const abwColor = abw >= 0 ? '#059669' : '#dc2626';
     return `<tr>
@@ -426,8 +428,8 @@ function buildKpiHtml(data) {
           <th style="${styleThR()}">Monatsziel</th>
           <th style="${styleThR()}">Erreicht</th>
         </tr>
-        ${paceRow('Sales Calls gelegt',    num(month.sc_gelegt),  KPI_DAILY_GOAL_SC, 0)}
-        ${paceRow('Settings terminiert',   num(month.terminiert), KPI_DAILY_GOAL_SETTINGS, 1)}
+        ${paceRow('Sales Calls gelegt',    num(month.sc_gelegt),  KPI_DAILY_GOAL_SC,       KPI_MONTH_GOAL_SC, 0)}
+        ${paceRow('Settings terminiert',   num(month.terminiert), KPI_DAILY_GOAL_SETTINGS, KPI_MONTH_GOAL_SETTINGS, 1)}
       </table>
       <div style="font-size:11px;color:#94a3b8;margin-bottom:24px">Soll bis heute = Tagesziel × vergangene Arbeitstage (Mo–Fr)</div>
 

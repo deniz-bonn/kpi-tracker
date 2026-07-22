@@ -253,6 +253,11 @@ const SOLL = {
 };
 const DAILY_GOAL_SETTINGS = 37;
 const DAILY_GOAL_SC       = 12;
+// Fixe Monatsziele (Vorgabe Vertriebsleitung, Stand Juli 2026)
+const MONTH_GOAL_SETTINGS = 740;
+const MONTH_GOAL_SC       = 276;
+// Datum aus API (ISO-Timestamp oder YYYY-MM-DD) auf YYYY-MM-DD normalisieren
+const dstr = d => String(d || '').slice(0, 10);
 
 // ── UI-Bausteine ───────────────────────────────────────────────────────────────
 function KpiCard({ label, value, desc, color = 'indigo' }) {
@@ -633,7 +638,7 @@ export default function KpiMitarbeiterBeta() {
         const empSet = new Set(employees.filter(e => e.standort === standortFilter).map(e => e.id));
         all = all.filter(l => empSet.has(l.employee_id));
       }
-      return all.filter(l => l.datum >= weekRange.start && l.datum <= weekRange.end);
+      return all.filter(l => dstr(l.datum) >= weekRange.start && dstr(l.datum) <= weekRange.end);
     }
     return auswertungLogs;
   }, [zeitbasis, logsByDay.data, monthLogs, auswertungLogs, standortFilter, employees, weekRange]);
@@ -767,33 +772,40 @@ export default function KpiMitarbeiterBeta() {
         if (d <= elapsedUntil) elapsedWorkdays++;
       }
     }
-    const monthGoalSC       = DAILY_GOAL_SC * workdays;
-    const monthGoalSettings = DAILY_GOAL_SETTINGS * workdays;
     const paceGoalSC        = DAILY_GOAL_SC * elapsedWorkdays;
     const paceGoalSettings  = DAILY_GOAL_SETTINGS * elapsedWorkdays;
+    // Monat kumuliert NUR bis einschließlich des gewählten Datums (nicht ganzer Monat)
+    const mtd = auswertungLogs.filter(l => dstr(l.datum) <= datum);
+    const mtdSC             = sum(mtd, 'beratung_vereinbart') + sum(mtd, 'beratung_vereinbart_direkt');
+    const mtdSettingsGelegt = sum(mtd, 'entscheider_terminiert');
+    const mtdSettings       = sum(mtd, 'settings_stattgefunden');
+    const mtdSettingsGepl   = sum(mtd, 'settings_geplant');
+    const mtdBerVereinb     = sum(mtd, 'beratung_vereinbart');
+    const mtdBerGepl        = sum(mtd, 'beratungen_geplant');
+    const mtdBerStattg      = sum(mtd, 'beratungen_stattgefunden');
     return [
       `📊 Sales KPIs — ${datumStr}${standortFilter ? ' · ' + standortFilter : ''}`,
       ``,
       `Daily Goal SC: ${DAILY_GOAL_SC}`,
       `Heute gelegt: ${todaySC}`,
       `Tagesziel: ${todaySC}/${DAILY_GOAL_SC}`,
-      `Monatsziel: ${monthSC}/${monthGoalSC}`,
-      `Pace (Soll bis heute): ${monthSC}/${paceGoalSC}`,
+      `Monatsziel: ${mtdSC}/${MONTH_GOAL_SC}`,
+      `Pace (Soll bis heute): ${mtdSC}/${paceGoalSC}`,
       ``,
       `Daily Goal Setting: ${DAILY_GOAL_SETTINGS}`,
       `Heute gelegt: ${todaySettingsGelegt}`,
       `Tagesziel: ${todaySettingsGelegt}/${DAILY_GOAL_SETTINGS}`,
-      `Monatsziel: ${monthSettingsGelegt}/${monthGoalSettings}`,
-      `Pace (Soll bis heute): ${monthSettingsGelegt}/${paceGoalSettings}`,
+      `Monatsziel: ${mtdSettingsGelegt}/${MONTH_GOAL_SETTINGS}`,
+      `Pace (Soll bis heute): ${mtdSettingsGelegt}/${paceGoalSettings}`,
       `Setting Show-Rate heute: ${f1(todaySettings, todaySettingsGepl)}`,
-      `Setting Show-Rate ${fmtMonth(monat)} kumuliert: ${f1(monthSettings, monthSettingsGepl)}`,
+      `Setting Show-Rate ${fmtMonth(monat)} kumuliert: ${f1(mtdSettings, mtdSettingsGepl)}`,
       `Durchstellungsquote heute: ${f1(todayBerVereinb, todaySettings)}`,
-      `Durchstellungsquote ${fmtMonth(monat)} kumuliert: ${f1(monthBerVereinb, monthSettings)}`,
+      `Durchstellungsquote ${fmtMonth(monat)} kumuliert: ${f1(mtdBerVereinb, mtdSettings)}`,
       ``,
       `Beratungsgespräche geplant heute: ${todayBerGepl}`,
       `Beratungsgespräche stattgefunden heute: ${todayBerStattg}`,
       `Sales Show-Rate heute: ${f1(todayBerStattg, todayBerGepl)}`,
-      `Sales Show-Rate ${fmtMonth(monat)} kumuliert: ${f1(monthBerStattg, monthBerGepl)}`,
+      `Sales Show-Rate ${fmtMonth(monat)} kumuliert: ${f1(mtdBerStattg, mtdBerGepl)}`,
     ].join('\n');
   };
 
