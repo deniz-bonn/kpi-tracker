@@ -321,7 +321,8 @@ function buildDashboardHtml(data) {
 // Ziele analog Frontend (KpiMitarbeiterBeta)
 const KPI_DAILY_GOAL_SC       = 12;
 const KPI_DAILY_GOAL_SETTINGS = 37;
-// Fixe Monatsziele (Vorgabe Vertriebsleitung, Stand Juli 2026)
+// Fixe Monatsziele (Vorgabe Vertriebsleitung) — gelten dauerhaft für jeden Monat,
+// NICHT aus Arbeitstagen ableiten
 const KPI_MONTH_GOAL_SC       = 276;
 const KPI_MONTH_GOAL_SETTINGS = 740;
 const KPI_QUOTEN_SOLL = [

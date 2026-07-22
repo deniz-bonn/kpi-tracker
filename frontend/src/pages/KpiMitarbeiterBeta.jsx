@@ -253,7 +253,8 @@ const SOLL = {
 };
 const DAILY_GOAL_SETTINGS = 37;
 const DAILY_GOAL_SC       = 12;
-// Fixe Monatsziele (Vorgabe Vertriebsleitung, Stand Juli 2026)
+// Fixe Monatsziele (Vorgabe Vertriebsleitung) — gelten dauerhaft für jeden Monat,
+// NICHT aus Arbeitstagen ableiten
 const MONTH_GOAL_SETTINGS = 740;
 const MONTH_GOAL_SC       = 276;
 // Datum aus API (ISO-Timestamp oder YYYY-MM-DD) auf YYYY-MM-DD normalisieren
