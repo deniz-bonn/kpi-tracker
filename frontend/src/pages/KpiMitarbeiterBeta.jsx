@@ -250,7 +250,15 @@ const SOLL = {
   durchstellung:      40,
   show_rate_closing:  80,
   closing_rate:       50,
+  // Setting-zu-Closing-Funnel (abgeleitet aus bestehenden Solls, anpassbar):
+  set_to_sc_gelegt:   32,  // Show-Rate Setting 80% × Durchstellung 40%
+  set_to_sc_statt:    26,  // × Show-Rate Closing 80%
+  set_to_closing:     15,  // Anteil direkter Close an terminierten Settings
 };
+// Rolle deckt beide Blöcke (Setter + Closer) im eigenen Log ab → Rollen-Schnitt-Quoten pro MA sinnvoll
+const IS_MULTI = r => IS_OPENER(r) && IS_CLOSER(r);
+// Schwelle: unter dieser Nenner-Basis im Zeitraum gilt eine Quote als wenig belastbar
+const LOW_BASE = 10;
 const DAILY_GOAL_SETTINGS = 37;
 const DAILY_GOAL_SC       = 12;
 // Fixe Monatsziele (Vorgabe Vertriebsleitung) — gelten dauerhaft für jeden Monat,
@@ -309,6 +317,9 @@ function SollAbweichung({ kpis, nums = {}, label }) {
     { key: 'durchstellung',      label: 'Durchstellungsquote (Set→Close)',  soll: SOLL.durchstellung,      ist: kpis.durchstellung,      nLabel: 'Vereinbart', dLabel: 'Settings stattgef.' },
     { key: 'show_rate_closing',  label: 'Show-Rate Closing',               soll: SOLL.show_rate_closing,  ist: kpis.show_rate_closing,  nLabel: 'Stattgef.',  dLabel: 'Geplant' },
     { key: 'closing_rate',       label: 'Closing-Rate (NK)',               soll: SOLL.closing_rate,       ist: kpis.closing_rate,       nLabel: 'Gewonnen',   dLabel: 'Angebote gesamt' },
+    { key: 'set_to_sc_gelegt',   label: 'Setting → Sales Call (gelegt)',   soll: SOLL.set_to_sc_gelegt,   ist: kpis.set_to_sc_gelegt,   nLabel: 'SC gelegt',  dLabel: 'Terminiert' },
+    { key: 'set_to_sc_statt',    label: 'Setting → Sales Call (statt.)',   soll: SOLL.set_to_sc_statt,    ist: kpis.set_to_sc_statt,    nLabel: 'Ber. statt.',dLabel: 'Terminiert' },
+    { key: 'set_to_closing',     label: 'Setting → Closing',               soll: SOLL.set_to_closing,     ist: kpis.set_to_closing,     nLabel: 'Direkt-Close',dLabel: 'Terminiert' },
   ];
 
   return (
@@ -491,6 +502,8 @@ export default function KpiMitarbeiterBeta() {
   const [empFilter,      setEmpFilter]      = useState('');
   const [standortFilter, setStandortFilter] = useState('');
   const [showExport,     setShowExport]     = useState(false);
+  const [sortKey,        setSortKey]        = useState('name'); // Spalte der Übersicht pro Mitarbeiter
+  const [sortDir,        setSortDir]        = useState('asc');
 
   const companyId = Number(company) || 1;
 
@@ -644,6 +657,75 @@ export default function KpiMitarbeiterBeta() {
     return auswertungLogs;
   }, [zeitbasis, logsByDay.data, monthLogs, auswertungLogs, standortFilter, employees, weekRange]);
 
+  // Vorzeitraum (gleiche Zeitbasis) für Show-Rate-Trend: Vortag / Vorwoche / Vormonat als Datums-Range
+  const prevRange = useMemo(() => {
+    if (zeitbasis === 'monat') {
+      const [y, m] = monat.split('-').map(Number);
+      const pm = new Date(y, m - 2, 1);
+      const mm = `${pm.getFullYear()}-${String(pm.getMonth() + 1).padStart(2, '0')}`;
+      const last = new Date(pm.getFullYear(), pm.getMonth() + 1, 0).getDate();
+      return { start: `${mm}-01`, end: `${mm}-${String(last).padStart(2, '0')}`, label: 'Vormonat' };
+    }
+    if (zeitbasis === 'woche' && weekRange) {
+      const shift = d => { const x = new Date(d + 'T12:00:00'); x.setDate(x.getDate() - 7); return x.toISOString().slice(0, 10); };
+      return { start: shift(weekRange.start), end: shift(weekRange.end), label: 'Vorwoche' };
+    }
+    if (zeitbasis === 'tag') {
+      const x = new Date(datum + 'T12:00:00'); x.setDate(x.getDate() - 1);
+      const d = x.toISOString().slice(0, 10);
+      return { start: d, end: d, label: 'Vortag' };
+    }
+    return null;
+  }, [zeitbasis, monat, datum, weekRange]);
+
+  // Monate laden, die der Vorzeitraum berührt (1–2), Cache teilt sich mit logsByMonth
+  const prevMonths = useMemo(() => {
+    if (!prevRange) return [];
+    return [...new Set([prevRange.start.slice(0, 7), prevRange.end.slice(0, 7)])];
+  }, [prevRange]);
+
+  const prevLogResults = useQueries({
+    queries: prevMonths.map(pm => ({
+      queryKey: ['activity-logs-month', pm, company],
+      queryFn:  () => activityLogsApi.list({ monat: pm, ...(company && { company_id: company }) }),
+      enabled:  tab === 'auswertung',
+    })),
+  });
+
+  const prevActiveLogs = useMemo(() => {
+    if (!prevRange) return [];
+    const seen = new Set();
+    let all = prevLogResults.flatMap(r => r.data || []).filter(l => {
+      if (seen.has(l.id)) return false; seen.add(l.id); return true;
+    });
+    if (standortFilter) {
+      const empSet = new Set(employees.filter(e => e.standort === standortFilter).map(e => e.id));
+      all = all.filter(l => empSet.has(l.employee_id));
+    }
+    return all.filter(l => dstr(l.datum) >= prevRange.start && dstr(l.datum) <= prevRange.end);
+  }, [prevLogResults, prevRange, standortFilter, employees]);
+
+  // Show-Rate-Ranking pro Mitarbeiter (aktuell vs. Vorzeitraum), für den Dashboard-Fokus-Block
+  const showRateRanking = useMemo(() => {
+    const prevMap = {};
+    prevActiveLogs.forEach(l => {
+      const p = prevMap[l.employee_id] || (prevMap[l.employee_id] = { setStat: 0, setGepl: 0, berStat: 0, berGepl: 0 });
+      p.setStat += Number(l.settings_stattgefunden)   || 0;
+      p.setGepl += Number(l.settings_geplant)         || 0;
+      p.berStat += Number(l.beratungen_stattgefunden) || 0;
+      p.berGepl += Number(l.beratungen_geplant)       || 0;
+    });
+    const setting = empRows
+      .filter(e => e.opener && e.setGepl > 0)
+      .map(e => { const p = prevMap[e.id]; return { id: e.id, name: e.name, cur: e.q_showSet, prev: p && p.setGepl > 0 ? pctNum(p.setStat, p.setGepl) : null, n: e.setStat, d: e.setGepl }; })
+      .sort((a, b) => b.cur - a.cur);
+    const closing = empRows
+      .filter(e => e.closer && e.berGepl > 0)
+      .map(e => { const p = prevMap[e.id]; return { id: e.id, name: e.name, cur: e.q_showBer, prev: p && p.berGepl > 0 ? pctNum(p.berStat, p.berGepl) : null, n: e.berStat, d: e.berGepl }; })
+      .sort((a, b) => b.cur - a.cur);
+    return { setting, closing };
+  }, [empRows, prevActiveLogs]);
+
   // Per-Employee-Aggregation
   const perEmployee = useMemo(() => {
     const map = {};
@@ -654,6 +736,107 @@ export default function KpiMitarbeiterBeta() {
     });
     return Object.values(map).sort((a, b) => a.name?.localeCompare(b.name));
   }, [activeLogs]);
+
+  // Pro-Mitarbeiter-Kennzahlen inkl. Setting-zu-Closing-Funnel-Quoten.
+  // q_* sind Number|null (null = für die Rolle nicht anwendbar → "–"); base_* ist der Nenner für den Datenbasis-Hinweis.
+  const empRows = useMemo(() => perEmployee.map(ep => {
+    const ls = ep.logs;
+    const err      = sum(ls, 'entscheider_erreicht');
+    const term     = sum(ls, 'entscheider_terminiert');
+    const setGepl  = sum(ls, 'settings_geplant');
+    const setStat  = sum(ls, 'settings_stattgefunden');
+    const berVer   = sum(ls, 'beratung_vereinbart');
+    const berVerDir= sum(ls, 'beratung_vereinbart_direkt');
+    const berGepl  = sum(ls, 'beratungen_geplant');
+    const berStat  = sum(ls, 'beratungen_stattgefunden');
+    const dClose   = sum(ls, 'beratungen_direkter_close');
+    const opener = IS_OPENER(ep.rolle), closer = IS_CLOSER(ep.rolle), multi = IS_MULTI(ep.rolle);
+    const scGelegt = berVer + berVerDir;
+    return {
+      ...ep, standort: ls[0]?.standort || '',
+      err, term, setGepl, setStat, berVer, berGepl, berStat, dClose, scGelegt,
+      opener, closer, multi,
+      q_termQuote:     opener ? pctNum(term, err)        : null,
+      q_showSet:       opener ? pctNum(setStat, setGepl) : null,
+      q_durchst:       opener ? pctNum(berVer, setStat)  : null,
+      q_setToScGelegt: opener ? pctNum(scGelegt, term)   : null,
+      q_showBer:       closer ? pctNum(berStat, berGepl) : null,
+      q_setToScStatt:  multi  ? pctNum(berStat, term)    : null,
+      q_setToClose:    multi  ? pctNum(dClose, term)     : null,
+    };
+  }), [perEmployee]);
+
+  // Sortierung der Übersicht: Name alphabetisch, Quoten/Zahlen numerisch (null immer ans Ende)
+  const sortedEmpRows = useMemo(() => {
+    const arr = [...empRows];
+    if (sortKey === 'name') {
+      arr.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+      if (sortDir === 'desc') arr.reverse();
+      return arr;
+    }
+    arr.sort((a, b) => {
+      const av = a[sortKey], bv = b[sortKey];
+      if (av == null && bv == null) return 0;
+      if (av == null) return 1;   // nulls last, unabhängig von Richtung
+      if (bv == null) return -1;
+      return sortDir === 'asc' ? av - bv : bv - av;
+    });
+    return arr;
+  }, [empRows, sortKey, sortDir]);
+
+  const toggleSort = key => {
+    if (sortKey === key) { setSortDir(d => d === 'asc' ? 'desc' : 'asc'); return; }
+    setSortKey(key);
+    setSortDir(key === 'name' ? 'asc' : 'desc'); // Quoten: bester zuerst
+  };
+  // Sortierbarer Spaltenkopf für die Übersicht pro Mitarbeiter
+  const sortTh = (key, label, tip, cls = '') => (
+    <th onClick={() => toggleSort(key)} title={tip}
+        className={`px-3 py-2 text-right cursor-pointer select-none hover:bg-black/5 ${cls}`}>
+      {label}<span className="text-gray-400">{sortKey === key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}</span>
+    </th>
+  );
+  // Quoten-Zelle: q=Number|null (null → „–"); soll=Number|null (null = neutrale Farbe, sonst grün≥Soll/rot<Soll);
+  // opts.showND blendet n/d ein, mit Datenbasis-Warnung wenn Nenner < LOW_BASE
+  const qCell = (q, soll, cls = '', opts = {}) => {
+    if (q == null) return <td className={`px-3 py-2.5 text-right text-gray-300 ${cls}`}>–</td>;
+    const color = soll == null ? 'text-gray-700' : q >= soll ? 'text-green-600' : 'text-red-600';
+    const low = opts.showND && opts.d > 0 && opts.d < LOW_BASE;
+    return (
+      <td className={`px-3 py-2.5 text-right ${cls}`}>
+        <div className={`font-bold ${color}`}>{q.toFixed(1)}%</div>
+        {opts.showND && (
+          <div className={`text-[10px] ${low ? 'text-amber-500' : 'text-gray-400'}`} title={low ? 'geringe Datenbasis (<10)' : ''}>
+            {opts.n}/{opts.d}{low ? ' ⚠' : ''}
+          </div>
+        )}
+      </td>
+    );
+  };
+  // Ranking-Liste für den Show-Rate-Fokus-Block (Name · n/d · Prozent soll-gefärbt · Trend vs. Vorzeitraum)
+  const rankList = (items, soll) => (
+    items.length === 0
+      ? <div className="px-3 py-4 text-center text-gray-400 text-xs">Keine Daten</div>
+      : <div className="divide-y divide-gray-100">
+          {items.map((r, i) => {
+            const delta = r.prev != null ? r.cur - r.prev : null;
+            const low = r.d > 0 && r.d < LOW_BASE;
+            return (
+              <div key={r.id ?? r.name} className="flex items-center gap-2 px-3 py-1.5 text-xs">
+                <span className="w-4 text-gray-400 text-[10px]">{i + 1}</span>
+                <span className="flex-1 truncate text-gray-800">{r.name}</span>
+                <span className={`text-[10px] ${low ? 'text-amber-500' : 'text-gray-400'}`} title={low ? 'geringe Datenbasis (<10)' : ''}>{r.n}/{r.d}{low ? ' ⚠' : ''}</span>
+                <span className={`font-bold w-10 text-right ${r.cur >= soll ? 'text-green-600' : 'text-red-600'}`}>{r.cur.toFixed(0)}%</span>
+                <span className="w-16 text-right text-[10px]">
+                  {delta == null
+                    ? <span className="text-gray-300">neu</span>
+                    : <span className={delta > 0 ? 'text-green-600' : delta < 0 ? 'text-red-500' : 'text-gray-400'}>{trendIcon(r.cur, r.prev)} {delta > 0 ? '+' : ''}{delta.toFixed(0)}pp</span>}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+  );
 
   // Inbound Wochenübersicht
   const inboundWeeks = useMemo(() => {
@@ -706,8 +889,11 @@ export default function KpiMitarbeiterBeta() {
   const fSetGepl       = sum(activeLogs, 'settings_geplant');
   const fSettings      = sum(activeLogs, 'settings_stattgefunden');
   const fBerVereinbart = sum(activeLogs, 'beratung_vereinbart');
+  const fBerVereinbDir = sum(activeLogs, 'beratung_vereinbart_direkt');
   const fBerGepl       = sum(activeLogs, 'beratungen_geplant');
   const fBeratungen    = sum(activeLogs, 'beratungen_stattgefunden');
+  const fDirekterClose = sum(activeLogs, 'beratungen_direkter_close');
+  const fScGelegt      = fBerVereinbart + fBerVereinbDir; // gelegte Sales Calls
   // Inbound-Leads (aus inbound_daily)
   const tiLeads      = sum(inboundData, 'inbound_mail') + sum(inboundData, 'inbound_fax') + sum(inboundData, 'inbound_ad');
   const tiTerminiert = sum(inboundData, 'terminiert_mail') + sum(inboundData, 'terminiert_fax') + sum(inboundData, 'terminiert_ad');
@@ -727,6 +913,10 @@ export default function KpiMitarbeiterBeta() {
     durchstellung:     pctNum(fBerVereinbart, fSettings),
     show_rate_closing: pctNum(fBeratungen,  fBerGepl),
     closing_rate:      pctNum(nkGewonnen,   nkAngebote),
+    // Setting-zu-Closing-Funnel als Team-/Standort-Verhältniswerte des Zeitraums
+    set_to_sc_gelegt:  pctNum(fScGelegt,     fTerminiert),
+    set_to_sc_statt:   pctNum(fBeratungen,   fTerminiert),
+    set_to_closing:    pctNum(fDirekterClose, fTerminiert),
   };
 
   // Tages-Pace (immer aus today-Logs, unabhängig von zeitbasis)
@@ -784,6 +974,7 @@ export default function KpiMitarbeiterBeta() {
     const mtdBerVereinb     = sum(mtd, 'beratung_vereinbart');
     const mtdBerGepl        = sum(mtd, 'beratungen_geplant');
     const mtdBerStattg      = sum(mtd, 'beratungen_stattgefunden');
+    const mtdDirektClose    = sum(mtd, 'beratungen_direkter_close');
     return [
       `📊 Sales KPIs — ${datumStr}${standortFilter ? ' · ' + standortFilter : ''}`,
       ``,
@@ -807,6 +998,11 @@ export default function KpiMitarbeiterBeta() {
       `Beratungsgespräche stattgefunden heute: ${todayBerStattg}`,
       `Sales Show-Rate heute: ${f1(todayBerStattg, todayBerGepl)}`,
       `Sales Show-Rate ${fmtMonth(monat)} kumuliert: ${f1(mtdBerStattg, mtdBerGepl)}`,
+      ``,
+      `Setting→Sales-Call (gelegt) heute: ${f1(todaySC, todaySettingsGelegt)}`,
+      `Setting→Sales-Call (gelegt) ${fmtMonth(monat)} kumuliert: ${f1(mtdSC, mtdSettingsGelegt)}`,
+      `Setting→Sales-Call (stattgef.) ${fmtMonth(monat)} kumuliert: ${f1(mtdBerStattg, mtdSettingsGelegt)}`,
+      `Setting→Closing ${fmtMonth(monat)} kumuliert: ${f1(mtdDirektClose, mtdSettingsGelegt)}`,
     ].join('\n');
   };
 
@@ -843,20 +1039,23 @@ export default function KpiMitarbeiterBeta() {
       lines.push('');
     }
     if (section === 'all' || section === 'setting') {
-      lines.push(row(['Mitarbeiter', 'Rolle', 'Standort', 'Settings geplant', 'Settings stattgef.', 'Show-Rate', 'Beratung vereinbart', 'Durchstellungsquote']));
+      lines.push(row(['Mitarbeiter', 'Rolle', 'Standort', 'Terminiert', 'Settings geplant', 'Settings stattgef.', 'Show-Rate Setting', 'Beratung vereinbart', 'Durchstellungsquote', 'Set→SC gelegt']));
       perEmployee.forEach(e => {
         const ls = e.logs;
-        const sg = sum(ls,'settings_geplant'), ss = sum(ls,'settings_stattgefunden'), bv = sum(ls,'beratung_vereinbart');
-        lines.push(row([e.name, e.rolle||'', ls[0]?.standort||'', sg, ss, f1(ss,sg), bv, f1(bv,ss)]));
+        const tm = sum(ls,'entscheider_terminiert'), sg = sum(ls,'settings_geplant'), ss = sum(ls,'settings_stattgefunden');
+        const bv = sum(ls,'beratung_vereinbart'), scg = bv + sum(ls,'beratung_vereinbart_direkt');
+        const setToSc = IS_OPENER(e.rolle) ? f1(scg, tm) : '–';
+        lines.push(row([e.name, e.rolle||'', ls[0]?.standort||'', tm, sg, ss, f1(ss,sg), bv, f1(bv,ss), setToSc]));
       });
       lines.push('');
     }
     if (section === 'all' || section === 'closing') {
-      lines.push(row(['Mitarbeiter', 'Rolle', 'Standort', 'Beratungen geplant', 'Beratungen stattgef.', 'Show-Rate', 'Direkter Close', 'Follow-Up', 'Kein Close']));
+      lines.push(row(['Mitarbeiter', 'Rolle', 'Standort', 'Terminiert', 'Beratungen geplant', 'Beratungen stattgef.', 'Show-Rate Closing', 'Direkter Close', 'Follow-Up', 'Kein Close', 'Set→SC statt.', 'Set→Close']));
       perEmployee.forEach(e => {
         const ls = e.logs;
-        const bg = sum(ls,'beratungen_geplant'), bs = sum(ls,'beratungen_stattgefunden');
-        lines.push(row([e.name, e.rolle||'', ls[0]?.standort||'', bg, bs, f1(bs,bg), sum(ls,'beratungen_direkter_close'), sum(ls,'beratungen_follow_up_cc2'), sum(ls,'beratungen_kein_close')]));
+        const tm = sum(ls,'entscheider_terminiert'), bg = sum(ls,'beratungen_geplant'), bs = sum(ls,'beratungen_stattgefunden'), dc = sum(ls,'beratungen_direkter_close');
+        const multi = IS_MULTI(e.rolle);
+        lines.push(row([e.name, e.rolle||'', ls[0]?.standort||'', tm, bg, bs, f1(bs,bg), dc, sum(ls,'beratungen_follow_up_cc2'), sum(ls,'beratungen_kein_close'), multi ? f1(bs,tm) : '–', multi ? f1(dc,tm) : '–']));
       });
     }
 
@@ -1186,9 +1385,35 @@ export default function KpiMitarbeiterBeta() {
                   durchstellung:     { n: fBerVereinbart,  d: fSettings },
                   show_rate_closing: { n: fBeratungen,     d: fBerGepl },
                   closing_rate:      { n: nkGewonnen,      d: nkAngebote },
+                  set_to_sc_gelegt:  { n: fScGelegt,       d: fTerminiert },
+                  set_to_sc_statt:   { n: fBeratungen,     d: fTerminiert },
+                  set_to_closing:    { n: fDirekterClose,  d: fTerminiert },
                 }}
                 label={standortFilter ? standortFilter : `Gesamt (${fmtMonth(monat)})`}
               />
+
+              {/* Show-Rates nach Mitarbeiter (Ranking + Trend vs. Vorzeitraum) */}
+              <SectionBox
+                header={<><span className="text-xs font-bold text-white uppercase tracking-wide">Show-Rates nach Mitarbeiter</span><span className="text-xs text-white/60">Trend vs. {prevRange?.label || '—'}</span></>}
+                headerColor="bg-[#1e293b]">
+                <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-100">
+                  <div>
+                    <div className="px-3 py-2 bg-violet-50 text-[11px] font-bold text-violet-700 uppercase tracking-wide flex justify-between">
+                      <span>Show-Rate Setting</span><span className="text-violet-400 normal-case">Soll {SOLL.show_rate_setting}%</span>
+                    </div>
+                    {rankList(showRateRanking.setting, SOLL.show_rate_setting)}
+                  </div>
+                  <div>
+                    <div className="px-3 py-2 bg-green-50 text-[11px] font-bold text-green-700 uppercase tracking-wide flex justify-between">
+                      <span>Show-Rate Closing</span><span className="text-green-500 normal-case">Soll {SOLL.show_rate_closing}%</span>
+                    </div>
+                    {rankList(showRateRanking.closing, SOLL.show_rate_closing)}
+                  </div>
+                </div>
+                <p className="px-3 py-2 text-[10px] text-gray-400 border-t border-gray-100">
+                  Ranking absteigend nach Show-Rate. Pfeil = Veränderung ggü. {prevRange?.label || 'Vorzeitraum'} (gleiche Zeitbasis) in Prozentpunkten; „neu" = kein Vergleichswert. Grün = Soll erreicht.
+                </p>
+              </SectionBox>
 
               {/* Funnel */}
               <SectionBox
@@ -1238,67 +1463,73 @@ export default function KpiMitarbeiterBeta() {
                       <tr className="text-[10px] font-bold uppercase tracking-wider">
                         <th className="px-3 pt-2 pb-1 bg-gray-50" colSpan={2}></th>
                         <th className="px-3 pt-2 pb-1 text-center bg-blue-50 text-blue-700 border-l border-blue-100" colSpan={3}>📞 Entscheider</th>
-                        <th className="px-3 pt-2 pb-1 text-center bg-violet-50 text-violet-700 border-l border-violet-100" colSpan={4}>📅 Settings</th>
-                        <th className="px-3 pt-2 pb-1 text-center bg-green-50 text-green-700 border-l border-green-100" colSpan={2}>🤝 Beratungsgespräche</th>
+                        <th className="px-3 pt-2 pb-1 text-center bg-violet-50 text-violet-700 border-l border-violet-100" colSpan={5}>📅 Settings</th>
+                        <th className="px-3 pt-2 pb-1 text-center bg-green-50 text-green-700 border-l border-green-100" colSpan={4}>🤝 Beratungsgespräche</th>
                       </tr>
                       <tr className="border-b border-gray-100 text-gray-500 font-medium">
-                        <th className="px-3 py-2 text-left bg-gray-50">Mitarbeiter</th>
+                        {sortTh('name', 'Mitarbeiter', 'Nach Name sortieren', 'text-left bg-gray-50')}
                         <th className="px-3 py-2 text-left bg-gray-50">Rolle</th>
-                        <th className="px-3 py-2 text-right bg-blue-50/50 border-l border-blue-100" title="Wie viele Entscheider wurden erreicht?">Erreicht</th>
-                        <th className="px-3 py-2 text-right bg-blue-50/50" title="Wie viele Entscheider wurden zu einem Setting terminiert?">Terminiert</th>
-                        <th className="px-3 py-2 text-right bg-blue-50/50" title="Terminierungsquote: Terminiert / Erreicht">Quote</th>
-                        <th className="px-3 py-2 text-right bg-violet-50/50 border-l border-violet-100" title="Wie viele Settings haben stattgefunden?">Stattgef.</th>
-                        <th className="px-3 py-2 text-right bg-violet-50/50" title="Show-Rate: Settings stattgefunden / geplant">Show-Rate</th>
-                        <th className="px-3 py-2 text-right bg-violet-50/50" title="Wie viele Beratungsgespräche wurden gelegt? (inkl. direkte Settings)">Ber. gelegt</th>
-                        <th className="px-3 py-2 text-right bg-violet-50/50" title="Durchstellungsquote: Beratungen vereinbart / Settings stattgefunden">Durchst.</th>
-                        <th className="px-3 py-2 text-right bg-green-50/50 border-l border-green-100" title="Wie viele Beratungsgespräche haben stattgefunden?">Stattgef.</th>
-                        <th className="px-3 py-2 text-right bg-green-50/50" title="Show-Rate: Beratungen stattgefunden / geplant">Show-Rate</th>
+                        {sortTh('err',  'Erreicht',   'Wie viele Entscheider wurden erreicht?', 'bg-blue-50/50 border-l border-blue-100')}
+                        {sortTh('term', 'Terminiert', 'Wie viele Entscheider wurden zu einem Setting terminiert?', 'bg-blue-50/50')}
+                        {sortTh('q_termQuote', 'Quote', 'Terminierungsquote: Terminiert / Erreicht', 'bg-blue-50/50')}
+                        {sortTh('setStat', 'Stattgef.', 'Wie viele Settings haben stattgefunden?', 'bg-violet-50/50 border-l border-violet-100')}
+                        {sortTh('q_showSet', 'Show-Rate', `Show-Rate Setting: stattgefunden / geplant · Soll ${SOLL.show_rate_setting}%`, 'bg-violet-50/50')}
+                        {sortTh('scGelegt', 'Ber. gelegt', 'Wie viele Beratungsgespräche wurden gelegt? (beratung_vereinbart + direkt)', 'bg-violet-50/50')}
+                        {sortTh('q_durchst', 'Durchst.', `Durchstellungsquote: beratung_vereinbart / settings_stattgefunden · Soll ${SOLL.durchstellung}%`, 'bg-violet-50/50')}
+                        {sortTh('q_setToScGelegt', 'Set→SC', `Setting-zu-Sales-Call (gelegt): (beratung_vereinbart + direkt) / entscheider_terminiert · Soll ${SOLL.set_to_sc_gelegt}%`, 'bg-violet-50/50')}
+                        {sortTh('berStat', 'Stattgef.', 'Wie viele Beratungsgespräche haben stattgefunden?', 'bg-green-50/50 border-l border-green-100')}
+                        {sortTh('q_showBer', 'Show-Rate', `Show-Rate Closing: stattgefunden / geplant · Soll ${SOLL.show_rate_closing}%`, 'bg-green-50/50')}
+                        {sortTh('q_setToScStatt', 'Set→SC statt.', `Setting-zu-Sales-Call (stattgefunden): beratungen_stattgefunden / entscheider_terminiert · nur Multi-Rollen · Soll ${SOLL.set_to_sc_statt}%`, 'bg-green-50/50')}
+                        {sortTh('q_setToClose', 'Set→Close', `Setting-zu-Closing: beratungen_direkter_close / entscheider_terminiert · nur Multi-Rollen · Soll ${SOLL.set_to_closing}%`, 'bg-green-50/50')}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {perEmployee.length === 0
-                        ? <tr><td colSpan={11} className="px-3 py-5 text-center text-gray-400">Keine Daten für diesen Zeitraum</td></tr>
-                        : perEmployee.map((ep, i) => {
-                          const ls = ep.logs;
-                          return (
-                            <tr key={ep.name} className={`hover:bg-gray-50 ${i%2===0?'bg-white':'bg-gray-50/50'}`}>
+                      {sortedEmpRows.length === 0
+                        ? <tr><td colSpan={14} className="px-3 py-5 text-center text-gray-400">Keine Daten für diesen Zeitraum</td></tr>
+                        : sortedEmpRows.map((ep, i) => (
+                            <tr key={ep.id ?? ep.name} className={`hover:bg-gray-50 ${i%2===0?'bg-white':'bg-gray-50/50'}`}>
                               <td className="px-3 py-2.5 font-medium text-gray-900 whitespace-nowrap">{ep.name}</td>
                               <td className="px-3 py-2.5"><RoleBadge rolle={ep.rolle} /></td>
-                              <td className="px-3 py-2.5 text-right text-gray-600 border-l border-blue-50">{IS_OPENER(ep.rolle) ? sum(ls,'entscheider_erreicht')   : '—'}</td>
-                              <td className="px-3 py-2.5 text-right text-gray-600">{IS_OPENER(ep.rolle) ? sum(ls,'entscheider_terminiert') : '—'}</td>
-                              <td className="px-3 py-2.5 text-right text-indigo-700 font-medium">{IS_OPENER(ep.rolle) ? pct(sum(ls,'entscheider_terminiert'),sum(ls,'entscheider_erreicht')) : '—'}</td>
-                              <td className="px-3 py-2.5 text-right font-medium text-gray-900 border-l border-violet-50">{IS_OPENER(ep.rolle) ? sum(ls,'settings_stattgefunden') : '—'}</td>
-                              <td className="px-3 py-2.5 text-right text-violet-700 font-medium">{IS_OPENER(ep.rolle) ? pct(sum(ls,'settings_stattgefunden'),sum(ls,'settings_geplant')) : '—'}</td>
-                              <td className="px-3 py-2.5 text-right font-medium text-gray-900">{IS_OPENER(ep.rolle) ? sum(ls,'beratung_vereinbart') + sum(ls,'beratung_vereinbart_direkt') : '—'}</td>
-                              <td className="px-3 py-2.5 text-right text-indigo-700 font-bold">{IS_OPENER(ep.rolle) ? pct(sum(ls,'beratung_vereinbart'),sum(ls,'settings_stattgefunden')) : '—'}</td>
-                              <td className="px-3 py-2.5 text-right font-medium text-gray-900 border-l border-green-50">{IS_CLOSER(ep.rolle) ? sum(ls,'beratungen_stattgefunden') : '—'}</td>
-                              <td className="px-3 py-2.5 text-right text-green-700 font-medium">{IS_CLOSER(ep.rolle) ? pct(sum(ls,'beratungen_stattgefunden'),sum(ls,'beratungen_geplant')) : '—'}</td>
+                              <td className="px-3 py-2.5 text-right text-gray-600 border-l border-blue-50">{ep.opener ? ep.err  : '—'}</td>
+                              <td className="px-3 py-2.5 text-right text-gray-600">{ep.opener ? ep.term : '—'}</td>
+                              {qCell(ep.q_termQuote, null, 'text-indigo-700')}
+                              <td className="px-3 py-2.5 text-right font-medium text-gray-900 border-l border-violet-50">{ep.opener ? ep.setStat : '—'}</td>
+                              {qCell(ep.q_showSet, SOLL.show_rate_setting)}
+                              <td className="px-3 py-2.5 text-right font-medium text-gray-900">{ep.opener ? ep.scGelegt : '—'}</td>
+                              {qCell(ep.q_durchst, SOLL.durchstellung)}
+                              {qCell(ep.q_setToScGelegt, SOLL.set_to_sc_gelegt, '', { showND: true, n: ep.scGelegt, d: ep.term })}
+                              <td className="px-3 py-2.5 text-right font-medium text-gray-900 border-l border-green-50">{ep.closer ? ep.berStat : '—'}</td>
+                              {qCell(ep.q_showBer, SOLL.show_rate_closing)}
+                              {qCell(ep.q_setToScStatt, SOLL.set_to_sc_statt, '', { showND: true, n: ep.berStat, d: ep.term })}
+                              {qCell(ep.q_setToClose, SOLL.set_to_closing, '', { showND: true, n: ep.dClose, d: ep.term })}
                             </tr>
-                          );
-                        })
+                          ))
                       }
                     </tbody>
-                    {perEmployee.length > 0 && (
+                    {sortedEmpRows.length > 0 && (
                       <tfoot>
                         <tr className="bg-[#2d2e30] text-white font-bold text-xs">
                           <td className="px-3 py-2" colSpan={2}>Gesamt</td>
-                          <td className="px-3 py-2 text-right">{sum(activeLogs,'entscheider_erreicht')}</td>
-                          <td className="px-3 py-2 text-right">{sum(activeLogs,'entscheider_terminiert')}</td>
-                          <td className="px-3 py-2 text-right">{pct(sum(activeLogs,'entscheider_terminiert'),sum(activeLogs,'entscheider_erreicht'))}</td>
-                          <td className="px-3 py-2 text-right">{sum(activeLogs,'settings_stattgefunden')}</td>
-                          <td className="px-3 py-2 text-right">{pct(sum(activeLogs,'settings_stattgefunden'),sum(activeLogs,'settings_geplant'))}</td>
-                          <td className="px-3 py-2 text-right">{sum(activeLogs,'beratung_vereinbart') + sum(activeLogs,'beratung_vereinbart_direkt')}</td>
-                          <td className="px-3 py-2 text-right">{pct(sum(activeLogs,'beratung_vereinbart'),sum(activeLogs,'settings_stattgefunden'))}</td>
-                          <td className="px-3 py-2 text-right">{sum(activeLogs,'beratungen_stattgefunden')}</td>
-                          <td className="px-3 py-2 text-right">{pct(sum(activeLogs,'beratungen_stattgefunden'),sum(activeLogs,'beratungen_geplant'))}</td>
+                          <td className="px-3 py-2 text-right">{fEntscheider}</td>
+                          <td className="px-3 py-2 text-right">{fTerminiert}</td>
+                          <td className="px-3 py-2 text-right">{pct(fTerminiert, fEntscheider)}</td>
+                          <td className="px-3 py-2 text-right">{fSettings}</td>
+                          <td className="px-3 py-2 text-right">{pct(fSettings, fSetGepl)}</td>
+                          <td className="px-3 py-2 text-right">{fScGelegt}</td>
+                          <td className="px-3 py-2 text-right">{pct(fBerVereinbart, fSettings)}</td>
+                          <td className="px-3 py-2 text-right">{pct(fScGelegt, fTerminiert)}</td>
+                          <td className="px-3 py-2 text-right">{fBeratungen}</td>
+                          <td className="px-3 py-2 text-right">{pct(fBeratungen, fBerGepl)}</td>
+                          <td className="px-3 py-2 text-right">{pct(fBeratungen, fTerminiert)}</td>
+                          <td className="px-3 py-2 text-right">{pct(fDirekterClose, fTerminiert)}</td>
                         </tr>
                       </tfoot>
                     )}
                   </table>
                 </div>
-                <p className="px-3 py-2 text-[10px] text-gray-400 border-t border-gray-100">
+                <p className="px-3 py-2 text-[10px] text-gray-400 border-t border-gray-100 leading-relaxed">
                   So liest du die Tabelle: 📞 Entscheider erreicht → terminiert → 📅 Setting findet statt → Beratungsgespräch gelegt → 🤝 Beratung findet statt.
-                  „Durchst." = Anteil der Settings, aus denen ein Beratungsgespräch wurde. „—" = für diese Rolle nicht relevant oder keine Daten. Spalten-Tooltips per Maus-Hover.
+                  <br /><b>Set→SC</b> = Anteil terminierter Settings, die final zu einem gelegten Sales Call werden (Setter-Kette). <b>Set→SC statt.</b> / <b>Set→Close</b> = stattgefundene bzw. direkt geclos­te Beratungen je terminiertem Setting — nur bei Multi-Rollen pro Person, sonst „–" (Team-Wert in der Gesamt-Zeile). Grün = Soll erreicht, Rot = darunter. „n/d" = Absolutwerte, ⚠ = geringe Datenbasis (&lt;{LOW_BASE}). Spalten sind per Klick sortierbar.
                 </p>
               </SectionBox>
             </div>
