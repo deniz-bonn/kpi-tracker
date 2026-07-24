@@ -705,27 +705,6 @@ export default function KpiMitarbeiterBeta() {
     return all.filter(l => dstr(l.datum) >= prevRange.start && dstr(l.datum) <= prevRange.end);
   }, [prevLogResults, prevRange, standortFilter, employees]);
 
-  // Show-Rate-Ranking pro Mitarbeiter (aktuell vs. Vorzeitraum), für den Dashboard-Fokus-Block
-  const showRateRanking = useMemo(() => {
-    const prevMap = {};
-    prevActiveLogs.forEach(l => {
-      const p = prevMap[l.employee_id] || (prevMap[l.employee_id] = { setStat: 0, setGepl: 0, berStat: 0, berGepl: 0 });
-      p.setStat += Number(l.settings_stattgefunden)   || 0;
-      p.setGepl += Number(l.settings_geplant)         || 0;
-      p.berStat += Number(l.beratungen_stattgefunden) || 0;
-      p.berGepl += Number(l.beratungen_geplant)       || 0;
-    });
-    const setting = empRows
-      .filter(e => e.opener && e.setGepl > 0)
-      .map(e => { const p = prevMap[e.id]; return { id: e.id, name: e.name, cur: e.q_showSet, prev: p && p.setGepl > 0 ? pctNum(p.setStat, p.setGepl) : null, n: e.setStat, d: e.setGepl }; })
-      .sort((a, b) => b.cur - a.cur);
-    const closing = empRows
-      .filter(e => e.closer && e.berGepl > 0)
-      .map(e => { const p = prevMap[e.id]; return { id: e.id, name: e.name, cur: e.q_showBer, prev: p && p.berGepl > 0 ? pctNum(p.berStat, p.berGepl) : null, n: e.berStat, d: e.berGepl }; })
-      .sort((a, b) => b.cur - a.cur);
-    return { setting, closing };
-  }, [empRows, prevActiveLogs]);
-
   // Per-Employee-Aggregation
   const perEmployee = useMemo(() => {
     const map = {};
@@ -783,6 +762,27 @@ export default function KpiMitarbeiterBeta() {
     });
     return arr;
   }, [empRows, sortKey, sortDir]);
+
+  // Show-Rate-Ranking pro Mitarbeiter (aktuell vs. Vorzeitraum), für den Dashboard-Fokus-Block
+  const showRateRanking = useMemo(() => {
+    const prevMap = {};
+    prevActiveLogs.forEach(l => {
+      const p = prevMap[l.employee_id] || (prevMap[l.employee_id] = { setStat: 0, setGepl: 0, berStat: 0, berGepl: 0 });
+      p.setStat += Number(l.settings_stattgefunden)   || 0;
+      p.setGepl += Number(l.settings_geplant)         || 0;
+      p.berStat += Number(l.beratungen_stattgefunden) || 0;
+      p.berGepl += Number(l.beratungen_geplant)       || 0;
+    });
+    const setting = empRows
+      .filter(e => e.opener && e.setGepl > 0)
+      .map(e => { const p = prevMap[e.id]; return { id: e.id, name: e.name, cur: e.q_showSet, prev: p && p.setGepl > 0 ? pctNum(p.setStat, p.setGepl) : null, n: e.setStat, d: e.setGepl }; })
+      .sort((a, b) => b.cur - a.cur);
+    const closing = empRows
+      .filter(e => e.closer && e.berGepl > 0)
+      .map(e => { const p = prevMap[e.id]; return { id: e.id, name: e.name, cur: e.q_showBer, prev: p && p.berGepl > 0 ? pctNum(p.berStat, p.berGepl) : null, n: e.berStat, d: e.berGepl }; })
+      .sort((a, b) => b.cur - a.cur);
+    return { setting, closing };
+  }, [empRows, prevActiveLogs]);
 
   const toggleSort = key => {
     if (sortKey === key) { setSortDir(d => d === 'asc' ? 'desc' : 'asc'); return; }
