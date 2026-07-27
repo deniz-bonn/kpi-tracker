@@ -1,6 +1,11 @@
 const router = require('express').Router();
 const db = require('../db');
 const wrap = require('../middleware/asyncHandler');
+const { loadRates, toEur, moneyEurSql } = require('../utils/currency');
+
+// EUR-umgerechnete Beträge (CHF-Companies via Monatskurs); erfordern JOIN companies c.
+const AE_EUR  = moneyEurSql('ae_wert', 'gewonnen_monat');
+const AGW_EUR = moneyEurSql('angebotswert', 'monat');
 
 // Berechnet den vollständigen KPI-Block für einen Datensatz
 function calcKpis(rows) {
@@ -60,15 +65,16 @@ function buildNKQuery(filters) {
       SUM(CASE WHEN d.status='Offen' THEN 1 ELSE 0 END) as offen,
       SUM(CASE WHEN d.status='In Verhandlung' THEN 1 ELSE 0 END) as in_verhandlung,
       SUM(CASE WHEN d.status='In Closing Call 2' THEN 1 ELSE 0 END) as in_closing2,
-      SUM(CASE WHEN d.status='Gewonnen' THEN COALESCE(d.ae_wert,0) ELSE 0 END) as ae_summe,
-      SUM(COALESCE(d.angebotswert,0)) as angebotswert_gesamt,
-      SUM(CASE WHEN d.status NOT IN ('Gewonnen','Verloren') THEN COALESCE(d.angebotswert,0) ELSE 0 END) as wert_offen,
+      SUM(CASE WHEN d.status='Gewonnen' THEN ${AE_EUR} ELSE 0 END) as ae_summe,
+      SUM(${AGW_EUR}) as angebotswert_gesamt,
+      SUM(CASE WHEN d.status NOT IN ('Gewonnen','Verloren') THEN ${AGW_EUR} ELSE 0 END) as wert_offen,
       SUM(CASE WHEN d.status='Gewonnen' AND d.quelle='Cold Calling' THEN 1 ELSE 0 END) as gewonnen_cc,
       SUM(CASE WHEN d.status='Gewonnen' AND d.quelle='Mail' THEN 1 ELSE 0 END) as gewonnen_mail,
       SUM(CASE WHEN d.status='Gewonnen' AND d.quelle='Fax' THEN 1 ELSE 0 END) as gewonnen_fax,
       SUM(CASE WHEN d.status='Gewonnen' AND COALESCE(d.ae_wert,0) > 0 THEN 1 ELSE 0 END) as gewonnen_mit_av
     FROM deals_nk d
     LEFT JOIN employees e ON e.id = d.closer_id
+    LEFT JOIN companies c ON c.id = d.company_id
     ${conds.length ? 'WHERE ' + conds.join(' AND ') : ''}
   `;
 }
@@ -81,11 +87,12 @@ function buildBKQuery(table, filters) {
       COUNT(*) as total,
       SUM(CASE WHEN d.status='Gewonnen' THEN 1 ELSE 0 END) as gewonnen,
       SUM(CASE WHEN d.status='Verloren' THEN 1 ELSE 0 END) as verloren,
-      SUM(CASE WHEN d.status='Gewonnen' THEN COALESCE(d.ae_wert,0) ELSE 0 END) as ae_summe,
-      SUM(COALESCE(d.angebotswert,0)) as angebotswert_gesamt,
-      SUM(CASE WHEN d.status NOT IN ('Gewonnen','Verloren') THEN COALESCE(d.angebotswert,0) ELSE 0 END) as wert_offen
+      SUM(CASE WHEN d.status='Gewonnen' THEN ${AE_EUR} ELSE 0 END) as ae_summe,
+      SUM(${AGW_EUR}) as angebotswert_gesamt,
+      SUM(CASE WHEN d.status NOT IN ('Gewonnen','Verloren') THEN ${AGW_EUR} ELSE 0 END) as wert_offen
     FROM ${table} d
     LEFT JOIN employees e ON e.id = d.kam_id
+    LEFT JOIN companies c ON c.id = d.company_id
     ${conds.length ? 'WHERE ' + conds.join(' AND ') : ''}
   `;
 }
@@ -117,15 +124,16 @@ router.get('/nk', wrap(async (req, res) => {
       SUM(CASE WHEN d.status='Offen' THEN 1 ELSE 0 END) as offen,
       SUM(CASE WHEN d.status='In Verhandlung' THEN 1 ELSE 0 END) as in_verhandlung,
       SUM(CASE WHEN d.status='In Closing Call 2' THEN 1 ELSE 0 END) as in_closing2,
-      SUM(CASE WHEN d.status='Gewonnen' THEN COALESCE(d.ae_wert,0) ELSE 0 END) as ae_summe,
-      SUM(COALESCE(d.angebotswert,0)) as angebotswert_gesamt,
-      SUM(CASE WHEN d.status NOT IN ('Gewonnen','Verloren') THEN COALESCE(d.angebotswert,0) ELSE 0 END) as wert_offen,
+      SUM(CASE WHEN d.status='Gewonnen' THEN ${AE_EUR} ELSE 0 END) as ae_summe,
+      SUM(${AGW_EUR}) as angebotswert_gesamt,
+      SUM(CASE WHEN d.status NOT IN ('Gewonnen','Verloren') THEN ${AGW_EUR} ELSE 0 END) as wert_offen,
       SUM(CASE WHEN d.status='Gewonnen' AND d.quelle='Cold Calling' THEN 1 ELSE 0 END) as gewonnen_cc,
       SUM(CASE WHEN d.status='Gewonnen' AND d.quelle='Mail' THEN 1 ELSE 0 END) as gewonnen_mail,
       SUM(CASE WHEN d.status='Gewonnen' AND d.quelle='Fax' THEN 1 ELSE 0 END) as gewonnen_fax,
       SUM(CASE WHEN d.status='Gewonnen' AND COALESCE(d.ae_wert,0) > 0 THEN 1 ELSE 0 END) as gewonnen_mit_av
     FROM deals_nk d
     JOIN employees e ON e.id = d.closer_id
+    LEFT JOIN companies c ON c.id = d.company_id
     ${baseConds.length ? 'WHERE ' + baseConds.join(' AND ') : ''}
     GROUP BY e.id, e.name, e.standort
     ORDER BY ae_summe DESC
@@ -160,11 +168,12 @@ router.get('/bk', wrap(async (req, res) => {
       COUNT(*) as total,
       SUM(CASE WHEN d.status='Gewonnen' THEN 1 ELSE 0 END) as gewonnen,
       SUM(CASE WHEN d.status='Verloren' THEN 1 ELSE 0 END) as verloren,
-      SUM(CASE WHEN d.status='Gewonnen' THEN COALESCE(d.ae_wert,0) ELSE 0 END) as ae_summe,
-      SUM(COALESCE(d.angebotswert,0)) as angebotswert_gesamt,
-      SUM(CASE WHEN d.status NOT IN ('Gewonnen','Verloren') THEN COALESCE(d.angebotswert,0) ELSE 0 END) as wert_offen
+      SUM(CASE WHEN d.status='Gewonnen' THEN ${AE_EUR} ELSE 0 END) as ae_summe,
+      SUM(${AGW_EUR}) as angebotswert_gesamt,
+      SUM(CASE WHEN d.status NOT IN ('Gewonnen','Verloren') THEN ${AGW_EUR} ELSE 0 END) as wert_offen
     FROM deals_bk d
     JOIN employees e ON e.id = d.kam_id
+    LEFT JOIN companies c ON c.id = d.company_id
     ${baseConds.length ? 'WHERE ' + baseConds.join(' AND ') : ''}
     GROUP BY e.id, e.name, e.standort
     ORDER BY ae_summe DESC
@@ -196,11 +205,12 @@ router.get('/vl', wrap(async (req, res) => {
       COUNT(*) as total,
       SUM(CASE WHEN d.status='Gewonnen' THEN 1 ELSE 0 END) as gewonnen,
       SUM(CASE WHEN d.status='Verloren' THEN 1 ELSE 0 END) as verloren,
-      SUM(CASE WHEN d.status='Gewonnen' THEN COALESCE(d.ae_wert,0) ELSE 0 END) as ae_summe,
-      SUM(COALESCE(d.angebotswert,0)) as angebotswert_gesamt,
-      SUM(CASE WHEN d.status NOT IN ('Gewonnen','Verloren') THEN COALESCE(d.angebotswert,0) ELSE 0 END) as wert_offen
+      SUM(CASE WHEN d.status='Gewonnen' THEN ${AE_EUR} ELSE 0 END) as ae_summe,
+      SUM(${AGW_EUR}) as angebotswert_gesamt,
+      SUM(CASE WHEN d.status NOT IN ('Gewonnen','Verloren') THEN ${AGW_EUR} ELSE 0 END) as wert_offen
     FROM deals_vl d
     JOIN employees e ON e.id = d.kam_id
+    LEFT JOIN companies c ON c.id = d.company_id
     ${baseConds.length ? 'WHERE ' + baseConds.join(' AND ') : ''}
     GROUP BY e.id, e.name, e.standort
     ORDER BY ae_summe DESC
@@ -226,9 +236,10 @@ router.get('/auftragseingang', wrap(async (req, res) => {
     if (company_id) { conds.push(`d.company_id = ${p()}`); params.push(company_id); }
     return {
       sql: `SELECT d.id, d.gewonnen_monat as monat, d.gewonnen_datum,
-            d.kunde, COALESCE(d.ae_wert,0) as ae_wert,${extraSelect}
+            d.kunde, COALESCE(d.ae_wert,0) as ae_wert, c.currency,${extraSelect}
             COALESCE(e.standort,'') as standort, e.name as mitarbeiter
             FROM ${table} d LEFT JOIN employees e ON e.id = d.${joinCol}
+            LEFT JOIN companies c ON c.id = d.company_id
             WHERE ${conds.join(' AND ')} ORDER BY d.gewonnen_monat, d.ae_wert DESC`,
       params
     };
@@ -246,9 +257,13 @@ router.get('/auftragseingang', wrap(async (req, res) => {
 
   const months = Array.from({ length: 12 }, (_, i) => `${yr}-${String(i + 1).padStart(2, '0')}`);
 
+  // CHF-Beträge (Risem) in EUR umrechnen (Kurs des Gewinnmonats); EUR bleibt unverändert.
+  const rates = await loadRates();
+  const aeEur = d => { const v = toEur(Number(d.ae_wert), d.currency, d.monat, rates); return v == null ? Number(d.ae_wert) : v; };
+
   const pickLoc = (deals, monat, standorte) =>
     deals.filter(d => d.monat === monat && standorte.includes(d.standort))
-         .map(d => ({ kunde: d.kunde, ae_wert: Number(d.ae_wert), mitarbeiter: d.mitarbeiter, datum: d.gewonnen_datum, dienstleistung: d.dienstleistung || null }));
+         .map(d => ({ kunde: d.kunde, ae_wert: aeEur(d), mitarbeiter: d.mitarbeiter, datum: d.gewonnen_datum, dienstleistung: d.dienstleistung || null }));
 
   const result = months.map(monat => {
     const nk = {

@@ -413,13 +413,13 @@ const createDealMut = useMutation({
     const withDeal = filtered.filter(d => (upsaleByVlId[d.id] || []).length > 0);
     const angebote_n = withDeal.length;
     const allUpsale = filtered.flatMap(d => upsaleByVlId[d.id] || []);
-    const allAngeboteEuro = allUpsale.reduce((s, u) => s + (Number(u.angebotsvolumen) || 0), 0);
+    const allAngeboteEuro = allUpsale.reduce((s, u) => s + (Number(u.angebotsvolumen_eur ?? u.angebotsvolumen) || 0), 0);
     const gewonnenDeals = allUpsale.filter(u => u.status === 'Gewonnen');
     const angenommen_n = filtered.filter(d => (upsaleByVlId[d.id] || []).some(u => u.status === 'Gewonnen')).length;
-    const angenommen_euro = gewonnenDeals.reduce((s, u) => s + (Number(u.angenommenes_volumen) || 0), 0);
+    const angenommen_euro = gewonnenDeals.reduce((s, u) => s + (Number(u.angenommenes_volumen_eur ?? u.angenommenes_volumen) || 0), 0);
 
     // Wegfallender AE = Summe der AE-Werte der gekündigten Verträge
-    const wegfall_ae = filtered.reduce((s, d) => s + (Number(d.ae_wert) || 0), 0);
+    const wegfall_ae = filtered.reduce((s, d) => s + (Number(d.ae_wert_eur ?? d.ae_wert) || 0), 0);
 
     const pct = (n, base) => base > 0 ? (n / base * 100).toFixed(1) : '0.0';
 

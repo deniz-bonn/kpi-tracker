@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dealsApi, employeesApi, exportApi } from '../utils/api';
 import StatusBadge from '../components/StatusBadge';
 import DealModal from '../components/DealModal';
-import { formatEuro, currentMonat } from '../utils/format';
+import { formatEuro, formatMoney, companyCurrency, currentMonat } from '../utils/format';
 import { useAuth } from '../context/AuthContext';
 
 const QUELLEN = ['Cold Calling', 'Mail', 'Fax', 'Ad', 'Empfehlung', 'Follow Up', 'Inbound', 'Leadhandy', 'Post'];
@@ -64,6 +64,8 @@ export default function DealsNK() {
   const closerOptions = closerList.map(e => ({ value: e.id, label: `${e.name} (${e.company_name})` }));
   const openerOptions = openerList.map(e => ({ value: e.id, label: `${e.name} (${e.company_name})` }));
   const setterOptions = setterList.map(e => ({ value: e.id, label: `${e.name} (${e.company_name})` }));
+  // Erfassungswährung nach aktiver Company (CHF bei Risem, sonst €)
+  const curSym = companyCurrency(companies, company) === 'CHF' ? 'CHF' : '€';
 
   const fields = [
     { name: 'datum',          label: 'Datum',                    type: 'date',   required: true, readOnly: modal?.mode === 'edit' },
@@ -76,8 +78,8 @@ export default function DealsNK() {
     { name: 'opener_id', label: 'Opener', type: 'select', options: openerOptions },
     { name: 'setter_id', label: 'Setter', type: 'select', options: setterOptions },
     { name: 'quelle',         label: 'Quelle',                   type: 'select', options: QUELLEN },
-    { name: 'angebotswert',   label: 'Angebotswert (€)',          type: 'number', required: true },
-    { name: 'ae_wert',        label: 'AE-Wert (€)',               type: 'number', required: f => f.status === 'Gewonnen' },
+    { name: 'angebotswert',   label: `Angebotswert (${curSym})`,          type: 'number', required: true },
+    { name: 'ae_wert',        label: `AE-Wert (${curSym})`,               type: 'number', required: f => f.status === 'Gewonnen' },
     { name: 'laufzeit_monate',label: 'Laufzeit (Monate)',          type: 'number', required: f => f.status === 'Gewonnen' },
     { name: 'automatische_verlaengerung', label: 'Automatische Verlängerung', type: 'select', options: AUTO_VL_OPTS, required: true },
     { name: 'status',         label: 'Status',                   type: 'select', options: STATUS_OPTS, required: true },
@@ -117,8 +119,8 @@ export default function DealsNK() {
   // KPIs aus gefilterten Deals
   const kpis = useMemo(() => {
     const gew = filtered.filter(d => d.status === 'Gewonnen');
-    const ae  = gew.reduce((s, d) => s + (Number(d.ae_wert)      || 0), 0);
-    const agw = filtered.reduce((s, d) => s + (Number(d.angebotswert) || 0), 0);
+    const ae  = gew.reduce((s, d) => s + (Number(d.ae_wert_eur ?? d.ae_wert)      || 0), 0);
+    const agw = filtered.reduce((s, d) => s + (Number(d.angebotswert_eur ?? d.angebotswert) || 0), 0);
     const n   = filtered.length;
     const autoJ = gew.filter(d => d.automatische_verlaengerung === 'Ja').length;
     const abgJ  = gew.filter(d => d.abgerechnet === 'Ja').length;
@@ -131,7 +133,7 @@ export default function DealsNK() {
       ae_summe:               ae,
       angebotswert_gesamt:    agw,
       wert_offen:             filtered.filter(d => !['Gewonnen','Verloren'].includes(d.status))
-                                .reduce((s, d) => s + (Number(d.angebotswert) || 0), 0),
+                                .reduce((s, d) => s + (Number(d.angebotswert_eur ?? d.angebotswert) || 0), 0),
       gewonnen_cc:            gew.filter(d => d.quelle === 'Cold Calling').length,
       gewonnen_mail:          gew.filter(d => d.quelle === 'Mail').length,
       gewonnen_fax:           gew.filter(d => d.quelle === 'Fax').length,
@@ -158,7 +160,7 @@ export default function DealsNK() {
       gewonnen: gew,
       verloren: ver,
       offen:    s.filter(d => !['Gewonnen','Verloren'].includes(d.status)).length,
-      ae_summe: s.filter(d => d.status === 'Gewonnen').reduce((sum, d) => sum + (Number(d.ae_wert) || 0), 0),
+      ae_summe: s.filter(d => d.status === 'Gewonnen').reduce((sum, d) => sum + (Number(d.ae_wert_eur ?? d.ae_wert) || 0), 0),
       quote:    s.length > 0 ? (gew / s.length * 100).toFixed(2) : '0.00',
     };
   }).sort((a, b) => b.ae_summe - a.ae_summe), [filtered]);
@@ -170,7 +172,7 @@ export default function DealsNK() {
       if (!d.setter_id) return;
       if (!m[d.setter_id]) m[d.setter_id] = { name: d.setter_name, total: 0, gewonnen: 0, ae_summe: 0 };
       m[d.setter_id].total++;
-      if (d.status === 'Gewonnen') { m[d.setter_id].gewonnen++; m[d.setter_id].ae_summe += Number(d.ae_wert) || 0; }
+      if (d.status === 'Gewonnen') { m[d.setter_id].gewonnen++; m[d.setter_id].ae_summe += Number(d.ae_wert_eur ?? d.ae_wert) || 0; }
     });
     return Object.values(m)
       .map(s => ({ ...s, quote: s.total > 0 ? (s.gewonnen / s.total * 100).toFixed(2) : '0.00' }))
@@ -184,7 +186,7 @@ export default function DealsNK() {
       if (!d.opener_id) return;
       if (!m[d.opener_id]) m[d.opener_id] = { name: d.opener_name, standort: d.opener_standort, total: 0, gewonnen: 0, ae_summe: 0 };
       m[d.opener_id].total++;
-      if (d.status === 'Gewonnen') { m[d.opener_id].gewonnen++; m[d.opener_id].ae_summe += Number(d.ae_wert) || 0; }
+      if (d.status === 'Gewonnen') { m[d.opener_id].gewonnen++; m[d.opener_id].ae_summe += Number(d.ae_wert_eur ?? d.ae_wert) || 0; }
     });
     return Object.values(m)
       .map(o => ({ ...o, quote: o.total > 0 ? (o.gewonnen / o.total * 100).toFixed(2) : '0.00' }))
@@ -198,7 +200,7 @@ export default function DealsNK() {
       if (!d.closer_id) return;
       if (!m[d.closer_id]) m[d.closer_id] = { name: d.closer_name, total: 0, gewonnen: 0, verloren: 0, ae_summe: 0 };
       m[d.closer_id].total++;
-      if (d.status === 'Gewonnen') { m[d.closer_id].gewonnen++; m[d.closer_id].ae_summe += Number(d.ae_wert) || 0; }
+      if (d.status === 'Gewonnen') { m[d.closer_id].gewonnen++; m[d.closer_id].ae_summe += Number(d.ae_wert_eur ?? d.ae_wert) || 0; }
       if (d.status === 'Verloren') m[d.closer_id].verloren++;
     });
     return Object.values(m)
@@ -517,8 +519,8 @@ export default function DealsNK() {
                 </td>
                 <td className="px-3 py-2 text-gray-600 text-xs whitespace-nowrap">{d.opener_name || '—'}</td>
                 <td className="px-3 py-2 text-gray-600 text-xs whitespace-nowrap">{d.setter_name || '—'}</td>
-                <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{d.angebotswert ? formatEuro(d.angebotswert) : '—'}</td>
-                <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{d.ae_wert ? formatEuro(d.ae_wert) : '—'}</td>
+                <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{d.angebotswert ? formatMoney(d.angebotswert, d.currency) : '—'}</td>
+                <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{d.ae_wert ? formatMoney(d.ae_wert, d.currency) : '—'}</td>
                 <td className="px-3 py-2"><StatusBadge status={d.status} /></td>
                 <td className="px-3 py-2 text-xs whitespace-nowrap">
                   {d.automatische_verlaengerung

@@ -1,6 +1,10 @@
 const router = require('express').Router();
 const db = require('../db');
 const wrap = require('../middleware/asyncHandler');
+const { aeEurSql } = require('../utils/currency');
+
+// EUR-umgerechnetes ae_wert (CHF-Companies via Monatskurs); erfordert JOIN companies c.
+const AE_EUR = aeEurSql('d', 'c');
 
 function whereClause(conditions) {
   return conditions.length ? ' WHERE ' + conditions.join(' AND ') : '';
@@ -31,8 +35,9 @@ router.get('/overview', wrap(async (req, res) => {
         SUM(CASE WHEN status='Verloren' THEN 1 ELSE 0 END) as verloren,
         SUM(CASE WHEN status='Offen' THEN 1 ELSE 0 END) as offen
         FROM ${table} d${whereClause(f.conds)}`, f.params),
-      db.get(`SELECT SUM(ae_wert) as ae_summe FROM ${table} d
-        WHERE status='Gewonnen'${aeF.conds.length ? ' AND '+aeF.conds.join(' AND ') : ''}`, aeF.params),
+      db.get(`SELECT SUM(${AE_EUR}) as ae_summe FROM ${table} d
+        LEFT JOIN companies c ON c.id=d.company_id
+        WHERE d.status='Gewonnen'${aeF.conds.length ? ' AND '+aeF.conds.join(' AND ') : ''}`, aeF.params),
     ]);
     const r = counts[0] || {};
     const total = Number(r.total) || 0;
@@ -101,10 +106,11 @@ router.get('/monthly', wrap(async (req, res) => {
         SUM(CASE WHEN status='Offen' THEN 1 ELSE 0 END) as offen
         FROM ${table} d${whereClause(f.conds)}
         GROUP BY monat ORDER BY monat`, f.params),
-      db.all(`SELECT gewonnen_monat as monat, SUM(ae_wert) as ae_summe
-        FROM ${table} d WHERE status='Gewonnen' AND gewonnen_monat IS NOT NULL
+      db.all(`SELECT d.gewonnen_monat as monat, SUM(${AE_EUR}) as ae_summe
+        FROM ${table} d LEFT JOIN companies c ON c.id=d.company_id
+        WHERE d.status='Gewonnen' AND d.gewonnen_monat IS NOT NULL
         ${aeF.conds.length ? 'AND '+aeF.conds.join(' AND ') : ''}
-        GROUP BY gewonnen_monat ORDER BY gewonnen_monat`, aeF.params),
+        GROUP BY d.gewonnen_monat ORDER BY d.gewonnen_monat`, aeF.params),
     ]);
 
     return rows.map(r => ({
@@ -161,8 +167,8 @@ router.get('/employees', wrap(async (req, res) => {
       SUM(CASE WHEN d.status='Gewonnen' THEN 1 ELSE 0 END) as gewonnen,
       SUM(CASE WHEN d.status='Verloren' THEN 1 ELSE 0 END) as verloren,
       SUM(CASE WHEN d.status='Offen' THEN 1 ELSE 0 END) as offen,
-      SUM(CASE WHEN d.status='Gewonnen' THEN COALESCE(d.ae_wert,0) ELSE 0 END) as ae_summe
-      FROM deals_nk d JOIN employees e ON e.id=d.closer_id
+      SUM(CASE WHEN d.status='Gewonnen' THEN ${AE_EUR} ELSE 0 END) as ae_summe
+      FROM deals_nk d JOIN employees e ON e.id=d.closer_id LEFT JOIN companies c ON c.id=d.company_id
       WHERE e.show_in_kpi != 0 ${nkCloserF.conds.length ? 'AND '+nkCloserF.conds.join(' AND ') : ''}
       GROUP BY e.id,e.name ORDER BY ae_summe DESC`, nkCloserF.params),
 
@@ -191,8 +197,8 @@ router.get('/employees', wrap(async (req, res) => {
       SUM(CASE WHEN d.status='Gewonnen' THEN 1 ELSE 0 END) as gewonnen,
       SUM(CASE WHEN d.status='Verloren' THEN 1 ELSE 0 END) as verloren,
       SUM(CASE WHEN d.status='Offen' THEN 1 ELSE 0 END) as offen,
-      SUM(CASE WHEN d.status='Gewonnen' THEN COALESCE(d.ae_wert,0) ELSE 0 END) as ae_summe
-      FROM deals_bk d JOIN employees e ON e.id=d.kam_id
+      SUM(CASE WHEN d.status='Gewonnen' THEN ${AE_EUR} ELSE 0 END) as ae_summe
+      FROM deals_bk d JOIN employees e ON e.id=d.kam_id LEFT JOIN companies c ON c.id=d.company_id
       WHERE e.show_in_kpi != 0 ${bkKamF.conds.length ? 'AND '+bkKamF.conds.join(' AND ') : ''}
       GROUP BY e.id,e.name ORDER BY ae_summe DESC`, bkKamF.params),
 
@@ -201,8 +207,8 @@ router.get('/employees', wrap(async (req, res) => {
       SUM(CASE WHEN d.status='Gewonnen' THEN 1 ELSE 0 END) as gewonnen,
       SUM(CASE WHEN d.status='Verloren' THEN 1 ELSE 0 END) as verloren,
       SUM(CASE WHEN d.status='Offen' THEN 1 ELSE 0 END) as offen,
-      SUM(CASE WHEN d.status='Gewonnen' THEN COALESCE(d.ae_wert,0) ELSE 0 END) as ae_summe
-      FROM deals_vl d JOIN employees e ON e.id=d.kam_id
+      SUM(CASE WHEN d.status='Gewonnen' THEN ${AE_EUR} ELSE 0 END) as ae_summe
+      FROM deals_vl d JOIN employees e ON e.id=d.kam_id LEFT JOIN companies c ON c.id=d.company_id
       WHERE e.show_in_kpi != 0 ${vlKamF.conds.length ? 'AND '+vlKamF.conds.join(' AND ') : ''}
       GROUP BY e.id,e.name ORDER BY ae_summe DESC`, vlKamF.params),
   ]);
@@ -235,9 +241,9 @@ router.get('/targets-vs-actual', wrap(async (req, res) => {
   const result = await Promise.all(targets.map(async (t) => {
     const ph = d === 'postgres' ? ['$1','$2'] : ['?','?'];
     const [nkAE, bkAE, vlAE] = await Promise.all([
-      db.get(`SELECT SUM(ae_wert) as ae FROM deals_nk WHERE company_id=${ph[0]} AND gewonnen_monat=${ph[1]} AND status='Gewonnen'`, [t.company_id, t.monat]),
-      db.get(`SELECT SUM(ae_wert) as ae FROM deals_bk WHERE company_id=${ph[0]} AND gewonnen_monat=${ph[1]} AND status='Gewonnen'`, [t.company_id, t.monat]),
-      db.get(`SELECT SUM(ae_wert) as ae FROM deals_vl WHERE company_id=${ph[0]} AND gewonnen_monat=${ph[1]} AND status='Gewonnen'`, [t.company_id, t.monat]),
+      db.get(`SELECT SUM(${AE_EUR}) as ae FROM deals_nk d LEFT JOIN companies c ON c.id=d.company_id WHERE d.company_id=${ph[0]} AND d.gewonnen_monat=${ph[1]} AND d.status='Gewonnen'`, [t.company_id, t.monat]),
+      db.get(`SELECT SUM(${AE_EUR}) as ae FROM deals_bk d LEFT JOIN companies c ON c.id=d.company_id WHERE d.company_id=${ph[0]} AND d.gewonnen_monat=${ph[1]} AND d.status='Gewonnen'`, [t.company_id, t.monat]),
+      db.get(`SELECT SUM(${AE_EUR}) as ae FROM deals_vl d LEFT JOIN companies c ON c.id=d.company_id WHERE d.company_id=${ph[0]} AND d.gewonnen_monat=${ph[1]} AND d.status='Gewonnen'`, [t.company_id, t.monat]),
     ]);
     return { ...t, nk_ist: Number(nkAE?.ae)||0, bk_ist: Number(bkAE?.ae)||0, vl_ist: Number(vlAE?.ae)||0 };
   }));
@@ -274,28 +280,28 @@ router.get('/dashboard', wrap(async (req, res) => {
   const [nkByLoc, bkByLoc, vlByLoc, nkTotal, bkTotal, vlTotal, zieleRows, nkCntByLoc] = await Promise.all([
     // NK AE nach Closer-Standort
     (() => { const f = mk(); return db.all(
-      `SELECT d.gewonnen_monat as monat, COALESCE(e.standort,'') as standort, SUM(d.ae_wert) as ae
-       FROM deals_nk d LEFT JOIN employees e ON e.id=d.closer_id ${f.where}
+      `SELECT d.gewonnen_monat as monat, COALESCE(e.standort,'') as standort, SUM(${AE_EUR}) as ae
+       FROM deals_nk d LEFT JOIN employees e ON e.id=d.closer_id LEFT JOIN companies c ON c.id=d.company_id ${f.where}
        GROUP BY d.gewonnen_monat, e.standort`, f.params); })(),
     // BK nach KAM-Standort
     (() => { const f = mk(); return db.all(
-      `SELECT d.gewonnen_monat as monat, COALESCE(e.standort,'') as standort, SUM(d.ae_wert) as ae
-       FROM deals_bk d LEFT JOIN employees e ON e.id=d.kam_id ${f.where}
+      `SELECT d.gewonnen_monat as monat, COALESCE(e.standort,'') as standort, SUM(${AE_EUR}) as ae
+       FROM deals_bk d LEFT JOIN employees e ON e.id=d.kam_id LEFT JOIN companies c ON c.id=d.company_id ${f.where}
        GROUP BY d.gewonnen_monat, e.standort`, f.params); })(),
     // VL nach KAM-Standort
     (() => { const f = mk(); return db.all(
-      `SELECT d.gewonnen_monat as monat, COALESCE(e.standort,'') as standort, SUM(d.ae_wert) as ae
-       FROM deals_vl d LEFT JOIN employees e ON e.id=d.kam_id ${f.where}
+      `SELECT d.gewonnen_monat as monat, COALESCE(e.standort,'') as standort, SUM(${AE_EUR}) as ae
+       FROM deals_vl d LEFT JOIN employees e ON e.id=d.kam_id LEFT JOIN companies c ON c.id=d.company_id ${f.where}
        GROUP BY d.gewonnen_monat, e.standort`, f.params); })(),
     // NK Gesamt
     (() => { const f = mk(); return db.all(
-      `SELECT d.gewonnen_monat as monat, SUM(d.ae_wert) as ae FROM deals_nk d ${f.where} GROUP BY d.gewonnen_monat`, f.params); })(),
+      `SELECT d.gewonnen_monat as monat, SUM(${AE_EUR}) as ae FROM deals_nk d LEFT JOIN companies c ON c.id=d.company_id ${f.where} GROUP BY d.gewonnen_monat`, f.params); })(),
     // BK Gesamt
     (() => { const f = mk(); return db.all(
-      `SELECT d.gewonnen_monat as monat, SUM(d.ae_wert) as ae FROM deals_bk d ${f.where} GROUP BY d.gewonnen_monat`, f.params); })(),
+      `SELECT d.gewonnen_monat as monat, SUM(${AE_EUR}) as ae FROM deals_bk d LEFT JOIN companies c ON c.id=d.company_id ${f.where} GROUP BY d.gewonnen_monat`, f.params); })(),
     // VL Gesamt
     (() => { const f = mk(); return db.all(
-      `SELECT d.gewonnen_monat as monat, SUM(d.ae_wert) as ae FROM deals_vl d ${f.where} GROUP BY d.gewonnen_monat`, f.params); })(),
+      `SELECT d.gewonnen_monat as monat, SUM(${AE_EUR}) as ae FROM deals_vl d LEFT JOIN companies c ON c.id=d.company_id ${f.where} GROUP BY d.gewonnen_monat`, f.params); })(),
     // Monatsziele
     (() => {
       let i = 1; const p = () => d === 'postgres' ? `$${i++}` : '?';
@@ -304,7 +310,7 @@ router.get('/dashboard', wrap(async (req, res) => {
     // NK Anzahl (Gewonnene Neukunden) nach Closer-Standort
     (() => { const f = mk(); return db.all(
       `SELECT d.gewonnen_monat as monat, COALESCE(e.standort,'') as standort, COUNT(*) as cnt
-       FROM deals_nk d LEFT JOIN employees e ON e.id=d.closer_id ${f.where}
+       FROM deals_nk d LEFT JOIN employees e ON e.id=d.closer_id LEFT JOIN companies c ON c.id=d.company_id ${f.where}
        GROUP BY d.gewonnen_monat, e.standort`, f.params); })(),
   ]);
 

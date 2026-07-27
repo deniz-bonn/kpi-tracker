@@ -2,13 +2,15 @@ const router = require('express').Router();
 const db     = require('../db');
 const wrap   = require('../middleware/asyncHandler');
 const { requireAuth } = require('../middleware/auth');
+const { loadRates, toEur } = require('../utils/currency');
 
 router.use(requireAuth);
 
 const BASE_SELECT = `
-  SELECT u.*
+  SELECT u.*, c.currency
   FROM upsale_deals u
   JOIN deals_vl v ON v.id = u.deals_vl_id
+  LEFT JOIN companies c ON c.id = v.company_id
 `;
 
 router.get('/', wrap(async (req, res) => {
@@ -22,7 +24,15 @@ router.get('/', wrap(async (req, res) => {
   if (company_id)  { conditions.push(`v.company_id = ${p()}`);   params.push(company_id); }
 
   const where = conditions.length ? ' WHERE ' + conditions.join(' AND ') : '';
-  res.json(await db.all(BASE_SELECT + where + ' ORDER BY u.angebotsdatum DESC, u.created_at DESC', params));
+  const rows = await db.all(BASE_SELECT + where + ' ORDER BY u.angebotsdatum DESC, u.created_at DESC', params);
+  // CHF → EUR anhand des Angebotsmonats (Company-Währung des zugehörigen VL-Deals)
+  const rates = await loadRates();
+  rows.forEach(u => {
+    const monat = (u.angebotsdatum || '').slice(0, 7);
+    u.angebotsvolumen_eur      = u.angebotsvolumen      == null ? null : toEur(u.angebotsvolumen, u.currency, monat, rates);
+    u.angenommenes_volumen_eur = u.angenommenes_volumen == null ? null : toEur(u.angenommenes_volumen, u.currency, monat, rates);
+  });
+  res.json(rows);
 }));
 
 router.post('/', wrap(async (req, res) => {

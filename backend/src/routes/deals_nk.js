@@ -3,11 +3,12 @@ const db     = require('../db');
 const wrap   = require('../middleware/asyncHandler');
 const { requireAuth } = require('../middleware/auth');
 const { logAudit }   = require('../utils/audit');
+const { loadRates, rateFor, enrichDealsEur } = require('../utils/currency');
 
 router.use(requireAuth);
 
 const BASE_SELECT = `
-  SELECT d.*, c.name as company_name,
+  SELECT d.*, c.name as company_name, c.currency,
     closer.name as closer_name, closer.standort as closer_standort,
     opener.name as opener_name, opener.standort as opener_standort,
     setter.name as setter_name, setter.standort as setter_standort
@@ -49,6 +50,17 @@ async function syncAeGesamtNK(deal, prev) {
   const colMap = { Bonn: 'nk_bonn', Braunschweig: 'nk_bs', 'Österreich': 'nk_at', Schweiz: 'nk_ch' };
   const col = colMap[standort];
   if (!col) return;
+
+  // CHF-Companies (Risem): AE in EUR umrechnen (Kurs des gewonnen_monat), bevor gebucht wird.
+  const comp = await db.get(`SELECT currency FROM companies WHERE id=${p1}`, [deal.company_id ?? prev?.company_id]);
+  if (comp?.currency && comp.currency !== 'EUR') {
+    const rate = rateFor(monat, await loadRates());
+    if (rate == null) {
+      console.error(`[syncAeGesamtNK] Kein ${comp.currency}-Kurs für ${monat} — AE nicht gebucht (Deal ${deal.id ?? '?'})`);
+      return;
+    }
+    aeDelta = aeDelta * rate;
+  }
 
   const ag = await db.get(`SELECT * FROM ae_gesamt_monthly WHERE monat=${p1}`, [monat]);
   const n = v => Number(v) || 0;
@@ -132,14 +144,14 @@ router.get('/', wrap(async (req, res) => {
   if (setter_id)     { conditions.push(`d.setter_id = ${p()}`);     params.push(setter_id); }
 
   const where = conditions.length ? ' WHERE ' + conditions.join(' AND ') : '';
-  res.json(await db.all(BASE_SELECT + where + ' ORDER BY d.datum DESC', params));
+  res.json(await enrichDealsEur(await db.all(BASE_SELECT + where + ' ORDER BY d.datum DESC', params)));
 }));
 
 router.get('/:id', wrap(async (req, res) => {
   const p = db.dialect === 'postgres' ? '$1' : '?';
   const row = await db.get(BASE_SELECT + ` WHERE d.id=${p}`, [req.params.id]);
   if (!row) return res.status(404).json({ error: 'Not found' });
-  res.json(row);
+  res.json(await enrichDealsEur(row));
 }));
 
 router.post('/', wrap(async (req, res) => {

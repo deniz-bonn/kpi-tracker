@@ -1,4 +1,8 @@
 const db = require('../db');
+const { aeEurSql } = require('./currency');
+
+// EUR-umgerechnetes ae_wert (CHF-Companies via Monatskurs); erfordert JOIN companies c.
+const AE_EUR = aeEurSql('d', 'c');
 
 const fmt = n => {
   const v = Number(n) || 0;
@@ -21,48 +25,48 @@ async function buildDashboardEmailData(monat, today) {
   const [nkMonth, bkMonth, vlMonth, nkToday, bkToday, vlToday, zielRow] = await Promise.all([
     // NK Monatstotals nach Standort
     db.all(
-      `SELECT COALESCE(e.standort,'—') as standort, COUNT(*) as cnt, SUM(d.ae_wert) as ae
-       FROM deals_nk d LEFT JOIN employees e ON e.id=d.closer_id
+      `SELECT COALESCE(e.standort,'—') as standort, COUNT(*) as cnt, SUM(${AE_EUR}) as ae
+       FROM deals_nk d LEFT JOIN employees e ON e.id=d.closer_id LEFT JOIN companies c ON c.id=d.company_id
        WHERE d.gewonnen_monat=${p(1)} AND d.status='Gewonnen'
        GROUP BY e.standort ORDER BY ae DESC`,
       [monat]
     ),
     // BK Monatstotals nach Standort
     db.all(
-      `SELECT COALESCE(e.standort,'—') as standort, COUNT(*) as cnt, SUM(d.ae_wert) as ae
-       FROM deals_bk d LEFT JOIN employees e ON e.id=d.kam_id
+      `SELECT COALESCE(e.standort,'—') as standort, COUNT(*) as cnt, SUM(${AE_EUR}) as ae
+       FROM deals_bk d LEFT JOIN employees e ON e.id=d.kam_id LEFT JOIN companies c ON c.id=d.company_id
        WHERE d.gewonnen_monat=${p(1)} AND d.status='Gewonnen'
        GROUP BY e.standort ORDER BY ae DESC`,
       [monat]
     ),
     // VL Monatstotals nach Standort
     db.all(
-      `SELECT COALESCE(e.standort,'—') as standort, COUNT(*) as cnt, SUM(d.ae_wert) as ae
-       FROM deals_vl d LEFT JOIN employees e ON e.id=d.kam_id
+      `SELECT COALESCE(e.standort,'—') as standort, COUNT(*) as cnt, SUM(${AE_EUR}) as ae
+       FROM deals_vl d LEFT JOIN employees e ON e.id=d.kam_id LEFT JOIN companies c ON c.id=d.company_id
        WHERE d.gewonnen_monat=${p(1)} AND d.status='Gewonnen'
        GROUP BY e.standort ORDER BY ae DESC`,
       [monat]
     ),
     // NK heute gewonnen
     db.all(
-      `SELECT d.kunde, d.ae_wert, COALESCE(e.standort,'—') as standort, e.name as mitarbeiter, d.dienstleistung
-       FROM deals_nk d LEFT JOIN employees e ON e.id=d.closer_id
+      `SELECT d.kunde, ${AE_EUR} as ae_wert, COALESCE(e.standort,'—') as standort, e.name as mitarbeiter, d.dienstleistung
+       FROM deals_nk d LEFT JOIN employees e ON e.id=d.closer_id LEFT JOIN companies c ON c.id=d.company_id
        WHERE d.gewonnen_datum=${p(1)} AND d.status='Gewonnen'
        ORDER BY d.ae_wert DESC`,
       [today]
     ),
     // BK heute gewonnen
     db.all(
-      `SELECT d.kunde, d.ae_wert, COALESCE(e.standort,'—') as standort, e.name as mitarbeiter, d.dienstleistung
-       FROM deals_bk d LEFT JOIN employees e ON e.id=d.kam_id
+      `SELECT d.kunde, ${AE_EUR} as ae_wert, COALESCE(e.standort,'—') as standort, e.name as mitarbeiter, d.dienstleistung
+       FROM deals_bk d LEFT JOIN employees e ON e.id=d.kam_id LEFT JOIN companies c ON c.id=d.company_id
        WHERE d.gewonnen_datum=${p(1)} AND d.status='Gewonnen'
        ORDER BY d.ae_wert DESC`,
       [today]
     ),
     // VL heute gewonnen
     db.all(
-      `SELECT d.kunde, d.ae_wert, COALESCE(e.standort,'—') as standort, e.name as mitarbeiter, d.dienstleistung
-       FROM deals_vl d LEFT JOIN employees e ON e.id=d.kam_id
+      `SELECT d.kunde, ${AE_EUR} as ae_wert, COALESCE(e.standort,'—') as standort, e.name as mitarbeiter, d.dienstleistung
+       FROM deals_vl d LEFT JOIN employees e ON e.id=d.kam_id LEFT JOIN companies c ON c.id=d.company_id
        WHERE d.gewonnen_datum=${p(1)} AND d.status='Gewonnen'
        ORDER BY d.ae_wert DESC`,
       [today]

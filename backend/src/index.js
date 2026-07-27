@@ -43,6 +43,7 @@ app.use('/api/targets',        requireAuth, require('./routes/targets'));
 app.use('/api/kpis',           requireAuth, require('./routes/kpis'));
 app.use('/api/auswertung',     requireAuth, require('./routes/auswertung'));
 app.use('/api/monthly-targets',requireAuth, require('./routes/monthly_targets'));
+app.use('/api/exchange-rates', require('./routes/exchange_rates'));  // requireAuth inside
 app.use('/api/activity-logs',  require('./routes/activity_logs'));  // requireAuth inside
 app.use('/api/inbound-daily',  require('./routes/inbound_daily'));  // requireAuth inside
 app.use('/api/feature-flags',  require('./routes/feature_flags')); // requireAuth inside

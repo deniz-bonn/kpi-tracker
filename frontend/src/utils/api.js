@@ -87,6 +87,11 @@ export const targetsApi = {
   upsert: (data) => api.post('/targets', data).then(r => r.data),
 };
 
+export const exchangeRatesApi = {
+  list: () => api.get('/exchange-rates').then(r => r.data),
+  upsert: (monat, rate) => api.put(`/exchange-rates/${monat}`, { rate }).then(r => r.data),
+};
+
 export const adminApi = {
   listUsers: () => api.get('/admin/users').then(r => r.data),
   createUser: (data) => api.post('/admin/users', data).then(r => r.data),

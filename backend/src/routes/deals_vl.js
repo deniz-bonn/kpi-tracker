@@ -3,11 +3,12 @@ const db     = require('../db');
 const wrap   = require('../middleware/asyncHandler');
 const { requireAuth } = require('../middleware/auth');
 const { logAudit }   = require('../utils/audit');
+const { enrichDealsEur } = require('../utils/currency');
 
 router.use(requireAuth);
 
 const BASE_SELECT = `
-  SELECT d.*, c.name as company_name, k.name as kam_name, k.standort as kam_standort
+  SELECT d.*, c.name as company_name, c.currency, k.name as kam_name, k.standort as kam_standort
   FROM deals_vl d
   LEFT JOIN companies c ON c.id = d.company_id
   LEFT JOIN employees k ON k.id = d.kam_id
@@ -94,14 +95,14 @@ router.get('/', wrap(async (req, res) => {
   if (kam_id)        { conditions.push(`d.kam_id = ${p()}`);        params.push(kam_id); }
 
   const where = conditions.length ? ' WHERE ' + conditions.join(' AND ') : '';
-  res.json(await db.all(BASE_SELECT + where + ' ORDER BY d.datum DESC', params));
+  res.json(await enrichDealsEur(await db.all(BASE_SELECT + where + ' ORDER BY d.datum DESC', params)));
 }));
 
 router.get('/:id', wrap(async (req, res) => {
   const p = db.dialect === 'postgres' ? '$1' : '?';
   const row = await db.get(BASE_SELECT + ` WHERE d.id=${p}`, [req.params.id]);
   if (!row) return res.status(404).json({ error: 'Not found' });
-  res.json(row);
+  res.json(await enrichDealsEur(row));
 }));
 
 router.post('/import-kontakt', wrap(async (req, res) => {

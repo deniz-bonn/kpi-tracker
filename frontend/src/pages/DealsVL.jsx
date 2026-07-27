@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dealsApi, employeesApi, exportApi } from '../utils/api';
 import StatusBadge from '../components/StatusBadge';
 import DealModal from '../components/DealModal';
-import { formatEuro, currentMonat } from '../utils/format';
+import { formatEuro, formatMoney, companyCurrency, currentMonat } from '../utils/format';
 import { useAuth } from '../context/AuthContext';
 
 const STATUS_OPTS = ['Offen', 'Gewonnen', 'Verloren'];
@@ -22,9 +22,9 @@ function calcKpis(deals) {
     total:            n,
     gewonnen:         gew.length,
     verloren:         verl.length,
-    moeglicher_ae:    deals.reduce((s, d) => s + (Number(d.angebotswert) || 0), 0),
-    ae_summe:         gew.reduce((s, d)   => s + (Number(d.ae_wert)      || 0), 0),
-    verlorener_ae:    verl.reduce((s, d)  => s + (Number(d.ae_wert) || Number(d.angebotswert) || 0), 0),
+    moeglicher_ae:    deals.reduce((s, d) => s + (Number(d.angebotswert_eur ?? d.angebotswert) || 0), 0),
+    ae_summe:         gew.reduce((s, d)   => s + (Number(d.ae_wert_eur ?? d.ae_wert)      || 0), 0),
+    verlorener_ae:    verl.reduce((s, d)  => s + (Number(d.ae_wert_eur ?? d.ae_wert) || Number(d.angebotswert_eur ?? d.angebotswert) || 0), 0),
     churn_rate:       n > 0 ? ((n - gew.length) / n) * 100 : 0,
     abgerechnet_ja:   gew.filter(d => d.abgerechnet === 'Ja').length,
     abgerechnet_quote: gew.length > 0 ? (gew.filter(d => d.abgerechnet === 'Ja').length / gew.length * 100).toFixed(1) : '0.0',
@@ -120,6 +120,8 @@ export default function DealsVL() {
   const compOpts   = companies.map(c => ({ value: c.id, label: c.name }));
   const kamList    = employees.filter(e => ['KAM', 'Closer-KAM'].includes(e.rolle));
   const kamOptions = kamList.map(e => ({ value: e.id, label: `${e.name} (${e.company_name})` }));
+  // Erfassungswährung nach aktiver Company (CHF bei Risem, sonst €)
+  const curSym = companyCurrency(companies, company) === 'CHF' ? 'CHF' : '€';
 
   const fields = [
     { name: 'datum',                 label: 'Datum der Vertragsverlängerung', type: 'date', required: true, readOnly: modal?.mode === 'edit' },
@@ -133,8 +135,8 @@ export default function DealsVL() {
     { name: 'ende_kuendigungsfrist', label: 'Ende der Kündigungsfrist', type: 'date' },
     { name: 'dienstleistung',        label: 'Dienstleistung',          type: 'select', options: DIENSTLEISTUNGEN_VL, required: f => f.status === 'Gewonnen' },
     ...(canSeeAll ? [{ name: 'kam_id', label: 'Account Manager', type: 'select', options: kamOptions }] : []),
-    { name: 'angebotswert',          label: 'Möglicher AE (€)',        type: 'number', required: true },
-    { name: 'ae_wert',               label: 'Realisierter AE (€)',     type: 'number', required: f => f.status === 'Gewonnen' },
+    { name: 'angebotswert',          label: `Möglicher AE (${curSym})`,        type: 'number', required: true },
+    { name: 'ae_wert',               label: `Realisierter AE (${curSym})`,     type: 'number', required: f => f.status === 'Gewonnen' },
     { name: 'laufzeit_monate',       label: 'Neue Laufzeit (Monate)',  type: 'number', required: f => f.status === 'Gewonnen' },
     { name: 'wie_vielt_verlaengerung', label: 'Wievielte Verlängerung', type: 'number', required: f => f.status === 'Gewonnen' },
     { name: 'status',                label: 'Status',                  type: 'select', options: STATUS_OPTS, required: true },
@@ -453,8 +455,8 @@ export default function DealsVL() {
                   {d.kam_standort && <span className="ml-1 text-gray-400">({d.kam_standort})</span>}
                 </td>
                 <td className="px-3 py-2 text-gray-600">{d.dienstleistung || '—'}</td>
-                <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{d.angebotswert ? formatEuro(d.angebotswert) : '—'}</td>
-                <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{d.ae_wert ? formatEuro(d.ae_wert) : '—'}</td>
+                <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{d.angebotswert ? formatMoney(d.angebotswert, d.currency) : '—'}</td>
+                <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{d.ae_wert ? formatMoney(d.ae_wert, d.currency) : '—'}</td>
                 <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{d.laufzeit_monate ? `${d.laufzeit_monate}M` : '—'}</td>
                 <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{d.wie_vielt_verlaengerung ? `${d.wie_vielt_verlaengerung}x` : '—'}</td>
                 <td className="px-3 py-2"><StatusBadge status={d.status} /></td>
