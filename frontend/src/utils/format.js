@@ -10,6 +10,14 @@ export const formatMoney = (val, currency = 'EUR') =>
 export const companyCurrency = (companies, companyId) =>
   (companies || []).find(c => String(c.id) === String(companyId))?.currency || 'EUR';
 
+// Ist die Company des Deals schon aktiv? (aktiv_ab leer oder <= heute). Deals noch nicht
+// aktiver Companies (z.B. Risem vor 2026-08-01) bleiben in Listen sichtbar, fließen aber
+// nicht in Auswertungen/Stats/KPIs ein.
+export const isDealCompanyActive = (d) => {
+  const ab = d?.aktiv_ab ? String(d.aktiv_ab).slice(0, 10) : null;
+  return !ab || ab <= new Date().toISOString().slice(0, 10);
+};
+
 export const formatPct = (val) => `${val ?? 0} %`;
 
 export const monthLabel = (monat) => {

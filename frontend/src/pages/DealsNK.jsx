@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dealsApi, employeesApi, exportApi } from '../utils/api';
 import StatusBadge from '../components/StatusBadge';
 import DealModal from '../components/DealModal';
-import { formatEuro, formatMoney, companyCurrency, currentMonat } from '../utils/format';
+import { formatEuro, formatMoney, companyCurrency, isDealCompanyActive, currentMonat } from '../utils/format';
 import { useAuth } from '../context/AuthContext';
 
 const QUELLEN = ['Cold Calling', 'Mail', 'Fax', 'Ad', 'Empfehlung', 'Follow Up', 'Inbound', 'Leadhandy', 'Post'];
@@ -106,8 +106,9 @@ export default function DealsNK() {
     else updateMut.mutate({ id: modal.data.id, data });
   };
 
-  // Gefilterte Deals
-  const filtered = useMemo(() => deals.filter(d =>
+  // Gefilterte Deals — listDeals treibt die Deal-LISTE (zeigt auch noch-nicht-aktive
+  // Companies wie Risem zur Kontrolle); filtered = nur aktive Companies, treibt alle Stats/KPIs.
+  const listDeals = useMemo(() => deals.filter(d =>
     (!filterQuelle   || d.quelle          === filterQuelle) &&
     (!filterCloser   || String(d.closer_id) === filterCloser) &&
     (!filterOpener   || String(d.opener_id) === filterOpener) &&
@@ -115,6 +116,7 @@ export default function DealsNK() {
     (!filterStatus   || d.status           === filterStatus) &&
     (!filterStandort || d.closer_standort  === filterStandort)
   ), [deals, filterQuelle, filterCloser, filterOpener, filterSetter, filterStatus, filterStandort]);
+  const filtered = useMemo(() => listDeals.filter(isDealCompanyActive), [listDeals]);
 
   // KPIs aus gefilterten Deals
   const kpis = useMemo(() => {
@@ -506,9 +508,9 @@ export default function DealsNK() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {filtered.length === 0 ? (
+            {listDeals.length === 0 ? (
               <tr><td colSpan={13} className="text-center py-8 text-gray-400">Keine Deals gefunden</td></tr>
-            ) : filtered.map(d => (
+            ) : listDeals.map(d => (
               <tr key={d.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{d.datum?.slice(0,10)}</td>
                 <td className="px-3 py-2 text-gray-900 font-medium">{d.kunde}</td>

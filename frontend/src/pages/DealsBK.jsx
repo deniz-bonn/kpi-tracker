@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dealsApi, employeesApi, exportApi } from '../utils/api';
 import StatusBadge from '../components/StatusBadge';
 import DealModal from '../components/DealModal';
-import { formatEuro, formatMoney, companyCurrency, currentMonat } from '../utils/format';
+import { formatEuro, formatMoney, companyCurrency, isDealCompanyActive, currentMonat } from '../utils/format';
 import { useAuth } from '../context/AuthContext';
 
 const STATUS_OPTS = ['Offen', 'Gewonnen', 'Verloren'];
@@ -130,13 +130,14 @@ export default function DealsBK() {
     else updateMut.mutate({ id: modal.data.id, data });
   };
 
-  // Gefilterte Deals
-  const filtered = useMemo(() => deals.filter(d =>
+  // listDeals treibt die Liste (auch noch-nicht-aktive Companies); filtered = nur aktive, treibt Stats.
+  const listDeals = useMemo(() => deals.filter(d =>
     (canSeeAll || viewMode === 'alle' || String(d.kam_id) === String(user?.employee_id)) &&
     (!filterKam      || String(d.kam_id)    === filterKam) &&
     (!filterStatus   || d.status            === filterStatus) &&
     matchStandort(d.kam_standort, filterStandort)
   ), [deals, filterKam, filterStatus, filterStandort, viewMode, canSeeAll, user?.employee_id]);
+  const filtered = useMemo(() => listDeals.filter(isDealCompanyActive), [listDeals]);
 
   // Gesamt-KPIs
   const gesamtKpis = useMemo(() => calcKpis(filtered), [filtered]);
@@ -334,9 +335,9 @@ export default function DealsBK() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {filtered.length === 0 ? (
+            {listDeals.length === 0 ? (
               <tr><td colSpan={13} className="text-center py-8 text-gray-400">Keine Deals gefunden</td></tr>
-            ) : filtered.map(d => (
+            ) : listDeals.map(d => (
               <tr key={d.id} className="hover:bg-gray-50">
                 <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{d.datum?.slice(0,10)}</td>
                 <td className="px-3 py-2 text-gray-900 font-medium">{d.kunde}</td>

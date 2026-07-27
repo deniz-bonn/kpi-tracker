@@ -3,7 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dealsApi, employeesApi, upsaleDealsApi } from '../utils/api';
 import DealModal from '../components/DealModal';
-import { formatEuro } from '../utils/format';
+import { formatEuro, isDealCompanyActive } from '../utils/format';
 import { useAuth } from '../context/AuthContext';
 
 const UPSALE_STATUS = ['Offen', 'In Verhandlung', 'Abgelehnt', 'Gewonnen'];
@@ -365,16 +365,18 @@ const createDealMut = useMutation({
     });
   }, [weitergegeben, showAllMonths, selectedMonth]);
 
-  const filtered = useMemo(() => monthFiltered.filter(d => {
+  // listDeals treibt Liste + Export (auch noch-nicht-aktive Companies); filtered = nur aktive, treibt KPIs.
+  const listDeals = useMemo(() => monthFiltered.filter(d => {
     if (filterStandort.size > 0 && !filterStandort.has(d.kam_standort)) return false;
     if (filterKam && String(d.kam_id) !== filterKam) return false;
     if (filterDeals === '_mit_deal'  && (upsaleByVlId[d.id] || []).length === 0) return false;
     if (filterDeals === '_ohne_deal' && (upsaleByVlId[d.id] || []).length > 0)   return false;
     return true;
   }), [monthFiltered, filterStandort, filterKam, filterDeals, upsaleByVlId]);
+  const filtered = useMemo(() => listDeals.filter(isDealCompanyActive), [listDeals]);
 
   const sorted = useMemo(() => {
-    const arr = [...filtered];
+    const arr = [...listDeals];
     const getKuendigt = d => (d.gekuendigt_am || d.datum || '').slice(0, 10);
     switch (sortBy) {
       case 'datum_desc':  arr.sort((a, b) => getKuendigt(b).localeCompare(getKuendigt(a))); break;
@@ -404,7 +406,7 @@ const createDealMut = useMutation({
       default: break;
     }
     return arr;
-  }, [filtered, sortBy]);
+  }, [listDeals, sortBy]);
 
   // ── KPIs ──────────────────────────────────────────────────────────────────────
   const kpis = useMemo(() => {
