@@ -2,6 +2,7 @@ const router = require('express').Router();
 const db = require('../db');
 const wrap = require('../middleware/asyncHandler');
 const { loadRates, toEur, moneyEurSql } = require('../utils/currency');
+const { activeCompanySql } = require('../utils/companyActive');
 
 // EUR-umgerechnete Beträge (CHF-Companies via Monatskurs); erfordern JOIN companies c.
 const AE_EUR  = moneyEurSql('ae_wert', 'gewonnen_monat');
@@ -110,6 +111,7 @@ router.get('/nk', wrap(async (req, res) => {
   if (monat) { baseConds.push(`d.monat = ${p()}`); baseParams.push(monat); }
   if (closer_id) { baseConds.push(`d.closer_id = ${p()}`); baseParams.push(closer_id); }
   if (standort) { baseConds.push(`e.standort = ${p()}`); baseParams.push(standort); }
+  baseConds.push(activeCompanySql('d')); // noch nicht aktive Companies (aktiv_ab > heute) ausblenden
 
   // Gesamt
   const gesamt = calcKpis(await db.all(buildNKQuery(baseConds), baseParams));
@@ -160,6 +162,7 @@ router.get('/bk', wrap(async (req, res) => {
   if (monat) { baseConds.push(`d.monat = ${p()}`); baseParams.push(monat); }
   if (kam_id) { baseConds.push(`d.kam_id = ${p()}`); baseParams.push(kam_id); }
   if (standort) { baseConds.push(`e.standort = ${p()}`); baseParams.push(standort); }
+  baseConds.push(activeCompanySql('d')); // noch nicht aktive Companies (aktiv_ab > heute) ausblenden
 
   const gesamt = calcKpisBK(await db.all(buildBKQuery('deals_bk', baseConds), baseParams));
 
@@ -197,6 +200,7 @@ router.get('/vl', wrap(async (req, res) => {
   if (monat) { baseConds.push(`d.monat = ${p()}`); baseParams.push(monat); }
   if (kam_id) { baseConds.push(`d.kam_id = ${p()}`); baseParams.push(kam_id); }
   if (standort) { baseConds.push(`e.standort = ${p()}`); baseParams.push(standort); }
+  baseConds.push(activeCompanySql('d')); // noch nicht aktive Companies (aktiv_ab > heute) ausblenden
 
   const gesamt = calcKpisBK(await db.all(buildBKQuery('deals_vl', baseConds), baseParams));
 
@@ -234,6 +238,7 @@ router.get('/auftragseingang', wrap(async (req, res) => {
     const conds = [`d.status = ${p()}`, `d.gewonnen_monat LIKE ${p()}`];
     const params = ['Gewonnen', `${yr}-%`];
     if (company_id) { conds.push(`d.company_id = ${p()}`); params.push(company_id); }
+    conds.push(activeCompanySql('d')); // noch nicht aktive Companies (aktiv_ab > heute) ausblenden
     return {
       sql: `SELECT d.id, d.gewonnen_monat as monat, d.gewonnen_datum,
             d.kunde, COALESCE(d.ae_wert,0) as ae_wert, c.currency,${extraSelect}

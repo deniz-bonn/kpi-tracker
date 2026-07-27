@@ -4,6 +4,7 @@ const wrap   = require('../middleware/asyncHandler');
 const { requireAuth } = require('../middleware/auth');
 const { logAudit }   = require('../utils/audit');
 const { enrichDealsEur } = require('../utils/currency');
+const { activeCompanySql } = require('../utils/companyActive');
 
 router.use(requireAuth);
 
@@ -83,6 +84,7 @@ router.get('/', wrap(async (req, res) => {
   if (gewonnen_monat){ conditions.push(`d.gewonnen_monat = ${p()}`);params.push(gewonnen_monat); }
   if (status)        { conditions.push(`d.status = ${p()}`);        params.push(status); }
   if (kam_id)        { conditions.push(`d.kam_id = ${p()}`);        params.push(kam_id); }
+  conditions.push(activeCompanySql('d')); // Companies mit aktiv_ab in der Zukunft ausblenden
 
   const where = conditions.length ? ' WHERE ' + conditions.join(' AND ') : '';
   res.json(await enrichDealsEur(await db.all(BASE_SELECT + where + ' ORDER BY d.datum DESC', params)));

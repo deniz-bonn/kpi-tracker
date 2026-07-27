@@ -2,6 +2,7 @@ const router = require('express').Router();
 const db = require('../db');
 const wrap = require('../middleware/asyncHandler');
 const { aeEurSql } = require('../utils/currency');
+const { activeCompanySql } = require('../utils/companyActive');
 
 // EUR-umgerechnetes ae_wert (CHF-Companies via Monatskurs); erfordert JOIN companies c.
 const AE_EUR = aeEurSql('d', 'c');
@@ -23,6 +24,7 @@ router.get('/overview', wrap(async (req, res) => {
     const p = () => d === 'postgres' ? `$${i++}` : '?';
     if (company_id) { conds.push(`${alias}.company_id = ${p()}`); params.push(company_id); }
     if (monat) { conds.push(`${alias}.${col} = ${p()}`); params.push(monat); }
+    conds.push(activeCompanySql(alias)); // noch nicht aktive Companies (aktiv_ab > heute) ausblenden
     return { conds, params };
   };
 
@@ -92,6 +94,7 @@ router.get('/monthly', wrap(async (req, res) => {
     const p = () => d === 'postgres' ? `$${i++}` : '?';
     if (company_id) { conds.push(`${alias}.company_id = ${p()}`); params.push(company_id); }
     if (year) { conds.push(`${alias}.${col} LIKE ${p()}`); params.push(`${year}-%`); }
+    conds.push(activeCompanySql(alias)); // noch nicht aktive Companies (aktiv_ab > heute) ausblenden
     return { conds, params };
   };
 
@@ -144,6 +147,7 @@ router.get('/employees', wrap(async (req, res) => {
     if (company_id) { conds.push(`${alias}.company_id = ${p()}`); params.push(company_id); }
     if (monat) { conds.push(`${alias}.monat = ${p()}`); params.push(monat); }
     else if (year) { conds.push(`${alias}.monat LIKE ${p()}`); params.push(`${year}-%`); }
+    conds.push(activeCompanySql(alias)); // noch nicht aktive Companies (aktiv_ab > heute) ausblenden
     return { conds, params };
   };
 
@@ -267,6 +271,7 @@ router.get('/dashboard', wrap(async (req, res) => {
     if (company_id) { conds.push(`d.company_id = ${p()}`); params.push(company_id); }
     conds.push(`d.gewonnen_monat LIKE ${p()}`); params.push(`${yr}-%`);
     conds.push(`d.status = ${p()}`); params.push('Gewonnen');
+    conds.push(activeCompanySql('d')); // noch nicht aktive Companies (aktiv_ab > heute) ausblenden
     return { where: 'WHERE ' + conds.join(' AND '), params };
   };
 

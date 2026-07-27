@@ -4,6 +4,7 @@ const wrap   = require('../middleware/asyncHandler');
 const { requireAuth } = require('../middleware/auth');
 const { logAudit }   = require('../utils/audit');
 const { loadRates, rateFor, enrichDealsEur } = require('../utils/currency');
+const { activeCompanySql } = require('../utils/companyActive');
 
 router.use(requireAuth);
 
@@ -142,6 +143,7 @@ router.get('/', wrap(async (req, res) => {
   if (closer_id)     { conditions.push(`d.closer_id = ${p()}`);     params.push(closer_id); }
   if (opener_id)     { conditions.push(`d.opener_id = ${p()}`);     params.push(opener_id); }
   if (setter_id)     { conditions.push(`d.setter_id = ${p()}`);     params.push(setter_id); }
+  conditions.push(activeCompanySql('d')); // Companies mit aktiv_ab in der Zukunft ausblenden
 
   const where = conditions.length ? ' WHERE ' + conditions.join(' AND ') : '';
   res.json(await enrichDealsEur(await db.all(BASE_SELECT + where + ' ORDER BY d.datum DESC', params)));
