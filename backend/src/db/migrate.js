@@ -60,6 +60,10 @@ function splitSql(sql) {
           inString = false;
         }
       }
+    } else if (ch === '-' && sql[i + 1] === '-') {
+      // Zeilenkommentar bis Zeilenende konsumieren, damit ein ; im Kommentar NICHT splittet
+      while (i < sql.length && sql[i] !== '\n') { current += sql[i]; i++; }
+      if (i < sql.length) current += sql[i]; // abschließendes \n behalten
     } else if (ch === "'" || ch === '"') {
       inString = true;
       stringChar = ch;
@@ -136,7 +140,11 @@ async function runMigrations() {
   process.exit(0);
 }
 
-runMigrations().catch(err => {
-  console.error('\nFatal migration error:', err.message);
-  process.exit(1);
-});
+if (require.main === module) {
+  runMigrations().catch(err => {
+    console.error('\nFatal migration error:', err.message);
+    process.exit(1);
+  });
+}
+
+module.exports = { splitSql };

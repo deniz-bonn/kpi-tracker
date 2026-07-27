@@ -1,6 +1,6 @@
 -- Migration 076: Einmaliger historischer Risem-Import (generiert aus scripts/import_risem.js).
 -- Idempotent via eindeutiger [imp:excel_risem_2026-08:<tab>:<n>]-Kennung im Kommentar (WHERE NOT EXISTS).
--- Beträge sind CHF (Company Risem currency=CHF); ae_wert bleibt leer (kein historischer AE).
+-- Beträge sind CHF (Company Risem currency=CHF) — ae_wert bleibt leer (kein historischer AE).
 
 INSERT INTO deals_bk (datum, monat, company_id, kam_id, kunde, angebotsnummer, dienstleistung, angebotswert, laufzeit_monate, status, ae_wert, kommentar, gewonnen_datum, gewonnen_monat)
 SELECT '2026-06-01', '2026-06', (SELECT id FROM companies WHERE name='Risem'), (SELECT id FROM employees WHERE name='Vahieran Kanthathason' AND company_id=(SELECT id FROM companies WHERE name='Risem')), 'Confiserie Dober AG', 'AN-02876', 'Individuell', 5200, 1, 'Verloren', NULL, 'Karriereseite [orig:Nein] [imp:excel_risem_2026-08:bk:0]', NULL, NULL

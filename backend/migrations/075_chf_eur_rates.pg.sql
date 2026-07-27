@@ -1,6 +1,6 @@
 -- Migration 075: Monatliche CHF→EUR-Wechselkurse. rate = EUR pro 1 CHF.
 -- Gültigkeit pro Monat, damit spätere Kursänderungen alte Monate nicht rückwirkend verändern.
--- Initialkurs 1,08 (Vorgabe) für 2026-06 bis 2026-12; pro Monat in Einstellungen pflegbar.
+-- Initialkurs 1,08 (Vorgabe) für 2026-06 bis 2026-12 — pro Monat in Einstellungen pflegbar.
 CREATE TABLE IF NOT EXISTS chf_eur_rates (
   monat      CHAR(7) PRIMARY KEY,
   rate       NUMERIC(10,4) NOT NULL,

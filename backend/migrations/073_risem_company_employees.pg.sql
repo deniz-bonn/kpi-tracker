@@ -1,6 +1,6 @@
 -- Migration 073: Onboarding Firma Risem (Standort Schweiz) — Company + Mitarbeiter.
 -- Idempotent (WHERE NOT EXISTS): Doppellauf legt keine Duplikate an. Keine users/Logins.
--- Eine Person = ein Datensatz; Leo Stalder als Multi (Closer + Setter), kein zweiter Datensatz.
+-- Eine Person = ein Datensatz — Leo Stalder als Multi (Closer + Setter), kein zweiter Datensatz.
 
 -- Company Risem
 INSERT INTO companies (name, standort, aktiv)
