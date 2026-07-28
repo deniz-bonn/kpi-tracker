@@ -253,7 +253,6 @@ const SOLL = {
   // Setting-zu-Closing-Funnel (abgeleitet aus bestehenden Solls, anpassbar):
   set_to_sc_gelegt:   32,  // Show-Rate Setting 80% × Durchstellung 40%
   set_to_sc_statt:    26,  // × Show-Rate Closing 80%
-  set_to_closing:     15,  // Anteil direkter Close an terminierten Settings
 };
 // Rolle deckt beide Blöcke (Setter + Closer) im eigenen Log ab → Rollen-Schnitt-Quoten pro MA sinnvoll
 const IS_MULTI = r => IS_OPENER(r) && IS_CLOSER(r);
@@ -319,7 +318,6 @@ function SollAbweichung({ kpis, nums = {}, label }) {
     { key: 'closing_rate',       label: 'Closing-Rate (NK)',               soll: SOLL.closing_rate,       ist: kpis.closing_rate,       nLabel: 'Gewonnen',   dLabel: 'Angebote gesamt' },
     { key: 'set_to_sc_gelegt',   label: 'Setting → Sales Call (gelegt)',   soll: SOLL.set_to_sc_gelegt,   ist: kpis.set_to_sc_gelegt,   nLabel: 'SC gelegt',  dLabel: 'Terminiert' },
     { key: 'set_to_sc_statt',    label: 'Setting → Sales Call (statt.)',   soll: SOLL.set_to_sc_statt,    ist: kpis.set_to_sc_statt,    nLabel: 'Ber. statt.',dLabel: 'Terminiert' },
-    { key: 'set_to_closing',     label: 'Setting → Closing',               soll: SOLL.set_to_closing,     ist: kpis.set_to_closing,     nLabel: 'Direkt-Close',dLabel: 'Terminiert' },
   ];
 
   return (
@@ -728,12 +726,11 @@ export default function KpiMitarbeiterBeta() {
     const berVerDir= sum(ls, 'beratung_vereinbart_direkt');
     const berGepl  = sum(ls, 'beratungen_geplant');
     const berStat  = sum(ls, 'beratungen_stattgefunden');
-    const dClose   = sum(ls, 'beratungen_direkter_close');
     const opener = IS_OPENER(ep.rolle), closer = IS_CLOSER(ep.rolle), multi = IS_MULTI(ep.rolle);
     const scGelegt = berVer + berVerDir;
     return {
       ...ep, standort: ls[0]?.standort || '',
-      err, term, setGepl, setStat, berVer, berGepl, berStat, dClose, scGelegt,
+      err, term, setGepl, setStat, berVer, berGepl, berStat, scGelegt,
       opener, closer, multi,
       q_termQuote:     opener ? pctNum(term, err)        : null,
       q_showSet:       opener ? pctNum(setStat, setGepl) : null,
@@ -741,7 +738,6 @@ export default function KpiMitarbeiterBeta() {
       q_setToScGelegt: opener ? pctNum(scGelegt, term)   : null,
       q_showBer:       closer ? pctNum(berStat, berGepl) : null,
       q_setToScStatt:  multi  ? pctNum(berStat, term)    : null,
-      q_setToClose:    multi  ? pctNum(dClose, term)     : null,
     };
   }), [perEmployee]);
 
@@ -892,7 +888,6 @@ export default function KpiMitarbeiterBeta() {
   const fBerVereinbDir = sum(activeLogs, 'beratung_vereinbart_direkt');
   const fBerGepl       = sum(activeLogs, 'beratungen_geplant');
   const fBeratungen    = sum(activeLogs, 'beratungen_stattgefunden');
-  const fDirekterClose = sum(activeLogs, 'beratungen_direkter_close');
   const fScGelegt      = fBerVereinbart + fBerVereinbDir; // gelegte Sales Calls
   // Inbound-Leads (aus inbound_daily)
   const tiLeads      = sum(inboundData, 'inbound_mail') + sum(inboundData, 'inbound_fax') + sum(inboundData, 'inbound_ad');
@@ -916,7 +911,6 @@ export default function KpiMitarbeiterBeta() {
     // Setting-zu-Closing-Funnel als Team-/Standort-Verhältniswerte des Zeitraums
     set_to_sc_gelegt:  pctNum(fScGelegt,     fTerminiert),
     set_to_sc_statt:   pctNum(fBeratungen,   fTerminiert),
-    set_to_closing:    pctNum(fDirekterClose, fTerminiert),
   };
 
   // Tages-Pace (immer aus today-Logs, unabhängig von zeitbasis)
@@ -974,7 +968,6 @@ export default function KpiMitarbeiterBeta() {
     const mtdBerVereinb     = sum(mtd, 'beratung_vereinbart');
     const mtdBerGepl        = sum(mtd, 'beratungen_geplant');
     const mtdBerStattg      = sum(mtd, 'beratungen_stattgefunden');
-    const mtdDirektClose    = sum(mtd, 'beratungen_direkter_close');
     return [
       `📊 Sales KPIs — ${datumStr}${standortFilter ? ' · ' + standortFilter : ''}`,
       ``,
@@ -1002,7 +995,6 @@ export default function KpiMitarbeiterBeta() {
       `Setting→Sales-Call (gelegt) heute: ${f1(todaySC, todaySettingsGelegt)}`,
       `Setting→Sales-Call (gelegt) ${fmtMonth(monat)} kumuliert: ${f1(mtdSC, mtdSettingsGelegt)}`,
       `Setting→Sales-Call (stattgef.) ${fmtMonth(monat)} kumuliert: ${f1(mtdBerStattg, mtdSettingsGelegt)}`,
-      `Setting→Closing ${fmtMonth(monat)} kumuliert: ${f1(mtdDirektClose, mtdSettingsGelegt)}`,
     ].join('\n');
   };
 
@@ -1050,12 +1042,12 @@ export default function KpiMitarbeiterBeta() {
       lines.push('');
     }
     if (section === 'all' || section === 'closing') {
-      lines.push(row(['Mitarbeiter', 'Rolle', 'Standort', 'Terminiert', 'Beratungen geplant', 'Beratungen stattgef.', 'Show-Rate Closing', 'Direkter Close', 'Follow-Up', 'Kein Close', 'Set→SC statt.', 'Set→Close']));
+      lines.push(row(['Mitarbeiter', 'Rolle', 'Standort', 'Terminiert', 'Beratungen geplant', 'Beratungen stattgef.', 'Show-Rate Closing', 'Direkter Close', 'Follow-Up', 'Kein Close', 'Set→SC statt.']));
       perEmployee.forEach(e => {
         const ls = e.logs;
         const tm = sum(ls,'entscheider_terminiert'), bg = sum(ls,'beratungen_geplant'), bs = sum(ls,'beratungen_stattgefunden'), dc = sum(ls,'beratungen_direkter_close');
         const multi = IS_MULTI(e.rolle);
-        lines.push(row([e.name, e.rolle||'', ls[0]?.standort||'', tm, bg, bs, f1(bs,bg), dc, sum(ls,'beratungen_follow_up_cc2'), sum(ls,'beratungen_kein_close'), multi ? f1(bs,tm) : '–', multi ? f1(dc,tm) : '–']));
+        lines.push(row([e.name, e.rolle||'', ls[0]?.standort||'', tm, bg, bs, f1(bs,bg), dc, sum(ls,'beratungen_follow_up_cc2'), sum(ls,'beratungen_kein_close'), multi ? f1(bs,tm) : '–']));
       });
     }
 
@@ -1387,7 +1379,6 @@ export default function KpiMitarbeiterBeta() {
                   closing_rate:      { n: nkGewonnen,      d: nkAngebote },
                   set_to_sc_gelegt:  { n: fScGelegt,       d: fTerminiert },
                   set_to_sc_statt:   { n: fBeratungen,     d: fTerminiert },
-                  set_to_closing:    { n: fDirekterClose,  d: fTerminiert },
                 }}
                 label={standortFilter ? standortFilter : `Gesamt (${fmtMonth(monat)})`}
               />
@@ -1464,7 +1455,7 @@ export default function KpiMitarbeiterBeta() {
                         <th className="px-3 pt-2 pb-1 bg-gray-50" colSpan={2}></th>
                         <th className="px-3 pt-2 pb-1 text-center bg-blue-50 text-blue-700 border-l border-blue-100" colSpan={3}>📞 Entscheider</th>
                         <th className="px-3 pt-2 pb-1 text-center bg-violet-50 text-violet-700 border-l border-violet-100" colSpan={5}>📅 Settings</th>
-                        <th className="px-3 pt-2 pb-1 text-center bg-green-50 text-green-700 border-l border-green-100" colSpan={4}>🤝 Beratungsgespräche</th>
+                        <th className="px-3 pt-2 pb-1 text-center bg-green-50 text-green-700 border-l border-green-100" colSpan={3}>🤝 Beratungsgespräche</th>
                       </tr>
                       <tr className="border-b border-gray-100 text-gray-500 font-medium">
                         {sortTh('name', 'Mitarbeiter', 'Nach Name sortieren', 'text-left bg-gray-50')}
@@ -1480,12 +1471,11 @@ export default function KpiMitarbeiterBeta() {
                         {sortTh('berStat', 'Stattgef.', 'Wie viele Beratungsgespräche haben stattgefunden?', 'bg-green-50/50 border-l border-green-100')}
                         {sortTh('q_showBer', 'Show-Rate', `Show-Rate Closing: stattgefunden / geplant · Soll ${SOLL.show_rate_closing}%`, 'bg-green-50/50')}
                         {sortTh('q_setToScStatt', 'Set→SC statt.', `Setting-zu-Sales-Call (stattgefunden): beratungen_stattgefunden / entscheider_terminiert · nur Multi-Rollen · Soll ${SOLL.set_to_sc_statt}%`, 'bg-green-50/50')}
-                        {sortTh('q_setToClose', 'Set→Close', `Setting-zu-Closing: beratungen_direkter_close / entscheider_terminiert · nur Multi-Rollen · Soll ${SOLL.set_to_closing}%`, 'bg-green-50/50')}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {sortedEmpRows.length === 0
-                        ? <tr><td colSpan={14} className="px-3 py-5 text-center text-gray-400">Keine Daten für diesen Zeitraum</td></tr>
+                        ? <tr><td colSpan={13} className="px-3 py-5 text-center text-gray-400">Keine Daten für diesen Zeitraum</td></tr>
                         : sortedEmpRows.map((ep, i) => (
                             <tr key={ep.id ?? ep.name} className={`hover:bg-gray-50 ${i%2===0?'bg-white':'bg-gray-50/50'}`}>
                               <td className="px-3 py-2.5 font-medium text-gray-900 whitespace-nowrap">{ep.name}</td>
@@ -1501,7 +1491,6 @@ export default function KpiMitarbeiterBeta() {
                               <td className="px-3 py-2.5 text-right font-medium text-gray-900 border-l border-green-50">{ep.closer ? ep.berStat : '—'}</td>
                               {qCell(ep.q_showBer, SOLL.show_rate_closing)}
                               {qCell(ep.q_setToScStatt, SOLL.set_to_sc_statt, '', { showND: true, n: ep.berStat, d: ep.term })}
-                              {qCell(ep.q_setToClose, SOLL.set_to_closing, '', { showND: true, n: ep.dClose, d: ep.term })}
                             </tr>
                           ))
                       }
@@ -1521,7 +1510,6 @@ export default function KpiMitarbeiterBeta() {
                           <td className="px-3 py-2 text-right">{fBeratungen}</td>
                           <td className="px-3 py-2 text-right">{pct(fBeratungen, fBerGepl)}</td>
                           <td className="px-3 py-2 text-right">{pct(fBeratungen, fTerminiert)}</td>
-                          <td className="px-3 py-2 text-right">{pct(fDirekterClose, fTerminiert)}</td>
                         </tr>
                       </tfoot>
                     )}
@@ -1529,7 +1517,7 @@ export default function KpiMitarbeiterBeta() {
                 </div>
                 <p className="px-3 py-2 text-[10px] text-gray-400 border-t border-gray-100 leading-relaxed">
                   So liest du die Tabelle: 📞 Entscheider erreicht → terminiert → 📅 Setting findet statt → Beratungsgespräch gelegt → 🤝 Beratung findet statt.
-                  <br /><b>Set→SC</b> = Anteil terminierter Settings, die final zu einem gelegten Sales Call werden (Setter-Kette). <b>Set→SC statt.</b> / <b>Set→Close</b> = stattgefundene bzw. direkt geclos­te Beratungen je terminiertem Setting — nur bei Multi-Rollen pro Person, sonst „–" (Team-Wert in der Gesamt-Zeile). Grün = Soll erreicht, Rot = darunter. „n/d" = Absolutwerte, ⚠ = geringe Datenbasis (&lt;{LOW_BASE}). Spalten sind per Klick sortierbar.
+                  <br /><b>Set→SC</b> = Anteil terminierter Settings, die final zu einem gelegten Sales Call werden (Setter-Kette). <b>Set→SC statt.</b> = stattgefundene Beratungen je terminiertem Setting — nur bei Multi-Rollen pro Person, sonst „–" (Team-Wert in der Gesamt-Zeile). Grün = Soll erreicht, Rot = darunter. „n/d" = Absolutwerte, ⚠ = geringe Datenbasis (&lt;{LOW_BASE}). Spalten sind per Klick sortierbar.
                 </p>
               </SectionBox>
             </div>
