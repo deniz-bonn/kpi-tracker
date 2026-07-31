@@ -307,7 +307,7 @@ export default function DealsVL() {
                 ['Anstehend',      gesamtKpis.total],
                 ['Realisiert',     gesamtKpis.gewonnen],
                 ['Kündigungen',    gesamtKpis.verloren],
-                ['Churn-Rate',     `${gesamtKpis.churn_rate.toFixed(2)}%`],
+                ['Churn-Rate (Anzahl)', `${gesamtKpis.churn_rate.toFixed(2)}%`],
                 ['Möglicher AE',   formatEuro(gesamtKpis.moeglicher_ae)],
                 ['Realisierter AE',formatEuro(gesamtKpis.ae_summe)],
                 ['Verlorener AE',  formatEuro(gesamtKpis.verlorener_ae)],
@@ -315,7 +315,7 @@ export default function DealsVL() {
               ].map(([label, val]) => (
                 <div key={label} className="text-xs">
                   <div className="text-gray-500 mb-0.5">{label}</div>
-                  <div className={`font-bold ${label === 'Churn-Rate'
+                  <div className={`font-bold ${label === 'Churn-Rate (Anzahl)'
                     ? (gesamtKpis.churn_rate > 70 ? 'text-red-600' : gesamtKpis.churn_rate > 40 ? 'text-amber-600' : 'text-green-600')
                     : 'text-gray-900'}`}>{val}</div>
                 </div>
@@ -336,8 +336,8 @@ export default function DealsVL() {
                 <thead>
                   <tr className="bg-indigo-50 border-b border-indigo-100 text-indigo-800 font-medium">
                     <th className="px-3 py-2 text-left">Verlängerung</th>
-                    <th className="px-3 py-2 text-right">Möglich</th>
-                    <th className="px-3 py-2 text-right">Realisiert</th>
+                    <th className="px-3 py-2 text-right">Möglich (Anzahl)</th>
+                    <th className="px-3 py-2 text-right">Realisiert (Anzahl)</th>
                     <th className="px-3 py-2 text-right">Offen</th>
                     <th className="px-3 py-2 text-right">Verloren</th>
                     <th className="px-3 py-2 text-right">Churn-Rate</th>
@@ -379,7 +379,7 @@ export default function DealsVL() {
             )}
             {showChurn && (
             <p className="px-3 py-1.5 text-[10px] text-gray-400 bg-indigo-50/50 border-t border-indigo-100">
-              Churn-Rate = (Möglich − Realisiert) / Möglich · offene Verlängerungen zählen noch als nicht realisiert
+              Churn-Rate = (Möglich − Realisiert) / Möglich — gerechnet nach <b>Anzahl</b> der Verlängerungen, nicht nach Euro · offene Verlängerungen zählen noch als nicht realisiert · „Realisierter AE" ist der Euro-Wert der realisierten Verlängerungen und geht nicht in die Churn-Rate ein
             </p>
             )}
           </div>
