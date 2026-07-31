@@ -87,8 +87,12 @@ function LocationCol({ title, deals, color, showDienstleistung = false }) {
 function MonthSection({ row, isExpanded, onToggle, isCurrent }) {
   const monthIdx = parseInt(row.monat.split('-')[1]) - 1;
   const year = row.monat.split('-')[0];
-  const gesamt = row.nk.gesamt + row.bk.gesamt + row.vl.gesamt;
-  const hasData = gesamt > 0;
+  const gesamt = row.nk.gesamt + row.bk.gesamt + row.vl.gesamt; // ohne Schweiz (Risem)
+  // Sichtbarkeit an vorhandenen Deals (inkl. Schweiz), damit Schweiz-only-Monate nicht verschwinden
+  const nkHas = (row.nk.bonn.length + row.nk.braunschweig.length + row.nk.oesterreich.length + row.nk.schweiz.length) > 0;
+  const bkHas = (row.bk.deutschland.length + row.bk.oesterreich.length + row.bk.schweiz.length) > 0;
+  const vlHas = (row.vl.deutschland.length + row.vl.oesterreich.length + row.vl.schweiz.length) > 0;
+  const hasData = nkHas || bkHas || vlHas;
 
   return (
     <div className={`rounded-xl border overflow-hidden ${isCurrent ? 'border-blue-400' : 'border-gray-200'}`}>
@@ -122,7 +126,7 @@ function MonthSection({ row, isExpanded, onToggle, isCurrent }) {
 
       {isExpanded && hasData && (
         <div className="p-4 bg-gray-50 space-y-5 border-t border-gray-200">
-          {row.nk.gesamt > 0 && (
+          {nkHas && (
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <h3 className="text-xs font-bold text-blue-600 uppercase tracking-wider">Auftragseingang Neukunden NK</h3>
@@ -132,11 +136,11 @@ function MonthSection({ row, isExpanded, onToggle, isCurrent }) {
                 <LocationCol title="Bonn" deals={row.nk.bonn} color="border-blue-900/50" />
                 <LocationCol title="Braunschweig" deals={row.nk.braunschweig} color="border-blue-900/50" />
                 <LocationCol title="Österreich" deals={row.nk.oesterreich} color="border-blue-900/50" />
-                <LocationCol title="Schweiz" deals={row.nk.schweiz} color="border-blue-900/50" />
+                <LocationCol title="Schweiz (nicht in Gesamt)" deals={row.nk.schweiz} color="border-blue-900/50" />
               </div>
             </div>
           )}
-          {row.bk.gesamt > 0 && (
+          {bkHas && (
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <h3 className="text-xs font-bold text-green-600 uppercase tracking-wider">Auftragseingang Bestandskunden BK</h3>
@@ -145,11 +149,11 @@ function MonthSection({ row, isExpanded, onToggle, isCurrent }) {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                 <LocationCol title="Deutschland" deals={row.bk.deutschland} color="border-green-900/50" showDienstleistung />
                 <LocationCol title="Österreich" deals={row.bk.oesterreich} color="border-green-900/50" showDienstleistung />
-                <LocationCol title="Schweiz" deals={row.bk.schweiz} color="border-green-900/50" showDienstleistung />
+                <LocationCol title="Schweiz (nicht in Gesamt)" deals={row.bk.schweiz} color="border-green-900/50" showDienstleistung />
               </div>
             </div>
           )}
-          {row.vl.gesamt > 0 && (
+          {vlHas && (
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <h3 className="text-xs font-bold text-purple-600 uppercase tracking-wider">Auftragseingang Verlängerungen VL</h3>
@@ -158,7 +162,7 @@ function MonthSection({ row, isExpanded, onToggle, isCurrent }) {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                 <LocationCol title="Deutschland" deals={row.vl.deutschland} color="border-purple-900/50" showDienstleistung />
                 <LocationCol title="Österreich" deals={row.vl.oesterreich} color="border-purple-900/50" showDienstleistung />
-                <LocationCol title="Schweiz" deals={row.vl.schweiz} color="border-purple-900/50" showDienstleistung />
+                <LocationCol title="Schweiz (nicht in Gesamt)" deals={row.vl.schweiz} color="border-purple-900/50" showDienstleistung />
               </div>
             </div>
           )}
@@ -218,7 +222,11 @@ export default function Dashboard() {
     });
   };
 
-  const expandAll  = () => setExpanded(new Set(aeRows.filter(r => r.nk.gesamt + r.bk.gesamt + r.vl.gesamt > 0).map(r => r.monat)));
+  const monthHasAnyDeals = (r) =>
+    r.nk.bonn.length + r.nk.braunschweig.length + r.nk.oesterreich.length + r.nk.schweiz.length +
+    r.bk.deutschland.length + r.bk.oesterreich.length + r.bk.schweiz.length +
+    r.vl.deutschland.length + r.vl.oesterreich.length + r.vl.schweiz.length > 0;
+  const expandAll  = () => setExpanded(new Set(aeRows.filter(monthHasAnyDeals).map(r => r.monat)));
   const collapseAll = () => setExpanded(new Set());
 
   // Jahressummen (Übersichtstabelle)
@@ -296,7 +304,8 @@ export default function Dashboard() {
             ) : rows.map((row) => {
               const monthIdx = parseInt(row.monat.split('-')[1]) - 1;
               const isCurrent = row.monat === currentMonat;
-              const hasData = row.gesamt > 0;
+              // Schweiz (Risem) zählt nicht in row.gesamt, soll die Zeile aber nicht ausgrauen
+              const hasData = row.gesamt > 0 || row.nk_ch > 0 || row.bk_ch > 0 || row.vl_ch > 0;
 
               return (
                 <tr
@@ -422,6 +431,10 @@ export default function Dashboard() {
           </tbody>
         </table>
       </div>
+
+      <p className="text-xs text-gray-400 -mt-3">
+        🇨🇭 Schweiz (Risem) wird angezeigt, fließt aber noch nicht in die „Gesamt"-/Umsatzsummen ein.
+      </p>
 
       {canSeeTargets && (
         <p className="text-xs text-gray-400 -mt-3">

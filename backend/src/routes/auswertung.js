@@ -238,7 +238,8 @@ router.get('/auftragseingang', wrap(async (req, res) => {
     const conds = [`d.status = ${p()}`, `d.gewonnen_monat LIKE ${p()}`];
     const params = ['Gewonnen', `${yr}-%`];
     if (company_id) { conds.push(`d.company_id = ${p()}`); params.push(company_id); }
-    conds.push(activeCompanySql('d')); // noch nicht aktive Companies (aktiv_ab > heute) ausblenden
+    // Kein aktiv_ab-Filter: Risem (Schweiz) wird angezeigt, aber unten aus den
+    // gesamt-Summen ausgeschlossen (Vorgabe Deniz, 31.07.2026).
     return {
       sql: `SELECT d.id, d.gewonnen_monat as monat, d.gewonnen_datum,
             d.kunde, COALESCE(d.ae_wert,0) as ae_wert, c.currency,${extraSelect}
@@ -277,7 +278,8 @@ router.get('/auftragseingang', wrap(async (req, res) => {
       oesterreich:  pickLoc(nkDeals, monat, ['Österreich']),
       schweiz:      pickLoc(nkDeals, monat, ['Schweiz']),
     };
-    nk.gesamt = [...nk.bonn, ...nk.braunschweig, ...nk.oesterreich, ...nk.schweiz]
+    // Schweiz (Risem) wird angezeigt, zählt aber NICHT in gesamt.
+    nk.gesamt = [...nk.bonn, ...nk.braunschweig, ...nk.oesterreich]
       .reduce((s, d) => s + d.ae_wert, 0);
 
     const bk = {
@@ -285,7 +287,7 @@ router.get('/auftragseingang', wrap(async (req, res) => {
       oesterreich: pickLoc(bkDeals, monat, ['Österreich']),
       schweiz:     pickLoc(bkDeals, monat, ['Schweiz']),
     };
-    bk.gesamt = [...bk.deutschland, ...bk.oesterreich, ...bk.schweiz]
+    bk.gesamt = [...bk.deutschland, ...bk.oesterreich] // ohne Schweiz (Risem)
       .reduce((s, d) => s + d.ae_wert, 0);
 
     const vl = {
@@ -293,7 +295,7 @@ router.get('/auftragseingang', wrap(async (req, res) => {
       oesterreich: pickLoc(vlDeals, monat, ['Österreich']),
       schweiz:     pickLoc(vlDeals, monat, ['Schweiz']),
     };
-    vl.gesamt = [...vl.deutschland, ...vl.oesterreich, ...vl.schweiz]
+    vl.gesamt = [...vl.deutschland, ...vl.oesterreich] // ohne Schweiz (Risem)
       .reduce((s, d) => s + d.ae_wert, 0);
 
     return { monat, nk, bk, vl };
