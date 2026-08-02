@@ -1,0 +1,47 @@
+{
+  "_hinweis": "EINZIGE Quelle für KPI-Ziele, Soll-Quoten und Rollenlisten. Wird von Frontend (KpiMitarbeiterBeta.jsx) UND Backend (utils/kpiExport.js) geladen. Keine Kopien anlegen.",
+
+  "monatsziele": {
+    "_hinweis": "Fixe Monatsziele (Vorgabe Vertriebsleitung) — gelten dauerhaft für jeden Monat, NICHT aus Arbeitstagen ableiten.",
+    "sales_calls": 276,
+    "settings": 740
+  },
+
+  "tagesziele": {
+    "sales_calls": 12,
+    "settings": 37
+  },
+
+  "soll_quoten": {
+    "lead_terminierung": 45,
+    "show_rate_setting": 80,
+    "durchstellung": 40,
+    "show_rate_closing": 80,
+    "closing_rate": 50,
+    "set_to_sc_gelegt": 32,
+    "set_to_sc_statt": 26
+  },
+
+  "rollen": {
+    "tracked": ["Opener", "Setter", "Multi", "Multi BS", "NKV-Closer", "Closer-KAM"],
+    "opener": ["Opener", "Setter", "Multi", "Multi BS"],
+    "closer": ["NKV-Closer", "Multi", "Multi BS", "Closer-KAM"]
+  },
+
+  "low_base": 10,
+
+  "definitionen": [
+    { "metrik": "sales_calls_gelegt", "label": "Sales Calls gelegt", "formel": "beratung_vereinbart + beratung_vereinbart_direkt", "einheit": "anzahl" },
+    { "metrik": "settings_terminiert", "label": "Settings terminiert (gelegt)", "formel": "entscheider_terminiert", "einheit": "anzahl" },
+    { "metrik": "lead_terminierung", "label": "Lead-Terminierungsquote", "formel": "(terminiert_mail + terminiert_fax + terminiert_ad) / (inbound_mail + inbound_fax + inbound_ad) — Quelle inbound_daily, company-weit", "einheit": "prozent" },
+    { "metrik": "show_rate_setting", "label": "Show-Rate Setting", "formel": "settings_stattgefunden / settings_geplant", "einheit": "prozent" },
+    { "metrik": "durchstellung", "label": "Durchstellungsquote", "formel": "beratung_vereinbart / settings_stattgefunden", "einheit": "prozent" },
+    { "metrik": "show_rate_closing", "label": "Show-Rate Closing", "formel": "beratungen_stattgefunden / beratungen_geplant", "einheit": "prozent" },
+    { "metrik": "closing_rate", "label": "Closing-Rate (NK)", "formel": "gewonnene NK-Deals / NK-Deals gesamt (deals_nk im Monat)", "einheit": "prozent" },
+    { "metrik": "terminierungsquote", "label": "Terminierungsquote (Entscheider→Terminiert)", "formel": "entscheider_terminiert / entscheider_erreicht", "einheit": "prozent" },
+    { "metrik": "set_to_sc_gelegt", "label": "Setting → Sales Call (gelegt)", "formel": "(beratung_vereinbart + beratung_vereinbart_direkt) / entscheider_terminiert", "einheit": "prozent" },
+    { "metrik": "set_to_sc_statt", "label": "Setting → Sales Call (stattgefunden)", "formel": "beratungen_stattgefunden / entscheider_terminiert — nur Multi-Rollen", "einheit": "prozent" },
+    { "metrik": "pace_sales_calls", "label": "Pace Sales Calls (Soll bis Stichtag)", "formel": "tagesziel_sales_calls × vergangene Arbeitstage (Mo–Fr) bis Stichtag", "einheit": "anzahl" },
+    { "metrik": "pace_settings", "label": "Pace Settings (Soll bis Stichtag)", "formel": "tagesziel_settings × vergangene Arbeitstage (Mo–Fr) bis Stichtag", "einheit": "anzahl" }
+  ]
+}

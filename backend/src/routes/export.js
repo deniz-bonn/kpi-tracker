@@ -2,6 +2,7 @@ const router = require('express').Router();
 const db     = require('../db');
 const wrap   = require('../middleware/asyncHandler');
 const { requireAuth } = require('../middleware/auth');
+const { buildKpiExport, toCsv } = require('../utils/kpiExport');
 
 router.use(requireAuth);
 
@@ -104,6 +105,24 @@ router.get('/vl.csv', wrap(async (req, res) => {
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', 'attachment; filename="verlaengerungen.csv"');
   res.send('﻿' + toCSV(rows));
+}));
+
+// ── GET /api/export/kpi-vollexport.csv ───────────────────────────────────────
+// Vollexport der KPI-Mitarbeiter-Beta-Auswertung (Sektionen S0–S8), Long-Format.
+// Query: von, bis (YYYY-MM-DD), granularitaet (tag|woche|monat), stichtag, standort, company_id
+router.get('/kpi-vollexport.csv', wrap(async (req, res) => {
+  const { von, bis, granularitaet, stichtag, standort, company_id } = req.query;
+  if (!von || !bis) return res.status(400).json({ error: 'von und bis sind erforderlich' });
+
+  const { columns, rows, meta } = await buildKpiExport({
+    von, bis, granularitaet, stichtag, standort, company_id,
+  });
+
+  const label = standort ? String(standort).replace(/[^\wÄÖÜäöüß-]/g, '_') : 'alle';
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition',
+    `attachment; filename="kpi-vollexport_${meta.von}_${meta.bis}_${label}.csv"`);
+  res.send(toCsv(columns, rows));
 }));
 
 module.exports = router;

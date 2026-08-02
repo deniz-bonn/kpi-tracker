@@ -1,13 +1,15 @@
 import { useState, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
-import { activityLogsApi, inboundDailyApi, employeesApi, dealsApi } from '../utils/api';
+import { activityLogsApi, inboundDailyApi, employeesApi, dealsApi, exportApi } from '../utils/api';
 import { currentMonat } from '../utils/format';
+// Einzige Quelle für Ziele/Soll-Quoten/Rollen — teilt sich mit dem Backend-Export.
+import KPI_CONST from '../../../shared/kpiConstants.json';
 
 const TODAY = new Date().toISOString().slice(0, 10);
-const TRACKED_ROLES = ['Opener', 'Setter', 'Multi', 'Multi BS', 'NKV-Closer', 'Closer-KAM'];
-const IS_OPENER = r => ['Opener', 'Setter', 'Multi', 'Multi BS'].includes(r);
-const IS_CLOSER = r => ['NKV-Closer', 'Multi', 'Multi BS', 'Closer-KAM'].includes(r);
+const TRACKED_ROLES = KPI_CONST.rollen.tracked;
+const IS_OPENER = r => KPI_CONST.rollen.opener.includes(r);
+const IS_CLOSER = r => KPI_CONST.rollen.closer.includes(r);
 const pct    = (n, d) => d > 0 ? `${(n / d * 100).toFixed(1)}%` : '—';
 const pctNum = (n, d) => d > 0 ? +(n / d * 100).toFixed(1) : 0;
 const sum    = (arr, key) => arr.reduce((s, r) => s + (Number(r[key]) || 0), 0);
@@ -244,26 +246,16 @@ function InboundModal({ datum, existing, companyId, onSave, onClose, isPending, 
 }
 
 // ── Sollwerte ──────────────────────────────────────────────────────────────────
-const SOLL = {
-  lead_terminierung:  45,
-  show_rate_setting:  80,
-  durchstellung:      40,
-  show_rate_closing:  80,
-  closing_rate:       50,
-  // Setting-zu-Closing-Funnel (abgeleitet aus bestehenden Solls, anpassbar):
-  set_to_sc_gelegt:   32,  // Show-Rate Setting 80% × Durchstellung 40%
-  set_to_sc_statt:    26,  // × Show-Rate Closing 80%
-};
+// Alle Werte stammen aus shared/kpiConstants.json (auch vom Backend-Export genutzt).
+const SOLL = KPI_CONST.soll_quoten;
 // Rolle deckt beide Blöcke (Setter + Closer) im eigenen Log ab → Rollen-Schnitt-Quoten pro MA sinnvoll
 const IS_MULTI = r => IS_OPENER(r) && IS_CLOSER(r);
 // Schwelle: unter dieser Nenner-Basis im Zeitraum gilt eine Quote als wenig belastbar
-const LOW_BASE = 10;
-const DAILY_GOAL_SETTINGS = 37;
-const DAILY_GOAL_SC       = 12;
-// Fixe Monatsziele (Vorgabe Vertriebsleitung) — gelten dauerhaft für jeden Monat,
-// NICHT aus Arbeitstagen ableiten
-const MONTH_GOAL_SETTINGS = 740;
-const MONTH_GOAL_SC       = 276;
+const LOW_BASE = KPI_CONST.low_base;
+const DAILY_GOAL_SETTINGS = KPI_CONST.tagesziele.settings;
+const DAILY_GOAL_SC       = KPI_CONST.tagesziele.sales_calls;
+const MONTH_GOAL_SETTINGS = KPI_CONST.monatsziele.settings;
+const MONTH_GOAL_SC       = KPI_CONST.monatsziele.sales_calls;
 // Datum aus API (ISO-Timestamp oder YYYY-MM-DD) auf YYYY-MM-DD normalisieren
 const dstr = d => String(d || '').slice(0, 10);
 
@@ -499,7 +491,7 @@ export default function KpiMitarbeiterBeta() {
   const [inboundModal,   setInboundModal]   = useState(false);
   const [empFilter,      setEmpFilter]      = useState('');
   const [standortFilter, setStandortFilter] = useState('');
-  const [showExport,     setShowExport]     = useState(false);
+  const [exportBusy,     setExportBusy]     = useState(false);
   const [sortKey,        setSortKey]        = useState('name'); // Spalte der Übersicht pro Mitarbeiter
   const [sortDir,        setSortDir]        = useState('asc');
 
@@ -1002,65 +994,36 @@ export default function KpiMitarbeiterBeta() {
     navigator.clipboard.writeText(buildCopyText()).catch(() => {});
   };
 
-  // ── CSV-Export ────────────────────────────────────────────────────────────────
-  const exportCsv = (section) => {
-    const esc = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
-    const row = arr => arr.map(esc).join(';');
-    const f1  = (n, d) => d > 0 ? (n / d * 100).toFixed(1) + '%' : '—';
-    const lines = [];
-
-    if (section === 'all' || section === 'soll') {
-      lines.push(row(['KPI', 'Ist', 'Soll', 'Abweichung']));
-      const sRows = [
-        ['Lead-Terminierungsquote', sollKpis.lead_terminierung, SOLL.lead_terminierung],
-        ['Show-Rate Setting',       sollKpis.show_rate_setting, SOLL.show_rate_setting],
-        ['Durchstellungsquote',     sollKpis.durchstellung,     SOLL.durchstellung],
-        ['Show-Rate Closing',       sollKpis.show_rate_closing, SOLL.show_rate_closing],
-        ['Closing-Rate (NK)',       sollKpis.closing_rate,      SOLL.closing_rate],
-      ];
-      sRows.forEach(([l, ist, soll]) => lines.push(row([l, ist.toFixed(1)+'%', soll+'%', (ist-soll >= 0 ? '+' : '')+(ist-soll).toFixed(1)+'%'])));
-      lines.push('');
+  // ── Vollexport (CSV) ──────────────────────────────────────────────────────────
+  // Serverseitig generiert (Sektionen S0–S8). Übernimmt die aktiven Filter der
+  // Auswertung; Formeln/Ziele liegen in shared/kpiConstants.json.
+  const handleVollexport = async () => {
+    let von, bis;
+    if (zeitbasis === 'tag') {
+      von = bis = datum;
+    } else if (zeitbasis === 'woche' && weekRange) {
+      von = weekRange.start; bis = weekRange.end;
+    } else {
+      const [y, m] = monat.split('-').map(Number);
+      von = `${monat}-01`;
+      bis = `${monat}-${String(new Date(y, m, 0).getDate()).padStart(2, '0')}`;
     }
-    if (section === 'all' || section === 'opening') {
-      lines.push(row(['Mitarbeiter', 'Rolle', 'Standort', 'Entscheider erreicht', 'Terminiert', 'davon CC', 'davon Inbound', 'Term.Quote']));
-      perEmployee.forEach(e => {
-        const ls = e.logs;
-        const er = sum(ls,'entscheider_erreicht'), te = sum(ls,'entscheider_terminiert');
-        lines.push(row([e.name, e.rolle||'', ls[0]?.standort||'', er, te, sum(ls,'terminiert_cold_calls'), sum(ls,'terminiert_inbound'), f1(te,er)]));
-      });
-      lines.push('');
+    const effBis = bis < datum ? bis : datum;   // kumuliert nur bis Stichtag
+    const label  = standortFilter || 'alle';
+    setExportBusy(true);
+    try {
+      await exportApi.download(
+        'kpi-vollexport.csv',
+        `kpi-vollexport_${von}_${effBis}_${label}.csv`,
+        { von, bis, granularitaet: zeitbasis, stichtag: datum,
+          ...(standortFilter && { standort: standortFilter }),
+          ...(company && { company_id: company }) }
+      );
+    } catch (e) {
+      alert('Export fehlgeschlagen: ' + (e?.message || 'unbekannter Fehler'));
+    } finally {
+      setExportBusy(false);
     }
-    if (section === 'all' || section === 'setting') {
-      lines.push(row(['Mitarbeiter', 'Rolle', 'Standort', 'Terminiert', 'Settings geplant', 'Settings stattgef.', 'Show-Rate Setting', 'Beratung vereinbart', 'Durchstellungsquote', 'Set→SC gelegt']));
-      perEmployee.forEach(e => {
-        const ls = e.logs;
-        const tm = sum(ls,'entscheider_terminiert'), sg = sum(ls,'settings_geplant'), ss = sum(ls,'settings_stattgefunden');
-        const bv = sum(ls,'beratung_vereinbart'), scg = bv + sum(ls,'beratung_vereinbart_direkt');
-        const setToSc = IS_OPENER(e.rolle) ? f1(scg, tm) : '–';
-        lines.push(row([e.name, e.rolle||'', ls[0]?.standort||'', tm, sg, ss, f1(ss,sg), bv, f1(bv,ss), setToSc]));
-      });
-      lines.push('');
-    }
-    if (section === 'all' || section === 'closing') {
-      lines.push(row(['Mitarbeiter', 'Rolle', 'Standort', 'Terminiert', 'Beratungen geplant', 'Beratungen stattgef.', 'Show-Rate Closing', 'Direkter Close', 'Follow-Up', 'Kein Close', 'Set→SC statt.']));
-      perEmployee.forEach(e => {
-        const ls = e.logs;
-        const tm = sum(ls,'entscheider_terminiert'), bg = sum(ls,'beratungen_geplant'), bs = sum(ls,'beratungen_stattgefunden'), dc = sum(ls,'beratungen_direkter_close');
-        const multi = IS_MULTI(e.rolle);
-        lines.push(row([e.name, e.rolle||'', ls[0]?.standort||'', tm, bg, bs, f1(bs,bg), dc, sum(ls,'beratungen_follow_up_cc2'), sum(ls,'beratungen_kein_close'), multi ? f1(bs,tm) : '–']));
-      });
-    }
-
-    const bom = '﻿';
-    const blob = new Blob([bom + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    const label = standortFilter ? standortFilter : 'Gesamt';
-    a.download = `KPI_${monat}_${label}_${section}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    setShowExport(false);
   };
 
   const activeLabel = useMemo(() => {
@@ -1304,29 +1267,11 @@ export default function KpiMitarbeiterBeta() {
                       className="text-[11px] font-semibold px-2.5 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white transition-colors">
                       📋 Kopieren
                     </button>
-                    <div className="relative">
-                      <button onClick={() => setShowExport(v => !v)}
-                        className="text-[11px] font-semibold px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white transition-colors">
-                        ⬇ Export
-                      </button>
-                      {showExport && (
-                        <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg w-52 py-1 text-xs">
-                          <div className="px-3 py-1.5 text-gray-400 font-semibold uppercase tracking-wide text-[10px]">Als CSV exportieren</div>
-                          {[
-                            ['all',     '📊 Komplettes Dashboard'],
-                            ['soll',    '🎯 Soll-Abweichungen'],
-                            ['opening', '📞 Opening-Zahlen'],
-                            ['setting', '⚙️ Setting-Zahlen'],
-                            ['closing', '🤝 Closing-Zahlen'],
-                          ].map(([key, label]) => (
-                            <button key={key} onClick={() => exportCsv(key)}
-                              className="w-full text-left px-3 py-2 hover:bg-gray-50 text-gray-700">
-                              {label}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    <button onClick={handleVollexport} disabled={exportBusy}
+                      title="Alle Rohdaten, Quoten, Ziele und Vorzeitraum-Vergleiche als CSV — für die Monatsanalyse"
+                      className="text-[11px] font-semibold px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white transition-colors">
+                      {exportBusy ? '… Export läuft' : '⬇ Vollexport (CSV)'}
+                    </button>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-gray-100">

@@ -7,5 +7,8 @@ export default defineConfig({
     proxy: {
       '/api': 'http://localhost:3001',
     },
+    // shared/kpiConstants.json liegt außerhalb von frontend/ und wird von
+    // KpiMitarbeiterBeta.jsx importiert — Dev-Server muss den Pfad ausliefern dürfen.
+    fs: { allow: ['..'] },
   },
 });
