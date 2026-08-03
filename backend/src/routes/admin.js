@@ -5,6 +5,7 @@ const db     = require('../db');
 const wrap   = require('../middleware/asyncHandler');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { sendInvite, sendPasswordReset } = require('../utils/email');
+const { logAudit } = require('../utils/audit');
 
 // All admin routes require auth + admin role
 router.use(requireAuth);
@@ -164,6 +165,52 @@ router.post('/users/:id/reset-link', wrap(async (req, res) => {
 
   const result = await sendPasswordReset(user.email, user.name, token);
   res.json({ ok: true, email_sent: result.email_sent, reset_link: result.link });
+}));
+
+// ── DELETE /api/admin/users/:id  (Benutzer endgültig löschen) ─────────────────
+// Löscht NUR den Login-Benutzer. Der verknüpfte Mitarbeiter (employees) bleibt
+// unberührt — die Fremdschlüssel-Richtung ist users.employee_id -> employees.id,
+// es gibt also keinen Weg, auf dem ein Mitarbeiter mitgelöscht würde.
+// login_logs.user_id und audit_logs.user_id sind ON DELETE SET NULL: die Historie
+// bleibt erhalten (audit_logs.user_name ist denormalisiert und bleibt lesbar).
+router.delete('/users/:id', wrap(async (req, res) => {
+  const p = db.dialect === 'postgres' ? '$1' : '?';
+  const user = await db.get(`SELECT * FROM users WHERE id=${p}`, [req.params.id]);
+  if (!user) return res.status(404).json({ error: 'Benutzer nicht gefunden' });
+
+  // 1) Kein Selbstlöschen — sonst sperrt sich der Admin mitten in der Aktion aus.
+  if (String(user.id) === String(req.user.id)) {
+    return res.status(400).json({ error: 'Der eigene Benutzer kann nicht gelöscht werden.' });
+  }
+
+  // 2) Superadmins darf nur ein Superadmin löschen.
+  if (user.role === 'superadmin' && req.user.role !== 'superadmin') {
+    return res.status(403).json({ error: 'Nur ein Superadmin darf einen Superadmin löschen.' });
+  }
+
+  // 3) Aussperr-Schutz: es muss mindestens ein aktiver Admin/Superadmin übrig bleiben.
+  //    Auswertung in JS, damit BOOLEAN (Postgres) und INTEGER (SQLite) gleich behandelt werden.
+  const admins = await db.all(`SELECT id, role, active FROM users WHERE role IN ('admin','superadmin')`);
+  const restAktiv = admins.filter(a => !!a.active && String(a.id) !== String(user.id)).length;
+  if (!!user.active && restAktiv === 0) {
+    return res.status(400).json({
+      error: 'Das ist der letzte aktive Admin-Zugang. Vorher einen weiteren Admin anlegen.',
+    });
+  }
+
+  await db.run(`DELETE FROM users WHERE id=${p}`, [user.id]);
+
+  const { password_hash, invite_token, reset_token, ...safe } = user; // Secrets nicht ins Audit-Log
+  await logAudit({
+    user: req.user, action: 'delete', entityType: 'user', entityId: Number(user.id), oldData: safe,
+  });
+
+  res.json({
+    ok: true,
+    deleted_user: { id: user.id, name: user.name, email: user.email },
+    // Zur Bestätigung nach aussen: der Mitarbeiter bleibt bestehen.
+    employee_id_unveraendert: user.employee_id ?? null,
+  });
 }));
 
 // ── GET /api/admin/online-users ──────────────────────────────────────────────

@@ -172,6 +172,7 @@ export default function Settings() {
   const [resetPwId,   setResetPwId]  = useState(null);
   const [resetPwVal,  setResetPwVal] = useState('');
   const [resetLink,   setResetLink]  = useState(null);
+  const [delUserId,   setDelUserId]  = useState(null);   // Zwei-Schritt-Bestätigung beim Löschen
 
   const { data: users     = [] } = useQuery({ queryKey: ['admin-users'], queryFn: adminApi.listUsers, enabled: isAdmin });
   const { data: employees = [] } = useQuery({ queryKey: ['employees'],   queryFn: () => employeesApi.list() });
@@ -195,6 +196,21 @@ export default function Settings() {
   const updateUser = useMutation({
     mutationFn: ({ id, data }) => adminApi.updateUser(id, data),
     onSuccess: () => { qc.invalidateQueries({queryKey:['admin-users']}); setEditUser(null); },
+  });
+
+  // Löscht ausschliesslich den Login-Benutzer — der verknüpfte Mitarbeiter bleibt bestehen.
+  const deleteUser = useMutation({
+    mutationFn: (id) => adminApi.deleteUser(id),
+    onSuccess: (data) => {
+      qc.invalidateQueries({queryKey:['admin-users']});
+      setDelUserId(null);
+      setInviteLink(null); setResetLink(null);
+      setUserMsg({ ok: `Benutzer "${data.deleted_user?.name}" gelöscht. Der zugeordnete Mitarbeiter bleibt unverändert bestehen.` });
+    },
+    onError: (err) => {
+      setDelUserId(null);
+      setUserMsg({ err: err.response?.data?.error || 'Fehler beim Löschen des Benutzers' });
+    },
   });
 
   const resetUserPw = async (id) => {
@@ -501,6 +517,23 @@ export default function Settings() {
                           <button onClick={() => setResetPwId(u.id)} className="text-xs text-gray-500 hover:text-gray-800 px-2 py-1 whitespace-nowrap">PW setzen</button>
                         )}
                         <button onClick={() => setEditUser({...u})} className="text-xs text-gray-500 hover:text-gray-800 px-2 py-1">Bearbeiten</button>
+                        {/* Löschen: nur fremde Benutzer, Zwei-Schritt-Bestätigung */}
+                        {String(u.id) !== String(me?.id) && (
+                          delUserId === u.id ? (
+                            <span className="flex items-center gap-1 whitespace-nowrap">
+                              <span className="text-xs text-red-700">Endgültig löschen?</span>
+                              <button onClick={() => deleteUser.mutate(u.id)} disabled={deleteUser.isPending}
+                                className="text-xs bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white px-2 py-1 rounded">
+                                {deleteUser.isPending ? '…' : 'Ja, löschen'}
+                              </button>
+                              <button onClick={() => setDelUserId(null)} className="text-xs text-gray-400 px-1">✕</button>
+                            </span>
+                          ) : (
+                            <button onClick={() => { setDelUserId(u.id); setUserMsg(null); }}
+                              title="Löscht nur den Login-Zugang — der Mitarbeiter bleibt bestehen"
+                              className="text-xs text-red-600 hover:text-red-800 px-2 py-1">Löschen</button>
+                          )
+                        )}
                       </div>
                     </div>
                   )}

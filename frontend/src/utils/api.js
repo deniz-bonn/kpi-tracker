@@ -96,6 +96,7 @@ export const adminApi = {
   listUsers: () => api.get('/admin/users').then(r => r.data),
   createUser: (data) => api.post('/admin/users', data).then(r => r.data),
   updateUser: (id, data) => api.patch(`/admin/users/${id}`, data).then(r => r.data),
+  deleteUser: (id) => api.delete(`/admin/users/${id}`).then(r => r.data),
   resendInvite: (id) => api.post(`/admin/users/${id}/resend-invite`).then(r => r.data),
   resetPassword: (id, new_password) => api.post(`/admin/users/${id}/reset-password`, { new_password }).then(r => r.data),
   sendResetLink: (id) => api.post(`/admin/users/${id}/reset-link`).then(r => r.data),
