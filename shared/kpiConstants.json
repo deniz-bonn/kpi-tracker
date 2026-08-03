@@ -12,6 +12,11 @@
     "settings": 37
   },
 
+  "auftragseingang": {
+    "_hinweis": "Monatsziel Auftragseingang Neukunden (NK) in EUR. Bezug: Deals mit status Gewonnen und gewonnen_monat = Berichtsmonat, Betraege in EUR (CHF via Kurs umgerechnet). Companies, die noch nicht aktiv sind (aktiv_ab in der Zukunft, z.B. Risem), zaehlen nicht mit.",
+    "ziel_monat_eur": 750000
+  },
+
   "soll_quoten": {
     "lead_terminierung": 45,
     "show_rate_setting": 80,

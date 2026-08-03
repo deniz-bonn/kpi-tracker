@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { activityLogsApi, inboundDailyApi, employeesApi, dealsApi, exportApi } from '../utils/api';
-import { currentMonat } from '../utils/format';
+import { currentMonat, isDealCompanyActive } from '../utils/format';
 // Einzige Quelle für Ziele/Soll-Quoten/Rollen — teilt sich mit dem Backend-Export.
 import KPI_CONST from '../../../shared/kpiConstants.json';
 
@@ -256,6 +256,8 @@ const DAILY_GOAL_SETTINGS = KPI_CONST.tagesziele.settings;
 const DAILY_GOAL_SC       = KPI_CONST.tagesziele.sales_calls;
 const MONTH_GOAL_SETTINGS = KPI_CONST.monatsziele.settings;
 const MONTH_GOAL_SC       = KPI_CONST.monatsziele.sales_calls;
+// Monatsziel Auftragseingang Neukunden (EUR)
+const MONTH_GOAL_AE       = KPI_CONST.auftragseingang.ziel_monat_eur;
 // Datum aus API (ISO-Timestamp oder YYYY-MM-DD) auf YYYY-MM-DD normalisieren
 const dstr = d => String(d || '').slice(0, 10);
 
@@ -534,6 +536,14 @@ export default function KpiMitarbeiterBeta() {
   const nkDeals = useQuery({
     queryKey: ['deals-nk-beta', monat, company],
     queryFn:  () => dealsApi.nk.list({ monat, ...(company && { company_id: company }) }),
+    enabled:  tab === 'auswertung',
+  });
+
+  // Auftragseingang: Deals, die IN diesem Monat gewonnen wurden (gewonnen_monat),
+  // nicht die in diesem Monat angebotenen (monat) -- deshalb eine eigene Abfrage.
+  const nkDealsGewonnen = useQuery({
+    queryKey: ['deals-nk-beta-gewonnen', monat, company],
+    queryFn:  () => dealsApi.nk.list({ gewonnen_monat: monat, ...(company && { company_id: company }) }),
     enabled:  tab === 'auswertung',
   });
 
@@ -893,6 +903,17 @@ export default function KpiMitarbeiterBeta() {
   const nkAngebote = filteredDeals.length;
   const nkGewonnen = filteredDeals.filter(d => d.status === 'Gewonnen').length;
 
+  // Auftragseingang Neukunden des Monats: gewonnene Deals nach gewonnen_monat.
+  // Betrag in EUR (ae_wert_eur deckt CHF ab); noch nicht aktive Companies (Risem)
+  // fliessen nicht ein -- konsistent mit Dashboard/Auswertungen.
+  const mtdAeNk = useMemo(() => {
+    const rows = (nkDealsGewonnen.data || [])
+      .filter(isDealCompanyActive)
+      .filter(d => d.status === 'Gewonnen')
+      .filter(d => !standortFilter || d.closer_standort === standortFilter || d.setter_standort === standortFilter);
+    return rows.reduce((s, d) => s + (Number(d.ae_wert_eur ?? d.ae_wert) || 0), 0);
+  }, [nkDealsGewonnen.data, standortFilter]);
+
   // Soll-Abweichungs-KPIs
   const sollKpis = {
     lead_terminierung: pctNum(tiTerminiert, tiLeads),
@@ -951,6 +972,12 @@ export default function KpiMitarbeiterBeta() {
     }
     const paceGoalSC        = DAILY_GOAL_SC * elapsedWorkdays;
     const paceGoalSettings  = DAILY_GOAL_SETTINGS * elapsedWorkdays;
+    // Verbleibende Werktage NACH dem Stichtag (der Berichtstag selbst ist gelaufen)
+    const restWorkdays = Math.max(0, workdays - elapsedWorkdays);
+    // Auftragseingang gegen Monatsziel
+    const aeOffen   = Math.max(0, MONTH_GOAL_AE - mtdAeNk);
+    const aeProzent = MONTH_GOAL_AE > 0 ? (mtdAeNk / MONTH_GOAL_AE * 100) : 0;
+    const eur0 = v => Math.round(Number(v) || 0).toLocaleString('de-DE') + ' €';
     // Monat kumuliert NUR bis einschließlich des gewählten Datums (nicht ganzer Monat)
     const mtd = auswertungLogs.filter(l => dstr(l.datum) <= datum);
     const mtdSC             = sum(mtd, 'beratung_vereinbart') + sum(mtd, 'beratung_vereinbart_direkt');
@@ -962,6 +989,14 @@ export default function KpiMitarbeiterBeta() {
     const mtdBerStattg      = sum(mtd, 'beratungen_stattgefunden');
     return [
       `📊 Sales KPIs — ${datumStr}${standortFilter ? ' · ' + standortFilter : ''}`,
+      ``,
+      `🎯 Auftragseingang ${fmtMonth(monat)}`,
+      `Erreicht: ${eur0(mtdAeNk)}/${eur0(MONTH_GOAL_AE)} (${aeProzent.toFixed(1)}%)`,
+      `Offen: ${eur0(aeOffen)}`,
+      `Noch ${restWorkdays} von ${workdays} Werktagen`,
+      restWorkdays > 0
+        ? `Benötigt/Werktag: ${eur0(aeOffen / restWorkdays)}`
+        : (aeOffen > 0 ? `Benötigt/Werktag: — (keine Werktage mehr)` : `Ziel erreicht ✅`),
       ``,
       `Daily Goal SC: ${DAILY_GOAL_SC}`,
       `Heute gelegt: ${todaySC}`,
