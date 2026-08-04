@@ -126,7 +126,7 @@ function ownFilter(req) {
 }
 
 router.get('/', wrap(async (req, res) => {
-  const { company_id, monat, gewonnen_monat, status, closer_id, opener_id, setter_id } = req.query;
+  const { company_id, monat, gewonnen_monat, gewonnen_bis, status, closer_id, opener_id, setter_id } = req.query;
   const conditions = [];
   const params = [];
   let i = 1;
@@ -138,6 +138,10 @@ router.get('/', wrap(async (req, res) => {
   if (company_id)    { conditions.push(`d.company_id = ${p()}`);    params.push(company_id); }
   if (monat)         { conditions.push(`d.monat = ${p()}`);         params.push(monat); }
   if (gewonnen_monat){ conditions.push(`d.gewonnen_monat = ${p()}`);params.push(gewonnen_monat); }
+  // Stichtag-Abgrenzung: nur Deals, die bis einschliesslich diesem Datum gewonnen wurden.
+  // Vergleich bewusst in SQL -- gewonnen_datum ist in Postgres DATE, ein Vergleich im
+  // Frontend haengt sonst an der Zeitzone des Node-Prozesses (Tagesverschiebung).
+  if (gewonnen_bis)  { conditions.push(`d.gewonnen_datum <= ${p()}`); params.push(gewonnen_bis); }
   if (status)        { conditions.push(`d.status = ${p()}`);        params.push(status); }
   if (closer_id)     { conditions.push(`d.closer_id = ${p()}`);     params.push(closer_id); }
   if (opener_id)     { conditions.push(`d.opener_id = ${p()}`);     params.push(opener_id); }

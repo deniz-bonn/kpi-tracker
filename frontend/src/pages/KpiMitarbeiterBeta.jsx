@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
-import { activityLogsApi, inboundDailyApi, employeesApi, dealsApi, exportApi, kpisApi } from '../utils/api';
+import { activityLogsApi, inboundDailyApi, employeesApi, dealsApi, exportApi, monthlyTargetsStandortApi } from '../utils/api';
 import { currentMonat, isDealCompanyActive } from '../utils/format';
 // Einzige Quelle für Ziele/Soll-Quoten/Rollen — teilt sich mit dem Backend-Export.
 import KPI_CONST from '../../../shared/kpiConstants.json';
@@ -538,13 +538,22 @@ export default function KpiMitarbeiterBeta() {
     enabled:  tab === 'auswertung',
   });
 
-  // Auftragseingang: NICHT selbst aus Deals rechnen, sondern die autoritative
-  // Dashboard-Zahl verwenden (/api/kpis/dashboard). Die berücksichtigt
-  // ae_gesamt_monthly, wenn für den Monat eine Zeile existiert, und rechnet sonst
-  // live -- damit ist der Report per Konstruktion identisch zum Dashboard.
-  const dashboardRows = useQuery({
-    queryKey: ['kpis-dashboard', monat.slice(0, 4), company],
-    queryFn:  () => kpisApi.dashboard({ year: monat.slice(0, 4), ...(company && { company_id: company }) }),
+  // Auftragseingang bis Stichtag: gewonnene Deals des Monats, serverseitig auf
+  // gewonnen_datum <= Stichtag begrenzt (gewonnen_bis). Der Datumsvergleich läuft
+  // bewusst in SQL — gewonnen_datum ist in Postgres DATE, ein Vergleich im Browser
+  // haengt an der Zeitzone des Servers und kann um einen Tag verrutschen.
+  const nkDealsGewonnen = useQuery({
+    queryKey: ['deals-nk-beta-gewonnen', monat, datum, company],
+    queryFn:  () => dealsApi.nk.list({
+      gewonnen_monat: monat, gewonnen_bis: datum, ...(company && { company_id: company }),
+    }),
+    enabled:  tab === 'auswertung',
+  });
+
+  // Monatsziele Auftragseingang je Standort (getrennt vom Gruppenziel)
+  const zieleStandort = useQuery({
+    queryKey: ['monthly-targets-standort', monat],
+    queryFn:  () => monthlyTargetsStandortApi.list({ monat }),
     enabled:  tab === 'auswertung',
   });
 
@@ -904,15 +913,16 @@ export default function KpiMitarbeiterBeta() {
   const nkAngebote = filteredDeals.length;
   const nkGewonnen = filteredDeals.filter(d => d.status === 'Gewonnen').length;
 
-  // ERREICHTER Auftragseingang = exakt die Dashboard-Zahl des Monats (NK).
-  // Feldwahl nach Standort-Scope; ohne Filter nk_gesamt (schliesst Schweiz/Risem
-  // aus, wie im Dashboard). Kein paralleler Rechenweg -> keine Abweichung möglich.
-  const AE_FELD = { Bonn: 'nk_bonn', Braunschweig: 'nk_bs', 'Österreich': 'nk_at', Schweiz: 'nk_ch' };
-  const mtdAeNk = useMemo(() => {
-    const row = (dashboardRows.data || []).find(r => r.monat === monat);
-    if (!row) return 0;
-    return Number(row[standortFilter ? (AE_FELD[standortFilter] || 'nk_gesamt') : 'nk_gesamt']) || 0;
-  }, [dashboardRows.data, monat, standortFilter]);
+  // ERREICHTER Auftragseingang bis Stichtag: Σ ae_wert der gewonnenen Deals.
+  // Die Stichtag-Grenze setzt bereits die Query (gewonnen_bis) — hier nur noch
+  // Scope: Standort über den CLOSER (so bucht auch das Dashboard den NK-AE) und
+  // noch nicht aktive Companies (Risem) ausblenden.
+  const mtdAeNk = useMemo(() => (nkDealsGewonnen.data || [])
+    .filter(isDealCompanyActive)
+    .filter(d => d.status === 'Gewonnen')
+    .filter(d => !standortFilter || d.closer_standort === standortFilter)
+    .reduce((s, d) => s + (Number(d.ae_wert_eur ?? d.ae_wert) || 0), 0),
+    [nkDealsGewonnen.data, standortFilter]);
 
   // ANGEBOTEN (nicht AE): Summe der Angebotswerte der im Monat erstellten NK-Deals.
   // Quelle sind die Deals des Angebotsmonats (monthDeals), Standort über den Closer.
@@ -929,17 +939,16 @@ export default function KpiMitarbeiterBeta() {
     () => angebotenScoped.filter(d => dstr(d.datum) <= datum).reduce((s, d) => s + angebotswertOf(d), 0),
     [angebotenScoped, datum]);
 
-  // Monatsziel passend zur Auswahl: Standortziel, falls hinterlegt — sonst das
-  // Gruppenziel als Fallback (dann im Report ausdrücklich als solches benannt,
-  // damit niemand eine Standortquote fehlinterpretiert).
-  const { aeZiel, aeZielIstGruppe } = useMemo(() => {
-    const gruppe = KPI_CONST.auftragseingang.ziel_monat_eur ?? null;
-    if (!standortFilter) return { aeZiel: gruppe, aeZielIstGruppe: false };
-    const v = KPI_CONST.auftragseingang.ziel_monat_eur_je_standort?.[standortFilter];
-    return (typeof v === 'number' && v > 0)
-      ? { aeZiel: v, aeZielIstGruppe: false }
-      : { aeZiel: gruppe, aeZielIstGruppe: true };
-  }, [standortFilter]);
+  // Monatsziel: im Standort-Scope ausschliesslich das Standortziel aus
+  // monthly_targets_standort — KEIN stiller Rückfall auf das Gruppenziel, sonst
+  // würde ein Standort gegen die Gruppenvorgabe gemessen. Ohne Filter das
+  // Gruppenziel aus shared/kpiConstants.json.
+  const aeZiel = useMemo(() => {
+    if (!standortFilter) return KPI_CONST.auftragseingang.ziel_monat_eur ?? null;
+    const row = (zieleStandort.data || []).find(r => r.standort === standortFilter);
+    const v = Number(row?.ziel_ae) || 0;
+    return v > 0 ? v : null;
+  }, [zieleStandort.data, standortFilter]);
 
   // Soll-Abweichungs-KPIs
   const sollKpis = {
@@ -999,20 +1008,14 @@ export default function KpiMitarbeiterBeta() {
     }
     const paceGoalSC        = DAILY_GOAL_SC * elapsedWorkdays;
     const paceGoalSettings  = DAILY_GOAL_SETTINGS * elapsedWorkdays;
-    // Verbleibende Werktage INKLUSIVE Stichtag (heute kann noch abgeschlossen werden).
-    // Liegt der Stichtag hinter dem Monat, ist nichts mehr offen; liegt er davor,
-    // steht der ganze Monat zur Verfügung.
+    // Verbleibende Werktage NACH dem Stichtag — der Berichtstag selbst ist gelaufen
+    // (der Report entsteht am Tagesende). Konsistent zur Pace-Rechnung, die den
+    // Stichtag in elapsedWorkdays mitzählt.
     const stichtagMonat = datum.slice(0, 7);
     let restWorkdays;
     if (stichtagMonat > monat)      restWorkdays = 0;
     else if (stichtagMonat < monat) restWorkdays = workdays;
-    else {
-      restWorkdays = 0;
-      for (let d = elapsedUntil; d <= daysInMonth; d++) {
-        const wd = new Date(y, m - 1, d).getDay();
-        if (wd !== 0 && wd !== 6) restWorkdays++;
-      }
-    }
+    else                            restWorkdays = Math.max(0, workdays - elapsedWorkdays);
     // Auftragseingang gegen das Monatsziel der aktuellen Auswahl (Gruppe bzw. Standort)
     const eur0 = v => Math.round(Number(v) || 0).toLocaleString('de-DE') + ' €';
     const aeOffen   = aeZiel ? Math.max(0, aeZiel - mtdAeNk) : null;
@@ -1025,12 +1028,11 @@ export default function KpiMitarbeiterBeta() {
           restWorkdays > 0
             ? `Benötigt/Werktag: ${eur0(aeOffen / restWorkdays)}`
             : (aeOffen > 0 ? `Benötigt/Werktag: — (keine Werktage mehr)` : `Ziel erreicht ✅`),
-          ...(aeZielIstGruppe ? [`(Ziel = Gruppenziel — für ${standortFilter} ist kein eigenes hinterlegt)`] : []),
         ]
       : [
           `Erreicht: ${eur0(mtdAeNk)}`,
           `Noch ${restWorkdays} von ${workdays} Werktagen`,
-          `(kein Monatsziel hinterlegt)`,
+          `(kein Monatsziel für ${standortFilter || 'die Gruppe'} hinterlegt)`,
         ];
     // Angebotene Volumina — bewusst getrennt vom Auftragseingang ausgewiesen.
     const angebotenBlock = [

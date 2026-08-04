@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { companiesApi, targetsApi, adminApi, auditApi, employeesApi, featureFlagsApi, backupApi, exchangeRatesApi } from '../utils/api';
+import { companiesApi, targetsApi, adminApi, auditApi, employeesApi, featureFlagsApi, backupApi, exchangeRatesApi, monthlyTargetsStandortApi } from '../utils/api';
 import { currentMonat } from '../utils/format';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
@@ -150,12 +150,28 @@ export default function Settings() {
   // ── Company + Targets (admin only) ──────────────────────────────────────
   const [companyForm, setCompanyForm] = useState({ name: '', standort: '' });
   const [targetForm,  setTargetForm]  = useState({ company_id: '', monat: currentMonat(), nk_ziel: '', bk_ziel: '', vl_ziel: '' });
+  // Monatsziel Auftragseingang je Standort (eigene Tabelle, unabhängig vom Gruppenziel)
+  const [stZielForm,  setStZielForm]  = useState({ monat: currentMonat(), standort: 'Bonn', ziel_ae: '' });
 
   const { data: companies = [] } = useQuery({ queryKey: ['companies'], queryFn: companiesApi.list });
   const { data: targets   = [] } = useQuery({ queryKey: ['targets'],   queryFn: () => targetsApi.list({}) });
 
   const createCompany = useMutation({ mutationFn: companiesApi.create, onSuccess: () => { qc.invalidateQueries({queryKey:['companies']}); setCompanyForm({name:'',standort:''}); } });
   const upsertTarget  = useMutation({ mutationFn: targetsApi.upsert,   onSuccess: () => { qc.invalidateQueries({queryKey:['targets']}); } });
+
+  const { data: stZiele = [] } = useQuery({
+    queryKey: ['monthly-targets-standort-all'],
+    queryFn:  () => monthlyTargetsStandortApi.list({}),
+    enabled:  isAdmin,
+  });
+  const upsertStZiel = useMutation({
+    mutationFn: monthlyTargetsStandortApi.upsert,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['monthly-targets-standort-all'] });
+      qc.invalidateQueries({ queryKey: ['monthly-targets-standort'] });
+      setStZielForm(f => ({ ...f, ziel_ae: '' }));
+    },
+  });
 
   const [rateForm, setRateForm] = useState({ monat: currentMonat(), rate: '' });
   const { data: exchangeRates = [] } = useQuery({ queryKey: ['exchange-rates'], queryFn: exchangeRatesApi.list, enabled: isAdmin && tab === 'exchange' });
@@ -569,6 +585,53 @@ export default function Settings() {
 
       {/* ── TAB: Monatsziele ───────────────────────────────────────── */}
       {tab === 'targets' && isAdmin && (
+        <div className="space-y-5">
+        {/* Monatsziel Auftragseingang je Standort — wird im Copy-Text von KPI Mitarbeiter Beta genutzt */}
+        <section className="rounded-xl border border-gray-200 bg-white p-5">
+          <h2 className="text-sm font-semibold text-gray-700 mb-1">Monatsziel Auftragseingang je Standort</h2>
+          <p className="text-xs text-gray-500 mb-4">
+            Gilt für den Copy-Text in KPI Mitarbeiter Beta, wenn dort ein Standort gefiltert ist.
+            Unabhängig vom Gesamtziel des Dashboards.
+          </p>
+          <form onSubmit={e => { e.preventDefault(); upsertStZiel.mutate(stZielForm); }} className="space-y-3">
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs text-gray-600 mb-1 block">Monat</label>
+                <input type="month" required value={stZielForm.monat}
+                  onChange={e => setStZielForm(f => ({...f, monat: e.target.value}))} className={inp} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-600 mb-1 block">Standort</label>
+                <select required value={stZielForm.standort}
+                  onChange={e => setStZielForm(f => ({...f, standort: e.target.value}))} className={inp}>
+                  {['Bonn','Braunschweig','Österreich','Schweiz'].map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-gray-600 mb-1 block">AE-Ziel (€)</label>
+                <input type="number" required min="0" step="1000" value={stZielForm.ziel_ae}
+                  onChange={e => setStZielForm(f => ({...f, ziel_ae: e.target.value}))} className={inp} />
+              </div>
+            </div>
+            <button type="submit" disabled={upsertStZiel.isPending}
+              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm rounded">
+              {upsertStZiel.isPending ? 'Speichert…' : 'Standortziel speichern'}
+            </button>
+          </form>
+          {stZiele.length > 0 && (
+            <div className="mt-4 space-y-2">
+              {stZiele.map(z => (
+                <div key={`${z.monat}-${z.standort}`} className="flex items-center justify-between bg-gray-50 rounded px-3 py-2 text-sm">
+                  <span className="text-gray-700">{z.monat} · {z.standort}</span>
+                  <span className="text-gray-800 font-medium">
+                    {Number(z.ziel_ae) > 0 ? `€${Number(z.ziel_ae).toLocaleString('de-DE')}` : '—'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
         <section className="rounded-xl border border-gray-200 bg-white p-5">
           <h2 className="text-sm font-semibold text-gray-700 mb-4">Monatsziele setzen</h2>
           <form onSubmit={e => { e.preventDefault(); upsertTarget.mutate(targetForm); }} className="space-y-3">
@@ -614,6 +677,7 @@ export default function Settings() {
             </div>
           )}
         </section>
+        </div>
       )}
 
       {/* ── TAB: KPI-Mitarbeiter Sichtbarkeit ─────────────────────── */}

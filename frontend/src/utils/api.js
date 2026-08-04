@@ -69,6 +69,11 @@ export const kpisApi = {
   dashboard: (params) => api.get('/kpis/dashboard', { params }).then(r => r.data),
 };
 
+export const monthlyTargetsStandortApi = {
+  list:   (params) => api.get('/monthly-targets/standort', { params }).then(r => r.data),
+  upsert: (data)   => api.post('/monthly-targets/standort', data).then(r => r.data),
+};
+
 export const monthlyTargetsApi = {
   list: (year) => api.get('/monthly-targets', { params: { year } }).then(r => r.data),
   upsert: (data) => api.post('/monthly-targets', data).then(r => r.data),
