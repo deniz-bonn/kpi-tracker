@@ -55,7 +55,7 @@ const quoteColor = q => q > 33 ? 'text-green-600' : q >= 25 ? 'text-amber-600' :
 // ── Hauptkomponente ──────────────────────────────────────────────────────────
 export default function DealsBK() {
   const { company, companies } = useOutletContext();
-  const { canSeeAll, user } = useAuth();
+  const { canSeeAll, user, isAdmin } = useAuth();
   const qc = useQueryClient();
   const [monat, setMonat]               = useState(currentMonat());
   const [showAllMonths, setShowAllMonths] = useState(false);
@@ -95,7 +95,9 @@ export default function DealsBK() {
   const curSym = companyCurrency(companies, company) === 'CHF' ? 'CHF' : '€';
 
   const fields = [
-    { name: 'datum',          label: 'Datum',             type: 'date',   required: true, readOnly: modal?.mode === 'edit' },
+    // Datum nachträglich ändern: nur Admin/Superadmin. Ändert NICHT den Berichtsmonat
+    // (Feld "monat") und nicht die AE-Buchung (die hängt an gewonnen_monat).
+    { name: 'datum',          label: 'Datum',             type: 'date',   required: true, readOnly: modal?.mode === 'edit' && !isAdmin },
     { name: 'monat',          label: 'Monat (YYYY-MM)',                   required: true },
     { name: 'company_id',     label: 'Company',           type: 'select', options: compOpts, required: true },
     { name: 'kunde',          label: 'Kunde',                             required: true },

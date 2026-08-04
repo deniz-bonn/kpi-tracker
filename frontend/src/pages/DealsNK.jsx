@@ -68,7 +68,9 @@ export default function DealsNK() {
   const curSym = companyCurrency(companies, company) === 'CHF' ? 'CHF' : '€';
 
   const fields = [
-    { name: 'datum',          label: 'Datum',                    type: 'date',   required: true, readOnly: modal?.mode === 'edit' },
+    // Datum nachträglich ändern: nur Admin/Superadmin. Ändert NICHT den Berichtsmonat
+    // (Feld "monat") und nicht die AE-Buchung (die hängt an gewonnen_monat).
+    { name: 'datum',          label: 'Datum',                    type: 'date',   required: true, readOnly: modal?.mode === 'edit' && !isAdmin },
     { name: 'monat',          label: 'Monat (YYYY-MM)',                           required: true },
     { name: 'company_id',     label: 'Company',                  type: 'select', options: compOpts, required: true },
     { name: 'kunde',          label: 'Kunde',                                     required: true },

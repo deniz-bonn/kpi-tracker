@@ -3,6 +3,7 @@ const db     = require('../db');
 const wrap   = require('../middleware/asyncHandler');
 const { requireAuth } = require('../middleware/auth');
 const { logAudit }   = require('../utils/audit');
+const { pruefeDatumsaenderung } = require('../utils/dealGuards');
 const { enrichDealsEur } = require('../utils/currency');
 
 router.use(requireAuth);
@@ -237,6 +238,10 @@ router.put('/:id', wrap(async (req, res) => {
   const existing = db.dialect === 'postgres'
     ? await db.get('SELECT * FROM deals_vl WHERE id=$1', [req.params.id])
     : db.get('SELECT * FROM deals_vl WHERE id=?', [req.params.id]);
+
+  // Datum nachträglich ändern ist Admin-Recht (die Oberfläche sperrt es entsprechend).
+  const datumFehler = pruefeDatumsaenderung(req, existing);
+  if (datumFehler) return res.status(403).json({ error: datumFehler });
 
   const { gewonnen_datum, gewonnen_monat } = resolveGewonnenFelder(req.body, existing);
   const fields = ['datum','monat','company_id','kam_id','kunde','dienstleistung','angebotswert',
