@@ -141,7 +141,14 @@ router.get('/', wrap(async (req, res) => {
   // Stichtag-Abgrenzung: nur Deals, die bis einschliesslich diesem Datum gewonnen wurden.
   // Vergleich bewusst in SQL -- gewonnen_datum ist in Postgres DATE, ein Vergleich im
   // Frontend haengt sonst an der Zeitzone des Node-Prozesses (Tagesverschiebung).
-  if (gewonnen_bis)  { conditions.push(`d.gewonnen_datum <= ${p()}`); params.push(gewonnen_bis); }
+  // NULL-sicher: ein Deal mit gewonnen_monat aber ohne gewonnen_datum gilt als in
+  // diesem Monat gewonnen und bleibt drin. Ohne IS NULL wuerde er lautlos wegfallen
+  // (NULL <= X ergibt NULL, nicht true) -- und damit dauerhaft unter der
+  // Dashboard-Zahl liegen, die nur auf gewonnen_monat filtert.
+  if (gewonnen_bis)  {
+    conditions.push(`(d.gewonnen_datum IS NULL OR d.gewonnen_datum <= ${p()})`);
+    params.push(gewonnen_bis);
+  }
   if (status)        { conditions.push(`d.status = ${p()}`);        params.push(status); }
   if (closer_id)     { conditions.push(`d.closer_id = ${p()}`);     params.push(closer_id); }
   if (opener_id)     { conditions.push(`d.opener_id = ${p()}`);     params.push(opener_id); }

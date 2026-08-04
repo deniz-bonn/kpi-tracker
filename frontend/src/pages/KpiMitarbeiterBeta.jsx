@@ -917,12 +917,20 @@ export default function KpiMitarbeiterBeta() {
   // Die Stichtag-Grenze setzt bereits die Query (gewonnen_bis) — hier nur noch
   // Scope: Standort über den CLOSER (so bucht auch das Dashboard den NK-AE) und
   // noch nicht aktive Companies (Risem) ausblenden.
-  const mtdAeNk = useMemo(() => (nkDealsGewonnen.data || [])
+  const aeDealsScoped = useMemo(() => (nkDealsGewonnen.data || [])
     .filter(isDealCompanyActive)
     .filter(d => d.status === 'Gewonnen')
-    .filter(d => !standortFilter || d.closer_standort === standortFilter)
-    .reduce((s, d) => s + (Number(d.ae_wert_eur ?? d.ae_wert) || 0), 0),
+    .filter(d => !standortFilter || d.closer_standort === standortFilter),
     [nkDealsGewonnen.data, standortFilter]);
+  const mtdAeNk = useMemo(
+    () => aeDealsScoped.reduce((s, d) => s + (Number(d.ae_wert_eur ?? d.ae_wert) || 0), 0),
+    [aeDealsScoped]);
+  // Deals mit gewonnen_monat, aber ohne gewonnen_datum: taggenau nicht einordenbar.
+  // Sie zaehlen (wie im Dashboard) für den Monat mit, werden aber ausgewiesen.
+  const aeOhneDatum = useMemo(() => {
+    const rows = aeDealsScoped.filter(d => !d.gewonnen_datum);
+    return { n: rows.length, summe: rows.reduce((s, d) => s + (Number(d.ae_wert_eur ?? d.ae_wert) || 0), 0) };
+  }, [aeDealsScoped]);
 
   // ANGEBOTEN (nicht AE): Summe der Angebotswerte der im Monat erstellten NK-Deals.
   // Quelle sind die Deals des Angebotsmonats (monthDeals), Standort über den Closer.
@@ -1034,6 +1042,11 @@ export default function KpiMitarbeiterBeta() {
           `Noch ${restWorkdays} von ${workdays} Werktagen`,
           `(kein Monatsziel für ${standortFilter || 'die Gruppe'} hinterlegt)`,
         ];
+    // Datenhinweis: gewonnene Deals ohne gewonnen_datum sind taggenau nicht
+    // einordenbar und zaehlen für den ganzen Monat mit (wie im Dashboard).
+    if (aeOhneDatum.n > 0) {
+      aeBlock.push(`⚠ davon ${aeOhneDatum.n} Deal(s) ohne Gewinndatum: ${eur0(aeOhneDatum.summe)} (Monat, nicht taggenau)`);
+    }
     // Angebotene Volumina — bewusst getrennt vom Auftragseingang ausgewiesen.
     const angebotenBlock = [
       `Heute angeboten: ${eur0(heuteAngeboten)}`,
