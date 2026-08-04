@@ -256,8 +256,7 @@ const DAILY_GOAL_SETTINGS = KPI_CONST.tagesziele.settings;
 const DAILY_GOAL_SC       = KPI_CONST.tagesziele.sales_calls;
 const MONTH_GOAL_SETTINGS = KPI_CONST.monatsziele.settings;
 const MONTH_GOAL_SC       = KPI_CONST.monatsziele.sales_calls;
-// Monatsziel Auftragseingang Neukunden (EUR)
-const MONTH_GOAL_AE       = KPI_CONST.auftragseingang.ziel_monat_eur;
+// Monatsziel Auftragseingang wird pro Auswahl bestimmt (Gruppe vs. Standort) -> siehe aeZiel
 // Datum aus API (ISO-Timestamp oder YYYY-MM-DD) auf YYYY-MM-DD normalisieren
 const dstr = d => String(d || '').slice(0, 10);
 
@@ -904,15 +903,27 @@ export default function KpiMitarbeiterBeta() {
   const nkGewonnen = filteredDeals.filter(d => d.status === 'Gewonnen').length;
 
   // Auftragseingang Neukunden des Monats: gewonnene Deals nach gewonnen_monat.
+  // Standort-Zuordnung über den CLOSER — genau so bucht das Dashboard den NK-AE
+  // (kpis.js: JOIN employees e ON e.id = d.closer_id). Bewusst NICHT closer ODER
+  // setter, sonst wäre der Standort-AE hier höher als im Dashboard.
   // Betrag in EUR (ae_wert_eur deckt CHF ab); noch nicht aktive Companies (Risem)
   // fliessen nicht ein -- konsistent mit Dashboard/Auswertungen.
   const mtdAeNk = useMemo(() => {
     const rows = (nkDealsGewonnen.data || [])
       .filter(isDealCompanyActive)
       .filter(d => d.status === 'Gewonnen')
-      .filter(d => !standortFilter || d.closer_standort === standortFilter || d.setter_standort === standortFilter);
+      .filter(d => !standortFilter || d.closer_standort === standortFilter);
     return rows.reduce((s, d) => s + (Number(d.ae_wert_eur ?? d.ae_wert) || 0), 0);
   }, [nkDealsGewonnen.data, standortFilter]);
+
+  // Monatsziel passend zur Auswahl: ohne Filter das Gruppenziel, mit Filter das
+  // Standortziel. Ist für einen Standort kein Ziel hinterlegt -> null (dann wird
+  // im Report kein irreführender Prozentwert gegen das Gruppenziel gezeigt).
+  const aeZiel = useMemo(() => {
+    if (!standortFilter) return KPI_CONST.auftragseingang.ziel_monat_eur ?? null;
+    const v = KPI_CONST.auftragseingang.ziel_monat_eur_je_standort?.[standortFilter];
+    return (typeof v === 'number' && v > 0) ? v : null;
+  }, [standortFilter]);
 
   // Soll-Abweichungs-KPIs
   const sollKpis = {
@@ -974,10 +985,24 @@ export default function KpiMitarbeiterBeta() {
     const paceGoalSettings  = DAILY_GOAL_SETTINGS * elapsedWorkdays;
     // Verbleibende Werktage NACH dem Stichtag (der Berichtstag selbst ist gelaufen)
     const restWorkdays = Math.max(0, workdays - elapsedWorkdays);
-    // Auftragseingang gegen Monatsziel
-    const aeOffen   = Math.max(0, MONTH_GOAL_AE - mtdAeNk);
-    const aeProzent = MONTH_GOAL_AE > 0 ? (mtdAeNk / MONTH_GOAL_AE * 100) : 0;
+    // Auftragseingang gegen das Monatsziel der aktuellen Auswahl (Gruppe bzw. Standort)
     const eur0 = v => Math.round(Number(v) || 0).toLocaleString('de-DE') + ' €';
+    const aeOffen   = aeZiel ? Math.max(0, aeZiel - mtdAeNk) : null;
+    const aeProzent = aeZiel ? (mtdAeNk / aeZiel * 100) : null;
+    const aeBlock = aeZiel
+      ? [
+          `Erreicht: ${eur0(mtdAeNk)}/${eur0(aeZiel)} (${aeProzent.toFixed(1)}%)`,
+          `Offen: ${eur0(aeOffen)}`,
+          `Noch ${restWorkdays} von ${workdays} Werktagen`,
+          restWorkdays > 0
+            ? `Benötigt/Werktag: ${eur0(aeOffen / restWorkdays)}`
+            : (aeOffen > 0 ? `Benötigt/Werktag: — (keine Werktage mehr)` : `Ziel erreicht ✅`),
+        ]
+      : [
+          `Erreicht: ${eur0(mtdAeNk)}`,
+          `Noch ${restWorkdays} von ${workdays} Werktagen`,
+          `(kein Monatsziel für ${standortFilter} hinterlegt)`,
+        ];
     // Monat kumuliert NUR bis einschließlich des gewählten Datums (nicht ganzer Monat)
     const mtd = auswertungLogs.filter(l => dstr(l.datum) <= datum);
     const mtdSC             = sum(mtd, 'beratung_vereinbart') + sum(mtd, 'beratung_vereinbart_direkt');
@@ -990,13 +1015,8 @@ export default function KpiMitarbeiterBeta() {
     return [
       `📊 Sales KPIs — ${datumStr}${standortFilter ? ' · ' + standortFilter : ''}`,
       ``,
-      `🎯 Auftragseingang ${fmtMonth(monat)}`,
-      `Erreicht: ${eur0(mtdAeNk)}/${eur0(MONTH_GOAL_AE)} (${aeProzent.toFixed(1)}%)`,
-      `Offen: ${eur0(aeOffen)}`,
-      `Noch ${restWorkdays} von ${workdays} Werktagen`,
-      restWorkdays > 0
-        ? `Benötigt/Werktag: ${eur0(aeOffen / restWorkdays)}`
-        : (aeOffen > 0 ? `Benötigt/Werktag: — (keine Werktage mehr)` : `Ziel erreicht ✅`),
+      `🎯 Auftragseingang ${fmtMonth(monat)}${standortFilter ? ' · ' + standortFilter : ' · Gruppe'}`,
+      ...aeBlock,
       ``,
       `Daily Goal SC: ${DAILY_GOAL_SC}`,
       `Heute gelegt: ${todaySC}`,

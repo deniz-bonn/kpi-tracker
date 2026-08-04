@@ -13,8 +13,14 @@
   },
 
   "auftragseingang": {
-    "_hinweis": "Monatsziel Auftragseingang Neukunden (NK) in EUR. Bezug: Deals mit status Gewonnen und gewonnen_monat = Berichtsmonat, Betraege in EUR (CHF via Kurs umgerechnet). Companies, die noch nicht aktiv sind (aktiv_ab in der Zukunft, z.B. Risem), zaehlen nicht mit.",
-    "ziel_monat_eur": 750000
+    "_hinweis": "Monatsziel Auftragseingang Neukunden (NK) in EUR. Bezug: Deals mit status Gewonnen und gewonnen_monat = Berichtsmonat, Standort-Zuordnung ueber den Closer (wie im Dashboard). Betraege in EUR (CHF via Kurs umgerechnet). Companies, die noch nicht aktiv sind (aktiv_ab in der Zukunft, z.B. Risem), zaehlen nicht mit.",
+    "ziel_monat_eur": 750000,
+    "_hinweis_standort": "Gilt bei aktivem Standortfilter. null = kein Ziel hinterlegt -> der Report zeigt dann den Ist-Wert ohne Prozentangabe, statt gegen das Gruppenziel zu rechnen.",
+    "ziel_monat_eur_je_standort": {
+      "Bonn": null,
+      "Braunschweig": null,
+      "Österreich": null
+    }
   },
 
   "soll_quoten": {
