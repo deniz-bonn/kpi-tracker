@@ -13,6 +13,7 @@ const ALL_NAV = [
   { to: '/auswertung',          label: 'KPI Auswertung',        icon: '📋', roles: ['admin','superadmin','backoffice','vertriebsleitung'] },
   { to: '/kpi-mitarbeiter',     label: 'KPI Mitarbeiter',       icon: '📈', roles: ['admin','superadmin','backoffice','vertriebsleitung','bk_vertrieb','nk_vertrieb'] },
   { to: '/kpi-mitarbeiter-beta',label: 'KPI Mitarbeiter Beta',  icon: '🧪', feature: 'kpi_beta' },
+  { to: '/bestenliste',         label: 'Bestenliste',           icon: '🏆', feature: 'bestenliste' },
   { to: '/mitarbeiter',         label: 'Mitarbeiter',           icon: '👥', roles: ['admin','superadmin','backoffice','vertriebsleitung'] },
   { to: '/einstellungen',       label: 'Einstellungen',         icon: '⚙️',  roles: ['admin','superadmin','nk_vertrieb','bk_vertrieb','backoffice'] },
 ];
@@ -27,7 +28,7 @@ const ROLE_LABELS = {
 };
 
 export default function Layout() {
-  const { user, logout, canSeeKpiBeta } = useAuth();
+  const { user, logout, canSeeKpiBeta, canSeeBestenliste } = useAuth();
   const navigate = useNavigate();
   const [company, setCompany]     = useState('');
   const [sidebarOpen, setSidebar] = useState(false);
@@ -35,6 +36,7 @@ export default function Layout() {
 
   const nav = ALL_NAV.filter(n => {
     if (n.feature === 'kpi_beta') return canSeeKpiBeta;
+    if (n.feature === 'bestenliste') return canSeeBestenliste;
     return n.roles.includes(user?.role);
   });
   const close = () => setSidebar(false);

@@ -47,6 +47,7 @@ app.use('/api/exchange-rates', require('./routes/exchange_rates'));  // requireA
 app.use('/api/activity-logs',  require('./routes/activity_logs'));  // requireAuth inside
 app.use('/api/inbound-daily',  require('./routes/inbound_daily'));  // requireAuth inside
 app.use('/api/feature-flags',  require('./routes/feature_flags')); // requireAuth inside
+app.use('/api/bestenliste',    require('./routes/bestenliste'));  // requireAuth + requireFeature inside
 app.use('/api/upsale-deals',   require('./routes/upsale_deals'));   // requireAuth inside
 app.use('/api/admin',          require('./routes/admin'));       // requireAuth + requireRole inside
 app.use('/api/audit',          require('./routes/audit'));       // requireAuth inside

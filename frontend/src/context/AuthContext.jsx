@@ -102,13 +102,17 @@ export function AuthProvider({ children }) {
   const canSeeBackup = isAdmin || (
     featureFlags !== null && (featureFlags['backup'] || []).includes(user?.role)
   );
+  // Bestenliste (Beta): out-of-the-box nur Superadmin; weitere Rollen via Flag (Einstellungen).
+  const canSeeBestenliste = isSuperAdmin || (
+    featureFlags !== null && (featureFlags['bestenliste'] || []).includes(user?.role)
+  );
 
   return (
     <AuthContext.Provider value={{
       user, token, login, logout, loading,
       isSuperAdmin, isAdmin, isBackoffice, isVertriebsleitung,
       canSeeNK, canSeeBK, canSeeVL, canSeeAdmin, canSeeAll,
-      canSeeKpiBeta, canSeeBackup, featureFlags, refreshFeatureFlags,
+      canSeeKpiBeta, canSeeBackup, canSeeBestenliste, featureFlags, refreshFeatureFlags,
     }}>
       {children}
     </AuthContext.Provider>

@@ -12,6 +12,7 @@ import Kuendigungen from './pages/Kuendigungen';
 import Employees from './pages/Employees';
 import KpiMitarbeiter from './pages/KpiMitarbeiter';
 import KpiMitarbeiterBeta from './pages/KpiMitarbeiterBeta';
+import Bestenliste from './pages/Bestenliste';
 import Auswertung from './pages/Auswertung';
 import Settings from './pages/Settings';
 
@@ -23,7 +24,7 @@ const ROLES = {
 
 // Inner component so useAuth() works (AuthProvider wraps it)
 function AppRoutes() {
-  const { canSeeKpiBeta } = useAuth();
+  const { canSeeKpiBeta, canSeeBestenliste } = useAuth();
 
   return (
     <Routes>
@@ -75,6 +76,11 @@ function AppRoutes() {
         <Route path="kpi-mitarbeiter-beta" element={
           <ProtectedRoute canAccess={canSeeKpiBeta}>
             <KpiMitarbeiterBeta />
+          </ProtectedRoute>
+        } />
+        <Route path="bestenliste" element={
+          <ProtectedRoute canAccess={canSeeBestenliste}>
+            <Bestenliste />
           </ProtectedRoute>
         } />
         <Route path="mitarbeiter" element={

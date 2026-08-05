@@ -133,6 +133,11 @@ export const featureFlagsApi = {
   update: (feature, roles) => api.post('/feature-flags', { feature, roles }).then(r => r.data),
 };
 
+export const bestenlisteApi = {
+  // params: { rolle: closer|setter|opener, wertung: anzahl|volumen, zeitraum: monat|quartal|jahr }
+  list: (params) => api.get('/bestenliste', { params }).then(r => r.data),
+};
+
 export const auditApi = {
   list: (params) => api.get('/audit', { params }).then(r => r.data),
   undo: (id) => api.post(`/audit/${id}/undo`).then(r => r.data),
