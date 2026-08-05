@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { activityLogsApi, inboundDailyApi, employeesApi, dealsApi, exportApi, monthlyTargetsStandortApi } from '../utils/api';
-import { currentMonat, isDealCompanyActive } from '../utils/format';
+import { currentMonat, isDealCompanyActive, isAeCounted } from '../utils/format';
 // Einzige Quelle für Ziele/Soll-Quoten/Rollen — teilt sich mit dem Backend-Export.
 import KPI_CONST from '../../../shared/kpiConstants.json';
 
@@ -919,6 +919,7 @@ export default function KpiMitarbeiterBeta() {
   // noch nicht aktive Companies (Risem) ausblenden.
   const aeDealsScoped = useMemo(() => (nkDealsGewonnen.data || [])
     .filter(isDealCompanyActive)
+    .filter(isAeCounted)   // AE-Startmonat-Gate: Risem-Umsatz erst ab ae_ab_monat (2026-08)
     .filter(d => d.status === 'Gewonnen')
     .filter(d => !standortFilter || d.closer_standort === standortFilter),
     [nkDealsGewonnen.data, standortFilter]);

@@ -4,7 +4,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dealsApi, employeesApi, exportApi } from '../utils/api';
 import StatusBadge from '../components/StatusBadge';
 import DealModal from '../components/DealModal';
-import { formatEuro, formatMoney, companyCurrency, isDealCompanyActive, currentMonat } from '../utils/format';
+import { formatEuro, formatMoney, companyCurrency, isDealCompanyActive, isAeCounted, currentMonat } from '../utils/format';
+
+// AE-Euro-Betrag fuer Umsatz-Summen, 0 wenn der AE (noch) nicht getrackt wird (ae_ab_monat-Gate).
+const aeEur = d => isAeCounted(d) ? (Number(d.ae_wert_eur ?? d.ae_wert) || 0) : 0;
 import { useAuth } from '../context/AuthContext';
 
 const STATUS_OPTS = ['Offen', 'Gewonnen', 'Verloren'];
@@ -22,7 +25,7 @@ const ABGERECHNET_OPTS = ['Nein', 'Ja', 'On Hold'];
 // ── KPIs aus einem Deal-Array berechnen ──────────────────────────────────────
 function calcKpis(deals) {
   const gew = deals.filter(d => d.status === 'Gewonnen');
-  const ae  = gew.reduce((s, d) => s + (Number(d.ae_wert_eur ?? d.ae_wert)       || 0), 0);
+  const ae  = gew.reduce((s, d) => s + aeEur(d), 0);
   const agw = deals.reduce((s, d) => s + (Number(d.angebotswert_eur ?? d.angebotswert) || 0), 0);
   const n   = deals.length;
   const autoJ     = gew.filter(d => d.automatische_verlaengerung === 'Ja').length;

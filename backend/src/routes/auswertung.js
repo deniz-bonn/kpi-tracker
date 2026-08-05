@@ -1,11 +1,13 @@
 const router = require('express').Router();
 const db = require('../db');
 const wrap = require('../middleware/asyncHandler');
-const { loadRates, toEur, moneyEurSql } = require('../utils/currency');
+const { loadRates, toEur, moneyEurSql, aeEurGatedSql } = require('../utils/currency');
 const { activeCompanySql } = require('../utils/companyActive');
 
 // EUR-umgerechnete Beträge (CHF-Companies via Monatskurs); erfordern JOIN companies c.
-const AE_EUR  = moneyEurSql('ae_wert', 'gewonnen_monat');
+// AE_EUR mit AE-Startmonat-Gate (Umsatz erst ab company.ae_ab_monat, Risem: 2026-08).
+// AGW_EUR (Angebotswert = moegliches Volumen, kein Umsatz) bleibt bewusst ungegated.
+const AE_EUR  = aeEurGatedSql('d', 'c');
 const AGW_EUR = moneyEurSql('angebotswert', 'monat');
 
 // Berechnet den vollständigen KPI-Block für einen Datensatz

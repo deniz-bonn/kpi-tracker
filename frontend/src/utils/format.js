@@ -18,6 +18,18 @@ export const isDealCompanyActive = (d) => {
   return !ab || ab <= new Date().toISOString().slice(0, 10);
 };
 
+// Zählt der AE (Umsatz) dieses Deals? Client-Spiegel des Backend-Gates aeEurGatedSql:
+// company.ae_ab_monat leer -> immer; sonst nur wenn gewonnen_monat >= ae_ab_monat.
+// Nötig, weil client-seitige AE-Summen (z.B. der Copy-Text-Report) direkt aus den
+// Deal-Daten rechnen, wo das SQL-Gate nicht greift. aktiv_ab reicht dafür NICHT:
+// es blendet nur VOR dem Startdatum aus und greift ab dem Aktivierungstag gar nicht mehr.
+export const isAeCounted = (d) => {
+  const ab = d?.ae_ab_monat ? String(d.ae_ab_monat).slice(0, 7) : null;
+  if (!ab) return true;
+  const gm = d?.gewonnen_monat ? String(d.gewonnen_monat).slice(0, 7) : null;
+  return !!gm && gm >= ab;
+};
+
 export const formatPct = (val) => `${val ?? 0} %`;
 
 export const monthLabel = (monat) => {

@@ -9,7 +9,7 @@ const { enrichDealsEur } = require('../utils/currency');
 router.use(requireAuth);
 
 const BASE_SELECT = `
-  SELECT d.*, c.name as company_name, c.currency, c.aktiv_ab, k.name as kam_name, k.standort as kam_standort
+  SELECT d.*, c.name as company_name, c.currency, c.aktiv_ab, c.ae_ab_monat, k.name as kam_name, k.standort as kam_standort
   FROM deals_bk d
   LEFT JOIN companies c ON c.id = d.company_id
   LEFT JOIN employees k ON k.id = d.kam_id

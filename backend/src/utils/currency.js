@@ -63,4 +63,16 @@ function aeEurSql(dealAlias = 'd', compAlias = 'c') {
   return moneyEurSql('ae_wert', 'gewonnen_monat', dealAlias, compAlias);
 }
 
-module.exports = { loadRates, rateFor, toEur, enrichDealsEur, aeEurSql, moneyEurSql };
+// ae_wert in EUR MIT AE-Startmonat-Gate: Umsatz zaehlt erst ab company.ae_ab_monat.
+// Regel bezieht sich auf gewonnen_monat (nicht Angebotsdatum). ae_ab_monat NULL =>
+// kein Filter (Company verhaelt sich exakt wie bisher). Setzt voraus, dass die Query
+// companies als <compAlias> joint und der Deal gewonnen_monat hat — beides gilt ueberall,
+// wo aeEurSql schon genutzt wird (aeEurSql referenziert selbst c.currency + gewonnen_monat).
+// Wichtig: nur der EUR-BETRAG wird auf 0 gesetzt, die Deal-Anzahl (COUNT) bleibt unberuehrt.
+function aeEurGatedSql(dealAlias = 'd', compAlias = 'c') {
+  return `CASE WHEN ${compAlias}.ae_ab_monat IS NULL
+      OR ${dealAlias}.gewonnen_monat >= ${compAlias}.ae_ab_monat
+    THEN ${aeEurSql(dealAlias, compAlias)} ELSE 0 END`;
+}
+
+module.exports = { loadRates, rateFor, toEur, enrichDealsEur, aeEurSql, aeEurGatedSql, moneyEurSql };

@@ -4,7 +4,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dealsApi, employeesApi, exportApi } from '../utils/api';
 import StatusBadge from '../components/StatusBadge';
 import DealModal from '../components/DealModal';
-import { formatEuro, formatMoney, companyCurrency, isDealCompanyActive, currentMonat } from '../utils/format';
+import { formatEuro, formatMoney, companyCurrency, isDealCompanyActive, isAeCounted, currentMonat } from '../utils/format';
+
+// AE-Euro-Betrag fuer Umsatz-Summen, 0 wenn der AE (noch) nicht getrackt wird (ae_ab_monat-Gate).
+// Nur fuer realisierten AE (ae_summe); verlorener_ae bleibt ungegated (mögliches Volumen).
+const aeEur = d => isAeCounted(d) ? (Number(d.ae_wert_eur ?? d.ae_wert) || 0) : 0;
 import { useAuth } from '../context/AuthContext';
 
 const STATUS_OPTS = ['Offen', 'Gewonnen', 'Verloren'];
@@ -23,7 +27,7 @@ function calcKpis(deals) {
     gewonnen:         gew.length,
     verloren:         verl.length,
     moeglicher_ae:    deals.reduce((s, d) => s + (Number(d.angebotswert_eur ?? d.angebotswert) || 0), 0),
-    ae_summe:         gew.reduce((s, d)   => s + (Number(d.ae_wert_eur ?? d.ae_wert)      || 0), 0),
+    ae_summe:         gew.reduce((s, d)   => s + aeEur(d), 0),
     verlorener_ae:    verl.reduce((s, d)  => s + (Number(d.ae_wert_eur ?? d.ae_wert) || Number(d.angebotswert_eur ?? d.angebotswert) || 0), 0),
     churn_rate:       n > 0 ? ((n - gew.length) / n) * 100 : 0,
     abgerechnet_ja:   gew.filter(d => d.abgerechnet === 'Ja').length,

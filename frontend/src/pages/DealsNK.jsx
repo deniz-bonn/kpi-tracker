@@ -4,8 +4,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dealsApi, employeesApi, exportApi } from '../utils/api';
 import StatusBadge from '../components/StatusBadge';
 import DealModal from '../components/DealModal';
-import { formatEuro, formatMoney, companyCurrency, isDealCompanyActive, currentMonat } from '../utils/format';
+import { formatEuro, formatMoney, companyCurrency, isDealCompanyActive, isAeCounted, currentMonat } from '../utils/format';
 import { useAuth } from '../context/AuthContext';
+
+// AE-Euro-Betrag eines Deals fuer Umsatz-Summen, 0 wenn der AE (noch) nicht getrackt wird
+// (ae_ab_monat-Gate, Risem erst ab August). Nur fuer Summen — Deal-Liste zeigt ae_wert normal.
+const aeEur = d => isAeCounted(d) ? (Number(d.ae_wert_eur ?? d.ae_wert) || 0) : 0;
 
 const QUELLEN = ['Cold Calling', 'Mail', 'Fax', 'Ad', 'Empfehlung', 'Follow Up', 'Inbound', 'Leadhandy', 'Post'];
 const STATUS_OPTS = ['Offen', 'Gewonnen', 'Verloren', 'In Verhandlung', 'In Closing Call 2'];
@@ -123,7 +127,7 @@ export default function DealsNK() {
   // KPIs aus gefilterten Deals
   const kpis = useMemo(() => {
     const gew = filtered.filter(d => d.status === 'Gewonnen');
-    const ae  = gew.reduce((s, d) => s + (Number(d.ae_wert_eur ?? d.ae_wert)      || 0), 0);
+    const ae  = gew.reduce((s, d) => s + aeEur(d), 0);
     const agw = filtered.reduce((s, d) => s + (Number(d.angebotswert_eur ?? d.angebotswert) || 0), 0);
     const n   = filtered.length;
     const autoJ = gew.filter(d => d.automatische_verlaengerung === 'Ja').length;
@@ -164,7 +168,7 @@ export default function DealsNK() {
       gewonnen: gew,
       verloren: ver,
       offen:    s.filter(d => !['Gewonnen','Verloren'].includes(d.status)).length,
-      ae_summe: s.filter(d => d.status === 'Gewonnen').reduce((sum, d) => sum + (Number(d.ae_wert_eur ?? d.ae_wert) || 0), 0),
+      ae_summe: s.filter(d => d.status === 'Gewonnen').reduce((sum, d) => sum + aeEur(d), 0),
       quote:    s.length > 0 ? (gew / s.length * 100).toFixed(2) : '0.00',
     };
   }).sort((a, b) => b.ae_summe - a.ae_summe), [filtered]);
@@ -176,7 +180,7 @@ export default function DealsNK() {
       if (!d.setter_id) return;
       if (!m[d.setter_id]) m[d.setter_id] = { name: d.setter_name, total: 0, gewonnen: 0, ae_summe: 0 };
       m[d.setter_id].total++;
-      if (d.status === 'Gewonnen') { m[d.setter_id].gewonnen++; m[d.setter_id].ae_summe += Number(d.ae_wert_eur ?? d.ae_wert) || 0; }
+      if (d.status === 'Gewonnen') { m[d.setter_id].gewonnen++; m[d.setter_id].ae_summe += aeEur(d); }
     });
     return Object.values(m)
       .map(s => ({ ...s, quote: s.total > 0 ? (s.gewonnen / s.total * 100).toFixed(2) : '0.00' }))
@@ -190,7 +194,7 @@ export default function DealsNK() {
       if (!d.opener_id) return;
       if (!m[d.opener_id]) m[d.opener_id] = { name: d.opener_name, standort: d.opener_standort, total: 0, gewonnen: 0, ae_summe: 0 };
       m[d.opener_id].total++;
-      if (d.status === 'Gewonnen') { m[d.opener_id].gewonnen++; m[d.opener_id].ae_summe += Number(d.ae_wert_eur ?? d.ae_wert) || 0; }
+      if (d.status === 'Gewonnen') { m[d.opener_id].gewonnen++; m[d.opener_id].ae_summe += aeEur(d); }
     });
     return Object.values(m)
       .map(o => ({ ...o, quote: o.total > 0 ? (o.gewonnen / o.total * 100).toFixed(2) : '0.00' }))
@@ -204,7 +208,7 @@ export default function DealsNK() {
       if (!d.closer_id) return;
       if (!m[d.closer_id]) m[d.closer_id] = { name: d.closer_name, total: 0, gewonnen: 0, verloren: 0, ae_summe: 0 };
       m[d.closer_id].total++;
-      if (d.status === 'Gewonnen') { m[d.closer_id].gewonnen++; m[d.closer_id].ae_summe += Number(d.ae_wert_eur ?? d.ae_wert) || 0; }
+      if (d.status === 'Gewonnen') { m[d.closer_id].gewonnen++; m[d.closer_id].ae_summe += aeEur(d); }
       if (d.status === 'Verloren') m[d.closer_id].verloren++;
     });
     return Object.values(m)

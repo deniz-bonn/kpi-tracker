@@ -9,7 +9,7 @@ const { loadRates, rateFor, enrichDealsEur } = require('../utils/currency');
 router.use(requireAuth);
 
 const BASE_SELECT = `
-  SELECT d.*, c.name as company_name, c.currency, c.aktiv_ab,
+  SELECT d.*, c.name as company_name, c.currency, c.aktiv_ab, c.ae_ab_monat,
     closer.name as closer_name, closer.standort as closer_standort,
     opener.name as opener_name, opener.standort as opener_standort,
     setter.name as setter_name, setter.standort as setter_standort
@@ -52,8 +52,15 @@ async function syncAeGesamtNK(deal, prev) {
   const col = colMap[standort];
   if (!col) return;
 
+  const comp = await db.get(`SELECT currency, ae_ab_monat FROM companies WHERE id=${p1}`, [deal.company_id ?? prev?.company_id]);
+
+  // AE-Startmonat-Guard: Liegt der gewonnen_monat vor company.ae_ab_monat, wird der AE
+  // NICHT in nk_ch/nk_gesamt gebucht -- konsistent zum Gate im Dashboard (AE_EUR).
+  // Risem trackt AE erst ab 2026-08; ein spaeterer UI-Edit an einem Juni/Juli-Deal
+  // darf keinen Schweiz-Umsatz in diese Monate nachbuchen. NULL = kein Guard.
+  if (comp?.ae_ab_monat && monat < comp.ae_ab_monat) return;
+
   // CHF-Companies (Risem): AE in EUR umrechnen (Kurs des gewonnen_monat), bevor gebucht wird.
-  const comp = await db.get(`SELECT currency FROM companies WHERE id=${p1}`, [deal.company_id ?? prev?.company_id]);
   if (comp?.currency && comp.currency !== 'EUR') {
     const rate = rateFor(monat, await loadRates());
     if (rate == null) {

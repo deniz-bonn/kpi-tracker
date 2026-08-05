@@ -1,11 +1,12 @@
 const router = require('express').Router();
 const db = require('../db');
 const wrap = require('../middleware/asyncHandler');
-const { aeEurSql } = require('../utils/currency');
+const { aeEurGatedSql } = require('../utils/currency');
 const { activeCompanySql } = require('../utils/companyActive');
 
-// EUR-umgerechnetes ae_wert (CHF-Companies via Monatskurs); erfordert JOIN companies c.
-const AE_EUR = aeEurSql('d', 'c');
+// EUR-umgerechnetes ae_wert (CHF-Companies via Monatskurs) MIT AE-Startmonat-Gate:
+// Umsatz zaehlt erst ab company.ae_ab_monat (Risem: 2026-08). Erfordert JOIN companies c.
+const AE_EUR = aeEurGatedSql('d', 'c');
 
 function whereClause(conditions) {
   return conditions.length ? ' WHERE ' + conditions.join(' AND ') : '';
