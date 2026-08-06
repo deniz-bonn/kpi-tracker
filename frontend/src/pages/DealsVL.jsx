@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dealsApi, employeesApi, exportApi } from '../utils/api';
 import StatusBadge from '../components/StatusBadge';
 import DealModal from '../components/DealModal';
-import { formatEuro, formatMoney, companyCurrency, isDealCompanyActive, isAeCounted, currentMonat } from '../utils/format';
+import { formatEuro, formatMoney, companyCurrency, isDealCompanyActive, isAeCounted, currentMonat, periodLabel, periodFileSuffix } from '../utils/format';
 
 // AE-Euro-Betrag fuer Umsatz-Summen, 0 wenn der AE (noch) nicht getrackt wird (ae_ab_monat-Gate).
 // Nur fuer realisierten AE (ae_summe); verlorener_ae bleibt ungegated (mögliches Volumen).
@@ -220,7 +220,7 @@ export default function DealsVL() {
         <div>
           <h1 className="text-xl font-bold text-gray-800">Verlängerungen (VL)</h1>
           <p className="text-xs text-gray-500 mt-0.5">
-            {filtered.length} anstehend · {gesamtKpis.gewonnen} realisiert · {gesamtKpis.verloren} Kündigungen · Churn-Rate: {gesamtKpis.churn_rate.toFixed(2)}%
+            {periodLabel(zeitMode, monat, vonMonat, bisMonat)} · {filtered.length} anstehend · {gesamtKpis.gewonnen} realisiert · {gesamtKpis.verloren} Kündigungen · Churn-Rate: {gesamtKpis.churn_rate.toFixed(2)}%
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -250,7 +250,11 @@ export default function DealsVL() {
             </div>
           )}
           <button
-            onClick={() => exportApi.download('vl.csv', 'verlaengerungen.csv', { ...(company && { company_id: company }), ...(zeitMode === 'monat' && { monat }) })}
+            onClick={() => exportApi.download('vl.csv', `verlaengerungen${periodFileSuffix(zeitMode, monat, vonMonat, bisMonat)}.csv`, {
+              ...(company && { company_id: company }),
+              ...(zeitMode === 'monat' && { monat }),
+              ...(zeitMode === 'zeitraum' && { monat_von: vonMonat, monat_bis: bisMonat }),
+            })}
             className="px-3 py-1.5 bg-white border border-gray-300 hover:border-gray-400 text-gray-600 text-sm rounded">
             ↓ CSV
           </button>

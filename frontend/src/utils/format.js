@@ -42,3 +42,20 @@ export const currentMonat = () => {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 };
+
+// Zeitraum-Label für KPI-Kopfzeilen: Monat -> "Jul 2026", Zeitraum -> "Jul 2026 – Aug 2026",
+// Alle -> "Alle Monate". zeitMode: 'monat' | 'zeitraum' | 'alle'.
+export const periodLabel = (zeitMode, monat, von, bis) => {
+  if (zeitMode === 'alle') return 'Alle Monate';
+  if (zeitMode === 'zeitraum') {
+    if (!von || !bis) return '';
+    return von === bis ? monthLabel(von) : `${monthLabel(von)} – ${monthLabel(bis)}`;
+  }
+  return monthLabel(monat);
+};
+
+// Dateinamen-Suffix für CSV-Export: "_2026-07" | "_2026-07_2026-08" | "_alle".
+export const periodFileSuffix = (zeitMode, monat, von, bis) =>
+  zeitMode === 'alle' ? '_alle'
+    : zeitMode === 'zeitraum' ? `_${von}_${bis}`
+      : `_${monat}`;

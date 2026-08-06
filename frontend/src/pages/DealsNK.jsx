@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dealsApi, employeesApi, exportApi } from '../utils/api';
 import StatusBadge from '../components/StatusBadge';
 import DealModal from '../components/DealModal';
-import { formatEuro, formatMoney, companyCurrency, isDealCompanyActive, isAeCounted, currentMonat } from '../utils/format';
+import { formatEuro, formatMoney, companyCurrency, isDealCompanyActive, isAeCounted, currentMonat, periodLabel, periodFileSuffix } from '../utils/format';
 import { useAuth } from '../context/AuthContext';
 
 // AE-Euro-Betrag eines Deals fuer Umsatz-Summen, 0 wenn der AE (noch) nicht getrackt wird
@@ -26,7 +26,9 @@ export default function DealsNK() {
   const { user, isAdmin, canSeeAll } = useAuth();
   const qc = useQueryClient();
   const [monat, setMonat] = useState(currentMonat());
-  const [showAllMonths, setShowAllMonths] = useState(false);
+  const [zeitMode, setZeitMode] = useState('monat'); // 'monat' | 'zeitraum' | 'alle'
+  const [vonMonat, setVonMonat] = useState(currentMonat());
+  const [bisMonat, setBisMonat] = useState(currentMonat());
   const [modal, setModal] = useState(null);
   const [showKpis, setShowKpis] = useState(true);
   const [showOpener, setShowOpener] = useState(false);
@@ -39,7 +41,8 @@ export default function DealsNK() {
   const [filterStatus, setFilterStatus]     = useState('');
   const [filterStandort, setFilterStandort] = useState('');
 
-  const params = { ...(company && { company_id: company }), ...(!showAllMonths && { monat }) };
+  // Nur im Monats-Modus serverseitig filtern; Zeitraum/Alle laden alles (Zeitraum filtert clientseitig).
+  const params = { ...(company && { company_id: company }), ...(zeitMode === 'monat' && { monat }) };
   const { data: deals = [] } = useQuery({
     queryKey: ['deals-nk', params], queryFn: () => dealsApi.nk.list(params),
   });
@@ -120,8 +123,9 @@ export default function DealsNK() {
     (!filterOpener   || String(d.opener_id) === filterOpener) &&
     (!filterSetter   || String(d.setter_id) === filterSetter) &&
     (!filterStatus   || d.status           === filterStatus) &&
-    (!filterStandort || d.closer_standort  === filterStandort)
-  ), [deals, filterQuelle, filterCloser, filterOpener, filterSetter, filterStatus, filterStandort]);
+    (!filterStandort || d.closer_standort  === filterStandort) &&
+    (zeitMode !== 'zeitraum' || ((d.monat || '').trim() >= vonMonat && (d.monat || '').trim() <= bisMonat))
+  ), [deals, filterQuelle, filterCloser, filterOpener, filterSetter, filterStatus, filterStandort, zeitMode, vonMonat, bisMonat]);
   const filtered = useMemo(() => listDeals.filter(isDealCompanyActive), [listDeals]);
 
   // KPIs aus gefilterten Deals
@@ -226,7 +230,7 @@ export default function DealsNK() {
         <div>
           <h1 className="text-xl font-bold text-gray-800">Neukunden (NK)</h1>
           <p className="text-xs text-gray-500 mt-0.5">
-            {filtered.length} Angebote · {kpis.gewonnen} gewonnen · {kpis.quote_angebote}% · {formatEuro(kpis.ae_summe)} AE
+            {periodLabel(zeitMode, monat, vonMonat, bisMonat)} · {filtered.length} Angebote · {kpis.gewonnen} gewonnen · {kpis.quote_angebote}% · {formatEuro(kpis.ae_summe)} AE
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -234,16 +238,34 @@ export default function DealsNK() {
             className="text-xs text-gray-600 hover:text-gray-800 border border-gray-300 rounded px-2 py-1">
             {showKpis ? '▲ KPIs ausblenden' : '▼ KPIs einblenden'}
           </button>
-          <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
-            <input type="checkbox" checked={showAllMonths} onChange={e => setShowAllMonths(e.target.checked)} className="accent-blue-500" />
-            Alle Monate
-          </label>
-          {!showAllMonths && (
+          <div className="flex rounded-lg border border-gray-300 overflow-hidden text-xs">
+            {[['monat','Monat'],['zeitraum','Zeitraum'],['alle','Alle Monate']].map(([v, l]) => (
+              <button key={v} onClick={() => setZeitMode(v)}
+                className={`px-3 py-1.5 font-medium transition-colors ${zeitMode === v ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'} ${v !== 'monat' ? 'border-l border-gray-300' : ''}`}>
+                {l}
+              </button>
+            ))}
+          </div>
+          {zeitMode === 'monat' && (
             <input type="month" value={monat} onChange={e => setMonat(e.target.value)}
               className="bg-white border border-gray-300 text-gray-700 text-sm rounded px-3 py-1.5" />
           )}
+          {zeitMode === 'zeitraum' && (
+            <div className="flex items-center gap-1.5">
+              <input type="month" value={vonMonat} onChange={e => setVonMonat(e.target.value)}
+                className="bg-white border border-gray-300 text-gray-700 text-sm rounded px-3 py-1.5" />
+              <span className="text-gray-400 text-sm">–</span>
+              <input type="month" value={bisMonat} onChange={e => setBisMonat(e.target.value)}
+                className={`bg-white border text-gray-700 text-sm rounded px-3 py-1.5 ${vonMonat > bisMonat ? 'border-red-400' : 'border-gray-300'}`} />
+              {vonMonat > bisMonat && <span className="text-xs text-red-500">Von ≤ Bis</span>}
+            </div>
+          )}
           <button
-            onClick={() => exportApi.download('nk.csv', 'neukunden.csv', { ...(company && { company_id: company }), ...(!showAllMonths && { monat }) })}
+            onClick={() => exportApi.download('nk.csv', `neukunden${periodFileSuffix(zeitMode, monat, vonMonat, bisMonat)}.csv`, {
+              ...(company && { company_id: company }),
+              ...(zeitMode === 'monat' && { monat }),
+              ...(zeitMode === 'zeitraum' && { monat_von: vonMonat, monat_bis: bisMonat }),
+            })}
             className="px-3 py-1.5 bg-white border border-gray-300 hover:border-gray-400 text-gray-600 text-sm rounded">
             ↓ CSV
           </button>

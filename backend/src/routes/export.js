@@ -29,7 +29,7 @@ function toCSV(rows) {
 }
 
 function buildFilter(req, userIdField) {
-  const { company_id, monat, status } = req.query;
+  const { company_id, monat, monat_von, monat_bis, status } = req.query;
   const user = req.user;
   const conditions = [];
   const params = [];
@@ -42,7 +42,14 @@ function buildFilter(req, userIdField) {
     params.push(user.employee_id);
   }
   if (company_id) { conditions.push(`d.company_id = ${p()}`); params.push(company_id); }
-  if (monat)      { conditions.push(`d.monat = ${p()}`);      params.push(monat); }
+  if (monat) {
+    conditions.push(`d.monat = ${p()}`); params.push(monat);
+  } else {
+    // Zeitraum (Von–Bis): monat ist CHAR(7), vergleicht lexikografisch korrekt.
+    // Nur wenn kein Einzelmonat gesetzt ist -- Einzelmonat bleibt der Default.
+    if (monat_von) { conditions.push(`d.monat >= ${p()}`); params.push(monat_von); }
+    if (monat_bis) { conditions.push(`d.monat <= ${p()}`); params.push(monat_bis); }
+  }
   if (status)     { conditions.push(`d.status = ${p()}`);     params.push(status); }
 
   return { where: conditions.length ? ' WHERE ' + conditions.join(' AND ') : '', params };
@@ -57,7 +64,7 @@ router.get('/nk.csv', wrap(async (req, res) => {
            closer.name as closer, opener.name as opener, setter.name as setter,
            d.angebotswert, d.ae_wert, d.laufzeit_monate,
            d.automatische_verlaengerung, d.status, d.abgerechnet,
-           d.gewonnen_datum, d.kommentar
+           d.gewonnen_monat, d.gewonnen_datum, d.kommentar
     FROM deals_nk d
     LEFT JOIN companies c ON c.id = d.company_id
     LEFT JOIN employees closer ON closer.id = d.closer_id
@@ -79,7 +86,7 @@ router.get('/bk.csv', wrap(async (req, res) => {
            d.dienstleistung, k.name as kam,
            d.angebotswert, d.ae_wert, d.laufzeit_monate,
            d.automatische_verlaengerung, d.status, d.abgerechnet,
-           d.gewonnen_datum, d.kommentar
+           d.gewonnen_monat, d.gewonnen_datum, d.kommentar
     FROM deals_bk d
     LEFT JOIN companies c ON c.id = d.company_id
     LEFT JOIN employees k ON k.id = d.kam_id
@@ -99,7 +106,7 @@ router.get('/vl.csv', wrap(async (req, res) => {
            d.dienstleistung, k.name as kam,
            d.angebotswert, d.ae_wert, d.laufzeit_monate,
            d.wie_vielt_verlaengerung, d.status, d.abgerechnet,
-           d.gewonnen_datum, d.kommentar
+           d.gewonnen_monat, d.gewonnen_datum, d.kommentar
     FROM deals_vl d
     LEFT JOIN companies c ON c.id = d.company_id
     LEFT JOIN employees k ON k.id = d.kam_id
