@@ -5,6 +5,7 @@ const { requireAuth } = require('../middleware/auth');
 const { logAudit }   = require('../utils/audit');
 const { pruefeDatumsaenderung } = require('../utils/dealGuards');
 const { enrichDealsEur } = require('../utils/currency');
+const { resolveGewonnenFelder } = require('../utils/gewonnen');
 
 router.use(requireAuth);
 
@@ -17,59 +18,44 @@ const BASE_SELECT = `
 
 // Syncs bk_at_ae in ae_gesamt_monthly for Österreich deals.
 // Other standorts (Bonn, BS, CH) are always read live from deals_bk — no sync needed.
+// Zustandsbasiert wie NK: Beitrag = ae_wert wenn Gewonnen, sonst 0 — im jeweiligen gewonnen_monat.
+// Nur DE/AT haben BK-Spalten (Schweiz wird live gerechnet). 0-Zelle = live -> nicht bebuchen.
 async function syncAeGesamtBK(deal, prev) {
-  const d = db.dialect;
-  const wasGewonnen = prev?.status === 'Gewonnen';
-  const isNowGewonnen = deal.status === 'Gewonnen';
+  const oldGew = prev?.status === 'Gewonnen';
+  const newGew = deal?.status === 'Gewonnen';
+  if (!oldGew && !newGew) return;
 
-  if (!wasGewonnen && !isNowGewonnen) return;
+  const old = oldGew ? { monat: prev.gewonnen_monat || null, ae: Number(prev.ae_wert) || 0, kam: prev.kam_id } : null;
+  const neu = newGew ? { monat: deal.gewonnen_monat || null, ae: Number(deal.ae_wert) || 0, kam: deal.kam_id } : null;
 
-  let aeDelta = 0;
-  if (!wasGewonnen && isNowGewonnen) {
-    aeDelta = Number(deal.ae_wert) || 0;
-  } else if (wasGewonnen && !isNowGewonnen) {
-    aeDelta = -(Number(prev.ae_wert) || 0);
-  } else {
-    aeDelta = (Number(deal.ae_wert) || 0) - (Number(prev.ae_wert) || 0);
-    if (aeDelta === 0) return;
+  if (old && neu && old.monat && old.monat === neu.monat && old.kam === neu.kam) {
+    await bookAeBK(old.monat, neu.kam, neu.ae - old.ae);
+    return;
   }
-
-  const monat = deal.gewonnen_monat || prev?.gewonnen_monat;
-  if (!monat) return;
-
-  const p1 = d === 'postgres' ? '$1' : '?';
-  const emp = await db.get(`SELECT standort FROM employees WHERE id=${p1}`, [deal.kam_id]);
-  const standort = emp?.standort || '';
-
-  const ag = await db.get(`SELECT * FROM ae_gesamt_monthly WHERE monat=${p1}`, [monat]);
-  const n = v => Number(v) || 0;
-  if (!ag) return;
-
-  if (standort === 'Österreich') {
-    if (n(ag.bk_at_ae) === 0) return;
-    const newVal = Math.max(0, n(ag.bk_at_ae) + aeDelta);
-    if (d === 'postgres') {
-      await db.run(`UPDATE ae_gesamt_monthly SET bk_at_ae=$1, updated_at=NOW() WHERE monat=$2`, [newVal, monat]);
-    } else {
-      await db.run(`UPDATE ae_gesamt_monthly SET bk_at_ae=?, updated_at=datetime('now') WHERE monat=?`, [newVal, monat]);
-    }
-  } else if (standort === 'Bonn' || standort === 'Braunschweig') {
-    if (n(ag.bk_de_ae) === 0) return;
-    const newVal = Math.max(0, n(ag.bk_de_ae) + aeDelta);
-    if (d === 'postgres') {
-      await db.run(`UPDATE ae_gesamt_monthly SET bk_de_ae=$1, updated_at=NOW() WHERE monat=$2`, [newVal, monat]);
-    } else {
-      await db.run(`UPDATE ae_gesamt_monthly SET bk_de_ae=?, updated_at=datetime('now') WHERE monat=?`, [newVal, monat]);
-    }
-  }
+  if (old && old.monat) await bookAeBK(old.monat, old.kam, -old.ae);
+  if (neu && neu.monat) await bookAeBK(neu.monat, neu.kam, neu.ae);
 }
 
-function resolveGewonnenFelder(body, existing = null) {
-  if (body.status === 'Gewonnen') {
-    const gd = body.gewonnen_datum || existing?.gewonnen_datum || body.datum || new Date().toISOString().slice(0, 10);
-    return { gewonnen_datum: gd, gewonnen_monat: gd.slice(0, 7) };
+async function bookAeBK(monat, kamId, aeDelta) {
+  if (!monat || aeDelta === 0) return;
+  const d = db.dialect;
+  const p1 = d === 'postgres' ? '$1' : '?';
+  const emp = await db.get(`SELECT standort FROM employees WHERE id=${p1}`, [kamId]);
+  const standort = emp?.standort || '';
+  const col = standort === 'Österreich' ? 'bk_at_ae'
+    : (standort === 'Bonn' || standort === 'Braunschweig') ? 'bk_de_ae' : null;
+  if (!col) return;
+
+  const ag = await db.get(`SELECT * FROM ae_gesamt_monthly WHERE monat=${p1}`, [monat]);
+  if (!ag) return;
+  const n = v => Number(v) || 0;
+  if (n(ag[col]) === 0) return; // 0 = live gerechnet, nicht in Snapshot buchen
+  const newVal = Math.max(0, n(ag[col]) + aeDelta);
+  if (d === 'postgres') {
+    await db.run(`UPDATE ae_gesamt_monthly SET ${col}=$1, updated_at=NOW() WHERE monat=$2`, [newVal, monat]);
+  } else {
+    await db.run(`UPDATE ae_gesamt_monthly SET ${col}=?, updated_at=datetime('now') WHERE monat=?`, [newVal, monat]);
   }
-  return { gewonnen_datum: null, gewonnen_monat: null };
 }
 
 router.get('/', wrap(async (req, res) => {
@@ -184,3 +170,4 @@ router.delete('/:id', wrap(async (req, res) => {
 }));
 
 module.exports = router;
+module.exports.syncAeGesamtBK = syncAeGesamtBK; // für Regressionstests

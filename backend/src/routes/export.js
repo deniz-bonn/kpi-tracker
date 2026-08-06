@@ -11,7 +11,11 @@ function toCSV(rows) {
   const headers = Object.keys(rows[0]);
   const escape  = (v) => {
     if (v === null || v === undefined) return '';
-    const s = String(v);
+    // DATE-Spalten kommen aus Postgres als JS-Date-Objekt -> als YYYY-MM-DD ausgeben
+    // (lokale Komponenten, kein toISOString/UTC-Shift), sonst steht "Wed Aug 05 2026 ..." im CSV.
+    const s = v instanceof Date
+      ? `${v.getFullYear()}-${String(v.getMonth() + 1).padStart(2, '0')}-${String(v.getDate()).padStart(2, '0')}`
+      : String(v);
     if (s.includes(',') || s.includes('"') || s.includes('\n')) {
       return `"${s.replace(/"/g, '""')}"`;
     }

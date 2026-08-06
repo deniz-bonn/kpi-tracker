@@ -5,6 +5,7 @@ const { requireAuth } = require('../middleware/auth');
 const { logAudit }   = require('../utils/audit');
 const { pruefeDatumsaenderung } = require('../utils/dealGuards');
 const { loadRates, rateFor, enrichDealsEur } = require('../utils/currency');
+const { resolveGewonnenFelder } = require('../utils/gewonnen');
 
 router.use(requireAuth);
 
@@ -20,107 +21,104 @@ const BASE_SELECT = `
   LEFT JOIN employees setter ON setter.id = d.setter_id
 `;
 
-// Updates ae_gesamt_monthly when an NK deal transitions to/from Gewonnen.
-// deal = new state, prev = old state (null when creating).
+// Bucht den AE-Beitrag eines NK-Deals ZUSTANDSBASIERT in ae_gesamt_monthly.
+// Beitrag eines Deals = ae_wert wenn Status Gewonnen, sonst 0 — verbucht im jeweiligen
+// gewonnen_monat und in der Standort-Spalte des Closers. Jeder Schreibvorgang bucht die
+// Differenz alter Beitrag -> neuer Beitrag. Bei Monats-/Standortwechsel wird der alte Beitrag
+// aus- und der neue eingebucht (fixt u.a. den Monatswechsel, den die alte Delta-Logik verlor).
+// deal = neuer Zustand, prev = alter Zustand (null beim Anlegen).
 async function syncAeGesamtNK(deal, prev) {
-  const d = db.dialect;
-  const wasGewonnen = prev?.status === 'Gewonnen';
-  const isNowGewonnen = deal.status === 'Gewonnen';
+  const oldGew = prev?.status === 'Gewonnen';
+  const newGew = deal?.status === 'Gewonnen';
+  if (!oldGew && !newGew) return;
 
-  if (!wasGewonnen && !isNowGewonnen) return;
+  const old = oldGew
+    ? { monat: prev.gewonnen_monat || null, ae: Number(prev.ae_wert) || 0, closer: prev.closer_id, company: prev.company_id }
+    : null;
+  const neu = newGew
+    ? { monat: deal.gewonnen_monat || null, ae: Number(deal.ae_wert) || 0, closer: deal.closer_id, company: deal.company_id }
+    : null;
 
-  let aeDelta = 0, anzDelta = 0;
-  if (!wasGewonnen && isNowGewonnen) {
-    aeDelta  = Number(deal.ae_wert) || 0;
-    anzDelta = 1;
-  } else if (wasGewonnen && !isNowGewonnen) {
-    aeDelta  = -(Number(prev.ae_wert) || 0);
-    anzDelta = -1;
-  } else {
-    aeDelta = (Number(deal.ae_wert) || 0) - (Number(prev.ae_wert) || 0);
-    if (aeDelta === 0) return;
+  // Gleicher Monat + gleicher Closer + gleiche Company -> eine Netto-Buchung (kein Doppel-Clamp).
+  if (old && neu && old.monat && old.monat === neu.monat && old.closer === neu.closer && old.company === neu.company) {
+    await bookAeNK(old.monat, neu.closer, neu.company, neu.ae - old.ae, 0);
+    return;
   }
+  if (old && old.monat) await bookAeNK(old.monat, old.closer, old.company, -old.ae, -1);
+  if (neu && neu.monat) await bookAeNK(neu.monat, neu.closer, neu.company, neu.ae, 1);
+}
 
-  const monat = deal.gewonnen_monat || prev?.gewonnen_monat;
-  if (!monat) return;
-
+// Verbucht (aeDelta, anzDelta) in ae_gesamt_monthly für einen Monat + Closer-Standort.
+// Respektiert: kein INSERT für neue Monate (Live-Anzeige), ae_ab_monat-Gate, CHF-Umrechnung.
+async function bookAeNK(monat, closerId, companyId, aeDelta, anzDelta) {
+  if (!monat || (aeDelta === 0 && anzDelta === 0)) return;
+  const d = db.dialect;
   const p1 = d === 'postgres' ? '$1' : '?';
-  const emp = await db.get(`SELECT standort FROM employees WHERE id=${p1}`, [deal.closer_id]);
-  const standort = emp?.standort || '';
 
+  const emp = await db.get(`SELECT standort FROM employees WHERE id=${p1}`, [closerId]);
   const colMap = { Bonn: 'nk_bonn', Braunschweig: 'nk_bs', 'Österreich': 'nk_at', Schweiz: 'nk_ch' };
-  const col = colMap[standort];
+  const col = colMap[emp?.standort || ''];
   if (!col) return;
 
-  const comp = await db.get(`SELECT currency, ae_ab_monat FROM companies WHERE id=${p1}`, [deal.company_id ?? prev?.company_id]);
+  const comp = await db.get(`SELECT currency, ae_ab_monat FROM companies WHERE id=${p1}`, [companyId]);
 
-  // AE-Startmonat-Guard: Liegt der gewonnen_monat vor company.ae_ab_monat, wird der AE
-  // NICHT in nk_ch/nk_gesamt gebucht -- konsistent zum Gate im Dashboard (AE_EUR).
-  // Risem trackt AE erst ab 2026-08; ein spaeterer UI-Edit an einem Juni/Juli-Deal
-  // darf keinen Schweiz-Umsatz in diese Monate nachbuchen. NULL = kein Guard.
+  // AE-Startmonat-Gate (konsistent zum Dashboard AE_EUR): vor company.ae_ab_monat wird nichts
+  // gebucht. Risem trackt AE erst ab 2026-08 — ein Juni/Juli-Beitrag bleibt draussen. NULL = kein Gate.
   if (comp?.ae_ab_monat && monat < comp.ae_ab_monat) return;
 
-  // CHF-Companies (Risem): AE in EUR umrechnen (Kurs des gewonnen_monat), bevor gebucht wird.
-  if (comp?.currency && comp.currency !== 'EUR') {
+  // CHF-Companies (Risem): Beitrag in EUR umrechnen (Kurs des gewonnen_monat), bevor gebucht wird.
+  let ae = aeDelta;
+  if (ae !== 0 && comp?.currency && comp.currency !== 'EUR') {
     const rate = rateFor(monat, await loadRates());
     if (rate == null) {
-      console.error(`[syncAeGesamtNK] Kein ${comp.currency}-Kurs für ${monat} — AE nicht gebucht (Deal ${deal.id ?? '?'})`);
+      console.error(`[syncAeGesamtNK] Kein ${comp.currency}-Kurs für ${monat} — nicht gebucht`);
       return;
     }
-    aeDelta = aeDelta * rate;
+    ae = ae * rate;
   }
 
   const ag = await db.get(`SELECT * FROM ae_gesamt_monthly WHERE monat=${p1}`, [monat]);
+  // Kein Snapshot-Row -> Monat wird live aus deals_nk gerechnet. Kein INSERT (sonst Teilwerte).
+  if (!ag) return;
   const n = v => Number(v) || 0;
+  const bump = (base, delta) => Math.max(0, n(base) + delta);
 
-  if (ag) {
-    const newBonn    = Math.max(0, n(ag.nk_bonn_ae) + (col === 'nk_bonn' ? aeDelta : 0));
-    const newBs      = Math.max(0, n(ag.nk_bs_ae)   + (col === 'nk_bs'   ? aeDelta : 0));
-    const newAt      = Math.max(0, n(ag.nk_at_ae)   + (col === 'nk_at'   ? aeDelta : 0));
-    const newCh      = Math.max(0, n(ag.nk_ch_ae)   + (col === 'nk_ch'   ? aeDelta : 0));
-    const newBonnAnz = Math.max(0, n(ag.nk_bonn_anz) + (col === 'nk_bonn' ? anzDelta : 0));
-    const newBsAnz   = Math.max(0, n(ag.nk_bs_anz)   + (col === 'nk_bs'   ? anzDelta : 0));
-    const newAtAnz   = Math.max(0, n(ag.nk_at_anz)   + (col === 'nk_at'   ? anzDelta : 0));
-    const newChAnz   = Math.max(0, n(ag.nk_ch_anz)   + (col === 'nk_ch'   ? anzDelta : 0));
-    const newNk     = newBonn + newBs + newAt + newCh;
-    const newGesamt = newNk + n(ag.bk_gesamt) + n(ag.vl_gesamt);
+  const newBonn    = bump(ag.nk_bonn_ae,  col === 'nk_bonn' ? ae : 0);
+  const newBs      = bump(ag.nk_bs_ae,    col === 'nk_bs'   ? ae : 0);
+  const newAt      = bump(ag.nk_at_ae,    col === 'nk_at'   ? ae : 0);
+  const newCh      = bump(ag.nk_ch_ae,    col === 'nk_ch'   ? ae : 0);
+  const newBonnAnz = bump(ag.nk_bonn_anz, col === 'nk_bonn' ? anzDelta : 0);
+  const newBsAnz   = bump(ag.nk_bs_anz,   col === 'nk_bs'   ? anzDelta : 0);
+  const newAtAnz   = bump(ag.nk_at_anz,   col === 'nk_at'   ? anzDelta : 0);
+  const newChAnz   = bump(ag.nk_ch_anz,   col === 'nk_ch'   ? anzDelta : 0);
+  const newNk     = newBonn + newBs + newAt + newCh;
+  const newGesamt = newNk + n(ag.bk_gesamt) + n(ag.vl_gesamt);
 
-    if (d === 'postgres') {
-      await db.run(
-        `UPDATE ae_gesamt_monthly SET
-          nk_bonn_ae=$1,  nk_bonn_anz=$2,
-          nk_bs_ae=$3,    nk_bs_anz=$4,
-          nk_at_ae=$5,    nk_at_anz=$6,
-          nk_ch_ae=$7,    nk_ch_anz=$8,
-          nk_gesamt=$9,   gesamt=$10,
-          updated_at=NOW()
-        WHERE monat=$11`,
-        [newBonn, newBonnAnz, newBs, newBsAnz, newAt, newAtAnz, newCh, newChAnz, newNk, newGesamt, monat]
-      );
-    } else {
-      await db.run(
-        `UPDATE ae_gesamt_monthly SET
-          nk_bonn_ae=?,  nk_bonn_anz=?,
-          nk_bs_ae=?,    nk_bs_anz=?,
-          nk_at_ae=?,    nk_at_anz=?,
-          nk_ch_ae=?,    nk_ch_anz=?,
-          nk_gesamt=?,   gesamt=?,
-          updated_at=datetime('now')
-        WHERE monat=?`,
-        [newBonn, newBonnAnz, newBs, newBsAnz, newAt, newAtAnz, newCh, newChAnz, newNk, newGesamt, monat]
-      );
-    }
-  // Kein INSERT für neue Monate — Live-Daten aus deals_nk werden direkt im Dashboard angezeigt
-  // wenn kein ae_gesamt_monthly-Row existiert (useAG=false). INSERT würde zu Teilwerten führen.
+  if (d === 'postgres') {
+    await db.run(
+      `UPDATE ae_gesamt_monthly SET
+        nk_bonn_ae=$1,  nk_bonn_anz=$2,
+        nk_bs_ae=$3,    nk_bs_anz=$4,
+        nk_at_ae=$5,    nk_at_anz=$6,
+        nk_ch_ae=$7,    nk_ch_anz=$8,
+        nk_gesamt=$9,   gesamt=$10,
+        updated_at=NOW()
+      WHERE monat=$11`,
+      [newBonn, newBonnAnz, newBs, newBsAnz, newAt, newAtAnz, newCh, newChAnz, newNk, newGesamt, monat]
+    );
+  } else {
+    await db.run(
+      `UPDATE ae_gesamt_monthly SET
+        nk_bonn_ae=?,  nk_bonn_anz=?,
+        nk_bs_ae=?,    nk_bs_anz=?,
+        nk_at_ae=?,    nk_at_anz=?,
+        nk_ch_ae=?,    nk_ch_anz=?,
+        nk_gesamt=?,   gesamt=?,
+        updated_at=datetime('now')
+      WHERE monat=?`,
+      [newBonn, newBonnAnz, newBs, newBsAnz, newAt, newAtAnz, newCh, newChAnz, newNk, newGesamt, monat]
+    );
   }
-}
-
-function resolveGewonnenFelder(body, existing = null) {
-  if (body.status === 'Gewonnen') {
-    const gd = body.gewonnen_datum || existing?.gewonnen_datum || body.datum || new Date().toISOString().slice(0, 10);
-    return { gewonnen_datum: gd, gewonnen_monat: gd.slice(0, 7) };
-  }
-  return { gewonnen_datum: null, gewonnen_monat: null };
 }
 
 // Restrict non-admin to own deals (by closer_id).
@@ -261,3 +259,4 @@ router.delete('/:id', wrap(async (req, res) => {
 }));
 
 module.exports = router;
+module.exports.syncAeGesamtNK = syncAeGesamtNK; // für Regressionstests

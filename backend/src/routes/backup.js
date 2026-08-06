@@ -22,6 +22,20 @@ const TABLES = [
   'activity_logs',
 ];
 
+// Deal-Tabellen: gewonnen_monat muss immer aus gewonnen_datum ableitbar sein, weil daran die
+// AE-Buchung haengt. Ein roher Restore schreibt die Zeilen 1:1 aus dem Backup-JSON und umgeht
+// resolveGewonnenFelder (die App-Routen leiten gewonnen_monat sonst immer ab) -- daher hier
+// defensiv nachziehen, falls das Backup gewonnen_datum ohne gewonnen_monat enthaelt.
+const DEAL_TABLES = new Set(['deals_nk', 'deals_bk', 'deals_vl']);
+function backfillGewonnenMonat(table, rows) {
+  if (!DEAL_TABLES.has(table)) return;
+  for (const row of rows) {
+    if (row.gewonnen_datum && !row.gewonnen_monat) {
+      row.gewonnen_monat = String(row.gewonnen_datum).slice(0, 7);
+    }
+  }
+}
+
 // Last auto-backup stored in memory (survives until container restart)
 let lastAutoBackup = null;
 
@@ -94,6 +108,7 @@ router.post('/import', requireRole('superadmin'), wrap(async (req, res) => {
       for (const table of TABLES) {
         const rows = backup.tables[table];
         if (!rows?.length) continue;
+        backfillGewonnenMonat(table, rows);
         const cols = Object.keys(rows[0]);
         for (const row of rows) {
           const ph = cols.map((_, i) => `$${i + 1}`).join(',');
@@ -127,6 +142,7 @@ router.post('/import', requireRole('superadmin'), wrap(async (req, res) => {
       for (const table of TABLES) {
         const rows = backup.tables[table];
         if (!rows?.length) continue;
+        backfillGewonnenMonat(table, rows);
         const cols = Object.keys(rows[0]);
         for (const row of rows) {
           const ph = cols.map(() => '?').join(',');
