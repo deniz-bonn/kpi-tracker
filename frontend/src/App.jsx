@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
+import Celebration from './components/Celebration';
 import Login from './pages/Login';
 import SetPassword from './pages/SetPassword';
 import Dashboard from './pages/Dashboard';
@@ -100,6 +101,7 @@ export default function App() {
   return (
     <AuthProvider>
       <AppRoutes />
+      <Celebration />
     </AuthProvider>
   );
 }

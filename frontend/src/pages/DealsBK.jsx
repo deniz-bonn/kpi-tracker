@@ -5,6 +5,7 @@ import { dealsApi, employeesApi, exportApi } from '../utils/api';
 import StatusBadge from '../components/StatusBadge';
 import DealModal from '../components/DealModal';
 import { formatEuro, formatMoney, companyCurrency, isDealCompanyActive, isAeCounted, currentMonat, periodLabel, periodFileSuffix } from '../utils/format';
+import { celebrateWin, shouldCelebrate } from '../components/Celebration';
 
 // AE-Euro-Betrag fuer Umsatz-Summen, 0 wenn der AE (noch) nicht getrackt wird (ae_ab_monat-Gate).
 const aeEur = d => isAeCounted(d) ? (Number(d.ae_wert_eur ?? d.ae_wert) || 0) : 0;
@@ -90,8 +91,13 @@ export default function DealsBK() {
     qc.invalidateQueries({ queryKey: ['auftragseingang'] });
   };
 
-  const createMut = useMutation({ mutationFn: dealsApi.bk.create, onSuccess: () => { invalidate(); setModal(null); } });
-  const updateMut = useMutation({ mutationFn: ({ id, data }) => dealsApi.bk.update(id, data), onSuccess: () => { invalidate(); setModal(null); } });
+  const maybeCelebrate = (row, prevStatus) => {
+    if (shouldCelebrate(row?.status, prevStatus)) {
+      celebrateWin({ kunde: row.kunde, betrag: Number(row.ae_wert) || 0, currency: companyCurrency(companies, row.company_id) });
+    }
+  };
+  const createMut = useMutation({ mutationFn: dealsApi.bk.create, onSuccess: (row) => { invalidate(); setModal(null); maybeCelebrate(row, null); } });
+  const updateMut = useMutation({ mutationFn: ({ id, data }) => dealsApi.bk.update(id, data), onSuccess: (row, vars) => { invalidate(); setModal(null); maybeCelebrate(row, vars?.prevStatus); } });
   const deleteMut = useMutation({ mutationFn: dealsApi.bk.delete, onSuccess: invalidate });
 
   const compOpts   = companies.map(c => ({ value: c.id, label: c.name }));
@@ -135,7 +141,7 @@ export default function DealsBK() {
   const handleSave = (form) => {
     const data = { ...form, monat: form.monat || monat, company_id: form.company_id || company || null };
     if (modal.mode === 'create') createMut.mutate(data);
-    else updateMut.mutate({ id: modal.data.id, data });
+    else updateMut.mutate({ id: modal.data.id, data, prevStatus: modal.data.status });
   };
 
   // listDeals treibt die Liste (auch noch-nicht-aktive Companies); filtered = nur aktive, treibt Stats.

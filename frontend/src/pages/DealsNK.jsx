@@ -5,6 +5,8 @@ import { dealsApi, employeesApi, exportApi } from '../utils/api';
 import StatusBadge from '../components/StatusBadge';
 import DealModal from '../components/DealModal';
 import { formatEuro, formatMoney, companyCurrency, isDealCompanyActive, isAeCounted, currentMonat, periodLabel, periodFileSuffix } from '../utils/format';
+import { computeMedals, medalRowClass, medalBarClass, MedalBadge, MiniPodium } from '../components/medals';
+import { celebrateWin, shouldCelebrate } from '../components/Celebration';
 import { useAuth } from '../context/AuthContext';
 
 // AE-Euro-Betrag eines Deals fuer Umsatz-Summen, 0 wenn der AE (noch) nicht getrackt wird
@@ -59,8 +61,14 @@ export default function DealsNK() {
     qc.invalidateQueries({ queryKey: ['auftragseingang'] });
   };
 
-  const createMut = useMutation({ mutationFn: dealsApi.nk.create, onSuccess: () => { invalidate(); setModal(null); } });
-  const updateMut = useMutation({ mutationFn: ({ id, data }) => dealsApi.nk.update(id, data), onSuccess: () => { invalidate(); setModal(null); } });
+  // Feier-Effekt nur beim echten Wechsel -> Gewonnen (nicht beim Re-Save eines schon gewonnenen Deals).
+  const maybeCelebrate = (row, prevStatus) => {
+    if (shouldCelebrate(row?.status, prevStatus)) {
+      celebrateWin({ kunde: row.kunde, betrag: Number(row.ae_wert) || 0, currency: companyCurrency(companies, row.company_id) });
+    }
+  };
+  const createMut = useMutation({ mutationFn: dealsApi.nk.create, onSuccess: (row) => { invalidate(); setModal(null); maybeCelebrate(row, null); } });
+  const updateMut = useMutation({ mutationFn: ({ id, data }) => dealsApi.nk.update(id, data), onSuccess: (row, vars) => { invalidate(); setModal(null); maybeCelebrate(row, vars?.prevStatus); } });
   const deleteMut = useMutation({ mutationFn: dealsApi.nk.delete, onSuccess: invalidate });
 
   const empOptions  = employees.map(e => ({ value: e.id, label: `${e.name} (${e.company_name})` }));
@@ -112,7 +120,7 @@ export default function DealsNK() {
   const handleSave = (form) => {
     const data = { ...form, monat: form.monat || monat, company_id: form.company_id || company || null };
     if (modal.mode === 'create') createMut.mutate(data);
-    else updateMut.mutate({ id: modal.data.id, data });
+    else updateMut.mutate({ id: modal.data.id, data, prevStatus: modal.data.status });
   };
 
   // Gefilterte Deals — listDeals treibt die Deal-LISTE (zeigt auch noch-nicht-aktive
@@ -219,6 +227,11 @@ export default function DealsNK() {
       .map(c => ({ ...c, offen: c.total - c.gewonnen - c.verloren, quote: c.total > 0 ? (c.gewonnen / c.total * 100).toFixed(2) : '0.00' }))
       .sort((a, b) => b.ae_summe - a.ae_summe);
   }, [filtered]);
+
+  // Treppchen: Medaillen je Tabelle auf Basis der (bereits nach AE sortierten) Zeilen.
+  const closerMedals = useMemo(() => computeMedals(closerStats), [closerStats]);
+  const setterMedals = useMemo(() => computeMedals(setterStats), [setterStats]);
+  const openerMedals = useMemo(() => computeMedals(openerStats), [openerStats]);
 
   const sel = "bg-white border border-gray-300 text-gray-700 text-xs rounded px-2 py-1.5";
   const hasFilters = filterQuelle || filterCloser || filterOpener || filterSetter || filterStatus || filterStandort;
@@ -347,6 +360,7 @@ export default function DealsNK() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             {/* Closer */}
             <div className="rounded-lg border border-gray-200 overflow-hidden">
+              <MiniPodium rows={closerStats} />
               <div className="px-3 py-2 bg-[#2d2e30] border-b border-[#444]">
                 <span className="text-xs font-bold text-white uppercase tracking-wide">Abschlussquote nach Closer</span>
               </div>
@@ -368,9 +382,10 @@ export default function DealsNK() {
                       ? <tr><td colSpan={7} className="px-3 py-4 text-center text-gray-400">Keine Daten</td></tr>
                       : closerStats.map((c, i) => {
                           const q = parseFloat(c.quote);
+                          const medal = closerMedals[i];
                           return (
-                            <tr key={i} className="hover:bg-gray-50">
-                              <td className="px-3 py-1.5 text-gray-700 font-medium">{c.name}</td>
+                            <tr key={i} className={medalRowClass(medal)}>
+                              <td className={`px-3 py-1.5 text-gray-700 font-medium ${medalBarClass(medal)}`}><MedalBadge medal={medal} />{c.name}</td>
                               <td className="px-3 py-1.5 text-right text-gray-600">{c.total}</td>
                               <td className="px-3 py-1.5 text-right text-green-700 font-medium">{c.gewonnen}</td>
                               <td className="px-3 py-1.5 text-right text-red-600">{c.verloren}</td>
@@ -388,6 +403,7 @@ export default function DealsNK() {
 
             {/* Setter */}
             <div className="rounded-lg border border-gray-200 overflow-hidden">
+              <MiniPodium rows={setterStats} />
               <div className="px-3 py-2 bg-[#2d2e30] border-b border-[#444]">
                 <span className="text-xs font-bold text-white uppercase tracking-wide">Abschlussquote nach Setter</span>
               </div>
@@ -406,9 +422,10 @@ export default function DealsNK() {
                     ? <tr><td colSpan={5} className="px-3 py-4 text-center text-gray-400">Keine Daten</td></tr>
                     : setterStats.map((s, i) => {
                         const q = parseFloat(s.quote);
+                        const medal = setterMedals[i];
                         return (
-                          <tr key={i} className="hover:bg-gray-50">
-                            <td className="px-3 py-1.5 text-gray-700 font-medium">{s.name}</td>
+                          <tr key={i} className={medalRowClass(medal)}>
+                            <td className={`px-3 py-1.5 text-gray-700 font-medium ${medalBarClass(medal)}`}><MedalBadge medal={medal} />{s.name}</td>
                             <td className="px-3 py-1.5 text-right text-gray-600">{s.total}</td>
                             <td className="px-3 py-1.5 text-right text-green-700 font-medium">{s.gewonnen}</td>
                             <td className={`px-3 py-1.5 text-right font-bold ${q >= 30 ? 'text-green-600' : q > 0 ? 'text-amber-600' : 'text-gray-400'}`}>{s.quote}%</td>
@@ -424,6 +441,7 @@ export default function DealsNK() {
 
           {/* Opener-Tabelle — auf-/zuklappbar */}
           <div className="rounded-lg border border-gray-200 overflow-hidden">
+            <MiniPodium rows={openerStats} />
             <button
               onClick={() => setShowOpener(v => !v)}
               className="w-full flex items-center justify-between px-3 py-2 bg-[#2d2e30] hover:bg-[#3a3a3a] transition-colors"
@@ -450,9 +468,10 @@ export default function DealsNK() {
                       ? <tr><td colSpan={7} className="px-3 py-4 text-center text-gray-400">Keine Daten</td></tr>
                       : openerStats.map((o, i) => {
                           const q = parseFloat(o.quote);
+                          const medal = openerMedals[i];
                           return (
-                            <tr key={i} className="hover:bg-gray-50">
-                              <td className="px-3 py-1.5 text-gray-700 font-medium">{o.name}</td>
+                            <tr key={i} className={medalRowClass(medal)}>
+                              <td className={`px-3 py-1.5 text-gray-700 font-medium ${medalBarClass(medal)}`}><MedalBadge medal={medal} />{o.name}</td>
                               <td className="px-3 py-1.5 text-gray-400">{o.standort || '—'}</td>
                               <td className="px-3 py-1.5 text-right text-gray-600">{o.total}</td>
                               <td className="px-3 py-1.5 text-right text-green-700 font-medium">{o.gewonnen}</td>
