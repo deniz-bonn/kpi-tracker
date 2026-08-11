@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { dealsApi, employeesApi, exportApi } from '../utils/api';
+import { dealsApi, employeesApi } from '../utils/api';
 import StatusBadge from '../components/StatusBadge';
 import DealModal from '../components/DealModal';
 import { formatEuro, formatMoney, companyCurrency, isDealCompanyActive, isAeCounted, currentMonat, periodLabel, periodFileSuffix } from '../utils/format';
@@ -72,6 +72,9 @@ export default function DealsBK() {
   const [filterKam,      setFilterKam]      = useState('');
   const [filterStatus,   setFilterStatus]   = useState('');
   const [filterStandort, setFilterStandort] = useState('');
+  const [filterDienstleistung, setFilterDienstleistung] = useState('');
+  const [filterMinAe,    setFilterMinAe]    = useState('');
+  const [filterMaxAe,    setFilterMaxAe]    = useState('');
 
   // Nur im Monats-Modus serverseitig filtern; Zeitraum/Alle laden alles (Zeitraum filtert clientseitig).
   const params = { ...(company && { company_id: company }), ...(zeitMode === 'monat' && { monat }) };
@@ -144,14 +147,24 @@ export default function DealsBK() {
     else updateMut.mutate({ id: modal.data.id, data, prevStatus: modal.data.status });
   };
 
+  // €-Wert wie in den KPIs (CHF -> EUR via *_eur). Filter "Angebotshöhe" vergleicht denselben Wert.
+  const aeVal = d => Number(d.angebotswert_eur ?? d.angebotswert) || 0;
+  // Dienstleistungs-Optionen = tatsächlich in den geladenen Deals vorkommende Werte (distinct, alphabetisch).
+  const dienstleistungOptions = useMemo(
+    () => [...new Set(deals.map(d => d.dienstleistung).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de')),
+    [deals]);
+
   // listDeals treibt die Liste (auch noch-nicht-aktive Companies); filtered = nur aktive, treibt Stats.
   const listDeals = useMemo(() => deals.filter(d =>
     (canSeeAll || viewMode === 'alle' || String(d.kam_id) === String(user?.employee_id)) &&
     (!filterKam      || String(d.kam_id)    === filterKam) &&
     (!filterStatus   || d.status            === filterStatus) &&
     matchStandort(d.kam_standort, filterStandort) &&
+    (!filterDienstleistung || d.dienstleistung === filterDienstleistung) &&
+    (!filterMinAe || aeVal(d) >= Number(filterMinAe)) &&
+    (!filterMaxAe || aeVal(d) <= Number(filterMaxAe)) &&
     (zeitMode !== 'zeitraum' || ((d.monat || '').trim() >= vonMonat && (d.monat || '').trim() <= bisMonat))
-  ), [deals, filterKam, filterStatus, filterStandort, viewMode, canSeeAll, user?.employee_id, zeitMode, vonMonat, bisMonat]);
+  ), [deals, filterKam, filterStatus, filterStandort, filterDienstleistung, filterMinAe, filterMaxAe, viewMode, canSeeAll, user?.employee_id, zeitMode, vonMonat, bisMonat]);
   const filtered = useMemo(() => listDeals.filter(isDealCompanyActive), [listDeals]);
 
   // Gesamt-KPIs
@@ -178,7 +191,41 @@ export default function DealsBK() {
   }, [filtered, employees]);
 
   const sel = "bg-white border border-gray-300 text-gray-700 text-xs rounded px-2 py-1.5";
-  const hasFilters = filterKam || filterStatus || filterStandort;
+  const hasFilters = filterKam || filterStatus || filterStandort || filterDienstleistung || filterMinAe || filterMaxAe;
+  const resetFilters = () => { setFilterKam(''); setFilterStatus(''); setFilterStandort(''); setFilterDienstleistung(''); setFilterMinAe(''); setFilterMaxAe(''); };
+
+  // Aktive Filter kompakt (KPI-Kopfzeile) + Dateinamen-Suffix (CSV).
+  const filterSummary = [
+    filterStandort && `Standort: ${filterStandort}`,
+    filterKam && `KAM: ${kamList.find(k => String(k.id) === filterKam)?.name || filterKam}`,
+    filterStatus && `Status: ${filterStatus}`,
+    filterDienstleistung && `Dienstleistung: ${filterDienstleistung}`,
+    filterMinAe && `ab ${formatEuro(Number(filterMinAe))}`,
+    filterMaxAe && `bis ${formatEuro(Number(filterMaxAe))}`,
+  ].filter(Boolean).join(' · ');
+  const fileFilterSuffix = [
+    filterDienstleistung && '_' + filterDienstleistung.replace(/[^\wÄÖÜäöüß]+/g, '-'),
+    filterMinAe && `_ab${filterMinAe}`,
+    filterMaxAe && `_bis${filterMaxAe}`,
+  ].filter(Boolean).join('');
+
+  // CSV der aktuell gefilterten Menge (client-seitig) — spiegelt ALLE Filter wie die Liste. Spalten wie Server-Export.
+  const exportFiltered = () => {
+    const cols = [
+      ['datum', d => d.datum], ['monat', d => d.monat], ['company', d => d.company_name], ['kunde', d => d.kunde],
+      ['angebotsnummer', d => d.angebotsnummer], ['dienstleistung', d => d.dienstleistung], ['kam', d => d.kam_name],
+      ['angebotswert', d => d.angebotswert], ['ae_wert', d => d.ae_wert], ['laufzeit_monate', d => d.laufzeit_monate],
+      ['automatische_verlaengerung', d => d.automatische_verlaengerung], ['status', d => d.status], ['abgerechnet', d => d.abgerechnet],
+      ['gewonnen_monat', d => d.gewonnen_monat], ['gewonnen_datum', d => (d.gewonnen_datum ? String(d.gewonnen_datum).slice(0, 10) : '')],
+      ['kommentar', d => d.kommentar],
+    ];
+    const esc = v => { if (v == null) return ''; const s = String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+    const lines = [cols.map(c => c[0]).join(','), ...filtered.map(d => cols.map(c => esc(c[1](d))).join(','))];
+    const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = `bestandskunden${periodFileSuffix(zeitMode, monat, vonMonat, bisMonat)}${fileFilterSuffix}.csv`;
+    a.click(); URL.revokeObjectURL(a.href);
+  };
 
   return (
     <div className="space-y-4">
@@ -189,6 +236,7 @@ export default function DealsBK() {
           <p className="text-xs text-gray-500 mt-0.5">
             {periodLabel(zeitMode, monat, vonMonat, bisMonat)} · {filtered.length} Angebote · {gesamtKpis.gewonnen} gewonnen · {gesamtKpis.quote_angebote}% · {formatEuro(gesamtKpis.ae_summe)} AE
           </p>
+          {filterSummary && <p className="text-xs font-medium text-blue-600 mt-0.5">Filter: {filterSummary}</p>}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button onClick={() => setShowKpis(v => !v)}
@@ -218,11 +266,8 @@ export default function DealsBK() {
             </div>
           )}
           <button
-            onClick={() => exportApi.download('bk.csv', `bestandskunden${periodFileSuffix(zeitMode, monat, vonMonat, bisMonat)}.csv`, {
-              ...(company && { company_id: company }),
-              ...(zeitMode === 'monat' && { monat }),
-              ...(zeitMode === 'zeitraum' && { monat_von: vonMonat, monat_bis: bisMonat }),
-            })}
+            onClick={exportFiltered}
+            title="Exportiert genau die aktuell gefilterte Menge"
             className="px-3 py-1.5 bg-white border border-gray-300 hover:border-gray-400 text-gray-600 text-sm rounded">
             ↓ CSV
           </button>
@@ -264,9 +309,18 @@ export default function DealsBK() {
           <option value="">Alle Status</option>
           {STATUS_OPTS.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
+        <select value={filterDienstleistung} onChange={e => setFilterDienstleistung(e.target.value)} className={sel} title="Dienstleistung">
+          <option value="">Alle Dienstleistungen</option>
+          {dienstleistungOptions.map(d => <option key={d} value={d}>{d}</option>)}
+        </select>
+        <input type="number" min="0" step="1000" list="bk-ae-presets" placeholder="Angebot ab €"
+          value={filterMinAe} onChange={e => setFilterMinAe(e.target.value)} className={`${sel} w-32`} />
+        <datalist id="bk-ae-presets"><option value="5000" /><option value="10000" /><option value="20000" /></datalist>
+        <input type="number" min="0" step="1000" placeholder="bis €"
+          value={filterMaxAe} onChange={e => setFilterMaxAe(e.target.value)} className={`${sel} w-24`} />
         {hasFilters && (
-          <button onClick={() => { setFilterKam(''); setFilterStatus(''); setFilterStandort(''); }}
-            className="text-xs text-gray-500 hover:text-white ml-1">✕ Zurücksetzen</button>
+          <button onClick={resetFilters}
+            className="text-xs text-gray-500 hover:text-gray-800 ml-1">✕ Zurücksetzen</button>
         )}
       </div>
 
