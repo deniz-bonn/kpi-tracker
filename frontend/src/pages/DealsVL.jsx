@@ -39,7 +39,7 @@ function calcKpis(deals) {
 // ── Hauptkomponente ──────────────────────────────────────────────────────────
 export default function DealsVL() {
   const { company, companies } = useOutletContext();
-  const { canSeeAll, isAdmin } = useAuth();
+  const { canSeeAll } = useAuth();
   const qc = useQueryClient();
   const [monat, setMonat]                = useState(currentMonat());
   const [zeitMode, setZeitMode]          = useState('monat'); // 'monat' | 'zeitraum' | 'alle'
@@ -136,7 +136,7 @@ export default function DealsVL() {
   const fields = [
     // Datum nachträglich ändern: nur Admin/Superadmin. Ändert NICHT den Berichtsmonat
     // (Feld "monat") und nicht die AE-Buchung (die hängt an gewonnen_monat).
-    { name: 'datum',                 label: 'Datum der Vertragsverlängerung', type: 'date', required: true, readOnly: modal?.mode === 'edit' && !isAdmin },
+    { name: 'datum',                 label: 'Datum der Vertragsverlängerung', type: 'date', required: true },
     { name: 'monat',                 label: 'Monat (YYYY-MM)',                         required: true },
     { name: 'company_id',            label: 'Company',                 type: 'select', options: compOpts, required: true },
     { name: 'kunde',                 label: 'Kunde',                                   required: true },

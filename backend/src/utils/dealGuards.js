@@ -13,21 +13,23 @@ function dayStr(v) {
 }
 
 /**
- * Das Angebotsdatum (`datum`) darf nachträglich nur ein Admin/Superadmin ändern —
- * so wie es die Oberfläche anzeigt. Geprüft wird ausschliesslich eine TATSÄCHLICHE
- * Änderung: alle Bearbeiter senden `datum` unverändert mit, deren Updates laufen
- * also unbehindert durch.
+ * Das `datum` darf nachträglich nur von berechtigten Rollen geändert werden.
+ * Standard: nur Admin/Superadmin (NK/BK). VL übergibt eine erweiterte Rollenliste,
+ * damit Account Manager (bk_vertrieb) fehlerhafte Import-Daten selbst korrigieren können.
+ * Geprüft wird ausschliesslich eine TATSÄCHLICHE Änderung: wer `datum` unverändert
+ * mitsendet, läuft unbehindert durch.
  *
+ * @param {string[]} allowedRoles Rollen, die das Datum nachträglich ändern dürfen
  * @returns {string|null} Fehlermeldung, wenn die Änderung unzulässig ist, sonst null
  */
-function pruefeDatumsaenderung(req, existing) {
+function pruefeDatumsaenderung(req, existing, allowedRoles = ['admin', 'superadmin']) {
   if (!existing) return null;                       // 404 behandelt der Aufrufer
   if (req.body.datum === undefined) return null;    // nicht mitgesendet -> nichts zu prüfen
   const neu = dayStr(req.body.datum);
   const alt = dayStr(existing.datum);
   if (neu === alt) return null;                     // unverändert
-  if (['admin', 'superadmin'].includes(req.user?.role)) return null;
-  return 'Das Datum darf nur ein Admin nachträglich ändern.';
+  if (allowedRoles.includes(req.user?.role)) return null;
+  return 'Keine Berechtigung, das Datum nachträglich zu ändern.';
 }
 
 module.exports = { dayStr, pruefeDatumsaenderung };

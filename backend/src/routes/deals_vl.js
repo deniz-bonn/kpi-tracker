@@ -222,8 +222,9 @@ router.put('/:id', wrap(async (req, res) => {
     ? await db.get('SELECT * FROM deals_vl WHERE id=$1', [req.params.id])
     : db.get('SELECT * FROM deals_vl WHERE id=?', [req.params.id]);
 
-  // Datum nachträglich ändern ist Admin-Recht (die Oberfläche sperrt es entsprechend).
-  const datumFehler = pruefeDatumsaenderung(req, existing);
+  // VL: Account Manager dürfen das Datum nachträglich korrigieren (fehlerhafte Import-Daten),
+  // nicht nur Admins. NK/BK bleiben admin-only (Default-Guard).
+  const datumFehler = pruefeDatumsaenderung(req, existing, ['admin', 'superadmin', 'bk_vertrieb', 'backoffice', 'vertriebsleitung']);
   if (datumFehler) return res.status(403).json({ error: datumFehler });
 
   const { gewonnen_datum, gewonnen_monat } = resolveGewonnenFelder(req.body, existing);
