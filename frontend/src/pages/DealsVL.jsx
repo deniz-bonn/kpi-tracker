@@ -152,6 +152,19 @@ export default function DealsVL() {
     { name: 'laufzeit_monate',       label: 'Neue Laufzeit (Monate)',  type: 'number', required: f => f.status === 'Gewonnen' },
     { name: 'wie_vielt_verlaengerung', label: 'Wievielte Verlängerung', type: 'number', required: f => f.status === 'Gewonnen' },
     { name: 'status',                label: 'Status',                  type: 'select', options: STATUS_OPTS, required: true },
+    {
+      name:     'gewonnen_datum',
+      label:    'Realisiert am',
+      type:     'date',
+      hint:     'Datum, an dem die Verlängerung realisiert wurde — steuert den AE-Monat',
+      show:     f => f.status === 'Gewonnen',
+      required: f => f.status === 'Gewonnen',
+      // Vorbelegung mit dem Kündigungsdatum (bucht AE im Kündigungsmonat, s. Regel), sonst heute.
+      autoFill: (form, changedKey) =>
+        changedKey === 'status' && form.status === 'Gewonnen' && !form.gewonnen_datum
+          ? ((form.ende_kuendigungsfrist || '').slice(0, 10) || new Date().toISOString().slice(0, 10))
+          : undefined,
+    },
     { name: 'weitergeben_an_vertrieb', label: 'Weitergeben an Vertrieb?', type: 'select', options: ['Ja', 'Nein'], show: f => f.status === 'Verloren', required: f => f.status === 'Verloren', hint: 'Ja = Kunde erscheint im Kündigungen-Tab als Up-Sale Potenzial' },
     { name: 'gekuendigt_am',         label: 'Gekündigt am',            type: 'date',   show: f => f.status === 'Verloren', required: f => f.status === 'Verloren' },
     { name: 'auslaufend_am',         label: 'Auslaufend am',           type: 'date',   show: f => f.status === 'Verloren', required: f => f.status === 'Verloren' },
