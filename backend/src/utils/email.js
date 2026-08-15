@@ -403,6 +403,13 @@ function buildKpiHtml(data) {
 
   const noDataRow = `<tr><td colspan="8" style="${styleTd()};color:#94a3b8;font-style:italic;text-align:center">Keine Aktivitätsdaten für heute</td></tr>`;
 
+  // Am 21. (Tag nach Zeitraum-Ende) an den Provisions-Abschluss + StB-Export erinnern.
+  const provisionReminder = (data.datum || '').slice(8, 10) === '21'
+    ? `<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:12px 16px;margin-bottom:16px;color:#92400e;font-size:13px">
+         💰 <b>Provisionen:</b> Der Abrechnungszeitraum endete gestern (20.). Bitte heute unter <b>Provisionen</b> den Zeitraum abschließen und den StB-Export erzeugen.
+       </div>`
+    : '';
+
   return `<!DOCTYPE html><html><body style="margin:0;padding:20px;background:#f1f5f9;font-family:Arial,sans-serif">
   <div style="max-width:760px;margin:0 auto">
     <div style="background:#312e81;color:#fff;border-radius:8px 8px 0 0;padding:20px 24px">
@@ -410,6 +417,7 @@ function buildKpiHtml(data) {
       <div style="opacity:.7;font-size:13px;margin-top:4px">${dateStr} · Arbeitstag ${elapsedWorkdays} von ${workdays}</div>
     </div>
     <div style="background:#fff;border-radius:0 0 8px 8px;padding:20px 24px">
+      ${provisionReminder}
 
       <!-- Tagesziele -->
       <div style="font-size:13px;font-weight:bold;color:#1e293b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">🎯 Tagesziele heute</div>

@@ -232,4 +232,24 @@ async function backfillLaufend(stichtag) {
   return { goLive, inScopeDeals: deals.length, buchungen: rows };
 }
 
-module.exports = { provisionSync, materialisiereNachtraege, backfillLaufend, projektionLaufend, periodFor, labelFor, kalendermonatFor, configFor, getOrCreateZeitraum };
+// Zeitraum abschliessen: Buchungen einfrieren, Status setzen, Folgeperiode anlegen. Idempotenz-sicher
+// (nur 'offen' schliessbar). stichtag ueberschreibbar fuer Tests; die Route ruft ohne (=> heute()).
+async function abschliesseZeitraum(zeitraumId, userId, stichtag) {
+  const today = stichtag || heute();
+  const z = await db.get(`SELECT * FROM provision_zeitraeume WHERE id=${q1(1)}`, [zeitraumId]);
+  if (!z) return { error: 'not_found' };
+  if (z.status !== 'offen') return { error: 'already_closed' };
+  if (today <= z.bis) return { error: 'still_running', bis: z.bis };
+  if (pg()) {
+    await db.run(`UPDATE provision_buchungen SET eingefroren=TRUE WHERE zeitraum_id=$1`, [zeitraumId]);
+    await db.run(`UPDATE provision_zeitraeume SET status='abgeschlossen', abgeschlossen_am=$1, abgeschlossen_von=$2 WHERE id=$3`, [today, userId ?? null, zeitraumId]);
+  } else {
+    db.run(`UPDATE provision_buchungen SET eingefroren=1 WHERE zeitraum_id=?`, [zeitraumId]);
+    db.run(`UPDATE provision_zeitraeume SET status='abgeschlossen', abgeschlossen_am=?, abgeschlossen_von=? WHERE id=?`, [today, userId ?? null, zeitraumId]);
+  }
+  const n = periodFor(`${z.bis.slice(0, 8)}21`);      // Folgeperiode: bis ist immer ein 20. -> Folgetag = 21.
+  const neu = await getOrCreateZeitraum(n.von, n.bis);
+  return { abgeschlossen: { ...z, status: 'abgeschlossen', abgeschlossen_am: today, abgeschlossen_von: userId ?? null }, neuerZeitraum: neu };
+}
+
+module.exports = { provisionSync, materialisiereNachtraege, backfillLaufend, projektionLaufend, abschliesseZeitraum, periodFor, labelFor, kalendermonatFor, configFor, getOrCreateZeitraum };

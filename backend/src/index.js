@@ -143,6 +143,18 @@ cron.schedule('0 22 * * *', async () => {
   }
 }, { timezone: 'Europe/Berlin' });
 
+// Provisionen: Monatsend-Nachträge (Closer-200k- und Team-Bonn-Staffel) täglich um 00:30
+// materialisieren, sobald ein Kalendermonat abgeschlossen ist. Idempotent (idem_key).
+cron.schedule('30 0 * * *', async () => {
+  try {
+    const { materialisiereNachtraege } = require('./utils/provisionen');
+    await materialisiereNachtraege();
+    console.log('[provisionen] Nachträge materialisiert für', new Date().toISOString().slice(0, 10));
+  } catch (err) {
+    console.error('[provisionen] Nachträge fehlgeschlagen:', err.message);
+  }
+}, { timezone: 'Europe/Berlin' });
+
 // ── Serve built React frontend (production / Railway) ────────────────────────
 const publicPath = path.join(__dirname, '../public');
 if (fs.existsSync(publicPath)) {

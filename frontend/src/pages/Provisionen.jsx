@@ -118,10 +118,11 @@ function BackfillPanel({ onDone }) {
 }
 
 export default function Provisionen() {
-  const { isSuperAdmin } = useAuth();
+  const { isSuperAdmin, isAdmin } = useAuth();
   const qc = useQueryClient();
   const [zid, setZid] = useState('');
   const [detailEmp, setDetailEmp] = useState(null);
+  const [exportErr, setExportErr] = useState('');
 
   const { data: zeitraeume = [] } = useQuery({ queryKey: ['prov-zeitraeume'], queryFn: provisionenApi.zeitraeume });
   const { data, isLoading } = useQuery({
@@ -132,6 +133,12 @@ export default function Provisionen() {
 
   const zSel = zid || data?.zeitraum?.id || '';
   const zeilen = data?.zeilen || [];
+
+  const abschlussMut = useMutation({
+    mutationFn: () => provisionenApi.abschluss(zSel),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['prov-zeitraeume'] }); qc.invalidateQueries({ queryKey: ['prov-overview'] }); },
+  });
+  const doExport = async () => { setExportErr(''); try { await provisionenApi.exportCsv(zSel); } catch (e) { setExportErr('Export fehlgeschlagen.'); } };
 
   return (
     <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-5">
@@ -144,6 +151,24 @@ export default function Provisionen() {
           ))}
         </select>
       </div>
+
+      {isAdmin && data?.zeitraum && (
+        <div className="flex flex-wrap items-center gap-3">
+          <button onClick={doExport} className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">⬇ StB-Export (CSV)</button>
+          {data.zeitraum.status === 'offen' ? (
+            <button
+              onClick={() => { if (window.confirm(`Zeitraum „${data.zeitraum.label}" abschließen? Buchungen werden eingefroren; spätere Stornos/Korrekturen laufen in den Folgezeitraum.`)) abschlussMut.mutate(); }}
+              disabled={abschlussMut.isPending}
+              className="rounded-lg bg-gray-800 px-3 py-1.5 text-sm font-semibold text-white hover:bg-gray-900 disabled:opacity-50">
+              {abschlussMut.isPending ? 'Schließe…' : '🔒 Zeitraum abschließen'}
+            </button>
+          ) : (
+            <span className="inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 px-3 py-1 text-xs font-semibold">✓ Abgeschlossen{data.zeitraum.abgeschlossen_am ? ` am ${data.zeitraum.abgeschlossen_am}` : ''}</span>
+          )}
+          {abschlussMut.isError && <span className="text-xs text-rose-600">{abschlussMut.error?.response?.data?.error || 'Abschluss fehlgeschlagen'}</span>}
+          {exportErr && <span className="text-xs text-rose-600">{exportErr}</span>}
+        </div>
+      )}
 
       {isSuperAdmin && <BackfillPanel onDone={() => qc.invalidateQueries({ queryKey: ['prov-overview'] })} />}
 

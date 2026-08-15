@@ -144,8 +144,23 @@ export const provisionenApi = {
   overview:    (zeitraum_id)    => api.get('/provisionen/admin/overview', { params: { zeitraum_id } }).then(r => r.data),
   employee:    (id, zeitraum_id)=> api.get(`/provisionen/admin/employee/${id}`, { params: { zeitraum_id } }).then(r => r.data),
   config:      ()               => api.get('/provisionen/config').then(r => r.data),
+  configUpsert:(gueltig_ab, d)  => api.put(`/provisionen/config/${gueltig_ab}`, d).then(r => r.data),
   backfillDry: ()               => api.get('/provisionen/admin/backfill/projektion').then(r => r.data),
   backfillRun: ()               => api.post('/provisionen/admin/backfill').then(r => r.data),
+  abschluss:   (id)             => api.post(`/provisionen/admin/zeitraeume/${id}/abschluss`).then(r => r.data),
+  exportCsv: async (id) => {
+    const token = localStorage.getItem('kpi_token');
+    const res   = await fetch(`/api/provisionen/admin/zeitraeume/${id}/export.csv`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error('Export fehlgeschlagen');
+    const blob  = await res.blob();
+    const cd    = res.headers.get('Content-Disposition') || '';
+    const m     = cd.match(/filename="([^"]+)"/);
+    const a     = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = m ? m[1] : 'provisionen.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(a.href);
+  },
 };
 
 export const auditApi = {

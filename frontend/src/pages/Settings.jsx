@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { companiesApi, targetsApi, adminApi, auditApi, employeesApi, featureFlagsApi, backupApi, exchangeRatesApi, monthlyTargetsStandortApi } from '../utils/api';
+import { companiesApi, targetsApi, adminApi, auditApi, employeesApi, featureFlagsApi, backupApi, exchangeRatesApi, monthlyTargetsStandortApi, provisionenApi } from '../utils/api';
 import { currentMonat } from '../utils/format';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
@@ -115,6 +115,97 @@ function AccessControlSection() {
             ))}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+// ── Provisions-Sätze (superadmin only) — perioden-gültig, nie rückwirkend ──
+function ProvisionConfigSection() {
+  const qc = useQueryClient();
+  const [form, setForm] = useState(null);
+  const [savedOk, setSavedOk] = useState(false);
+  const { data: configs = [], isLoading } = useQuery({ queryKey: ['prov-config'], queryFn: provisionenApi.config });
+  const { data: employees = [] } = useQuery({ queryKey: ['employees'], queryFn: () => employeesApi.list() });
+
+  useEffect(() => {
+    if (form || !configs.length) return;
+    const c = configs[0];
+    setForm({
+      gueltig_ab: '',
+      opener_satz: c.opener_satz, setter_satz: c.setter_satz, opener_setter_pauschal: c.opener_setter_pauschal,
+      closer_basis: c.closer_basis, closer_schwelle: c.closer_schwelle, closer_hoch: c.closer_hoch,
+      team_empfaenger_id: c.team_empfaenger_id || '', team_s1_bis: c.team_s1_bis, team_s1: c.team_s1,
+      team_s2_bis: c.team_s2_bis, team_s2: c.team_s2, team_s3: c.team_s3,
+    });
+  }, [configs, form]);
+
+  const saveMut = useMutation({
+    mutationFn: ({ gueltig_ab, ...rest }) => provisionenApi.configUpsert(gueltig_ab, rest),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['prov-config'] }); setSavedOk(true); setTimeout(() => setSavedOk(false), 2000); },
+  });
+
+  if (isLoading || !form) return <div className="text-sm text-gray-400 py-4">Lade…</div>;
+  const inpCls = "w-full bg-white border border-gray-300 text-gray-700 text-sm rounded px-2 py-1.5";
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const bonnBs = employees.filter(e => ['Bonn', 'Braunschweig'].includes(e.standort));
+  const numField = (k, label, step = '0.1') => (
+    <label className="block"><span className="text-xs text-gray-500">{label}</span>
+      <input type="number" step={step} value={form[k]} onChange={e => set(k, e.target.value)} className={inpCls} /></label>
+  );
+  const canSave = /^\d{4}-\d{2}-\d{2}$/.test(form.gueltig_ab);
+  return (
+    <div className="space-y-4">
+      <div className="text-xs bg-amber-50 border border-amber-200 text-amber-700 rounded px-3 py-2">
+        Sätze gelten ab dem eingetragenen Stichtag (perioden-gültig, nie rückwirkend). Bereits gebuchte Provisionen bleiben unverändert.
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <label className="block"><span className="text-xs text-gray-500">Gültig ab</span>
+          <input type="date" value={form.gueltig_ab} onChange={e => set('gueltig_ab', e.target.value)} className={inpCls} /></label>
+        {numField('opener_satz', 'Opener %')}
+        {numField('setter_satz', 'Setter %')}
+        {numField('opener_setter_pauschal', 'Opener+Setter Pauschale %')}
+        {numField('closer_basis', 'Closer Basis %')}
+        {numField('closer_schwelle', 'Closer Schwelle €', '1000')}
+        {numField('closer_hoch', 'Closer hoch % (ab Schwelle)')}
+        <label className="block"><span className="text-xs text-gray-500">Team-Empfänger</span>
+          <select value={form.team_empfaenger_id} onChange={e => set('team_empfaenger_id', e.target.value)} className={inpCls}>
+            <option value="">—</option>
+            {bonnBs.map(e => <option key={e.id} value={e.id}>{e.name} ({e.standort})</option>)}
+          </select></label>
+        {numField('team_s1_bis', 'Team Stufe 1 bis €', '1000')}
+        {numField('team_s1', 'Team % ≤ Stufe 1')}
+        {numField('team_s2_bis', 'Team Stufe 2 bis €', '1000')}
+        {numField('team_s2', 'Team % Stufe 2')}
+        {numField('team_s3', 'Team % > Stufe 2')}
+      </div>
+      <div className="flex items-center gap-3">
+        <button onClick={() => saveMut.mutate(form)} disabled={!canSave || saveMut.isPending}
+          className={`text-sm px-4 py-1.5 rounded text-white ${savedOk ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-500'} disabled:opacity-50`}>
+          {savedOk ? '✓ Gespeichert' : saveMut.isPending ? 'Speichere…' : 'Neue Sätze speichern'}
+        </button>
+        {!canSave && <span className="text-xs text-gray-400">Bitte „Gültig ab" setzen</span>}
+        {saveMut.isError && <span className="text-xs text-rose-600">{saveMut.error?.response?.data?.error || 'Fehler'}</span>}
+      </div>
+      <div className="rounded-xl border border-gray-200 overflow-hidden mt-2">
+        <div className="bg-gray-50 px-4 py-2 text-xs font-semibold text-gray-500">Bestehende Sätze (Historie)</div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead><tr className="text-left text-xs text-gray-400 border-b border-gray-100">
+              <th className="px-4 py-2">Gültig ab</th><th className="px-3 py-2">Opener</th><th className="px-3 py-2">Setter</th><th className="px-3 py-2">O+S</th><th className="px-3 py-2">Closer</th><th className="px-3 py-2">Schwelle</th><th className="px-3 py-2">Closer hoch</th>
+            </tr></thead>
+            <tbody>
+              {configs.map(c => (
+                <tr key={c.gueltig_ab} className="border-b border-gray-50 last:border-0">
+                  <td className="px-4 py-2 font-medium">{c.gueltig_ab}</td>
+                  <td className="px-3 py-2">{c.opener_satz}%</td><td className="px-3 py-2">{c.setter_satz}%</td>
+                  <td className="px-3 py-2">{c.opener_setter_pauschal}%</td><td className="px-3 py-2">{c.closer_basis}%</td>
+                  <td className="px-3 py-2">{Number(c.closer_schwelle).toLocaleString('de-DE')} €</td><td className="px-3 py-2">{c.closer_hoch}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
@@ -360,6 +451,7 @@ export default function Settings() {
     ...(isSuperAdmin ? [
       { id: 'access',         label: 'Zugriffssteuerung' },
       { id: 'kpi_visibility', label: 'KPI-Mitarbeiter' },
+      { id: 'provisionen',    label: 'Provisionen' },
       { id: 'online',         label: 'Online' },
     ] : []),
     ...(isAdmin ? [
@@ -391,6 +483,9 @@ export default function Settings() {
 
       {/* ── TAB: Zugriffssteuerung ─────────────────────────────────── */}
       {tab === 'access' && isSuperAdmin && <AccessControlSection />}
+
+      {/* ── TAB: Provisionen (Sätze/Schwellen) ─────────────────────── */}
+      {tab === 'provisionen' && isSuperAdmin && <ProvisionConfigSection />}
 
       {/* ── TAB: Benutzer ──────────────────────────────────────────── */}
       {tab === 'users' && isAdmin && (
