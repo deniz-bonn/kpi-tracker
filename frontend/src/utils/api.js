@@ -138,6 +138,16 @@ export const bestenlisteApi = {
   list: (params) => api.get('/bestenliste', { params }).then(r => r.data),
 };
 
+export const provisionenApi = {
+  zeitraeume:  ()               => api.get('/provisionen/zeitraeume').then(r => r.data),
+  me:          (zeitraum_id)    => api.get('/provisionen/me', { params: { zeitraum_id } }).then(r => r.data),
+  overview:    (zeitraum_id)    => api.get('/provisionen/admin/overview', { params: { zeitraum_id } }).then(r => r.data),
+  employee:    (id, zeitraum_id)=> api.get(`/provisionen/admin/employee/${id}`, { params: { zeitraum_id } }).then(r => r.data),
+  config:      ()               => api.get('/provisionen/config').then(r => r.data),
+  backfillDry: ()               => api.get('/provisionen/admin/backfill/projektion').then(r => r.data),
+  backfillRun: ()               => api.post('/provisionen/admin/backfill').then(r => r.data),
+};
+
 export const auditApi = {
   list: (params) => api.get('/audit', { params }).then(r => r.data),
   undo: (id) => api.post(`/audit/${id}/undo`).then(r => r.data),

@@ -106,13 +106,20 @@ export function AuthProvider({ children }) {
   const canSeeBestenliste = isSuperAdmin || (
     featureFlags !== null && (featureFlags['bestenliste'] || []).includes(user?.role)
   );
+  // Provisionen (Beta): out-of-the-box nur Superadmin; weitere Rollen via Flag (Einstellungen).
+  const canSeeProvisionen = isSuperAdmin || (
+    featureFlags !== null && (featureFlags['provisionen'] || []).includes(user?.role)
+  );
+  // Admin-Sicht der Provisionen (Gesamtübersicht/Abschluss): zusätzlich Rolle Admin/Vertriebsleitung.
+  const canSeeProvisionenAdmin = canSeeProvisionen && (isAdmin || isVertriebsleitung);
 
   return (
     <AuthContext.Provider value={{
       user, token, login, logout, loading,
       isSuperAdmin, isAdmin, isBackoffice, isVertriebsleitung,
       canSeeNK, canSeeBK, canSeeVL, canSeeAdmin, canSeeAll,
-      canSeeKpiBeta, canSeeBackup, canSeeBestenliste, featureFlags, refreshFeatureFlags,
+      canSeeKpiBeta, canSeeBackup, canSeeBestenliste,
+      canSeeProvisionen, canSeeProvisionenAdmin, featureFlags, refreshFeatureFlags,
     }}>
       {children}
     </AuthContext.Provider>

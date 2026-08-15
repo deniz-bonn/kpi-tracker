@@ -19,6 +19,7 @@ const ROLE_LABELS = { superadmin:'Super Admin', admin:'Admin', vertriebsleitung:
 const CONTROLLED_FEATURES = [
   { key: 'kpi_beta', label: 'KPI Mitarbeiter Beta', desc: 'Beta-Dashboard mit täglichem Activity-Tracking' },
   { key: 'bestenliste', label: 'Bestenliste (Beta)', desc: 'Motivations-Leaderboard für den Vertrieb (nur NK-Daten)' },
+  { key: 'provisionen', label: 'Provisionen (Beta)', desc: 'Provisionsabrechnung NK (Bonn/Braunschweig) — eigene Provision + Admin-Übersicht' },
   { key: 'backup',   label: 'Datensicherung',       desc: 'Backup-Export und automatische Datensicherung herunterladen' },
 ];
 const CONTROLLABLE_ROLES = [
