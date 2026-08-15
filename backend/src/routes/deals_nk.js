@@ -6,6 +6,7 @@ const { logAudit }   = require('../utils/audit');
 const { pruefeDatumsaenderung } = require('../utils/dealGuards');
 const { loadRates, rateFor, enrichDealsEur } = require('../utils/currency');
 const { resolveGewonnenFelder } = require('../utils/gewonnen');
+const { provisionSync } = require('../utils/provisionen');
 
 router.use(requireAuth);
 
@@ -202,6 +203,7 @@ router.post('/', wrap(async (req, res) => {
   }
 
   try { await syncAeGesamtNK(row, null); } catch (e) { console.error('[sync-nk] POST:', e.message); }
+  try { await provisionSync(row, null); } catch (e) { console.error('[prov-nk] POST:', e.message); }
   await logAudit({ user: req.user, action: 'create', entityType: 'deal_nk', entityId: row.id, newData: row });
   res.status(201).json(row);
 }));
@@ -240,6 +242,7 @@ router.put('/:id', wrap(async (req, res) => {
   }
 
   try { await syncAeGesamtNK(row, existing); } catch (e) { console.error('[sync-nk] PUT:', e.message); }
+  try { await provisionSync(row, existing); } catch (e) { console.error('[prov-nk] PUT:', e.message); }
   await logAudit({ user: req.user, action: 'update', entityType: 'deal_nk', entityId: Number(req.params.id), oldData: existing, newData: row });
   res.json(row);
 }));
@@ -251,6 +254,7 @@ router.delete('/:id', wrap(async (req, res) => {
 
   if (existing?.status === 'Gewonnen') {
     try { await syncAeGesamtNK({ ...existing, status: 'Gelöscht' }, existing); } catch (e) { console.error('[sync-nk] DELETE:', e.message); }
+    try { await provisionSync({ ...existing, status: 'Gelöscht' }, existing); } catch (e) { console.error('[prov-nk] DELETE:', e.message); }
   }
   const p = db.dialect === 'postgres' ? '$1' : '?';
   await db.run(`DELETE FROM deals_nk WHERE id=${p}`, [req.params.id]);
