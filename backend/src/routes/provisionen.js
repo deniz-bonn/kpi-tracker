@@ -4,7 +4,7 @@ const wrap   = require('../middleware/asyncHandler');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { requireFeature } = require('../middleware/requireFeature');
 const { logAudit } = require('../utils/audit');
-const { projektionLaufend, backfillLaufend, abschliesseZeitraum } = require('../utils/provisionen');
+const { projektionLaufend, backfillLaufend, abschliesseZeitraum, staffelStatus } = require('../utils/provisionen');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Provisionen (NK, Bonn/Braunschweig) — READ-APIs. Modul liest nur, das Ledger
@@ -57,8 +57,11 @@ router.get('/me', wrap(async (req, res) => {
   if (!empId) return res.json({ employee: null, zeitraum: null, summe: 0, perTyp: {}, buchungen: [], hinweis: 'Kein Mitarbeiter mit diesem Account verknüpft.' });
   const z = await resolveZeitraum(req.query.zeitraum_id);
   const emp = await db.get(`SELECT id, name, standort FROM employees WHERE id=${ph(1)}`, [empId]);
-  if (!z) return res.json({ employee: emp, zeitraum: null, summe: 0, perTyp: {}, buchungen: [] });
-  res.json({ employee: emp, zeitraum: z, ...(await detailFor(empId, z)) });
+  const ss = await staffelStatus(heute().slice(0, 7));                    // aktueller Kalendermonat
+  const staffel = ss.closers.find(c => c.employee_id === empId) || null;  // eigener Closer-Satz
+  const teamStaffel = ss.team && ss.team.employee_id === empId ? ss.team : null;
+  if (!z) return res.json({ employee: emp, zeitraum: null, summe: 0, perTyp: {}, buchungen: [], staffel, teamStaffel });
+  res.json({ employee: emp, zeitraum: z, ...(await detailFor(empId, z)), staffel, teamStaffel });
 }));
 
 // ── Admin/Vertriebsleitung: Gesamtuebersicht + Einzeldetail ──
@@ -72,7 +75,8 @@ router.get('/admin/overview', adminOnly, wrap(async (req, res) => {
        FROM provision_buchungen b LEFT JOIN employees e ON e.id=b.employee_id
       WHERE b.zeitraum_id=${ph(1)} GROUP BY b.employee_id, e.name, e.standort ORDER BY summe DESC`, [z.id]);
   const zeilen = rows.map(r => ({ employee_id: r.employee_id, name: r.name, standort: r.standort, summe: round2(num(r.summe)) }));
-  res.json({ zeitraum: z, gesamt: round2(zeilen.reduce((a, r) => a + r.summe, 0)), zeilen });
+  const staffel = await staffelStatus(heute().slice(0, 7));   // aktueller Monats-Satz je Closer + Team (für Anzeige)
+  res.json({ zeitraum: z, gesamt: round2(zeilen.reduce((a, r) => a + r.summe, 0)), zeilen, staffel });
 }));
 
 router.get('/admin/employee/:id', adminOnly, wrap(async (req, res) => {

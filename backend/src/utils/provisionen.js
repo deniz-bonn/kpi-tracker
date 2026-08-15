@@ -86,57 +86,55 @@ async function provisionSync(deal, prev, stichtag) {
   const today = stichtag || heute();
 
   if (!wasWon && isWon) {                                   // WIN -> Basis-Positionen
-    const gd = toYmd(deal.gewonnen_datum); if (!gd) return;
-    const { von, bis } = periodFor(gd);
-    // Config-Gate VOR Zeitraum-Anlage: Deals vor Go-Live (kein gueltiger Satz) erzeugen keine Waisen-Zeitraeume.
-    const cfg = await configFor(von); if (!cfg) return;
-    const z = await getOrCreateZeitraum(von, bis);
-    const km = kalendermonatFor(gd), ae = Number(deal.ae_wert) || 0;
-    for (const p of await positionenFor(deal, cfg)) {
-      await insertBuchung({ zeitraum_id: z.id, employee_id: p.emp, deal_id: deal.id, rolle: p.rolle,
-        typ: p.isTeam ? 'team_provision' : 'deal_gewonnen', satz: p.satz, bemessungsgrundlage: ae,
-        betrag: ae * p.satz / 100, kalendermonat: km, gewonnen_datum: gd,
-        beschreibung: `${p.besch} · ${deal.kunde || ''}`.trim(),
-        idem_key: `${p.isTeam ? 'team' : 'dg'}:${deal.id}:${p.rolle}:${p.emp}` });
+    const gd = toYmd(deal.gewonnen_datum);
+    const { von, bis } = gd ? periodFor(gd) : {};
+    const cfg = gd ? await configFor(von) : null;           // Config-Gate: kein gueltiger Satz (vor Go-Live) -> nichts buchen
+    if (gd && cfg) {
+      const z = await getOrCreateZeitraum(von, bis);
+      const km = kalendermonatFor(gd), ae = Number(deal.ae_wert) || 0;
+      for (const p of await positionenFor(deal, cfg)) {
+        await insertBuchung({ zeitraum_id: z.id, employee_id: p.emp, deal_id: deal.id, rolle: p.rolle,
+          typ: p.isTeam ? 'team_provision' : 'deal_gewonnen', satz: p.satz, bemessungsgrundlage: ae,
+          betrag: ae * p.satz / 100, kalendermonat: km, gewonnen_datum: gd,
+          beschreibung: `${p.besch} · ${deal.kunde || ''}`.trim(),
+          idem_key: `${p.isTeam ? 'team' : 'dg'}:${deal.id}:${p.rolle}:${p.emp}` });
+      }
     }
-    return;
+  } else if (wasWon && !isWon) {                            // UNWIN -> Storno (inkl. Staffel des Deals)
+    await storniereDeal(deal?.id ?? prev.id, prev, today);
+  } else {                                                  // wasWon && isWon: Neu-Bewertung (ae ODER Rollen/Personen)
+    const gd = toYmd(deal.gewonnen_datum) || toYmd(prev.gewonnen_datum);
+    const { von, bis } = gd ? periodFor(gd) : {};
+    const cfg = gd ? await configFor(von) : null;
+    if (gd && cfg) {
+      const orig = await getOrCreateZeitraum(von, bis);
+      const target = orig.status === 'offen' ? orig : await offenerZeitraumAm(today);
+      const km = kalendermonatFor(gd), ae = Number(deal.ae_wert) || 0;
+      // Soll je (Empfänger,Rolle) laut aktuellem Deal-Zustand; Ist = bereits gebuchte Basis+Korrekturen.
+      const soll = new Map();
+      for (const p of await positionenFor(deal, cfg)) soll.set(`${p.emp}|${p.rolle}`, { satz: p.satz, besch: p.besch, betrag: round2(ae * p.satz / 100) });
+      const ist = new Map();
+      for (const r of await db.all(`SELECT employee_id, rolle, COALESCE(SUM(betrag),0) b FROM provision_buchungen WHERE deal_id=${q1(1)} AND typ IN ('deal_gewonnen','team_provision','korrektur') GROUP BY employee_id, rolle`, [deal.id]))
+        ist.set(`${r.employee_id}|${r.rolle}`, round2(Number(r.b)));
+      for (const k of new Set([...soll.keys(), ...ist.keys()])) {
+        const [emp, rolle] = k.split('|');
+        const s = soll.get(k), sollB = s ? s.betrag : 0, istB = ist.get(k) || 0, diff = round2(sollB - istB);
+        if (diff === 0) continue;
+        await insertBuchung({ zeitraum_id: target.id, employee_id: +emp, deal_id: deal.id, rolle,
+          typ: 'korrektur', satz: s ? s.satz : 0, bemessungsgrundlage: ae, betrag: diff, kalendermonat: km, gewonnen_datum: gd,
+          beschreibung: s ? `Korrektur → Soll ${fmtEur(sollB)} (war ${fmtEur(istB)}) · ${s.besch}` : `Korrektur → Rolle entfällt, Rückbuchung ${fmtEur(-diff)} · ${deal.kunde || ''}`.trim(),
+          idem_key: null });
+      }
+    }
   }
 
-  if (wasWon && !isWon) return storniereDeal(deal?.id ?? prev.id, prev, today);   // UNWIN -> Storno
-
-  if (wasWon && isWon) {                                    // Neu-Bewertung: ae ODER Rollen (Personen) geändert
-    const gd = toYmd(deal.gewonnen_datum) || toYmd(prev.gewonnen_datum); if (!gd) return;
-    const { von, bis } = periodFor(gd);
-    const cfg = await configFor(von); if (!cfg) return;    // Go-Live-Gate vor Zeitraum-Anlage (s.o.)
-    const orig = await getOrCreateZeitraum(von, bis);
-    const target = orig.status === 'offen' ? orig : await offenerZeitraumAm(today);
-    const km = kalendermonatFor(gd), ae = Number(deal.ae_wert) || 0;
-    // Soll: was jede(r) Beteiligte laut aktuellem Deal-Zustand bekommen müsste (Basis-Positionen).
-    const soll = new Map();
-    for (const p of await positionenFor(deal, cfg)) soll.set(`${p.emp}|${p.rolle}`, { satz: p.satz, besch: p.besch, betrag: round2(ae * p.satz / 100) });
-    // Ist: bereits gebuchte Netto-Summe je (Empfänger,Rolle) dieses Deals (Basis + frühere Korrekturen).
-    const ist = new Map();
-    for (const r of await db.all(`SELECT employee_id, rolle, COALESCE(SUM(betrag),0) b FROM provision_buchungen WHERE deal_id=${q1(1)} AND typ IN ('deal_gewonnen','team_provision','korrektur') GROUP BY employee_id, rolle`, [deal.id]))
-      ist.set(`${r.employee_id}|${r.rolle}`, round2(Number(r.b)));
-    // Differenz je Empfänger/Rolle als sichtbare Korrektur buchen (auch Rückbuchung entfallener Rollen).
-    // Selbst-idempotent: Ist wird frisch aus dem Ledger gelesen, unveränderte Deals ergeben Diff 0.
-    for (const k of new Set([...soll.keys(), ...ist.keys()])) {
-      const [emp, rolle] = k.split('|');
-      const s = soll.get(k), sollB = s ? s.betrag : 0, istB = ist.get(k) || 0, diff = round2(sollB - istB);
-      if (diff === 0) continue;
-      await insertBuchung({ zeitraum_id: target.id, employee_id: +emp, deal_id: deal.id, rolle,
-        typ: 'korrektur', satz: s ? s.satz : 0, bemessungsgrundlage: ae, betrag: diff, kalendermonat: km, gewonnen_datum: gd,
-        beschreibung: s ? `Korrektur → Soll ${fmtEur(sollB)} (war ${fmtEur(istB)}) · ${s.besch}` : `Korrektur → Rolle entfällt, Rückbuchung ${fmtEur(-diff)} · ${deal.kunde || ''}`.trim(),
-        idem_key: null });
-    }
-    return;
-  }
+  await nachStaffel(deal, prev, today);                    // Live-Staffelung nach jeder provisionsrelevanten Änderung
 }
 
 // Storniert einen Deal: reversed die Netto-Summe je (Empfänger,Rolle) in den offenen Zeitraum.
 async function storniereDeal(dealId, prev, today) {
   const orig = await db.all(
-    `SELECT employee_id, rolle, betrag FROM provision_buchungen WHERE deal_id=${q1(1)} AND typ IN ('deal_gewonnen','team_provision','korrektur','staffel_nachtrag','team_nachtrag')`, [dealId]);
+    `SELECT employee_id, rolle, betrag FROM provision_buchungen WHERE deal_id=${q1(1)} AND typ IN ('deal_gewonnen','team_provision','korrektur','staffel_upgrade','staffel_nachtrag','team_upgrade','team_nachtrag')`, [dealId]);
   const agg = {};
   for (const b of orig) { const k = `${b.employee_id}|${b.rolle}`; agg[k] = (agg[k] || 0) + Number(b.betrag); }
   const z = await offenerZeitraumAm(today);
@@ -150,49 +148,153 @@ async function storniereDeal(dealId, prev, today) {
   }
 }
 
-// Monatsend-Nachträge (idempotent): Closer-200k-Staffel + Team-Bonn-Staffel für abgeschlossene
-// Kalendermonate, gebucht in den am Stichtag offenen Zeitraum (Überhang-/Clawback-Prinzip).
+// Go-Live-Untergrenze: fruehestes Config-Datum. Deals davor zaehlen nie mit (auch nicht in Staffeln).
+async function goLiveDatum() {
+  return (await db.get(`SELECT MIN(gueltig_ab) g FROM provision_config`))?.g || '9999-12-31';
+}
+
+// Status des Zeitraums, in dem die Basis eines Deals liegt ('offen'|'abgeschlossen').
+async function periodeStatus(gd) {
+  const row = await db.get(`SELECT status FROM provision_zeitraeume WHERE von=${q1(1)}`, [periodFor(gd).von]);
+  return row?.status || 'offen';
+}
+
+// LIVE-Staffel (Closer, 200k): bestimmt den effektiven Monatssatz und bucht je Deal die Differenz
+// (Soll = extra% × ae, Ist = bereits gebuchte Staffel des Deals). Wirkt hoch UND runter (append-only).
+// Deal-Basis im offenen Zeitraum -> 'staffel_upgrade'; in abgeschlossenem -> 'staffel_nachtrag' (Folgezeitraum).
+async function aktualisiereCloserStaffel(closerId, km, stichtag) {
+  if (!closerId) return;
+  if (!DE.has(await empStandort(closerId))) return;        // nur DE-Closer haben Staffel
+  const cfg = await configFor(km + '-28'); if (!cfg) return;
+  const goLive = await goLiveDatum(), today = stichtag || heute();
+  const deals = await db.all(
+    `SELECT id, ae_wert, gewonnen_datum, kunde FROM deals_nk
+      WHERE closer_id=${q1(1)} AND status='Gewonnen' AND ${ymExpr('gewonnen_datum')}=${q1(2)} AND ${ymdExpr('gewonnen_datum')} >= ${q1(3)}`,
+    [closerId, km, goLive]);
+  const monthAe = deals.reduce((s, d) => s + (Number(d.ae_wert) || 0), 0);
+  const above = monthAe >= Number(cfg.closer_schwelle);
+  const extra = above ? (Number(cfg.closer_hoch) - Number(cfg.closer_basis)) : 0;   // %-Punkte
+  const zielOffen = await offenerZeitraumAm(today);
+  for (const d of deals) {
+    const gd = toYmd(d.gewonnen_datum); if (!gd) continue;
+    const ae = Number(d.ae_wert) || 0;
+    const want = round2(ae * extra / 100);
+    const have = round2(Number((await db.get(
+      `SELECT COALESCE(SUM(betrag),0) b FROM provision_buchungen WHERE deal_id=${q1(1)} AND employee_id=${q1(2)} AND rolle='closer' AND typ IN ('staffel_upgrade','staffel_nachtrag')`,
+      [d.id, closerId])).b));
+    const diff = round2(want - have);
+    if (diff === 0) continue;
+    const typ = (await periodeStatus(gd)) === 'offen' ? 'staffel_upgrade' : 'staffel_nachtrag';
+    await insertBuchung({ zeitraum_id: zielOffen.id, employee_id: closerId, deal_id: d.id, rolle: 'closer',
+      typ, satz: extra, bemessungsgrundlage: ae, betrag: diff, kalendermonat: km, gewonnen_datum: gd,
+      beschreibung: above
+        ? `Staffel-Upgrade ${km}: ${fmtEur(monthAe)} ≥ ${fmtEur(cfg.closer_schwelle)} → +${fmtPct(extra)} · ${d.kunde || ''}`.trim()
+        : `Staffel-Rücknahme ${km}: ${fmtEur(monthAe)} unter ${fmtEur(cfg.closer_schwelle)} · ${d.kunde || ''}`.trim(),
+      idem_key: null });
+  }
+}
+
+// LIVE-Team-Staffel (Bonn-Monats-AE): identische Mechanik über die Team-Stufen (150k/250k), je Bonn-Deal.
+async function aktualisiereTeamStaffel(km, stichtag) {
+  const cfg = await configFor(km + '-28'); if (!cfg || !cfg.team_empfaenger_id) return;
+  const empf = +cfg.team_empfaenger_id, goLive = await goLiveDatum(), today = stichtag || heute();
+  const deals = await db.all(
+    `SELECT d.id, d.ae_wert, d.gewonnen_datum, d.kunde FROM deals_nk d JOIN employees e ON e.id=d.closer_id
+      WHERE d.status='Gewonnen' AND ${ymExpr('d.gewonnen_datum')}=${q1(1)} AND ${ymdExpr('d.gewonnen_datum')} >= ${q1(2)} AND e.standort='Bonn'`,
+    [km, goLive]);
+  const bonnAe = deals.reduce((s, d) => s + (Number(d.ae_wert) || 0), 0);
+  const finalSatz = bonnAe <= Number(cfg.team_s1_bis) ? Number(cfg.team_s1)
+    : bonnAe <= Number(cfg.team_s2_bis) ? Number(cfg.team_s2) : Number(cfg.team_s3);
+  const extra = finalSatz - Number(cfg.team_s1);            // %-Punkte über Basis-Teamsatz
+  const zielOffen = await offenerZeitraumAm(today);
+  for (const d of deals) {
+    const gd = toYmd(d.gewonnen_datum); if (!gd) continue;
+    const ae = Number(d.ae_wert) || 0;
+    const want = round2(ae * extra / 100);
+    const have = round2(Number((await db.get(
+      `SELECT COALESCE(SUM(betrag),0) b FROM provision_buchungen WHERE deal_id=${q1(1)} AND employee_id=${q1(2)} AND rolle='team' AND typ IN ('team_upgrade','team_nachtrag')`,
+      [d.id, empf])).b));
+    const diff = round2(want - have);
+    if (diff === 0) continue;
+    const typ = (await periodeStatus(gd)) === 'offen' ? 'team_upgrade' : 'team_nachtrag';
+    await insertBuchung({ zeitraum_id: zielOffen.id, employee_id: empf, deal_id: d.id, rolle: 'team',
+      typ, satz: extra, bemessungsgrundlage: ae, betrag: diff, kalendermonat: km, gewonnen_datum: gd,
+      beschreibung: extra > 0
+        ? `Team-Staffel ${km}: Bonn-AE ${fmtEur(bonnAe)} → ${fmtPct(finalSatz)} (+${fmtPct(extra)}) · ${d.kunde || ''}`.trim()
+        : `Team-Staffel-Rücknahme ${km}: Bonn-AE ${fmtEur(bonnAe)} → ${fmtPct(finalSatz)} · ${d.kunde || ''}`.trim(),
+      idem_key: null });
+  }
+}
+
+// Trigger nach jeder provisionsrelevanten Änderung: Staffel für betroffene Closer + Team neu bestimmen.
+async function nachStaffel(deal, prev, today) {
+  const kmSet = new Set([toYmd(deal?.gewonnen_datum), toYmd(prev?.gewonnen_datum)].filter(Boolean).map(g => g.slice(0, 7)));
+  const closers = new Set([deal?.closer_id, prev?.closer_id].filter(Boolean));
+  for (const km of kmSet) {
+    for (const c of closers) await aktualisiereCloserStaffel(c, km, today);
+    await aktualisiereTeamStaffel(km, today);
+  }
+}
+
+// Datum, an dem der kumulierte Monats-AE des Closers die Schwelle erstmals erreicht (für Anzeige).
+async function datumSchwelle(closerId, km, schwelle, goLive) {
+  const deals = await db.all(
+    `SELECT ${ymdExpr('gewonnen_datum')} gd, ae_wert FROM deals_nk
+      WHERE closer_id=${q1(1)} AND status='Gewonnen' AND ${ymExpr('gewonnen_datum')}=${q1(2)} AND ${ymdExpr('gewonnen_datum')} >= ${q1(3)}
+      ORDER BY ${ymdExpr('gewonnen_datum')}, id`, [closerId, km, goLive]);
+  let cum = 0;
+  for (const d of deals) { cum += Number(d.ae_wert) || 0; if (cum >= schwelle) return d.gd; }
+  return null;
+}
+
+// Effektive Staffel-Situation eines Kalendermonats (für Anzeige: aktueller Satz + Rest bis nächster Stufe).
+async function staffelStatus(km) {
+  const cfg = await configFor(km + '-28');
+  if (!cfg) return { km, closers: [], team: null };
+  const goLive = await goLiveDatum();
+  const schwelle = Number(cfg.closer_schwelle);
+  const rows = await db.all(
+    `SELECT d.closer_id id, e.name, e.standort, SUM(d.ae_wert) ae FROM deals_nk d JOIN employees e ON e.id=d.closer_id
+      WHERE d.status='Gewonnen' AND ${ymExpr('d.gewonnen_datum')}=${q1(1)} AND ${ymdExpr('d.gewonnen_datum')} >= ${q1(2)} AND e.standort IN ('Bonn','Braunschweig')
+      GROUP BY d.closer_id, e.name, e.standort`, [km, goLive]);
+  const closers = [];
+  for (const r of rows) {
+    const ae = Number(r.ae) || 0, above = ae >= schwelle;
+    closers.push({ employee_id: r.id, name: r.name, standort: r.standort, monthAe: round2(ae),
+      satz: above ? Number(cfg.closer_hoch) : Number(cfg.closer_basis), basis: Number(cfg.closer_basis), hoch: Number(cfg.closer_hoch),
+      schwelle, restBisNext: above ? 0 : round2(schwelle - ae),
+      erreichtAm: above ? await datumSchwelle(r.id, km, schwelle, goLive) : null });
+  }
+  let team = null;
+  if (cfg.team_empfaenger_id) {
+    const brow = await db.get(
+      `SELECT SUM(d.ae_wert) ae FROM deals_nk d JOIN employees e ON e.id=d.closer_id
+        WHERE d.status='Gewonnen' AND ${ymExpr('d.gewonnen_datum')}=${q1(1)} AND ${ymdExpr('d.gewonnen_datum')} >= ${q1(2)} AND e.standort='Bonn'`, [km, goLive]);
+    const bonnAe = Number(brow?.ae) || 0, s1b = Number(cfg.team_s1_bis), s2b = Number(cfg.team_s2_bis);
+    const satz = bonnAe <= s1b ? Number(cfg.team_s1) : bonnAe <= s2b ? Number(cfg.team_s2) : Number(cfg.team_s3);
+    const nextThresh = bonnAe <= s1b ? s1b : bonnAe <= s2b ? s2b : null;
+    const nextSatz = bonnAe <= s1b ? Number(cfg.team_s2) : bonnAe <= s2b ? Number(cfg.team_s3) : null;
+    const emp = await db.get(`SELECT name FROM employees WHERE id=${q1(1)}`, [cfg.team_empfaenger_id]);
+    team = { employee_id: +cfg.team_empfaenger_id, name: emp?.name, monthAe: round2(bonnAe), satz,
+      restBisNext: nextThresh ? round2(nextThresh - bonnAe) : 0, nextSatz };
+  }
+  return { km, closers, team };
+}
+
+// Idempotentes Sicherheitsnetz (Cron): rechnet die Live-Staffel für alle In-Scope-Kalendermonate nach.
+// Fängt ab, was der event-getriebene Trigger evtl. verpasst hat; bucht nur fehlende Deltas.
 async function materialisiereNachtraege(stichtag) {
   const today = stichtag || heute();
-  const curMonth = today.slice(0, 7);
-  const zielZeitraum = await offenerZeitraumAm(today);
-  // Go-Live-Untergrenze: fruehestes Config-Datum. Deals davor zaehlen nie mit (auch nicht in Staffeln).
-  const goLive = (await db.get(`SELECT MIN(gueltig_ab) g FROM provision_config`))?.g || '9999-12-31';
-  const monate = (await db.all(`SELECT DISTINCT kalendermonat FROM provision_buchungen`)).map(r => r.kalendermonat).filter(km => km < curMonth);
+  const goLive = await goLiveDatum();
+  const monate = (await db.all(
+    `SELECT DISTINCT ${ymExpr('gewonnen_datum')} km FROM deals_nk WHERE status='Gewonnen' AND ${ymdExpr('gewonnen_datum')} >= ${q1(1)}`, [goLive]))
+    .map(r => r.km).filter(Boolean);
   for (const km of monate) {
-    const cfg = await configFor(km + '-21'); if (!cfg) continue;
-    // Closer-Staffel: persönlicher DE-Closer-AE des Kalendermonats
     const closer = await db.all(
-      `SELECT d.closer_id id, SUM(d.ae_wert) ae FROM deals_nk d JOIN employees e ON e.id=d.closer_id
-       WHERE d.status='Gewonnen' AND ${ymExpr('d.gewonnen_datum')}=${q1(1)} AND ${ymdExpr('d.gewonnen_datum')} >= ${q1(2)} AND e.standort IN ('Bonn','Braunschweig')
-       GROUP BY d.closer_id`, [km, goLive]);
-    for (const c of closer) {
-      const ae = Number(c.ae) || 0;
-      if (ae < Number(cfg.closer_schwelle)) continue;
-      const delta = (Number(cfg.closer_hoch) - Number(cfg.closer_basis));
-      await insertBuchung({ zeitraum_id: zielZeitraum.id, employee_id: c.id, deal_id: null, rolle: 'closer',
-        typ: 'staffel_nachtrag', satz: delta, bemessungsgrundlage: ae, betrag: ae * delta / 100, kalendermonat: km,
-        gewonnen_datum: null, beschreibung: `Nachtrag Staffel ${km}: ${fmtEur(cfg.closer_schwelle)} überschritten, +${fmtPct(delta)} auf ${fmtEur(ae)}`,
-        idem_key: `staffel:${c.id}:${km}` });
-    }
-    // Team-Bonn-Staffel auf den gesamten Bonn-Monats-AE
-    if (cfg.team_empfaenger_id) {
-      const row = await db.get(
-        `SELECT SUM(d.ae_wert) ae FROM deals_nk d JOIN employees e ON e.id=d.closer_id
-         WHERE d.status='Gewonnen' AND ${ymExpr('d.gewonnen_datum')}=${q1(1)} AND ${ymdExpr('d.gewonnen_datum')} >= ${q1(2)} AND e.standort='Bonn'`, [km, goLive]);
-      const bonnAe = Number(row?.ae) || 0;
-      if (bonnAe > 0) {
-        const finalSatz = bonnAe <= Number(cfg.team_s1_bis) ? Number(cfg.team_s1)
-          : bonnAe <= Number(cfg.team_s2_bis) ? Number(cfg.team_s2) : Number(cfg.team_s3);
-        const delta = finalSatz - Number(cfg.team_s1);
-        if (delta > 0) {
-          await insertBuchung({ zeitraum_id: zielZeitraum.id, employee_id: +cfg.team_empfaenger_id, deal_id: null, rolle: 'team',
-            typ: 'team_nachtrag', satz: delta, bemessungsgrundlage: bonnAe, betrag: bonnAe * delta / 100, kalendermonat: km,
-            gewonnen_datum: null, beschreibung: `Team-Nachtrag Staffel ${km}: Bonn-AE ${fmtEur(bonnAe)} → ${fmtPct(finalSatz)}, +${fmtPct(delta)}`,
-            idem_key: `teamstaffel:${cfg.team_empfaenger_id}:${km}` });
-        }
-      }
-    }
+      `SELECT DISTINCT d.closer_id id FROM deals_nk d JOIN employees e ON e.id=d.closer_id
+        WHERE d.status='Gewonnen' AND ${ymExpr('d.gewonnen_datum')}=${q1(1)} AND e.standort IN ('Bonn','Braunschweig')`, [km]);
+    for (const c of closer) await aktualisiereCloserStaffel(c.id, km, today);
+    await aktualisiereTeamStaffel(km, today);
   }
 }
 
@@ -252,4 +354,4 @@ async function abschliesseZeitraum(zeitraumId, userId, stichtag) {
   return { abgeschlossen: { ...z, status: 'abgeschlossen', abgeschlossen_am: today, abgeschlossen_von: userId ?? null }, neuerZeitraum: neu };
 }
 
-module.exports = { provisionSync, materialisiereNachtraege, backfillLaufend, projektionLaufend, abschliesseZeitraum, periodFor, labelFor, kalendermonatFor, configFor, getOrCreateZeitraum };
+module.exports = { provisionSync, materialisiereNachtraege, backfillLaufend, projektionLaufend, abschliesseZeitraum, staffelStatus, periodFor, labelFor, kalendermonatFor, configFor, getOrCreateZeitraum };

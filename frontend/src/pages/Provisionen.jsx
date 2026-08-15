@@ -3,24 +3,15 @@ import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tansta
 import { provisionenApi } from '../utils/api';
 import { formatEuro } from '../utils/format';
 import { useAuth } from '../context/AuthContext';
+import Kontoauszug from '../components/Kontoauszug';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Provisionen (Admin/Vertriebsleitung) — Gesamtübersicht je Abrechnungszeitraum,
-// Einzeldetail je Mitarbeiter. Superadmin: laufenden Zeitraum initialisieren
-// (Dry-Run-Projektion → Commit). Read-only bis auf den Backfill-Commit.
+// Standort-Filter, Einzeldetail je Mitarbeiter, Live-Staffel-Anzeige. Superadmin:
+// laufenden Zeitraum initialisieren. Read-only bis auf Backfill/Abschluss.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const TYP_LABEL = {
-  deal_gewonnen: 'Gewonnen', team_provision: 'Team (Bonn)', korrektur: 'Korrektur',
-  storno: 'Storno', staffel_nachtrag: 'Staffel-Nachtrag', team_nachtrag: 'Team-Nachtrag',
-};
-const TYP_COLOR = {
-  deal_gewonnen: 'text-emerald-700 bg-emerald-50', team_provision: 'text-sky-700 bg-sky-50',
-  korrektur: 'text-amber-700 bg-amber-50', storno: 'text-rose-700 bg-rose-50',
-  staffel_nachtrag: 'text-indigo-700 bg-indigo-50', team_nachtrag: 'text-indigo-700 bg-indigo-50',
-};
-const ROLLE_LABEL = { opener: 'Opener', setter: 'Setter', closer: 'Closer', opener_setter: 'Opener+Setter', team: 'Team' };
-const fmtDate = (d) => (d ? `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}` : '—');
+const fmtPct = (n) => String(n ?? 0).replace('.', ',') + ' %';
 const betragCls = (n) => (Number(n) < 0 ? 'text-rose-600' : 'text-gray-900');
 
 function StandortBadge({ standort }) {
@@ -37,8 +28,8 @@ function DetailModal({ employeeId, zeitraumId, onClose }) {
   const buchungen = data?.buchungen || [];
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl max-w-3xl w-full max-h-[85vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+      <div className="bg-white rounded-2xl shadow-xl max-w-4xl w-full max-h-[85vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0">
           <div>
             <div className="font-bold text-gray-900">{data?.employee?.name || 'Mitarbeiter'}</div>
             <div className="text-xs text-gray-500">{data?.zeitraum?.label} · Summe {formatEuro(data?.summe || 0)}</div>
@@ -46,32 +37,7 @@ function DetailModal({ employeeId, zeitraumId, onClose }) {
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-2xl leading-none">×</button>
         </div>
         <div className="overflow-y-auto">
-          {isLoading ? (
-            <div className="p-8 text-center text-sm text-gray-400">Lädt…</div>
-          ) : buchungen.length === 0 ? (
-            <div className="p-8 text-center text-sm text-gray-400">Keine Buchungen in diesem Zeitraum.</div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs text-gray-400 border-b border-gray-100">
-                  <th className="px-5 py-2 font-medium">Datum</th><th className="px-3 py-2 font-medium">Typ</th>
-                  <th className="px-3 py-2 font-medium">Rolle</th><th className="px-3 py-2 font-medium">Beschreibung</th>
-                  <th className="px-5 py-2 font-medium text-right">Betrag</th>
-                </tr>
-              </thead>
-              <tbody>
-                {buchungen.map((b) => (
-                  <tr key={b.id} className="border-b border-gray-50 last:border-0">
-                    <td className="px-5 py-2 whitespace-nowrap text-gray-500">{fmtDate(b.gewonnen_datum)}</td>
-                    <td className="px-3 py-2 whitespace-nowrap"><span className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${TYP_COLOR[b.typ] || 'bg-gray-100 text-gray-700'}`}>{TYP_LABEL[b.typ] || b.typ}</span></td>
-                    <td className="px-3 py-2 whitespace-nowrap text-gray-600">{ROLLE_LABEL[b.rolle] || b.rolle}</td>
-                    <td className="px-3 py-2 text-gray-500 max-w-xs truncate" title={b.beschreibung || ''}>{b.beschreibung || ''}</td>
-                    <td className={`px-5 py-2 whitespace-nowrap text-right font-semibold ${betragCls(b.betrag)}`}>{formatEuro(b.betrag)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+          {isLoading ? <div className="p-8 text-center text-sm text-gray-400">Lädt…</div> : <Kontoauszug buchungen={buchungen} />}
         </div>
       </div>
     </div>
@@ -123,6 +89,7 @@ export default function Provisionen() {
   const [zid, setZid] = useState('');
   const [detailEmp, setDetailEmp] = useState(null);
   const [exportErr, setExportErr] = useState('');
+  const [filterStandort, setFilterStandort] = useState('Alle');
 
   const { data: zeitraeume = [] } = useQuery({ queryKey: ['prov-zeitraeume'], queryFn: provisionenApi.zeitraeume });
   const { data, isLoading } = useQuery({
@@ -133,6 +100,9 @@ export default function Provisionen() {
 
   const zSel = zid || data?.zeitraum?.id || '';
   const zeilen = data?.zeilen || [];
+  const staffelMap = Object.fromEntries((data?.staffel?.closers || []).map(c => [c.employee_id, c]));
+  const zeilenF = filterStandort === 'Alle' ? zeilen : zeilen.filter(z => z.standort === filterStandort);
+  const gesamtF = Math.round(zeilenF.reduce((a, r) => a + Number(r.summe || 0), 0) * 100) / 100;
 
   const abschlussMut = useMutation({
     mutationFn: () => provisionenApi.abschluss(zSel),
@@ -172,17 +142,27 @@ export default function Provisionen() {
 
       {isSuperAdmin && <BackfillPanel onDone={() => qc.invalidateQueries({ queryKey: ['prov-overview'] })} />}
 
+      <div className="flex items-center gap-2 text-sm">
+        <span className="text-gray-500">Standort:</span>
+        <div className="inline-flex rounded-lg bg-gray-100 p-1 gap-1">
+          {['Alle', 'Bonn', 'Braunschweig'].map(s => (
+            <button key={s} onClick={() => setFilterStandort(s)}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${filterStandort === s ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>{s}</button>
+          ))}
+        </div>
+      </div>
+
       <div className="rounded-2xl bg-gradient-to-br from-gray-800 to-gray-900 text-white p-5 shadow-sm flex items-baseline justify-between">
-        <div className="text-xs font-medium uppercase tracking-wide text-gray-300">Gesamt{data?.zeitraum ? ` · ${data.zeitraum.label}` : ''}</div>
-        <div className="text-3xl font-bold">{formatEuro(data?.gesamt || 0)}</div>
+        <div className="text-xs font-medium uppercase tracking-wide text-gray-300">Gesamt{data?.zeitraum ? ` · ${data.zeitraum.label}` : ''}{filterStandort !== 'Alle' ? ` · ${filterStandort}` : ''}</div>
+        <div className="text-3xl font-bold">{formatEuro(gesamtF)}</div>
       </div>
 
       <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-100 text-sm font-semibold text-gray-700">Berechtigte im Zeitraum</div>
         {isLoading && !data ? (
           <div className="p-8 text-center text-sm text-gray-400">Lädt…</div>
-        ) : zeilen.length === 0 ? (
-          <div className="p-8 text-center text-sm text-gray-400">Noch keine Buchungen in diesem Zeitraum.{isSuperAdmin ? ' Ggf. oben den Backfill ausführen.' : ''}</div>
+        ) : zeilenF.length === 0 ? (
+          <div className="p-8 text-center text-sm text-gray-400">Keine Einträge{filterStandort !== 'Alle' ? ` für ${filterStandort}` : ''} in diesem Zeitraum.{isSuperAdmin && zeilen.length === 0 ? ' Ggf. oben den Backfill ausführen.' : ''}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -191,20 +171,32 @@ export default function Provisionen() {
                   <th className="px-4 py-2 font-medium w-10">#</th>
                   <th className="px-4 py-2 font-medium">Mitarbeiter</th>
                   <th className="px-4 py-2 font-medium">Standort</th>
+                  <th className="px-4 py-2 font-medium">Satz (Monat)</th>
                   <th className="px-4 py-2 font-medium text-right">Provision</th>
                   <th className="px-4 py-2 font-medium text-right w-20"></th>
                 </tr>
               </thead>
               <tbody>
-                {zeilen.map((r, i) => (
-                  <tr key={r.employee_id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50 cursor-pointer" onClick={() => setDetailEmp(r.employee_id)}>
-                    <td className="px-4 py-2 text-gray-400">{i + 1}</td>
-                    <td className="px-4 py-2 font-medium text-gray-900">{r.name || `#${r.employee_id}`}</td>
-                    <td className="px-4 py-2"><StandortBadge standort={r.standort} /></td>
-                    <td className={`px-4 py-2 text-right font-semibold ${betragCls(r.summe)}`}>{formatEuro(r.summe)}</td>
-                    <td className="px-4 py-2 text-right"><span className="text-xs text-indigo-600 font-semibold">Details →</span></td>
-                  </tr>
-                ))}
+                {zeilenF.map((r, i) => {
+                  const st = staffelMap[r.employee_id];
+                  return (
+                    <tr key={r.employee_id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50 cursor-pointer" onClick={() => setDetailEmp(r.employee_id)}>
+                      <td className="px-4 py-2 text-gray-400">{i + 1}</td>
+                      <td className="px-4 py-2 font-medium text-gray-900">{r.name || `#${r.employee_id}`}</td>
+                      <td className="px-4 py-2"><StandortBadge standort={r.standort} /></td>
+                      <td className="px-4 py-2">
+                        {st ? (
+                          <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${st.satz > st.basis ? 'bg-indigo-50 text-indigo-700' : 'bg-gray-100 text-gray-500'}`}
+                            title={st.erreichtAm ? `200k-Schwelle am ${st.erreichtAm.slice(8, 10)}.${st.erreichtAm.slice(5, 7)}. erreicht` : `noch ${formatEuro(st.restBisNext)} bis ${fmtPct(st.hoch)}`}>
+                            {fmtPct(st.satz)}
+                          </span>
+                        ) : <span className="text-xs text-gray-300">—</span>}
+                      </td>
+                      <td className={`px-4 py-2 text-right font-semibold ${betragCls(r.summe)}`}>{formatEuro(r.summe)}</td>
+                      <td className="px-4 py-2 text-right"><span className="text-xs text-indigo-600 font-semibold">Details →</span></td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

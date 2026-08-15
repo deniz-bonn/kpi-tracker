@@ -2,24 +2,39 @@ import { useState } from 'react';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { provisionenApi } from '../utils/api';
 import { formatEuro } from '../utils/format';
+import Kontoauszug, { TYP_LABEL, TYP_COLOR } from '../components/Kontoauszug';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Meine Provision (Mitarbeiter) — eigener Kontoauszug je Abrechnungszeitraum.
 // Read-only. Serverseitig auf den eingeloggten Mitarbeiter begrenzt (siehe API /me).
 // ─────────────────────────────────────────────────────────────────────────────
 
-const TYP_LABEL = {
-  deal_gewonnen: 'Gewonnen', team_provision: 'Team (Bonn)', korrektur: 'Korrektur',
-  storno: 'Storno', staffel_nachtrag: 'Staffel-Nachtrag', team_nachtrag: 'Team-Nachtrag',
-};
-const TYP_COLOR = {
-  deal_gewonnen: 'text-emerald-700 bg-emerald-50', team_provision: 'text-sky-700 bg-sky-50',
-  korrektur: 'text-amber-700 bg-amber-50', storno: 'text-rose-700 bg-rose-50',
-  staffel_nachtrag: 'text-indigo-700 bg-indigo-50', team_nachtrag: 'text-indigo-700 bg-indigo-50',
-};
-const ROLLE_LABEL = { opener: 'Opener', setter: 'Setter', closer: 'Closer', opener_setter: 'Opener+Setter', team: 'Team' };
 const fmtDate = (d) => (d ? `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}` : '—');
+const fmtPct = (n) => String(n ?? 0).replace('.', ',') + ' %';
 const betragCls = (n) => (Number(n) < 0 ? 'text-rose-600' : 'text-gray-900');
+
+// Dezenter Fortschrittsbalken zur nächsten Staffelstufe (Motivations-Element).
+function StaffelBar({ label, satz, monthAe, restBisNext, nextSatz, erreichtAm }) {
+  const maxReached = !(restBisNext > 0) || nextSatz == null;
+  const ziel = maxReached ? monthAe : monthAe + restBisNext;
+  const prog = ziel > 0 ? Math.min(100, Math.round((monthAe / ziel) * 100)) : (maxReached ? 100 : 0);
+  return (
+    <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-3">
+      <div className="flex items-baseline justify-between mb-1.5 gap-2">
+        <span className="text-xs font-semibold text-indigo-600 truncate">{label}</span>
+        <span className="text-sm font-bold text-indigo-700 whitespace-nowrap">Aktueller Satz: {fmtPct(satz)}</span>
+      </div>
+      <div className="h-2 rounded-full bg-indigo-100 overflow-hidden">
+        <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: prog + '%' }} />
+      </div>
+      <div className="mt-1 text-xs text-indigo-500">
+        {maxReached ? 'Höchstsatz erreicht 🎉' : `noch ${formatEuro(restBisNext)} bis ${fmtPct(nextSatz)}`}
+        {' · '}Monats-AE {formatEuro(monthAe)}
+        {erreichtAm ? ` · Schwelle am ${fmtDate(erreichtAm)} erreicht` : ''}
+      </div>
+    </div>
+  );
+}
 
 export default function MeineProvision() {
   const [zid, setZid] = useState('');
@@ -66,6 +81,21 @@ export default function MeineProvision() {
             {data?.zeitraum?.status === 'abgeschlossen' && <div className="text-xs text-indigo-200 mt-1">Zeitraum abgeschlossen</div>}
           </div>
 
+          {/* Live-Staffel (aktueller Kalendermonat) */}
+          {(data?.staffel || data?.teamStaffel) && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {data.staffel && (
+                <StaffelBar label="200k-Staffel (Closer)" satz={data.staffel.satz} monthAe={data.staffel.monthAe}
+                  restBisNext={data.staffel.restBisNext} nextSatz={data.staffel.restBisNext > 0 ? data.staffel.hoch : null}
+                  erreichtAm={data.staffel.erreichtAm} />
+              )}
+              {data.teamStaffel && (
+                <StaffelBar label="Team-Staffel (Bonn)" satz={data.teamStaffel.satz} monthAe={data.teamStaffel.monthAe}
+                  restBisNext={data.teamStaffel.restBisNext} nextSatz={data.teamStaffel.nextSatz} />
+              )}
+            </div>
+          )}
+
           {/* Aufschlüsselung nach Typ */}
           {Object.keys(perTyp).length > 0 && (
             <div className="flex flex-wrap gap-2">
@@ -83,35 +113,8 @@ export default function MeineProvision() {
             <div className="px-4 py-3 border-b border-gray-100 text-sm font-semibold text-gray-700">Kontoauszug</div>
             {isLoading && !data ? (
               <div className="p-8 text-center text-sm text-gray-400">Lädt…</div>
-            ) : buchungen.length === 0 ? (
-              <div className="p-8 text-center text-sm text-gray-400">Keine Buchungen in diesem Zeitraum.</div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-xs text-gray-400 border-b border-gray-100">
-                      <th className="px-4 py-2 font-medium">Datum</th>
-                      <th className="px-4 py-2 font-medium">Typ</th>
-                      <th className="px-4 py-2 font-medium">Rolle</th>
-                      <th className="px-4 py-2 font-medium">Beschreibung</th>
-                      <th className="px-4 py-2 font-medium text-right">Betrag</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {buchungen.map((b) => (
-                      <tr key={b.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
-                        <td className="px-4 py-2 whitespace-nowrap text-gray-500">{fmtDate(b.gewonnen_datum)}</td>
-                        <td className="px-4 py-2 whitespace-nowrap">
-                          <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${TYP_COLOR[b.typ] || 'text-gray-700 bg-gray-100'}`}>{TYP_LABEL[b.typ] || b.typ}</span>
-                        </td>
-                        <td className="px-4 py-2 whitespace-nowrap text-gray-600">{ROLLE_LABEL[b.rolle] || b.rolle}</td>
-                        <td className="px-4 py-2 text-gray-500 max-w-md truncate" title={b.beschreibung || ''}>{b.beschreibung || ''}</td>
-                        <td className={`px-4 py-2 whitespace-nowrap text-right font-semibold ${betragCls(b.betrag)}`}>{formatEuro(b.betrag)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <Kontoauszug buchungen={buchungen} />
             )}
           </div>
           <p className="text-xs text-gray-400">Abrechnungszeitraum jeweils 21. des Vormonats bis 20. des Monats. Provision entsteht mit dem Statuswechsel auf „Gewonnen".</p>
