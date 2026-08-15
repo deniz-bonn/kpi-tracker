@@ -172,4 +172,18 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`KPI Tracker API running on :${PORT}`));
+app.listen(PORT, () => {
+  console.log(`KPI Tracker API running on :${PORT}`);
+  // Provisionen: idempotente Staffel-Reconciliation kurz nach dem Start. Korrigiert die Staffeln
+  // (volle Kalendermonats-Basis) nach jedem Deploy automatisch, ohne dass ein Button geklickt werden
+  // muss. Append-only, schreibt nur in provision_*; bucht nur fehlende Deltas (mehrfach harmlos).
+  setTimeout(async () => {
+    try {
+      const { materialisiereNachtraege } = require('./utils/provisionen');
+      await materialisiereNachtraege();
+      console.log('[provisionen] Staffel-Reconciliation beim Start abgeschlossen');
+    } catch (e) {
+      console.error('[provisionen] Start-Reconciliation fehlgeschlagen:', e.message);
+    }
+  }, 4000);
+});
