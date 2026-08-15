@@ -14,6 +14,8 @@ import Employees from './pages/Employees';
 import KpiMitarbeiter from './pages/KpiMitarbeiter';
 import KpiMitarbeiterBeta from './pages/KpiMitarbeiterBeta';
 import Bestenliste from './pages/Bestenliste';
+import MeineProvision from './pages/MeineProvision';
+import Provisionen from './pages/Provisionen';
 import Auswertung from './pages/Auswertung';
 import Settings from './pages/Settings';
 
@@ -25,7 +27,7 @@ const ROLES = {
 
 // Inner component so useAuth() works (AuthProvider wraps it)
 function AppRoutes() {
-  const { canSeeKpiBeta, canSeeBestenliste } = useAuth();
+  const { canSeeKpiBeta, canSeeBestenliste, canSeeProvisionen, canSeeProvisionenAdmin } = useAuth();
 
   return (
     <Routes>
@@ -82,6 +84,16 @@ function AppRoutes() {
         <Route path="bestenliste" element={
           <ProtectedRoute canAccess={canSeeBestenliste}>
             <Bestenliste />
+          </ProtectedRoute>
+        } />
+        <Route path="meine-provision" element={
+          <ProtectedRoute canAccess={canSeeProvisionen}>
+            <MeineProvision />
+          </ProtectedRoute>
+        } />
+        <Route path="provisionen" element={
+          <ProtectedRoute canAccess={canSeeProvisionenAdmin}>
+            <Provisionen />
           </ProtectedRoute>
         } />
         <Route path="mitarbeiter" element={
