@@ -20,6 +20,11 @@ const TABLES = [
   'deals_vl',
   'upsale_deals',
   'activity_logs',
+  // Provisions-Ledger (append-only) — muss mitgesichert werden. Reihenfolge: Stammdaten vor Buchungen
+  // (Restore fügt vorwärts ein, löscht rückwärts -> Buchungen zuletzt rein, zuerst raus).
+  'provision_zeitraeume',
+  'provision_config',
+  'provision_buchungen',
 ];
 
 // Deal-Tabellen: gewonnen_monat muss immer aus gewonnen_datum ableitbar sein, weil daran die
