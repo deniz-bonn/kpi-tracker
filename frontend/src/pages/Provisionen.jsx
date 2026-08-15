@@ -84,7 +84,7 @@ function BackfillPanel({ onDone }) {
 }
 
 export default function Provisionen() {
-  const { isSuperAdmin, isAdmin } = useAuth();
+  const { isSuperAdmin } = useAuth();
   const qc = useQueryClient();
   const [zid, setZid] = useState('');
   const [detailEmp, setDetailEmp] = useState(null);
@@ -122,7 +122,7 @@ export default function Provisionen() {
         </select>
       </div>
 
-      {isAdmin && data?.zeitraum && (
+      {isSuperAdmin && data?.zeitraum && (
         <div className="flex flex-wrap items-center gap-3">
           <button onClick={doExport} className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">⬇ StB-Export (CSV)</button>
           {data.zeitraum.status === 'offen' ? (

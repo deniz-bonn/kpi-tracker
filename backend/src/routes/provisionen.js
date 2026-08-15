@@ -111,8 +111,8 @@ router.put('/config/:gueltig_ab', requireRole('superadmin'), wrap(async (req, re
   res.json(await db.get(`SELECT * FROM provision_config WHERE gueltig_ab=${ph(1)}`, [g]));
 }));
 
-// ── Zeitraum abschliessen (Admin/Superadmin): einfrieren + Folgeperiode ──
-router.post('/admin/zeitraeume/:id/abschluss', requireRole('admin'), wrap(async (req, res) => {
+// ── Zeitraum abschliessen (NUR Superadmin): einfrieren + Folgeperiode ──
+router.post('/admin/zeitraeume/:id/abschluss', requireRole('superadmin'), wrap(async (req, res) => {
   const r = await abschliesseZeitraum(Number(req.params.id), req.user.id);
   if (r.error === 'not_found') return res.status(404).json({ error: 'Zeitraum nicht gefunden' });
   if (r.error === 'already_closed') return res.status(400).json({ error: 'Zeitraum ist bereits abgeschlossen' });
@@ -121,8 +121,8 @@ router.post('/admin/zeitraeume/:id/abschluss', requireRole('admin'), wrap(async 
   res.json(r);
 }));
 
-// ── StB-Export (Admin/Superadmin): CSV je Mitarbeiter mit Aufschlüsselung nach Typ ──
-router.get('/admin/zeitraeume/:id/export.csv', requireRole('admin'), wrap(async (req, res) => {
+// ── StB-Export (NUR Superadmin — Lohndaten): CSV je Mitarbeiter mit Aufschlüsselung nach Typ ──
+router.get('/admin/zeitraeume/:id/export.csv', requireRole('superadmin'), wrap(async (req, res) => {
   const z = await db.get(`SELECT * FROM provision_zeitraeume WHERE id=${ph(1)}`, [Number(req.params.id)]);
   if (!z) return res.status(404).json({ error: 'Zeitraum nicht gefunden' });
   const rows = await db.all(
