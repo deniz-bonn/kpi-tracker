@@ -433,12 +433,12 @@ export default function DealsNK() {
                   {closerAngebot.map(c => (
                     <tr key={c.name || 'x'} className="border-b border-gray-50 last:border-0">
                       <td className="px-3 py-1.5 text-gray-800">{c.name || '—'}</td>
-                      <td className="px-3 py-1.5 text-right">{c.calls}</td>
-                      <td className="px-3 py-1.5 text-right">{c.mit}</td>
-                      <td className="px-3 py-1.5 text-right">{c.angebotsquote.toFixed(0)}%</td>
-                      <td className="px-3 py-1.5 text-right">{c.gew}</td>
-                      <td className="px-3 py-1.5 text-right">{c.rateKlassisch.toFixed(0)}%</td>
-                      <td className="px-3 py-1.5 text-right font-semibold">{c.rateBereinigt.toFixed(0)}%</td>
+                      <td className="px-3 py-1.5 text-right text-gray-700">{c.calls}</td>
+                      <td className="px-3 py-1.5 text-right text-gray-700">{c.mit}</td>
+                      <td className="px-3 py-1.5 text-right text-gray-700">{c.angebotsquote.toFixed(0)}%</td>
+                      <td className="px-3 py-1.5 text-right text-gray-700">{c.gew}</td>
+                      <td className="px-3 py-1.5 text-right text-gray-700">{c.rateKlassisch.toFixed(0)}%</td>
+                      <td className="px-3 py-1.5 text-right font-semibold text-gray-900">{c.rateBereinigt.toFixed(0)}%</td>
                     </tr>
                   ))}
                 </tbody>
@@ -459,7 +459,7 @@ export default function DealsNK() {
                     {setterAngebot.map(s => (
                       <tr key={s.name || 'x'} className="border-b border-gray-50 last:border-0">
                         <td className="px-3 py-1.5 text-gray-800">{s.name || '—'}</td>
-                        <td className="px-3 py-1.5 text-right">{s.calls}</td>
+                        <td className="px-3 py-1.5 text-right text-gray-700">{s.calls}</td>
                         <td className="px-3 py-1.5 text-right text-amber-700 font-semibold">{s.ohne} · {s.ohneQuote.toFixed(0)}%</td>
                         <td className="px-3 py-1.5 text-gray-600">{s.topGrund}</td>
                       </tr>

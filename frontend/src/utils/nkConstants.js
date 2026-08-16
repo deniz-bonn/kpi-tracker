@@ -11,8 +11,12 @@ export const KEIN_ANGEBOT_GRUENDE = [
   { key: 'sonstiges',              label: 'Sonstiges' },
 ];
 
-// key -> label (für Anzeige in Auswertungen/Kontoauszug)
-export const GRUND_LABEL = Object.fromEntries(KEIN_ANGEBOT_GRUENDE.map(g => [g.key, g.label]));
+// key -> label (für Anzeige in Auswertungen/Kontoauszug). 'altbestand' ist ein historischer
+// Marker (Migration 093), NICHT im Dropdown wählbar, aber in Auswertungen lesbar beschriftet.
+export const GRUND_LABEL = {
+  ...Object.fromEntries(KEIN_ANGEBOT_GRUENDE.map(g => [g.key, g.label])),
+  altbestand: 'Altbestand – Grund nicht erfasst',
+};
 
 // Robust: ist ein Deal ein "kein Angebot"-Deal? (Postgres BOOLEAN false / SQLite 0)
 export const istKeinAngebot = (d) => d?.angebot_erstellt === false || d?.angebot_erstellt === 0;
