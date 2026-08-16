@@ -18,6 +18,15 @@ export const GRUND_LABEL = {
   altbestand: 'Altbestand – Grund nicht erfasst',
 };
 
+// Erklärtexte für die Info-Popover im Block "Angebotsquote & bereinigte Closing Rate".
+export const INFO_TEXTE = {
+  closingCalls:  'Alle erfassten Closing Calls im Zeitraum – mit und ohne Angebot. Jeder geführte Closing Call wird als Deal erfasst.',
+  mitAngebot:    'Closing Calls, in denen ein Angebot erstellt wurde (Anzahl · Anteil an allen Calls = Angebotsquote).',
+  ohneAngebot:   'Closing Calls ohne Angebot (z. B. Lead unqualifiziert, Entscheider fehlte). Zählen nicht als Angebote, aber in der bereinigten Closing Rate.',
+  rateKlassisch: 'Gewonnene Deals ÷ erstellte Angebote. Misst die Abschlussstärke, wenn es zum Angebot kam. Soll: 50 %.',
+  rateBereinigt: 'Gewonnene Deals ÷ alle Closing Calls (inkl. ohne Angebot). Misst die echte Verwertung aller geführten Gespräche – die ehrlichere Gesamtquote. Differenz zur klassischen Rate = Effekt der angebotslosen Calls.',
+};
+
 // Robust: ist ein Deal ein "kein Angebot"-Deal? (Postgres BOOLEAN false / SQLite 0)
 export const istKeinAngebot = (d) => d?.angebot_erstellt === false || d?.angebot_erstellt === 0;
 export const hatAngebot = (d) => !istKeinAngebot(d);

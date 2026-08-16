@@ -8,7 +8,8 @@ import { formatEuro, formatMoney, companyCurrency, isDealCompanyActive, isAeCoun
 import { computeMedals, medalRowClass, medalBarClass, MedalBadge, MiniPodium } from '../components/medals';
 import { celebrateWin, shouldCelebrate } from '../components/Celebration';
 import { useAuth } from '../context/AuthContext';
-import { KEIN_ANGEBOT_GRUENDE, GRUND_LABEL, hatAngebot, istKeinAngebot } from '../utils/nkConstants';
+import { KEIN_ANGEBOT_GRUENDE, GRUND_LABEL, INFO_TEXTE, hatAngebot, istKeinAngebot } from '../utils/nkConstants';
+import InfoPopover from '../components/InfoPopover';
 
 // AE-Euro-Betrag eines Deals fuer Umsatz-Summen, 0 wenn der AE (noch) nicht getrackt wird
 // (ae_ab_monat-Gate, Risem erst ab August). Nur fuer Summen — Deal-Liste zeigt ae_wert normal.
@@ -407,14 +408,14 @@ export default function DealsNK() {
           <div className="p-4 space-y-4">
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
               {[
-                ['Closing Calls', String(angebotStats.callsN), 'Alle dokumentierten Closing Calls (mit + ohne Angebot)'],
-                ['mit Angebot', `${angebotStats.mitN} · ${angebotStats.angebotsquote.toFixed(1)}%`, 'Angebotsquote = Angebote ÷ Closing Calls'],
-                ['ohne Angebot', `${angebotStats.ohneN} · ${(100 - angebotStats.angebotsquote).toFixed(1)}%`, 'Closing Calls ohne Angebot'],
-                ['Closing Rate klassisch', `${angebotStats.rateKlassisch.toFixed(1)}%`, 'Gewonnen ÷ Angebote'],
-                ['Closing Rate bereinigt', `${angebotStats.rateBereinigt.toFixed(1)}%`, 'Gewonnen ÷ alle Closing Calls'],
+                ['Closing Calls', String(angebotStats.callsN), INFO_TEXTE.closingCalls],
+                ['mit Angebot', `${angebotStats.mitN} · ${angebotStats.angebotsquote.toFixed(1)}%`, INFO_TEXTE.mitAngebot],
+                ['ohne Angebot', `${angebotStats.ohneN} · ${(100 - angebotStats.angebotsquote).toFixed(1)}%`, INFO_TEXTE.ohneAngebot],
+                ['Closing Rate klassisch', `${angebotStats.rateKlassisch.toFixed(1)}%`, INFO_TEXTE.rateKlassisch],
+                ['Closing Rate bereinigt', `${angebotStats.rateBereinigt.toFixed(1)}%`, INFO_TEXTE.rateBereinigt],
               ].map(([label, val, tip]) => (
-                <div key={label} className="rounded-lg bg-gray-50 border border-gray-100 px-3 py-2" title={tip}>
-                  <div className="text-[11px] text-gray-500">{label} <span className="text-gray-300">ⓘ</span></div>
+                <div key={label} className="rounded-lg bg-gray-50 border border-gray-100 px-3 py-2">
+                  <div className="text-[11px] text-gray-500 flex items-center">{label}<InfoPopover text={tip} label={label} /></div>
                   <div className="font-bold text-gray-900 text-sm">{val}</div>
                 </div>
               ))}
@@ -426,8 +427,9 @@ export default function DealsNK() {
                 <thead><tr className="text-gray-400 border-b border-gray-100">
                   <th className="px-3 py-1.5 text-left">Closer</th><th className="px-3 py-1.5 text-right">Calls</th>
                   <th className="px-3 py-1.5 text-right">Angebote</th><th className="px-3 py-1.5 text-right">Angebotsquote</th>
-                  <th className="px-3 py-1.5 text-right">Gewonnen</th><th className="px-3 py-1.5 text-right">Rate klass.</th>
-                  <th className="px-3 py-1.5 text-right">Rate bereinigt</th>
+                  <th className="px-3 py-1.5 text-right">Gewonnen</th>
+                  <th className="px-3 py-1.5 text-right"><span className="inline-flex items-center justify-end">Rate klass.<InfoPopover text={INFO_TEXTE.rateKlassisch} label="Closing Rate klassisch" /></span></th>
+                  <th className="px-3 py-1.5 text-right"><span className="inline-flex items-center justify-end">Rate bereinigt<InfoPopover text={INFO_TEXTE.rateBereinigt} label="Closing Rate bereinigt" /></span></th>
                 </tr></thead>
                 <tbody>
                   {closerAngebot.map(c => (
