@@ -64,6 +64,7 @@ router.get('/nk.csv', wrap(async (req, res) => {
            closer.name as closer, opener.name as opener, setter.name as setter,
            d.angebotswert, d.ae_wert, d.laufzeit_monate,
            d.automatische_verlaengerung, d.status, d.abgerechnet,
+           d.angebot_erstellt, d.kein_angebot_grund, d.kein_angebot_grund_text,
            d.gewonnen_monat, d.gewonnen_datum, d.kommentar
     FROM deals_nk d
     LEFT JOIN companies c ON c.id = d.company_id

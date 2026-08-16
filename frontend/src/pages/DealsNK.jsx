@@ -8,6 +8,7 @@ import { formatEuro, formatMoney, companyCurrency, isDealCompanyActive, isAeCoun
 import { computeMedals, medalRowClass, medalBarClass, MedalBadge, MiniPodium } from '../components/medals';
 import { celebrateWin, shouldCelebrate } from '../components/Celebration';
 import { useAuth } from '../context/AuthContext';
+import { KEIN_ANGEBOT_GRUENDE, GRUND_LABEL, hatAngebot, istKeinAngebot } from '../utils/nkConstants';
 
 // AE-Euro-Betrag eines Deals fuer Umsatz-Summen, 0 wenn der AE (noch) nicht getrackt wird
 // (ae_ab_monat-Gate, Risem erst ab August). Nur fuer Summen — Deal-Liste zeigt ae_wert normal.
@@ -35,6 +36,7 @@ export default function DealsNK() {
   const [showKpis, setShowKpis] = useState(true);
   const [showOpener, setShowOpener] = useState(false);
   const [showStandort, setShowStandort] = useState(false);
+  const [showAngebot, setShowAngebot] = useState(false);
 
   const [filterQuelle, setFilterQuelle]     = useState('');
   const [filterCloser, setFilterCloser]     = useState('');
@@ -82,38 +84,52 @@ export default function DealsNK() {
   // Erfassungswährung nach aktiver Company (CHF bei Risem, sonst €)
   const curSym = companyCurrency(companies, company) === 'CHF' ? 'CHF' : '€';
 
+  // Sichtbarkeit: mit-Angebot-Felder verschwinden bei "Nein". DealModal validiert nur sichtbare
+  // Pflichtfelder, daher steuert `show` zugleich, welche Pflichtfelder greifen.
+  const mitAngebot = f => f.angebot_erstellt !== 'nein';
   const fields = [
+    // Erste Frage — steuert das ganze Formular. "Nein" = dokumentierter Closing Call ohne Angebot.
+    { name: 'angebot_erstellt', label: 'Wurde ein Angebot erstellt?', type: 'select',
+      options: [{ value: 'ja', label: 'Ja – Angebot erstellt' }, { value: 'nein', label: 'Nein – kein Angebot' }], required: true },
+    { name: 'kein_angebot_grund', label: 'Warum wurde kein Angebot erstellt?', type: 'select',
+      options: KEIN_ANGEBOT_GRUENDE.map(g => ({ value: g.key, label: g.label })),
+      show: f => f.angebot_erstellt === 'nein', required: f => f.angebot_erstellt === 'nein' },
+    { name: 'kein_angebot_grund_text', label: 'Grund (Freitext)', type: 'textarea',
+      show: f => f.angebot_erstellt === 'nein' && f.kein_angebot_grund === 'sonstiges',
+      required: f => f.angebot_erstellt === 'nein' && f.kein_angebot_grund === 'sonstiges' },
+
     // Datum nachträglich ändern: nur Admin/Superadmin. Ändert NICHT den Berichtsmonat
     // (Feld "monat") und nicht die AE-Buchung (die hängt an gewonnen_monat).
     { name: 'datum',          label: 'Datum',                    type: 'date',   required: true, readOnly: modal?.mode === 'edit' && !isAdmin },
     { name: 'monat',          label: 'Monat (YYYY-MM)',                           required: true },
     { name: 'company_id',     label: 'Company',                  type: 'select', options: compOpts, required: true },
     { name: 'kunde',          label: 'Kunde',                                     required: true },
-    { name: 'kundennummer',   label: 'HubSpot ID' },
-    { name: 'dienstleistung', label: 'Dienstleistung',            type: 'select', options: DIENSTLEISTUNGEN_NK, required: f => f.status === 'Gewonnen' },
+    { name: 'kundennummer',   label: 'HubSpot ID', show: mitAngebot },
+    { name: 'dienstleistung', label: 'Dienstleistung',            type: 'select', options: DIENSTLEISTUNGEN_NK, show: mitAngebot, required: f => f.status === 'Gewonnen' },
     { name: 'closer_id', label: 'Closer', type: 'select', options: closerOptions },
     { name: 'opener_id', label: 'Opener', type: 'select', options: openerOptions },
     { name: 'setter_id', label: 'Setter', type: 'select', options: setterOptions },
     { name: 'quelle',         label: 'Quelle',                   type: 'select', options: QUELLEN },
-    { name: 'angebotswert',   label: `Angebotswert (${curSym})`,          type: 'number', required: true },
-    { name: 'ae_wert',        label: `AE-Wert (${curSym})`,               type: 'number', required: f => f.status === 'Gewonnen' },
-    { name: 'laufzeit_monate',label: 'Laufzeit (Monate)',          type: 'number', required: f => f.status === 'Gewonnen' },
-    { name: 'automatische_verlaengerung', label: 'Automatische Verlängerung', type: 'select', options: AUTO_VL_OPTS, required: true },
-    { name: 'status',         label: 'Status',                   type: 'select', options: STATUS_OPTS, required: true },
+    { name: 'angebotswert',   label: `Angebotswert (${curSym})`,          type: 'number', show: mitAngebot, required: mitAngebot },
+    { name: 'ae_wert',        label: `AE-Wert (${curSym})`,               type: 'number', show: mitAngebot, required: f => f.status === 'Gewonnen' },
+    { name: 'laufzeit_monate',label: 'Laufzeit (Monate)',          type: 'number', show: mitAngebot, required: f => f.status === 'Gewonnen' },
+    { name: 'automatische_verlaengerung', label: 'Automatische Verlängerung', type: 'select', options: AUTO_VL_OPTS, show: mitAngebot, required: mitAngebot },
+    { name: 'status',         label: 'Status',                   type: 'select', options: STATUS_OPTS, show: mitAngebot, required: mitAngebot,
+      // "Nein" erzwingt Verloren (regulärer Zustandswechsel -> Backend bucht AE aus / Provisions-Storno).
+      autoFill: (form, changedKey) => changedKey === 'angebot_erstellt' && form.angebot_erstellt === 'nein' ? 'Verloren' : undefined },
     {
       name:     'gewonnen_datum',
       label:    'Annahmedatum',
       type:     'date',
       hint:     'Datum, an dem der Kunde den Deal angenommen hat',
-      show:     f => f.status === 'Gewonnen',
+      show:     f => f.status === 'Gewonnen' && f.angebot_erstellt !== 'nein',
       required: f => f.status === 'Gewonnen',
-      // Auto-fill with today when status switches to Gewonnen and field is still empty
       autoFill: (form, changedKey) =>
         changedKey === 'status' && form.status === 'Gewonnen' && !form.gewonnen_datum
           ? new Date().toISOString().slice(0, 10)
           : undefined,
     },
-    { name: 'abgerechnet',    label: 'Abgerechnet',               type: 'select', options: ABGERECHNET_OPTS },
+    { name: 'abgerechnet',    label: 'Abgerechnet',               type: 'select', options: ABGERECHNET_OPTS, show: mitAngebot },
     { name: 'kommentar',      label: 'Kommentar',                 type: 'textarea' },
   ];
 
@@ -135,24 +151,28 @@ export default function DealsNK() {
     (zeitMode !== 'zeitraum' || ((d.monat || '').trim() >= vonMonat && (d.monat || '').trim() <= bisMonat))
   ), [deals, filterQuelle, filterCloser, filterOpener, filterSetter, filterStatus, filterStandort, zeitMode, vonMonat, bisMonat]);
   const filtered = useMemo(() => listDeals.filter(isDealCompanyActive), [listDeals]);
+  // calls = ALLE Closing Calls (inkl. ohne Angebot) -> bereinigte Rate & Angebotsquote.
+  // angebote = nur Deals MIT Angebot -> alle KLASSISCHEN Quoten/Tabellen (Kein-Angebot-Deals ändern sie NICHT).
+  const calls    = filtered;
+  const angebote = useMemo(() => filtered.filter(hatAngebot), [filtered]);
 
-  // KPIs aus gefilterten Deals
+  // Klassische KPIs — angebotsbasiert
   const kpis = useMemo(() => {
-    const gew = filtered.filter(d => d.status === 'Gewonnen');
+    const gew = angebote.filter(d => d.status === 'Gewonnen');
     const ae  = gew.reduce((s, d) => s + aeEur(d), 0);
-    const agw = filtered.reduce((s, d) => s + (Number(d.angebotswert_eur ?? d.angebotswert) || 0), 0);
-    const n   = filtered.length;
+    const agw = angebote.reduce((s, d) => s + (Number(d.angebotswert_eur ?? d.angebotswert) || 0), 0);
+    const n   = angebote.length;
     const autoJ = gew.filter(d => d.automatische_verlaengerung === 'Ja').length;
     const abgJ  = gew.filter(d => d.abgerechnet === 'Ja').length;
     return {
       total:                  n,
       gewonnen:               gew.length,
-      verloren:               filtered.filter(d => d.status === 'Verloren').length,
-      in_verhandlung:         filtered.filter(d => d.status === 'In Verhandlung').length,
-      in_closing2:            filtered.filter(d => d.status === 'In Closing Call 2').length,
+      verloren:               angebote.filter(d => d.status === 'Verloren').length,
+      in_verhandlung:         angebote.filter(d => d.status === 'In Verhandlung').length,
+      in_closing2:            angebote.filter(d => d.status === 'In Closing Call 2').length,
       ae_summe:               ae,
       angebotswert_gesamt:    agw,
-      wert_offen:             filtered.filter(d => !['Gewonnen','Verloren'].includes(d.status))
+      wert_offen:             angebote.filter(d => !['Gewonnen','Verloren'].includes(d.status))
                                 .reduce((s, d) => s + (Number(d.angebotswert_eur ?? d.angebotswert) || 0), 0),
       gewonnen_cc:            gew.filter(d => d.quelle === 'Cold Calling').length,
       gewonnen_mail:          gew.filter(d => d.quelle === 'Mail').length,
@@ -167,11 +187,11 @@ export default function DealsNK() {
       abgerechnet_ja:           abgJ,
       abgerechnet_quote:        gew.length > 0 ? (abgJ / gew.length * 100).toFixed(1) : '0.0',
     };
-  }, [filtered]);
+  }, [angebote]);
 
-  // Standort-Statistiken (nur wenn alle Standorte sichtbar)
+  // Standort-Statistiken (nur wenn alle Standorte sichtbar) — angebotsbasiert
   const standortStats = useMemo(() => STANDORTE.map(standort => {
-    const s = filtered.filter(d => d.closer_standort === standort);
+    const s = angebote.filter(d => d.closer_standort === standort);
     const gew = s.filter(d => d.status === 'Gewonnen').length;
     const ver = s.filter(d => d.status === 'Verloren').length;
     return {
@@ -183,12 +203,12 @@ export default function DealsNK() {
       ae_summe: s.filter(d => d.status === 'Gewonnen').reduce((sum, d) => sum + aeEur(d), 0),
       quote:    s.length > 0 ? (gew / s.length * 100).toFixed(2) : '0.00',
     };
-  }).sort((a, b) => b.ae_summe - a.ae_summe), [filtered]);
+  }).sort((a, b) => b.ae_summe - a.ae_summe), [angebote]);
 
   // Setter-Statistiken
   const setterStats = useMemo(() => {
     const m = {};
-    filtered.forEach(d => {
+    angebote.forEach(d => {
       if (!d.setter_id) return;
       if (!m[d.setter_id]) m[d.setter_id] = { name: d.setter_name, total: 0, gewonnen: 0, ae_summe: 0 };
       m[d.setter_id].total++;
@@ -197,12 +217,12 @@ export default function DealsNK() {
     return Object.values(m)
       .map(s => ({ ...s, quote: s.total > 0 ? (s.gewonnen / s.total * 100).toFixed(2) : '0.00' }))
       .sort((a, b) => b.ae_summe - a.ae_summe);
-  }, [filtered]);
+  }, [angebote]);
 
   // Opener-Statistiken
   const openerStats = useMemo(() => {
     const m = {};
-    filtered.forEach(d => {
+    angebote.forEach(d => {
       if (!d.opener_id) return;
       if (!m[d.opener_id]) m[d.opener_id] = { name: d.opener_name, standort: d.opener_standort, total: 0, gewonnen: 0, ae_summe: 0 };
       m[d.opener_id].total++;
@@ -211,12 +231,12 @@ export default function DealsNK() {
     return Object.values(m)
       .map(o => ({ ...o, quote: o.total > 0 ? (o.gewonnen / o.total * 100).toFixed(2) : '0.00' }))
       .sort((a, b) => b.ae_summe - a.ae_summe);
-  }, [filtered]);
+  }, [angebote]);
 
   // Closer-Statistiken
   const closerStats = useMemo(() => {
     const m = {};
-    filtered.forEach(d => {
+    angebote.forEach(d => {
       if (!d.closer_id) return;
       if (!m[d.closer_id]) m[d.closer_id] = { name: d.closer_name, total: 0, gewonnen: 0, verloren: 0, ae_summe: 0 };
       m[d.closer_id].total++;
@@ -226,7 +246,54 @@ export default function DealsNK() {
     return Object.values(m)
       .map(c => ({ ...c, offen: c.total - c.gewonnen - c.verloren, quote: c.total > 0 ? (c.gewonnen / c.total * 100).toFixed(2) : '0.00' }))
       .sort((a, b) => b.ae_summe - a.ae_summe);
-  }, [filtered]);
+  }, [angebote]);
+
+  // ── Angebotsquote & bereinigte Closing Rate (Basis: ALLE Closing Calls) ──
+  const angebotStats = useMemo(() => {
+    const callsN = calls.length;
+    const mitN   = calls.filter(hatAngebot).length;
+    const gewN   = calls.filter(d => d.status === 'Gewonnen').length;   // Gewonnene sind stets mit Angebot
+    const gruende = {};
+    calls.filter(istKeinAngebot).forEach(d => { const g = d.kein_angebot_grund || 'unbekannt'; gruende[g] = (gruende[g] || 0) + 1; });
+    return {
+      callsN, mitN, ohneN: callsN - mitN, gewN,
+      angebotsquote:  callsN > 0 ? (mitN / callsN * 100) : 0,
+      rateKlassisch:  mitN   > 0 ? (gewN / mitN   * 100) : 0,   // Gewonnen ÷ Angebote
+      rateBereinigt:  callsN > 0 ? (gewN / callsN * 100) : 0,   // Gewonnen ÷ alle Calls
+      gruende: Object.entries(gruende).sort((a, b) => b[1] - a[1]),
+    };
+  }, [calls]);
+
+  // Pro Closer: Calls / Angebote / Angebotsquote / Gewonnen / Rate klassisch & bereinigt
+  const closerAngebot = useMemo(() => {
+    const m = {};
+    calls.forEach(d => {
+      if (!d.closer_id) return;
+      const e = m[d.closer_id] || (m[d.closer_id] = { name: d.closer_name, calls: 0, mit: 0, gew: 0 });
+      e.calls++; if (hatAngebot(d)) e.mit++; if (d.status === 'Gewonnen') e.gew++;
+    });
+    return Object.values(m).map(e => ({
+      ...e,
+      angebotsquote: e.calls > 0 ? (e.mit / e.calls * 100) : 0,
+      rateKlassisch: e.mit   > 0 ? (e.gew / e.mit   * 100) : 0,
+      rateBereinigt: e.calls > 0 ? (e.gew / e.calls * 100) : 0,
+    })).sort((a, b) => b.calls - a.calls);
+  }, [calls]);
+
+  // Pro Setter (Schulungshebel): Calls beteiligt / ohne Angebot (n, %) / Top-Grund
+  const setterAngebot = useMemo(() => {
+    const m = {};
+    calls.forEach(d => {
+      if (!d.setter_id) return;
+      const e = m[d.setter_id] || (m[d.setter_id] = { name: d.setter_name, calls: 0, ohne: 0, gruende: {} });
+      e.calls++;
+      if (istKeinAngebot(d)) { e.ohne++; const g = d.kein_angebot_grund || 'unbekannt'; e.gruende[g] = (e.gruende[g] || 0) + 1; }
+    });
+    return Object.values(m).map(e => {
+      const top = Object.entries(e.gruende).sort((a, b) => b[1] - a[1])[0];
+      return { ...e, ohneQuote: e.calls > 0 ? (e.ohne / e.calls * 100) : 0, topGrund: top ? (GRUND_LABEL[top[0]] || top[0]) : '—' };
+    }).filter(e => e.ohne > 0).sort((a, b) => b.ohne - a.ohne);
+  }, [calls]);
 
   // Treppchen: Medaillen je Tabelle auf Basis der (bereits nach AE sortierten) Zeilen.
   const closerMedals = useMemo(() => computeMedals(closerStats), [closerStats]);
@@ -243,13 +310,20 @@ export default function DealsNK() {
         <div>
           <h1 className="text-xl font-bold text-gray-800">Neukunden (NK)</h1>
           <p className="text-xs text-gray-500 mt-0.5">
-            {periodLabel(zeitMode, monat, vonMonat, bisMonat)} · {filtered.length} Angebote · {kpis.gewonnen} gewonnen · {kpis.quote_angebote}% · {formatEuro(kpis.ae_summe)} AE
+            {periodLabel(zeitMode, monat, vonMonat, bisMonat)} · {angebote.length} Angebote · {kpis.gewonnen} gewonnen · {kpis.quote_angebote}% · {formatEuro(kpis.ae_summe)} AE
+          </p>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {angebotStats.callsN} Closing Calls · Angebotsquote {angebotStats.angebotsquote.toFixed(1)}% ({angebotStats.mitN}/{angebotStats.callsN}) · Closing Rate bereinigt {angebotStats.rateBereinigt.toFixed(1)}%
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button onClick={() => setShowKpis(v => !v)}
             className="text-xs text-gray-600 hover:text-gray-800 border border-gray-300 rounded px-2 py-1">
             {showKpis ? '▲ KPIs ausblenden' : '▼ KPIs einblenden'}
+          </button>
+          <button onClick={() => setShowAngebot(v => !v)}
+            className="text-xs text-gray-600 hover:text-gray-800 border border-gray-300 rounded px-2 py-1">
+            {showAngebot ? '▲ Angebotsquote' : '▼ Angebotsquote'}
           </button>
           <div className="flex rounded-lg border border-gray-300 overflow-hidden text-xs">
             {[['monat','Monat'],['zeitraum','Zeitraum'],['alle','Alle Monate']].map(([v, l]) => (
@@ -323,6 +397,97 @@ export default function DealsNK() {
             className="text-xs text-gray-500 hover:text-white ml-1">✕ Zurücksetzen</button>
         )}
       </div>
+
+      {/* Angebotsquote & bereinigte Closing Rate (Basis: alle Closing Calls) */}
+      {showAngebot && (
+        <div className="rounded-xl border border-gray-200 overflow-hidden">
+          <div className="bg-[#2d2e30] px-4 py-3">
+            <span className="text-xs font-bold text-white uppercase tracking-wide">Angebotsquote &amp; bereinigte Closing Rate</span>
+          </div>
+          <div className="p-4 space-y-4">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              {[
+                ['Closing Calls', String(angebotStats.callsN), 'Alle dokumentierten Closing Calls (mit + ohne Angebot)'],
+                ['mit Angebot', `${angebotStats.mitN} · ${angebotStats.angebotsquote.toFixed(1)}%`, 'Angebotsquote = Angebote ÷ Closing Calls'],
+                ['ohne Angebot', `${angebotStats.ohneN} · ${(100 - angebotStats.angebotsquote).toFixed(1)}%`, 'Closing Calls ohne Angebot'],
+                ['Closing Rate klassisch', `${angebotStats.rateKlassisch.toFixed(1)}%`, 'Gewonnen ÷ Angebote'],
+                ['Closing Rate bereinigt', `${angebotStats.rateBereinigt.toFixed(1)}%`, 'Gewonnen ÷ alle Closing Calls'],
+              ].map(([label, val, tip]) => (
+                <div key={label} className="rounded-lg bg-gray-50 border border-gray-100 px-3 py-2" title={tip}>
+                  <div className="text-[11px] text-gray-500">{label} <span className="text-gray-300">ⓘ</span></div>
+                  <div className="font-bold text-gray-900 text-sm">{val}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-lg border border-gray-200 overflow-x-auto">
+              <div className="bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-500">Nach Closer</div>
+              <table className="w-full text-xs">
+                <thead><tr className="text-gray-400 border-b border-gray-100">
+                  <th className="px-3 py-1.5 text-left">Closer</th><th className="px-3 py-1.5 text-right">Calls</th>
+                  <th className="px-3 py-1.5 text-right">Angebote</th><th className="px-3 py-1.5 text-right">Angebotsquote</th>
+                  <th className="px-3 py-1.5 text-right">Gewonnen</th><th className="px-3 py-1.5 text-right">Rate klass.</th>
+                  <th className="px-3 py-1.5 text-right">Rate bereinigt</th>
+                </tr></thead>
+                <tbody>
+                  {closerAngebot.map(c => (
+                    <tr key={c.name || 'x'} className="border-b border-gray-50 last:border-0">
+                      <td className="px-3 py-1.5 text-gray-800">{c.name || '—'}</td>
+                      <td className="px-3 py-1.5 text-right">{c.calls}</td>
+                      <td className="px-3 py-1.5 text-right">{c.mit}</td>
+                      <td className="px-3 py-1.5 text-right">{c.angebotsquote.toFixed(0)}%</td>
+                      <td className="px-3 py-1.5 text-right">{c.gew}</td>
+                      <td className="px-3 py-1.5 text-right">{c.rateKlassisch.toFixed(0)}%</td>
+                      <td className="px-3 py-1.5 text-right font-semibold">{c.rateBereinigt.toFixed(0)}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="rounded-lg border border-gray-200 overflow-x-auto">
+              <div className="bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-500">Nach Setter — angebotslose Calls (Schulungshebel)</div>
+              {setterAngebot.length === 0 ? (
+                <div className="px-3 py-3 text-xs text-gray-400">Keine angebotslosen Calls im Zeitraum.</div>
+              ) : (
+                <table className="w-full text-xs">
+                  <thead><tr className="text-gray-400 border-b border-gray-100">
+                    <th className="px-3 py-1.5 text-left">Setter</th><th className="px-3 py-1.5 text-right">Calls</th>
+                    <th className="px-3 py-1.5 text-right">ohne Angebot</th><th className="px-3 py-1.5 text-left">Top-Grund</th>
+                  </tr></thead>
+                  <tbody>
+                    {setterAngebot.map(s => (
+                      <tr key={s.name || 'x'} className="border-b border-gray-50 last:border-0">
+                        <td className="px-3 py-1.5 text-gray-800">{s.name || '—'}</td>
+                        <td className="px-3 py-1.5 text-right">{s.calls}</td>
+                        <td className="px-3 py-1.5 text-right text-amber-700 font-semibold">{s.ohne} · {s.ohneQuote.toFixed(0)}%</td>
+                        <td className="px-3 py-1.5 text-gray-600">{s.topGrund}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            {angebotStats.gruende.length > 0 && (
+              <div>
+                <div className="text-xs font-semibold text-gray-500 mb-1">Gründe (gesamt)</div>
+                <div className="space-y-1">
+                  {angebotStats.gruende.map(([key, n]) => (
+                    <div key={key} className="flex items-center gap-2 text-xs">
+                      <div className="w-52 shrink-0 truncate text-gray-600" title={GRUND_LABEL[key] || key}>{GRUND_LABEL[key] || key}</div>
+                      <div className="flex-1 bg-gray-100 rounded h-3 overflow-hidden">
+                        <div className="h-full bg-amber-400" style={{ width: `${angebotStats.ohneN > 0 ? (n / angebotStats.ohneN * 100) : 0}%` }} />
+                      </div>
+                      <div className="w-8 text-right text-gray-700 font-semibold">{n}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* KPI-Block (ein-/ausblendbar) */}
       {showKpis && (
@@ -604,7 +769,9 @@ export default function DealsNK() {
         <DealModal
           key={modal.mode === 'create' ? 'new' : modal.data?.id}
           title={modal.mode === 'create' ? 'Neuer NK-Deal' : 'NK-Deal bearbeiten'}
-          fields={fields} initial={modal.data} onSave={handleSave} onClose={() => setModal(null)}
+          fields={fields}
+          initial={{ ...(modal.data || {}), angebot_erstellt: istKeinAngebot(modal.data || {}) ? 'nein' : 'ja' }}
+          onSave={handleSave} onClose={() => setModal(null)}
         />
       )}
     </div>

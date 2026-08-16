@@ -3,7 +3,7 @@ const db     = require('../db');
 const wrap   = require('../middleware/asyncHandler');
 const { requireAuth } = require('../middleware/auth');
 const { logAudit }   = require('../utils/audit');
-const { pruefeDatumsaenderung } = require('../utils/dealGuards');
+const { pruefeDatumsaenderung, istKeinAngebot, pruefeKeinAngebot } = require('../utils/dealGuards');
 const { loadRates, rateFor, enrichDealsEur } = require('../utils/currency');
 const { resolveGewonnenFelder } = require('../utils/gewonnen');
 const { provisionSync } = require('../utils/provisionen');
@@ -181,14 +181,24 @@ router.post('/', wrap(async (req, res) => {
     body.closer_id = req.user.employee_id;
   }
 
+  // "Kein Angebot erstellt": Schutzregeln pruefen, dann Zustand normalisieren, BEVOR gebucht wird.
+  const guardErr = pruefeKeinAngebot(body);
+  if (guardErr) return res.status(400).json({ error: guardErr });
+  const keinAngebot = istKeinAngebot(body);
+  if (keinAngebot) { body.status = 'Verloren'; body.angebotswert = null; body.ae_wert = null; body.laufzeit_monate = null; }
+
   const { gewonnen_datum, gewonnen_monat } = resolveGewonnenFelder(body);
   const fields = ['datum','monat','company_id','closer_id','opener_id','setter_id','quelle','kunde',
     'angebotsnummer','dienstleistung','angebotswert','laufzeit_monate','status','ae_wert','kommentar',
-    'automatische_verlaengerung','abgerechnet','kundennummer','gewonnen_datum','gewonnen_monat'];
+    'automatische_verlaengerung','abgerechnet','kundennummer','gewonnen_datum','gewonnen_monat',
+    'angebot_erstellt','kein_angebot_grund','kein_angebot_grund_text'];
   const values = fields.map(f => {
     if (f === 'gewonnen_datum') return gewonnen_datum;
     if (f === 'gewonnen_monat') return gewonnen_monat;
     if (f === 'abgerechnet') return body[f] ?? (body.status === 'Gewonnen' ? 'Nein' : null);
+    if (f === 'angebot_erstellt') return db.dialect === 'postgres' ? !keinAngebot : (keinAngebot ? 0 : 1);
+    if (f === 'kein_angebot_grund') return keinAngebot ? (body.kein_angebot_grund ?? null) : null;
+    if (f === 'kein_angebot_grund_text') return keinAngebot ? (body.kein_angebot_grund_text ?? null) : null;
     return body[f] ?? null;
   });
 
@@ -217,15 +227,29 @@ router.put('/:id', wrap(async (req, res) => {
   const datumFehler = pruefeDatumsaenderung(req, existing);
   if (datumFehler) return res.status(403).json({ error: datumFehler });
 
-  const { gewonnen_datum, gewonnen_monat } = resolveGewonnenFelder(req.body, existing);
+  const body = { ...req.body };
+  // angebot_erstellt nicht mitgesendet -> bestehenden Wert beibehalten (keine stille Umkehr).
+  if (body.angebot_erstellt === undefined && existing) body.angebot_erstellt = existing.angebot_erstellt;
+  const guardErr = pruefeKeinAngebot(body);
+  if (guardErr) return res.status(400).json({ error: guardErr });
+  const keinAngebot = istKeinAngebot(body);
+  // Override durch den REGULÄREN Zustand: status=Verloren + ae/angebotswert NULL. syncAeGesamtNK und
+  // provisionSync laufen unten mit (row, existing) -> AE-Ausbuchung + Provisions-Storno wie bei manuellem Wechsel.
+  if (keinAngebot) { body.status = 'Verloren'; body.angebotswert = null; body.ae_wert = null; body.laufzeit_monate = null; }
+
+  const { gewonnen_datum, gewonnen_monat } = resolveGewonnenFelder(body, existing);
   const fields = ['datum','monat','company_id','closer_id','opener_id','setter_id','quelle','kunde',
     'angebotsnummer','dienstleistung','angebotswert','laufzeit_monate','status','ae_wert','kommentar',
-    'automatische_verlaengerung','abgerechnet','kundennummer','gewonnen_datum','gewonnen_monat'];
+    'automatische_verlaengerung','abgerechnet','kundennummer','gewonnen_datum','gewonnen_monat',
+    'angebot_erstellt','kein_angebot_grund','kein_angebot_grund_text'];
   const values = fields.map(f => {
     if (f === 'gewonnen_datum') return gewonnen_datum;
     if (f === 'gewonnen_monat') return gewonnen_monat;
-    if (f === 'abgerechnet') return req.body[f] ?? (req.body.status === 'Gewonnen' ? 'Nein' : null);
-    return req.body[f] ?? null;
+    if (f === 'abgerechnet') return body[f] ?? (body.status === 'Gewonnen' ? 'Nein' : null);
+    if (f === 'angebot_erstellt') return db.dialect === 'postgres' ? !keinAngebot : (keinAngebot ? 0 : 1);
+    if (f === 'kein_angebot_grund') return keinAngebot ? (body.kein_angebot_grund ?? null) : null;
+    if (f === 'kein_angebot_grund_text') return keinAngebot ? (body.kein_angebot_grund_text ?? null) : null;
+    return body[f] ?? null;
   });
 
   let row;
