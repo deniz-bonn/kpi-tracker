@@ -13,10 +13,19 @@ import Kontoauszug from '../components/Kontoauszug';
 
 const fmtPct = (n) => String(n ?? 0).replace('.', ',') + ' %';
 const betragCls = (n) => (Number(n) < 0 ? 'text-rose-600' : 'text-gray-900');
+const ROLLE_LABEL = { opener: 'Opener', setter: 'Setter', closer: 'Closer', opener_setter: 'Opener+Setter', team: 'Team' };
+// Abrechnungskreise (Standort-Dimension): eigener Zyklus + eigene Regeln je Kreis.
+const KREISE = [
+  { key: 'bonn', label: 'Bonn', zyklus: 'Abrechnungszeitraum 21.–20.' },
+  { key: 'braunschweig', label: 'Braunschweig', zyklus: 'Abrechnung je Kalendermonat · Opener 125 € je Sales Call' },
+  { key: 'oesterreich', label: 'Österreich', zyklus: 'Abrechnung je Kalendermonat · Opener/Setter-Staffel · Closer 7 %/5 %' },
+];
 
 function StandortBadge({ standort }) {
   if (!standort) return null;
-  const cls = standort === 'Bonn' ? 'bg-blue-50 text-blue-700' : standort === 'Braunschweig' ? 'bg-purple-50 text-purple-700' : 'bg-gray-100 text-gray-500';
+  const cls = standort === 'Bonn' ? 'bg-blue-50 text-blue-700'
+    : standort === 'Braunschweig' ? 'bg-purple-50 text-purple-700'
+    : standort === 'Österreich' ? 'bg-rose-50 text-rose-700' : 'bg-gray-100 text-gray-500';
   return <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${cls}`}>{standort}</span>;
 }
 
@@ -86,23 +95,27 @@ function BackfillPanel({ onDone }) {
 export default function Provisionen() {
   const { isSuperAdmin } = useAuth();
   const qc = useQueryClient();
+  const [kreis, setKreis] = useState('bonn');
   const [zid, setZid] = useState('');
   const [detailEmp, setDetailEmp] = useState(null);
   const [exportErr, setExportErr] = useState('');
-  const [filterStandort, setFilterStandort] = useState('Alle');
 
-  const { data: zeitraeume = [] } = useQuery({ queryKey: ['prov-zeitraeume'], queryFn: provisionenApi.zeitraeume });
+  const { data: zeitraeume = [] } = useQuery({ queryKey: ['prov-zeitraeume', kreis], queryFn: () => provisionenApi.zeitraeume(kreis) });
   const { data, isLoading } = useQuery({
-    queryKey: ['prov-overview', zid],
-    queryFn: () => provisionenApi.overview(zid || undefined),
+    queryKey: ['prov-overview', kreis, zid],
+    queryFn: () => provisionenApi.overview({ kreis, zeitraum_id: zid || undefined }),
     placeholderData: keepPreviousData,
   });
 
   const zSel = zid || data?.zeitraum?.id || '';
   const zeilen = data?.zeilen || [];
-  const staffelMap = Object.fromEntries((data?.staffel?.closers || []).map(c => [c.employee_id, c]));
-  const zeilenF = filterStandort === 'Alle' ? zeilen : zeilen.filter(z => z.standort === filterStandort);
-  const gesamtF = Math.round(zeilenF.reduce((a, r) => a + Number(r.summe || 0), 0) * 100) / 100;
+  const staffel = data?.staffel || {};
+  const closerMap = Object.fromEntries((staffel.closers || []).map((c) => [c.employee_id, c]));
+  const atOpenerMap = Object.fromEntries((staffel.atOpener || []).map((c) => [c.employee_id, c]));
+  const atSetterMap = Object.fromEntries((staffel.atSetter || []).map((c) => [c.employee_id, c]));
+  const gesamt = data?.gesamt ?? Math.round(zeilen.reduce((a, r) => a + Number(r.summe || 0), 0) * 100) / 100;
+  const kreisMeta = KREISE.find((k) => k.key === kreis) || KREISE[0];
+  const changeKreis = (k) => { setKreis(k); setZid(''); };
 
   const abschlussMut = useMutation({
     mutationFn: () => provisionenApi.abschluss(zSel),
@@ -120,6 +133,17 @@ export default function Provisionen() {
             <option key={z.id} value={z.id}>{z.label}{z.status === 'abgeschlossen' ? ' (abgeschlossen)' : ''}</option>
           ))}
         </select>
+      </div>
+
+      {/* Abrechnungskreis (Standort-Dimension) — steuert Zeiträume, Regeln und Export */}
+      <div className="space-y-1.5">
+        <div className="inline-flex rounded-lg bg-gray-100 p-1 gap-1">
+          {KREISE.map((k) => (
+            <button key={k.key} onClick={() => changeKreis(k.key)}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${kreis === k.key ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>{k.label}</button>
+          ))}
+        </div>
+        <p className="text-xs text-gray-400">{kreisMeta.zyklus}</p>
       </div>
 
       {isSuperAdmin && data?.zeitraum && (
@@ -142,27 +166,17 @@ export default function Provisionen() {
 
       {isSuperAdmin && <BackfillPanel onDone={() => qc.invalidateQueries({ queryKey: ['prov-overview'] })} />}
 
-      <div className="flex items-center gap-2 text-sm">
-        <span className="text-gray-500">Standort:</span>
-        <div className="inline-flex rounded-lg bg-gray-100 p-1 gap-1">
-          {['Alle', 'Bonn', 'Braunschweig'].map(s => (
-            <button key={s} onClick={() => setFilterStandort(s)}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${filterStandort === s ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>{s}</button>
-          ))}
-        </div>
-      </div>
-
       <div className="rounded-2xl bg-gradient-to-br from-gray-800 to-gray-900 text-white p-5 shadow-sm flex items-baseline justify-between">
-        <div className="text-xs font-medium uppercase tracking-wide text-gray-300">Gesamt{data?.zeitraum ? ` · ${data.zeitraum.label}` : ''}{filterStandort !== 'Alle' ? ` · ${filterStandort}` : ''}</div>
-        <div className="text-3xl font-bold">{formatEuro(gesamtF)}</div>
+        <div className="text-xs font-medium uppercase tracking-wide text-gray-300">Gesamt · {kreisMeta.label}{data?.zeitraum ? ` · ${data.zeitraum.label}` : ''}</div>
+        <div className="text-3xl font-bold">{formatEuro(gesamt)}</div>
       </div>
 
       <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-100 text-sm font-semibold text-gray-700">Berechtigte im Zeitraum</div>
         {isLoading && !data ? (
           <div className="p-8 text-center text-sm text-gray-400">Lädt…</div>
-        ) : zeilenF.length === 0 ? (
-          <div className="p-8 text-center text-sm text-gray-400">Keine Einträge{filterStandort !== 'Alle' ? ` für ${filterStandort}` : ''} in diesem Zeitraum.{isSuperAdmin && zeilen.length === 0 ? ' Ggf. oben den Backfill ausführen.' : ''}</div>
+        ) : zeilen.length === 0 ? (
+          <div className="p-8 text-center text-sm text-gray-400">Keine Einträge in diesem Zeitraum.{isSuperAdmin ? ' Ggf. oben den Backfill ausführen.' : ''}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -177,18 +191,25 @@ export default function Provisionen() {
                 </tr>
               </thead>
               <tbody>
-                {zeilenF.map((r, i) => {
-                  const st = staffelMap[r.employee_id];
+                {zeilen.map((r, i) => {
+                  const cl = closerMap[r.employee_id], ao = atOpenerMap[r.employee_id], as = atSetterMap[r.employee_id];
                   return (
                     <tr key={r.employee_id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50 cursor-pointer" onClick={() => setDetailEmp(r.employee_id)}>
                       <td className="px-4 py-2 text-gray-400">{i + 1}</td>
                       <td className="px-4 py-2 font-medium text-gray-900">{r.name || `#${r.employee_id}`}</td>
                       <td className="px-4 py-2"><StandortBadge standort={r.standort} /></td>
                       <td className="px-4 py-2">
-                        {st ? (
-                          <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${st.satz > st.basis ? 'bg-indigo-50 text-indigo-700' : 'bg-gray-100 text-gray-500'}`}
-                            title={st.erreichtAm ? `200k-Schwelle am ${st.erreichtAm.slice(8, 10)}.${st.erreichtAm.slice(5, 7)}. erreicht` : `noch ${formatEuro(st.restBisNext)} bis ${fmtPct(st.hoch)}`}>
-                            {fmtPct(st.satz)}
+                        {kreis === 'oesterreich' ? (
+                          (ao || as) ? (
+                            <div className="flex flex-wrap gap-1">
+                              {ao && <span className="inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold bg-indigo-50 text-indigo-700" title={`Opener Monats-AE ${formatEuro(ao.monthAe)}${ao.nextSatz != null ? ` · noch ${formatEuro(ao.restBisNext)} bis ${fmtPct(ao.nextSatz)}` : ' · Höchststufe'}`}>O {fmtPct(ao.satz)}</span>}
+                              {as && <span className="inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold bg-cyan-50 text-cyan-700" title={`Setter Monats-AE ${formatEuro(as.monthAe)}${as.nextSatz != null ? ` · noch ${formatEuro(as.restBisNext)} bis ${fmtPct(as.nextSatz)}` : ' · Höchststufe'}`}>S {fmtPct(as.satz)}</span>}
+                            </div>
+                          ) : <span className="text-xs text-gray-300">—</span>
+                        ) : cl ? (
+                          <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${cl.satz > cl.basis ? 'bg-indigo-50 text-indigo-700' : 'bg-gray-100 text-gray-500'}`}
+                            title={cl.erreichtAm ? `200k-Schwelle am ${cl.erreichtAm.slice(8, 10)}.${cl.erreichtAm.slice(5, 7)}. erreicht` : `noch ${formatEuro(cl.restBisNext)} bis ${fmtPct(cl.hoch)}`}>
+                            {fmtPct(cl.satz)}
                           </span>
                         ) : <span className="text-xs text-gray-300">—</span>}
                       </td>
@@ -202,7 +223,7 @@ export default function Provisionen() {
           </div>
         )}
       </div>
-      <p className="text-xs text-gray-400">Abrechnungszeitraum 21.–20. Zeile anklicken für den Kontoauszug des Mitarbeiters.</p>
+      <p className="text-xs text-gray-400">{kreisMeta.zyklus}. Zeile anklicken für den Kontoauszug des Mitarbeiters.</p>
 
       {detailEmp != null && <DetailModal employeeId={detailEmp} zeitraumId={zSel} onClose={() => setDetailEmp(null)} />}
     </div>

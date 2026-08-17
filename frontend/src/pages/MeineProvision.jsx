@@ -38,7 +38,7 @@ function StaffelBar({ label, satz, monthAe, restBisNext, nextSatz, erreichtAm })
 
 export default function MeineProvision() {
   const [zid, setZid] = useState('');
-  const { data: zeitraeume = [] } = useQuery({ queryKey: ['prov-zeitraeume'], queryFn: provisionenApi.zeitraeume });
+  const { data: zeitraeume = [] } = useQuery({ queryKey: ['prov-zeitraeume', 'all'], queryFn: () => provisionenApi.zeitraeume() });
   const { data, isLoading, isError } = useQuery({
     queryKey: ['prov-me', zid],
     queryFn: () => provisionenApi.me(zid || undefined),
@@ -48,6 +48,11 @@ export default function MeineProvision() {
   const zSel = zid || data?.zeitraum?.id || '';
   const buchungen = data?.buchungen || [];
   const perTyp = data?.perTyp || {};
+  const meKreis = data?.kreis;                                   // eigener Abrechnungskreis
+  const zeitraeumeF = zeitraeume.filter((z) => !meKreis || z.kreis === meKreis);
+  const zyklusText = meKreis === 'bonn'
+    ? 'Abrechnungszeitraum jeweils 21. des Vormonats bis 20. des Monats.'
+    : 'Abrechnungszeitraum: voller Kalendermonat (1. bis Monatsende).';
 
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-5">
@@ -61,7 +66,7 @@ export default function MeineProvision() {
           onChange={(e) => setZid(e.target.value)}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 bg-white"
         >
-          {zeitraeume.map((z) => (
+          {zeitraeumeF.map((z) => (
             <option key={z.id} value={z.id}>{z.label}{z.status === 'abgeschlossen' ? ' (abgeschlossen)' : ''}</option>
           ))}
         </select>
@@ -96,6 +101,20 @@ export default function MeineProvision() {
             </div>
           )}
 
+          {/* AT-Staffeln (Opener/Setter Österreich) */}
+          {data?.atStaffel && (data.atStaffel.opener || data.atStaffel.setter) && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {data.atStaffel.opener && (
+                <StaffelBar label="Opener-Staffel (Österreich)" satz={data.atStaffel.opener.satz} monthAe={data.atStaffel.opener.monthAe}
+                  restBisNext={data.atStaffel.opener.restBisNext} nextSatz={data.atStaffel.opener.nextSatz} />
+              )}
+              {data.atStaffel.setter && (
+                <StaffelBar label="Setter-Staffel (Österreich)" satz={data.atStaffel.setter.satz} monthAe={data.atStaffel.setter.monthAe}
+                  restBisNext={data.atStaffel.setter.restBisNext} nextSatz={data.atStaffel.setter.nextSatz} />
+              )}
+            </div>
+          )}
+
           {/* Aufschlüsselung nach Typ */}
           {Object.keys(perTyp).length > 0 && (
             <div className="flex flex-wrap gap-2">
@@ -117,7 +136,7 @@ export default function MeineProvision() {
               <Kontoauszug buchungen={buchungen} />
             )}
           </div>
-          <p className="text-xs text-gray-400">Abrechnungszeitraum jeweils 21. des Vormonats bis 20. des Monats. Provision entsteht mit dem Statuswechsel auf „Gewonnen".</p>
+          <p className="text-xs text-gray-400">{zyklusText} Provision entsteht mit dem Statuswechsel auf „Gewonnen"{meKreis === 'braunschweig' ? ' (Opener-Fixbetrag 125 € je erfasstem Sales Call, auch bei Verloren)' : ''}.</p>
         </>
       )}
     </div>

@@ -174,14 +174,16 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`KPI Tracker API running on :${PORT}`);
-  // Provisionen: idempotente Staffel-Reconciliation kurz nach dem Start. Korrigiert die Staffeln
-  // (volle Kalendermonats-Basis) nach jedem Deploy automatisch, ohne dass ein Button geklickt werden
-  // muss. Append-only, schreibt nur in provision_*; bucht nur fehlende Deltas (mehrfach harmlos).
+  // Provisionen: idempotente Voll-Reconciliation kurz nach dem Start. Nach jedem Deploy automatisch
+  // (ohne Button): (1) Braunschweig aus dem Bonn-Zyklus lösen, (2) Basis-Positionen aller Deals je Kreis,
+  // (3) BS-Opener-Fixbeträge (auch verlorene Deals), (4) Staffeln (Bonn/BS-Closer, Team, AT-Opener/Setter).
+  // Append-only, schreibt nur in provision_*; bucht nur fehlende Deltas / löscht nur fehlplatzierte,
+  // nicht eingefrorene BS-Zeilen aus Bonn-Perioden (mehrfach harmlos).
   setTimeout(async () => {
     try {
-      const { materialisiereNachtraege } = require('./utils/provisionen');
-      await materialisiereNachtraege();
-      console.log('[provisionen] Staffel-Reconciliation beim Start abgeschlossen');
+      const { reconcileAll } = require('./utils/provisionen');
+      const r = await reconcileAll();
+      console.log(`[provisionen] Start-Reconciliation abgeschlossen (BS-Entkopplung: ${r.dekopplung.deleted} gelöscht, ${r.gewonneneInScope} Deals in Scope)`);
     } catch (e) {
       console.error('[provisionen] Start-Reconciliation fehlgeschlagen:', e.message);
     }

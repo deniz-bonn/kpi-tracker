@@ -139,9 +139,9 @@ export const bestenlisteApi = {
 };
 
 export const provisionenApi = {
-  zeitraeume:  ()               => api.get('/provisionen/zeitraeume').then(r => r.data),
+  zeitraeume:  (kreis)          => api.get('/provisionen/zeitraeume', { params: (kreis && kreis !== 'Alle') ? { kreis } : {} }).then(r => r.data),
   me:          (zeitraum_id)    => api.get('/provisionen/me', { params: { zeitraum_id } }).then(r => r.data),
-  overview:    (zeitraum_id)    => api.get('/provisionen/admin/overview', { params: { zeitraum_id } }).then(r => r.data),
+  overview:    (params)         => api.get('/provisionen/admin/overview', { params: params || {} }).then(r => r.data),
   employee:    (id, zeitraum_id)=> api.get(`/provisionen/admin/employee/${id}`, { params: { zeitraum_id } }).then(r => r.data),
   config:      ()               => api.get('/provisionen/config').then(r => r.data),
   configUpsert:(gueltig_ab, d)  => api.put(`/provisionen/config/${gueltig_ab}`, d).then(r => r.data),

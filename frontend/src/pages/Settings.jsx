@@ -121,33 +121,43 @@ function AccessControlSection() {
 }
 
 // ── Provisions-Sätze (superadmin only) — perioden-gültig, nie rückwirkend ──
+const PROV_KREISE = [{ key: 'bonn', label: 'Bonn' }, { key: 'braunschweig', label: 'Braunschweig' }, { key: 'oesterreich', label: 'Österreich' }];
+const KREIS_HINT = {
+  bonn: 'Bonn: klassische %-Sätze + Team-Staffel (Zyklus 21.–20.).',
+  braunschweig: 'Braunschweig (Kalendermonat): Opener = 125 € Fixbetrag je Sales Call (strukturell, nicht hier editierbar). Setter/Closer/Pauschale wie unten.',
+  oesterreich: 'Österreich (Kalendermonat): Opener/Setter über Staffeltabelle (strukturell). Editierbar hier: Closer 7 % (Auto-VL) = „Closer hoch", 5 % (ohne) = „Closer Basis".',
+};
 function ProvisionConfigSection() {
   const qc = useQueryClient();
+  const [kreis, setKreis] = useState('bonn');
   const [form, setForm] = useState(null);
   const [savedOk, setSavedOk] = useState(false);
   const { data: configs = [], isLoading } = useQuery({ queryKey: ['prov-config'], queryFn: provisionenApi.config });
   const { data: employees = [] } = useQuery({ queryKey: ['employees'], queryFn: () => employeesApi.list() });
 
+  const cfgOf = (k) => configs.find(c => c.kreis === k) || configs.find(c => (c.kreis || 'bonn') === 'bonn') || configs[0];
+  const toForm = (c) => ({
+    gueltig_ab: '',
+    opener_satz: c.opener_satz, setter_satz: c.setter_satz, opener_setter_pauschal: c.opener_setter_pauschal,
+    closer_basis: c.closer_basis, closer_schwelle: c.closer_schwelle, closer_hoch: c.closer_hoch,
+    team_empfaenger_id: c.team_empfaenger_id || '', team_s1_bis: c.team_s1_bis, team_s1: c.team_s1,
+    team_s2_bis: c.team_s2_bis, team_s2: c.team_s2, team_s3: c.team_s3,
+  });
+
   useEffect(() => {
     if (form || !configs.length) return;
-    const c = configs[0];
-    setForm({
-      gueltig_ab: '',
-      opener_satz: c.opener_satz, setter_satz: c.setter_satz, opener_setter_pauschal: c.opener_setter_pauschal,
-      closer_basis: c.closer_basis, closer_schwelle: c.closer_schwelle, closer_hoch: c.closer_hoch,
-      team_empfaenger_id: c.team_empfaenger_id || '', team_s1_bis: c.team_s1_bis, team_s1: c.team_s1,
-      team_s2_bis: c.team_s2_bis, team_s2: c.team_s2, team_s3: c.team_s3,
-    });
+    setForm(toForm(cfgOf('bonn')));
   }, [configs, form]);
 
   const saveMut = useMutation({
-    mutationFn: ({ gueltig_ab, ...rest }) => provisionenApi.configUpsert(gueltig_ab, rest),
+    mutationFn: ({ gueltig_ab, ...rest }) => provisionenApi.configUpsert(gueltig_ab, { ...rest, kreis }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['prov-config'] }); setSavedOk(true); setTimeout(() => setSavedOk(false), 2000); },
   });
 
   if (isLoading || !form) return <div className="text-sm text-gray-400 py-4">Lade…</div>;
   const inpCls = "w-full bg-white border border-gray-300 text-gray-700 text-sm rounded px-2 py-1.5";
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const pickKreis = (k) => { setKreis(k); const c = cfgOf(k); if (c) setForm(toForm(c)); };
   const bonnBs = employees.filter(e => ['Bonn', 'Braunschweig'].includes(e.standort));
   const numField = (k, label, step = '0.1') => (
     <label className="block"><span className="text-xs text-gray-500">{label}</span>
@@ -156,8 +166,14 @@ function ProvisionConfigSection() {
   const canSave = /^\d{4}-\d{2}-\d{2}$/.test(form.gueltig_ab);
   return (
     <div className="space-y-4">
+      <div className="inline-flex rounded-lg bg-gray-100 p-1 gap-1">
+        {PROV_KREISE.map(k => (
+          <button key={k.key} onClick={() => pickKreis(k.key)}
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${kreis === k.key ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>{k.label}</button>
+        ))}
+      </div>
       <div className="text-xs bg-amber-50 border border-amber-200 text-amber-700 rounded px-3 py-2">
-        Sätze gelten ab dem eingetragenen Stichtag (perioden-gültig, nie rückwirkend). Bereits gebuchte Provisionen bleiben unverändert.
+        {KREIS_HINT[kreis]} Sätze gelten ab dem eingetragenen Stichtag (perioden-gültig, nie rückwirkend). Bereits gebuchte Provisionen bleiben unverändert.
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <label className="block"><span className="text-xs text-gray-500">Gültig ab</span>
@@ -192,17 +208,25 @@ function ProvisionConfigSection() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="text-left text-xs text-gray-400 border-b border-gray-100">
-              <th className="px-4 py-2">Gültig ab</th><th className="px-3 py-2">Opener</th><th className="px-3 py-2">Setter</th><th className="px-3 py-2">O+S</th><th className="px-3 py-2">Closer</th><th className="px-3 py-2">Schwelle</th><th className="px-3 py-2">Closer hoch</th>
+              <th className="px-4 py-2">Kreis</th><th className="px-3 py-2">Gültig ab</th><th className="px-3 py-2">Opener</th><th className="px-3 py-2">Setter</th><th className="px-3 py-2">O+S</th><th className="px-3 py-2">Closer</th><th className="px-3 py-2">Schwelle</th><th className="px-3 py-2">Closer hoch</th>
             </tr></thead>
             <tbody>
-              {configs.map(c => (
-                <tr key={c.gueltig_ab} className="border-b border-gray-50 last:border-0">
-                  <td className="px-4 py-2 font-medium">{c.gueltig_ab}</td>
-                  <td className="px-3 py-2">{c.opener_satz}%</td><td className="px-3 py-2">{c.setter_satz}%</td>
-                  <td className="px-3 py-2">{c.opener_setter_pauschal}%</td><td className="px-3 py-2">{c.closer_basis}%</td>
-                  <td className="px-3 py-2">{Number(c.closer_schwelle).toLocaleString('de-DE')} €</td><td className="px-3 py-2">{c.closer_hoch}%</td>
-                </tr>
-              ))}
+              {configs.map(c => {
+                const kl = (PROV_KREISE.find(k => k.key === (c.kreis || 'bonn')) || {}).label || c.kreis;
+                const openerTxt = c.opener_modus === 'fix' ? `${Number(c.opener_fix || 0)} € fix` : c.opener_modus === 'staffel' ? 'Staffel' : `${c.opener_satz}%`;
+                const setterTxt = c.setter_modus === 'staffel' ? 'Staffel' : `${c.setter_satz}%`;
+                return (
+                  <tr key={`${c.kreis || 'bonn'}:${c.gueltig_ab}`} className="border-b border-gray-50 last:border-0">
+                    <td className="px-4 py-2 font-medium">{kl}</td>
+                    <td className="px-3 py-2">{c.gueltig_ab}</td>
+                    <td className="px-3 py-2">{openerTxt}</td><td className="px-3 py-2">{setterTxt}</td>
+                    <td className="px-3 py-2">{c.opener_setter_pauschal}%</td>
+                    <td className="px-3 py-2">{c.closer_basis}%{c.closer_modus === 'flat_vl' ? ' (o. VL)' : ''}</td>
+                    <td className="px-3 py-2">{c.closer_modus === 'flat_vl' ? '—' : `${Number(c.closer_schwelle).toLocaleString('de-DE')} €`}</td>
+                    <td className="px-3 py-2">{c.closer_hoch}%{c.closer_modus === 'flat_vl' ? ' (m. VL)' : ''}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

@@ -7,12 +7,18 @@ export const TYP_LABEL = {
   deal_gewonnen: 'Gewonnen', team_provision: 'Team (Bonn)', korrektur: 'Korrektur', storno: 'Storno',
   staffel_upgrade: 'Staffel-Upgrade', staffel_nachtrag: 'Staffel-Nachtrag',
   team_upgrade: 'Team-Upgrade', team_nachtrag: 'Team-Nachtrag',
+  opener_fix: 'Opener-Fix (125 €)', opener_fix_storno: 'Opener-Fix Storno',
+  at_opener_staffel: 'Opener-Staffel', at_opener_nachtrag: 'Opener-Staffel (Nachtrag)',
+  at_setter_staffel: 'Setter-Staffel', at_setter_nachtrag: 'Setter-Staffel (Nachtrag)',
 };
 export const TYP_COLOR = {
   deal_gewonnen: 'text-emerald-700 bg-emerald-50', team_provision: 'text-sky-700 bg-sky-50',
   korrektur: 'text-amber-700 bg-amber-50', storno: 'text-rose-700 bg-rose-50',
   staffel_upgrade: 'text-indigo-700 bg-indigo-50', staffel_nachtrag: 'text-indigo-700 bg-indigo-50',
   team_upgrade: 'text-violet-700 bg-violet-50', team_nachtrag: 'text-violet-700 bg-violet-50',
+  opener_fix: 'text-teal-700 bg-teal-50', opener_fix_storno: 'text-rose-700 bg-rose-50',
+  at_opener_staffel: 'text-indigo-700 bg-indigo-50', at_opener_nachtrag: 'text-indigo-700 bg-indigo-50',
+  at_setter_staffel: 'text-cyan-700 bg-cyan-50', at_setter_nachtrag: 'text-cyan-700 bg-cyan-50',
 };
 const ROLLE_LABEL = { opener: 'Opener', setter: 'Setter', closer: 'Closer', opener_setter: 'Opener+Setter', team: 'Team' };
 const fmtDate = (d) => (d ? `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}` : '—');
