@@ -13,7 +13,7 @@ import Kontoauszug from '../components/Kontoauszug';
 
 const fmtPct = (n) => String(n ?? 0).replace('.', ',') + ' %';
 const betragCls = (n) => (Number(n) < 0 ? 'text-rose-600' : 'text-gray-900');
-const ROLLE_LABEL = { opener: 'Opener', setter: 'Setter', closer: 'Closer', opener_setter: 'Opener+Setter', team: 'Team' };
+const ROLLE_LABEL = { opener: 'Opener', setter: 'Setter', closer: 'Closer', opener_setter: 'Opener+Setter', team: 'Team', opener_fix: 'Opener-Fix (125 €)', at_opener_staffel: 'Opener-Staffel', at_setter_staffel: 'Setter-Staffel' };
 // Abrechnungskreise (Standort-Dimension): eigener Zyklus + eigene Regeln je Kreis.
 const KREISE = [
   { key: 'bonn', label: 'Bonn', zyklus: 'Abrechnungszeitraum 21.–20.' },
@@ -53,18 +53,18 @@ function DetailModal({ employeeId, zeitraumId, onClose }) {
   );
 }
 
-function BackfillPanel({ onDone }) {
+function BackfillPanel({ kreis, kreisLabel, onDone }) {
   const [proj, setProj] = useState(null);
   const [msg, setMsg] = useState('');
-  const dry = useMutation({ mutationFn: provisionenApi.backfillDry, onSuccess: (d) => { setProj(d); setMsg(''); } });
+  const dry = useMutation({ mutationFn: () => provisionenApi.backfillDry(kreis), onSuccess: (d) => { setProj(d); setMsg(''); } });
   const run = useMutation({
-    mutationFn: provisionenApi.backfillRun,
-    onSuccess: (d) => { setMsg(`Backfill ausgeführt: ${d.inScopeDeals} In-Scope-Deals verbucht.`); setProj(null); onDone?.(); },
+    mutationFn: () => provisionenApi.backfillRun(kreis),
+    onSuccess: (d) => { const dek = d.dekopplung ? `, ${d.dekopplung.deleted} BS-Zeilen aus Bonn gelöst` : ''; setMsg(`Backfill (${kreisLabel}) ausgeführt: ${d.gewonneneInScope ?? 0} gewonnene Deals${dek}.`); setProj(null); onDone?.(); },
   });
   return (
     <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <div className="text-sm font-semibold text-amber-900">⚙️ Laufenden Zeitraum initialisieren <span className="text-xs font-normal text-amber-700">(nur Superadmin)</span></div>
+        <div className="text-sm font-semibold text-amber-900">⚙️ Backfill {kreisLabel} <span className="text-xs font-normal text-amber-700">(nur Superadmin{kreis === 'braunschweig' ? ', inkl. Entkopplung aus Bonn' : ''})</span></div>
         <button onClick={() => dry.mutate()} disabled={dry.isPending}
           className="rounded-lg bg-white border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-50">
           {dry.isPending ? 'Berechne…' : 'Projektion anzeigen (Dry-Run)'}
@@ -164,7 +164,7 @@ export default function Provisionen() {
         </div>
       )}
 
-      {isSuperAdmin && <BackfillPanel onDone={() => qc.invalidateQueries({ queryKey: ['prov-overview'] })} />}
+      {isSuperAdmin && <BackfillPanel kreis={kreis} kreisLabel={kreisMeta.label} onDone={() => { qc.invalidateQueries({ queryKey: ['prov-overview'] }); qc.invalidateQueries({ queryKey: ['prov-zeitraeume'] }); }} />}
 
       <div className="rounded-2xl bg-gradient-to-br from-gray-800 to-gray-900 text-white p-5 shadow-sm flex items-baseline justify-between">
         <div className="text-xs font-medium uppercase tracking-wide text-gray-300">Gesamt · {kreisMeta.label}{data?.zeitraum ? ` · ${data.zeitraum.label}` : ''}</div>

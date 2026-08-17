@@ -145,8 +145,8 @@ export const provisionenApi = {
   employee:    (id, zeitraum_id)=> api.get(`/provisionen/admin/employee/${id}`, { params: { zeitraum_id } }).then(r => r.data),
   config:      ()               => api.get('/provisionen/config').then(r => r.data),
   configUpsert:(gueltig_ab, d)  => api.put(`/provisionen/config/${gueltig_ab}`, d).then(r => r.data),
-  backfillDry: ()               => api.get('/provisionen/admin/backfill/projektion').then(r => r.data),
-  backfillRun: ()               => api.post('/provisionen/admin/backfill').then(r => r.data),
+  backfillDry: (kreis)          => api.get('/provisionen/admin/backfill/projektion', { params: kreis ? { kreis } : {} }).then(r => r.data),
+  backfillRun: (kreis)          => api.post('/provisionen/admin/backfill', { kreis }).then(r => r.data),
   abschluss:   (id)             => api.post(`/provisionen/admin/zeitraeume/${id}/abschluss`).then(r => r.data),
   exportCsv: async (id) => {
     const token = localStorage.getItem('kpi_token');

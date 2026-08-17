@@ -470,27 +470,30 @@ async function atCloserOhneVl(km) {
 // Bonn-Zeitraum ist noch offen, nie exportiert) -> Keys frei. Der Backfill legt sie danach korrekt in
 // BS-Kalendermonatsperioden neu an (Opener dann als 125-Fix statt 3%). Gibt ein Protokoll zurueck.
 async function dekoppleBraunschweig(stichtag) {
+  // WICHTIG: kein Aggregat ueber die BOOLEAN-Spalte eingefroren (PG kennt kein MAX(boolean)).
   const rowsVorher = await db.all(
-    `SELECT b.employee_id, e.name, COUNT(*) n, COALESCE(SUM(b.betrag),0) summe, MAX(b.eingefroren) frozen
+    `SELECT b.employee_id, e.name, COUNT(*) n, COALESCE(SUM(b.betrag),0) summe
        FROM provision_buchungen b JOIN provision_zeitraeume z ON z.id=b.zeitraum_id JOIN employees e ON e.id=b.employee_id
       WHERE z.kreis='bonn' AND e.standort='Braunschweig'
       GROUP BY b.employee_id, e.name ORDER BY summe DESC`);
-  const frozen = rowsVorher.filter(r => Number(r.frozen) === 1);
-  // Sicherung: eingefrorene (abgeschlossene) BS-Zeilen NICHT anfassen -> stattdessen stornieren.
+  const frozenTrue = pg() ? 'TRUE' : '1', frozenFalse = pg() ? 'FALSE' : '0';
+  // Sicherung: eingefrorene (abgeschlossene) BS-Zeilen NICHT anfassen. Nur zaehlen (Warnung).
+  const frozenBlockiert = Number((await db.get(
+    `SELECT COUNT(*) n FROM provision_buchungen b JOIN provision_zeitraeume z ON z.id=b.zeitraum_id JOIN employees e ON e.id=b.employee_id
+      WHERE b.eingefroren=${frozenTrue} AND z.kreis='bonn' AND e.standort='Braunschweig'`))?.n) || 0;
+  const delWhere = `eingefroren=${frozenFalse} AND id IN (
+        SELECT b.id FROM provision_buchungen b JOIN provision_zeitraeume z ON z.id=b.zeitraum_id JOIN employees e ON e.id=b.employee_id
+        WHERE z.kreis='bonn' AND e.standort='Braunschweig')`;
   let deleted = 0;
   if (pg()) {
-    const r = await db.run(`DELETE FROM provision_buchungen WHERE eingefroren=FALSE AND id IN (
-        SELECT b.id FROM provision_buchungen b JOIN provision_zeitraeume z ON z.id=b.zeitraum_id JOIN employees e ON e.id=b.employee_id
-        WHERE z.kreis='bonn' AND e.standort='Braunschweig')`);
+    const r = await db.run(`DELETE FROM provision_buchungen WHERE ${delWhere}`);
     deleted = r?.rowCount ?? 0;
   } else {
     const before = db.get(`SELECT COUNT(*) n FROM provision_buchungen b JOIN provision_zeitraeume z ON z.id=b.zeitraum_id JOIN employees e ON e.id=b.employee_id WHERE b.eingefroren=0 AND z.kreis='bonn' AND e.standort='Braunschweig'`);
-    db.run(`DELETE FROM provision_buchungen WHERE eingefroren=0 AND id IN (
-        SELECT b.id FROM provision_buchungen b JOIN provision_zeitraeume z ON z.id=b.zeitraum_id JOIN employees e ON e.id=b.employee_id
-        WHERE z.kreis='bonn' AND e.standort='Braunschweig')`);
+    db.run(`DELETE FROM provision_buchungen WHERE ${delWhere}`);
     deleted = Number((before || {}).n) || 0;
   }
-  return { rowsVorher, deleted, frozenBlockiert: frozen.length };
+  return { rowsVorher, deleted, frozenBlockiert };
 }
 
 // ── Reconcile / Backfill (idempotent) ─────────────────────────────────────────
@@ -511,8 +514,9 @@ async function reconcileAll(stichtag) {
   return { dekopplung: dek, gewonneneInScope: won.length, bsVerlorenInScope: bsVerloren.length };
 }
 
-// Idempotentes Sicherheitsnetz (Cron/Start): rechnet alle Staffeln fuer In-Scope-Kalendermonate nach.
-async function materialisiereNachtraege(stichtag) {
+// Idempotentes Sicherheitsnetz (Cron/Start): rechnet Staffeln fuer In-Scope-Kalendermonate nach.
+// kreisFilter (optional): nur Staffeln dieses Kreises nachziehen (Team nur bei bonn/global).
+async function materialisiereNachtraege(stichtag, kreisFilter = null) {
   const today = stichtag || heute();
   const goLiveMin = (await db.get(`SELECT MIN(gueltig_ab) g FROM provision_config`))?.g || '9999-12-31';
   const monate = (await db.all(
@@ -527,36 +531,83 @@ async function materialisiereNachtraege(stichtag) {
        ) x WHERE id IS NOT NULL`, [km]);
     for (const b of beteiligte) {
       const k = kreisFor(b.standort);
+      if (kreisFilter && k !== kreisFilter) continue;
       if (k === 'bonn' || k === 'braunschweig') await aktualisiereCloserStaffel(b.id, km, today);
       if (k === 'oesterreich') { await aktualisiereStaffelAt(b.id, 'opener', km, today); await aktualisiereStaffelAt(b.id, 'setter', km, today); }
     }
-    await aktualisiereTeamStaffel(km, today);
+    if (!kreisFilter || kreisFilter === 'bonn') await aktualisiereTeamStaffel(km, today);
   }
 }
 
-// Read-only-Projektion (kein Insert): was wuerde der Basis-Backfill je Rolle buchen? (Dry-Run)
-async function projektionLaufend(stichtag) {
-  const goLiveMin = (await db.get(`SELECT MIN(gueltig_ab) g FROM provision_config`))?.g || '9999-12-31';
-  const deals = await db.all(`SELECT * FROM deals_nk WHERE status='Gewonnen' AND ${ymdExpr('gewonnen_datum')} >= ${q1(1)}`, [goLiveMin]);
-  const perRolle = {}; let totalBase = 0, gebucht = 0;
-  for (const d of deals) {
+// Read-only-Projektion (kein Insert), STRIKT auf den gewaehlten Kreis gescoped (Dry-Run).
+// Enthaelt Basis-Positionen (nach Beteiligten-Kreis gefiltert) + BS-Opener-Fix (125 EUR) + AT-Staffeln.
+async function projektionLaufend(kreis, stichtag) {
+  const k = ['bonn', 'braunschweig', 'oesterreich'].includes(kreis) ? kreis : null;
+  const goLive = k ? await goLiveDatum(k) : ((await db.get(`SELECT MIN(gueltig_ab) g FROM provision_config`))?.g || '9999-12-31');
+  const deals = await db.all(`SELECT * FROM deals_nk WHERE status='Gewonnen' AND ${ymdExpr('gewonnen_datum')} >= ${q1(1)}`, [goLive]);
+  const perRolle = {}; let totalBase = 0; const inScope = new Set();
+  const add = (rolle, betrag) => { perRolle[rolle] = perRolle[rolle] || { n: 0, summe: 0 }; perRolle[rolle].n++; perRolle[rolle].summe = round2(perRolle[rolle].summe + betrag); totalBase = round2(totalBase + betrag); };
+  for (const d of deals) {                                    // Basis-Positionen, nach Kreis des Beteiligten
     const gd = toYmd(d.gewonnen_datum); if (!gd) continue;
     const ae = Number(d.ae_wert) || 0;
-    for (const p of await positionenFor(d, gd)) {
-      const betrag = round2(ae * p.satz / 100);
-      perRolle[p.rolle] = perRolle[p.rolle] || { n: 0, summe: 0 };
-      perRolle[p.rolle].n++; perRolle[p.rolle].summe = round2(perRolle[p.rolle].summe + betrag);
-      totalBase = round2(totalBase + betrag); gebucht++;
+    for (const p of await positionenFor(d, gd)) { if (k && p.kreis !== k) continue; add(p.rolle, round2(ae * p.satz / 100)); inScope.add(d.id); }
+  }
+  if (!k || k === 'braunschweig') {                           // BS-Opener-Fix 125 EUR je Sales Call (auch verloren)
+    const bsGoLive = await goLiveDatum('braunschweig');
+    const r = await db.get(`SELECT COUNT(*) n FROM deals_nk d JOIN employees e ON e.id=d.opener_id WHERE e.standort='Braunschweig' AND d.status IN ('Gewonnen','Verloren') AND ${ymdExpr('d.datum')} >= ${q1(1)} AND (d.setter_id IS NULL OR d.opener_id<>d.setter_id)`, [bsGoLive]);
+    const n = Number(r?.n) || 0; if (n) { perRolle['opener_fix'] = { n, summe: round2(n * 125) }; totalBase = round2(totalBase + n * 125); }
+  }
+  if (!k || k === 'oesterreich') {                            // AT-Opener/Setter-Staffel je Beteiligtem/Monat
+    const atGoLive = await goLiveDatum('oesterreich');
+    for (const rolle of ['opener', 'setter']) {
+      const roleCol = rolle === 'opener' ? 'opener_id' : 'setter_id';
+      const exclOS = rolle === 'setter' ? ' AND (d.opener_id IS NULL OR d.opener_id<>d.setter_id)' : '';
+      const grp = await db.all(
+        `SELECT ${ymExpr('d.gewonnen_datum')} km, d.${roleCol} id, COALESCE(SUM(d.ae_wert),0) base
+           FROM deals_nk d JOIN employees e ON e.id=d.${roleCol}
+          WHERE e.standort='Österreich' AND d.status='Gewonnen' AND ${ymdExpr('d.gewonnen_datum')} >= ${q1(1)}${exclOS}
+          GROUP BY ${ymExpr('d.gewonnen_datum')}, d.${roleCol}`, [atGoLive]);
+      for (const r of grp) { const satz = await staffelSatz('oesterreich', rolle, Number(r.base) || 0, r.km + '-28'); const b = round2((Number(r.base) || 0) * satz / 100); if (b) add(`at_${rolle}_staffel`, b); }
     }
   }
-  return { goLive: goLiveMin, inScopeDeals: deals.length, positionen: gebucht, totalBase, perRolle };
+  return { kreis: k || 'alle', goLive, inScopeDeals: inScope.size, positionen: Object.values(perRolle).reduce((a, v) => a + v.n, 0), totalBase, perRolle };
 }
 
-// Einmaliger, idempotenter Backfill (Button + Startup): fuehrt reconcileAll aus und fasst zusammen.
-async function backfillLaufend(stichtag) {
-  const r = await reconcileAll(stichtag);
+// Kreis-gescopte Ausfuehrung (Button je Tab): bucht NUR Positionen dieses Kreises + dessen Staffeln;
+// fuer braunschweig zusaetzlich Entkopplung aus Bonn + Opener-Fix (auch verlorene Deals).
+async function backfillKreis(kreis, stichtag) {
+  const today = stichtag || heute();
+  const dek = kreis === 'braunschweig' ? await dekoppleBraunschweig(today) : null;
+  const goLive = await goLiveDatum(kreis);
+  const won = await db.all(`SELECT * FROM deals_nk WHERE status='Gewonnen' AND ${ymdExpr('gewonnen_datum')} >= ${q1(1)} ORDER BY ${ymdExpr('gewonnen_datum')}, id`, [goLive]);
+  for (const d of won) {                                      // nur Basis-Positionen dieses Kreises
+    const gd = toYmd(d.gewonnen_datum); if (!gd) continue;
+    const ae = Number(d.ae_wert) || 0, km = kalendermonatFor(gd);
+    for (const p of await positionenFor(d, gd)) {
+      if (p.kreis !== kreis) continue;
+      const { von, bis } = periodFor(gd, kreis);
+      const z = await getOrCreateZeitraum(von, bis, kreis);
+      await insertBuchung({ zeitraum_id: z.id, employee_id: p.emp, deal_id: d.id, rolle: p.rolle,
+        typ: p.isTeam ? 'team_provision' : 'deal_gewonnen', satz: p.satz, bemessungsgrundlage: ae,
+        betrag: ae * p.satz / 100, kalendermonat: km, gewonnen_datum: gd,
+        beschreibung: `${p.besch} · ${d.kunde || ''}`.trim(),
+        idem_key: `${p.isTeam ? 'team' : 'dg'}:${d.id}:${p.rolle}:${p.emp}` });
+    }
+  }
+  if (kreis === 'braunschweig') {                             // Opener-Fix (Gewonnen + Verloren)
+    const bs = await db.all(`SELECT d.* FROM deals_nk d JOIN employees e ON e.id=d.opener_id WHERE e.standort='Braunschweig' AND d.status IN ('Gewonnen','Verloren') AND ${ymdExpr('d.datum')} >= ${q1(1)}`, [goLive]);
+    for (const d of bs) await syncBsOpenerFix(d, today);
+  }
+  await materialisiereNachtraege(today, kreis);               // nur Staffeln dieses Kreises
+  return { kreis, dekopplung: dek, gewonneneInScope: won.length };
+}
+
+// Backfill-Button: mit kreis strikt gescoped (backfillKreis), ohne kreis global (reconcileAll = Startup).
+async function backfillLaufend(kreis, stichtag) {
+  const k = ['bonn', 'braunschweig', 'oesterreich'].includes(kreis) ? kreis : null;
+  const r = k ? await backfillKreis(k, stichtag) : await reconcileAll(stichtag);
   const rows = await db.all(`SELECT typ, COUNT(*) n, COALESCE(SUM(betrag),0) summe FROM provision_buchungen GROUP BY typ ORDER BY typ`);
-  return { ...r, buchungen: rows };
+  return { ...r, kreis: k || 'alle', buchungen: rows };
 }
 
 // Zeitraum abschliessen: Buchungen einfrieren, Status setzen, Folgeperiode DES KREISES anlegen.

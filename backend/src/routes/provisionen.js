@@ -171,12 +171,13 @@ router.get('/admin/zeitraeume/:id/export.csv', requireRole('superadmin'), wrap(a
 
 // ── Backfill des laufenden Zeitraums (nur Superadmin): erst Dry-Run, dann Commit ──
 router.get('/admin/backfill/projektion', requireRole('superadmin'), wrap(async (req, res) => {
-  res.json(await projektionLaufend());
+  res.json(await projektionLaufend(req.query.kreis));
 }));
 
 router.post('/admin/backfill', requireRole('superadmin'), wrap(async (req, res) => {
-  const r = await backfillLaufend();
-  await logAudit({ user: req.user, action: 'backfill', entityType: 'provision', entityId: r.goLive, newData: { inScopeDeals: r.inScopeDeals } });
+  const kreis = KREISE.includes(req.body?.kreis) ? req.body.kreis : null;
+  const r = await backfillLaufend(kreis);
+  await logAudit({ user: req.user, action: 'backfill', entityType: 'provision', entityId: r.kreis || 'alle', newData: { kreis: r.kreis, gewonneneInScope: r.gewonneneInScope } });
   res.json(r);
 }));
 
