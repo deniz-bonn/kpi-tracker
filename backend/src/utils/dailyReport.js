@@ -1,5 +1,6 @@
 const db = require('../db');
 const { aeEurSql } = require('./currency');
+const { gruppenStandorte } = require('./gruppe');
 
 // EUR-umgerechnetes ae_wert (CHF-Companies via Monatskurs); erfordert JOIN companies c.
 const AE_EUR = aeEurSql('d', 'c');
@@ -79,7 +80,9 @@ async function buildDashboardEmailData(monat, today) {
   ]);
 
   const monatsziel = Number(zielRow?.ziel_gesamt) || 0;
-  return { monat, today, nkMonth, bkMonth, vlMonth, nkToday, bkToday, vlToday, monatsziel };
+  // Zentrale Gruppen-Scope-Regel (welche Standorte in Gesamt/Ziel zaehlen) — Schweiz bleibt draussen.
+  const gruppe = await gruppenStandorte();
+  return { monat, today, nkMonth, bkMonth, vlMonth, nkToday, bkToday, vlToday, monatsziel, gruppenStandorte: gruppe };
 }
 
 // KPI-Mail bezieht sich nur auf diesen Standort

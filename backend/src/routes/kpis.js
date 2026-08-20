@@ -3,6 +3,7 @@ const db = require('../db');
 const wrap = require('../middleware/asyncHandler');
 const { aeEurGatedSql } = require('../utils/currency');
 const { activeCompanySql } = require('../utils/companyActive');
+const { gruppenStandorte } = require('../utils/gruppe');
 
 // EUR-umgerechnetes ae_wert (CHF-Companies via Monatskurs) MIT AE-Startmonat-Gate:
 // Umsatz zaehlt erst ab company.ae_ab_monat (Risem: 2026-08). Erfordert JOIN companies c.
@@ -331,6 +332,11 @@ router.get('/dashboard', wrap(async (req, res) => {
 
   const months = Array.from({ length: 12 }, (_, i) => `${yr}-${String(i + 1).padStart(2, '0')}`);
 
+  // Zentrale Gruppen-Scope-Regel (companies.zaehlt_in_gruppe): welche Standorte in Gesamt/Umsatz zaehlen.
+  // Schweiz (Risem) wird als Spalte gezeigt, zaehlt aber nicht in Gesamt (solange Flag=FALSE).
+  const gruppe = await gruppenStandorte();
+  const inG = s => gruppe.includes(s);
+
   const rows = months.map(monat => {
     const ag = aeGesamt(monat); // authoritative AE Gesamt record (may be null)
 
@@ -346,27 +352,28 @@ router.get('/dashboard', wrap(async (req, res) => {
     const nk_at     = useAG ? n(ag.nk_at_ae)   : locAE(nkByLoc, monat, ['Österreich']);
     // Schweiz (Risem) immer live aus Deals — keine AE-Buchung in ae_gesamt_monthly vorhanden.
     const nk_ch     = locAE(nkByLoc, monat, ['Schweiz']);
-    // nk_gesamt aus Standort-Teilen OHNE Schweiz: Risem wird angezeigt (Spalte nk_ch),
-    // fließt aber NICHT in Gesamt/Umsatz ein (Vorgabe Deniz).
-    const nk_gesamt = nk_bonn + nk_bs + nk_at;
+    // nk_gesamt nur ueber Gruppen-Standorte (zentrale Regel). Risem/Schweiz (nk_ch) wird angezeigt,
+    // fliesst aber nicht in Gesamt/Umsatz ein, solange die Firma nicht in der Gruppe ist.
+    const nk_gesamt = (inG('Bonn') ? nk_bonn : 0) + (inG('Braunschweig') ? nk_bs : 0) + (inG('Österreich') ? nk_at : 0) + (inG('Schweiz') ? nk_ch : 0);
 
     const nk_bonn_anz = useAG ? n(ag.nk_bonn_anz) : locCnt(nkCntByLoc, monat, ['Bonn']);
     const nk_bs_anz   = useAG ? n(ag.nk_bs_anz)   : locCnt(nkCntByLoc, monat, ['Braunschweig']);
     const nk_at_anz   = useAG ? n(ag.nk_at_anz)   : locCnt(nkCntByLoc, monat, ['Österreich']);
     const nk_ch_anz   = locCnt(nkCntByLoc, monat, ['Schweiz']); // Schweiz immer live
-    const nk_gesamt_anz = nk_bonn_anz + nk_bs_anz + nk_at_anz; // ohne Schweiz
+    const nk_gesamt_anz = (inG('Bonn') ? nk_bonn_anz : 0) + (inG('Braunschweig') ? nk_bs_anz : 0) + (inG('Österreich') ? nk_at_anz : 0) + (inG('Schweiz') ? nk_ch_anz : 0);
 
     // BK – DE/AT aus ag.bk_de_ae / ag.bk_at_ae wenn explizit gesetzt, sonst aus Live-Deals
     const bk_de     = (useAG && n(ag.bk_de_ae) > 0) ? n(ag.bk_de_ae) : locAE(bkByLoc, monat, ['Bonn', 'Braunschweig']);
     const bk_at     = (useAG && n(ag.bk_at_ae) > 0) ? n(ag.bk_at_ae) : locAE(bkByLoc, monat, ['Österreich']);
     const bk_ch     = locAE(bkByLoc, monat, ['Schweiz']);
-    const bk_gesamt = bk_de + bk_at; // Schweiz angezeigt, aber nicht in Gesamt/Umsatz
+    // bk_de bündelt Bonn+Braunschweig -> zaehlt, sobald einer der beiden in der Gruppe ist.
+    const bk_gesamt = ((inG('Bonn') || inG('Braunschweig')) ? bk_de : 0) + (inG('Österreich') ? bk_at : 0) + (inG('Schweiz') ? bk_ch : 0);
 
     // VL – DE/AT aus ag.vl_de_ae / ag.vl_at_ae wenn explizit gesetzt, sonst aus Live-Deals
     const vl_de     = (useAG && n(ag.vl_de_ae) > 0) ? n(ag.vl_de_ae) : locAE(vlByLoc, monat, ['Bonn', 'Braunschweig']);
     const vl_at     = (useAG && n(ag.vl_at_ae) > 0) ? n(ag.vl_at_ae) : locAE(vlByLoc, monat, ['Österreich']);
     const vl_ch     = locAE(vlByLoc, monat, ['Schweiz']);
-    const vl_gesamt = vl_de + vl_at; // Schweiz angezeigt, aber nicht in Gesamt/Umsatz
+    const vl_gesamt = ((inG('Bonn') || inG('Braunschweig')) ? vl_de : 0) + (inG('Österreich') ? vl_at : 0) + (inG('Schweiz') ? vl_ch : 0);
 
     const gesamt = nk_gesamt + bk_gesamt + vl_gesamt;
     const pct = v => gesamt > 0 ? Math.round((v / gesamt) * 10000) / 100 : 0;

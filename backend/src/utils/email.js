@@ -142,33 +142,47 @@ function sectionHeader(title, color) {
 function buildDashboardHtml(data) {
   const { monat, today, nkMonth, bkMonth, vlMonth, nkToday, bkToday, vlToday, monatsziel } = data;
 
+  // Zentrale Gruppen-Scope-Regel (dieselbe wie Dashboard/Auswertung): nur diese Standorte zaehlen in
+  // Gesamt-AE und Zielerreichung. Schweiz (Risem) wird informativ gezeigt, fliesst aber NICHT ein.
+  const gruppe = data.gruppenStandorte && data.gruppenStandorte.length ? data.gruppenStandorte : ['Bonn', 'Braunschweig', 'Österreich'];
+  const inGruppe = s => gruppe.includes(s);
+  // Anzeigereihenfolge: bekannte Standorte zuerst, dann evtl. weitere.
   const standorte = ['Bonn', 'Braunschweig', 'Österreich', 'Schweiz'];
+  // Summe nur der Gruppen-Standorte (Basis fuer Gesamt/Ziel).
+  const sumInGruppe = rows => (rows || []).filter(r => inGruppe(r.standort)).reduce((s, r) => s + (Number(r.ae) || 0), 0);
 
-  const monthTable = (rows, color) => {
+  const monthTable = (rows) => {
     const byLoc = {};
-    standorte.forEach(s => { byLoc[s] = { cnt: 0, ae: 0 }; });
     (rows || []).forEach(r => {
       const s = r.standort;
       if (!byLoc[s]) byLoc[s] = { cnt: 0, ae: 0 };
       byLoc[s].cnt += Number(r.cnt) || 0;
       byLoc[s].ae  += Number(r.ae)  || 0;
     });
-    const totalCnt = Object.values(byLoc).reduce((s, v) => s + v.cnt, 0);
-    const totalAe  = Object.values(byLoc).reduce((s, v) => s + v.ae, 0);
+    // Reihenfolge: bekannte + evtl. weitere vorhandene Standorte; in Gruppe vs. ausserhalb trennen.
+    const alle = [...standorte, ...Object.keys(byLoc).filter(s => !standorte.includes(s))];
+    const drin = alle.filter(s => inGruppe(s) && byLoc[s] && byLoc[s].cnt > 0);
+    const raus = alle.filter(s => !inGruppe(s) && byLoc[s] && byLoc[s].cnt > 0);
+    const gCnt = drin.reduce((a, s) => a + byLoc[s].cnt, 0);
+    const gAe  = drin.reduce((a, s) => a + byLoc[s].ae, 0);
 
-    return standorte.map((s, i) => {
-      if (!byLoc[s] || (byLoc[s].cnt === 0)) return '';
-      const bg = i % 2 === 0 ? '#f8fafc' : '#fff';
+    const rowHtml = (s, i, muted) => {
+      const bg = muted ? '#fbfbfc' : (i % 2 === 0 ? '#f8fafc' : '#fff');
+      const col = muted ? 'color:#94a3b8;' : '';
       return `<tr>
-        <td style="${styleTd(bg)}">${s}</td>
-        <td style="${styleTdR(bg)}">${byLoc[s].cnt}</td>
-        <td style="${styleTdR(bg)}">${fmtEuro(byLoc[s].ae)}</td>
+        <td style="${styleTd(bg)};${col}">${s}${muted ? ' <span style="font-size:10px">*</span>' : ''}</td>
+        <td style="${styleTdR(bg)};${col}">${byLoc[s].cnt}</td>
+        <td style="${styleTdR(bg)};${col}">${fmtEuro(byLoc[s].ae)}</td>
       </tr>`;
-    }).join('') + `<tr>
+    };
+
+    return drin.map((s, i) => rowHtml(s, i, false)).join('') + `<tr>
       <td style="${styleTd('#f1f5f9')};font-weight:bold">Gesamt</td>
-      <td style="${styleTdR('#f1f5f9')};font-weight:bold">${totalCnt}</td>
-      <td style="${styleTdR('#f1f5f9')};font-weight:bold">${fmtEuro(totalAe)}</td>
-    </tr>`;
+      <td style="${styleTdR('#f1f5f9')};font-weight:bold">${gCnt}</td>
+      <td style="${styleTdR('#f1f5f9')};font-weight:bold">${fmtEuro(gAe)}</td>
+    </tr>` + raus.map((s, i) => rowHtml(s, i, true)).join('') + (raus.length ? `<tr>
+      <td colspan="3" style="${styleTd('#fff')};color:#94a3b8;font-size:10px;font-style:italic">* nicht in Gesamt/Ziel enthalten</td>
+    </tr>` : '');
   };
 
   const todayRows = (deals, label) => {
@@ -233,10 +247,10 @@ function buildDashboardHtml(data) {
 
       <!-- Gesamt-Übersicht -->
       ${(() => {
-        const sumAe = rows => (rows || []).reduce((s, r) => s + (Number(r.ae) || 0), 0);
-        const nkAe  = sumAe(nkMonth);
-        const bkAe  = sumAe(bkMonth);
-        const vlAe  = sumAe(vlMonth);
+        // Gesamt/Ziel NUR ueber Gruppen-Standorte (Schweiz ausgeschlossen, s. sumInGruppe).
+        const nkAe  = sumInGruppe(nkMonth);
+        const bkAe  = sumInGruppe(bkMonth);
+        const vlAe  = sumInGruppe(vlMonth);
         const gesamt = nkAe + bkAe + vlAe;
         const ziel   = monatsziel || 0;
         const rest   = ziel > 0 ? ziel - gesamt : null;
@@ -570,4 +584,4 @@ async function sendBackupEmail(backupData) {
   }
 }
 
-module.exports = { sendInvite, sendPasswordReset, sendDailyDashboard, sendDailyKpi, sendBackupEmail, testEmailConnection, buildKpiHtml };
+module.exports = { sendInvite, sendPasswordReset, sendDailyDashboard, sendDailyKpi, sendBackupEmail, testEmailConnection, buildKpiHtml, buildDashboardHtml };

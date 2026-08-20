@@ -3,6 +3,7 @@ const db = require('../db');
 const wrap = require('../middleware/asyncHandler');
 const { loadRates, toEur, moneyEurSql, aeEurGatedSql } = require('../utils/currency');
 const { activeCompanySql } = require('../utils/companyActive');
+const { gruppenStandorte } = require('../utils/gruppe');
 
 // EUR-umgerechnete Beträge (CHF-Companies via Monatskurs); erfordern JOIN companies c.
 // AE_EUR mit AE-Startmonat-Gate (Umsatz erst ab company.ae_ab_monat, Risem: 2026-08).
@@ -273,6 +274,10 @@ router.get('/auftragseingang', wrap(async (req, res) => {
     deals.filter(d => d.monat === monat && standorte.includes(d.standort))
          .map(d => ({ kunde: d.kunde, ae_wert: aeEur(d), mitarbeiter: d.mitarbeiter, datum: d.gewonnen_datum, dienstleistung: d.dienstleistung || null }));
 
+  // Zentrale Gruppen-Scope-Regel (companies.zaehlt_in_gruppe): welche Standorte in gesamt zaehlen.
+  // Schweiz (Risem) wird angezeigt, ist aber nicht in der Gruppe -> nicht in gesamt.
+  const gruppe = await gruppenStandorte();
+
   const result = months.map(monat => {
     const nk = {
       bonn:         pickLoc(nkDeals, monat, ['Bonn']),
@@ -280,25 +285,21 @@ router.get('/auftragseingang', wrap(async (req, res) => {
       oesterreich:  pickLoc(nkDeals, monat, ['Österreich']),
       schweiz:      pickLoc(nkDeals, monat, ['Schweiz']),
     };
-    // Schweiz (Risem) wird angezeigt, zählt aber NICHT in gesamt.
-    nk.gesamt = [...nk.bonn, ...nk.braunschweig, ...nk.oesterreich]
-      .reduce((s, d) => s + d.ae_wert, 0);
+    nk.gesamt = pickLoc(nkDeals, monat, gruppe).reduce((s, d) => s + d.ae_wert, 0);
 
     const bk = {
       deutschland: pickLoc(bkDeals, monat, ['Bonn', 'Braunschweig']),
       oesterreich: pickLoc(bkDeals, monat, ['Österreich']),
       schweiz:     pickLoc(bkDeals, monat, ['Schweiz']),
     };
-    bk.gesamt = [...bk.deutschland, ...bk.oesterreich] // ohne Schweiz (Risem)
-      .reduce((s, d) => s + d.ae_wert, 0);
+    bk.gesamt = pickLoc(bkDeals, monat, gruppe).reduce((s, d) => s + d.ae_wert, 0);
 
     const vl = {
       deutschland: pickLoc(vlDeals, monat, ['Bonn', 'Braunschweig']),
       oesterreich: pickLoc(vlDeals, monat, ['Österreich']),
       schweiz:     pickLoc(vlDeals, monat, ['Schweiz']),
     };
-    vl.gesamt = [...vl.deutschland, ...vl.oesterreich] // ohne Schweiz (Risem)
-      .reduce((s, d) => s + d.ae_wert, 0);
+    vl.gesamt = pickLoc(vlDeals, monat, gruppe).reduce((s, d) => s + d.ae_wert, 0);
 
     return { monat, nk, bk, vl };
   });
