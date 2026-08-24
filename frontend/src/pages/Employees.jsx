@@ -3,7 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { employeesApi } from '../utils/api';
 
-const ROLLEN = ['KAM', 'NKV-Closer', 'Opener', 'Setter', 'Multi', 'Closer-KAM'];
+const ROLLEN = ['KAM', 'NKV-Closer', 'Opener', 'Setter', 'Multi', 'Closer-KAM', 'Account Manager'];
 const STANDORTE = ['Bonn', 'Braunschweig', 'Österreich', 'Schweiz'];
 
 export default function Employees() {
