@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dealsApi, employeesApi } from '../utils/api';
@@ -22,6 +22,14 @@ const matchStandort = (kamStandort, filter) => {
 const DIENSTLEISTUNGEN_BK = ['RaaS Kontingente','RaaS Kleinkunde Laufzeit','Kontingent (Alt)','Karriereseite','Karriereseite Wartung','Social-Media','Glaubenssätze','Media-Day','Website','Sonstiges'];
 const AUTO_VL_OPTS = ['Ja', 'Nein'];
 const ABGERECHNET_OPTS = ['Nein', 'Ja', 'On Hold'];
+
+// ── Rollen-Gruppen fuer den BK-Rollenfilter (zentrale Zuordnung, nicht ueber die UI verstreut) ──
+// Gruppiert wird nach der AKTUELLEN Rolle des Deal-KAMs (employees.rolle des kam_id). Bei einem
+// Rollenwechsel wandern auch historische Deals in die neue Gruppe — kein Rollen-Verlauf, fuer diesen
+// Vergleichszweck bewusst ausreichend. Werte werden dynamisch aus employees.rolle abgeleitet.
+const ROLLE_GRUPPEN = { kam: ['KAM', 'Closer-KAM'], am: ['Account Manager'] };
+const ROLLE_GRUPPE_LABEL = { kam: 'Key Account Manager', am: 'Account Manager' };
+const rolleGruppe = (rolle) => ROLLE_GRUPPEN.kam.includes(rolle) ? 'kam' : ROLLE_GRUPPEN.am.includes(rolle) ? 'am' : null;
 
 // ── KPIs aus einem Deal-Array berechnen ──────────────────────────────────────
 function calcKpis(deals) {
@@ -70,11 +78,13 @@ export default function DealsBK() {
 
   const [viewMode,       setViewMode]       = useState('alle');
   const [filterKam,      setFilterKam]      = useState('');
+  const [filterRolle,    setFilterRolle]    = useState(''); // '' | 'kam' | 'am' (Rolle des Deal-KAMs)
   const [filterStatus,   setFilterStatus]   = useState('');
   const [filterStandort, setFilterStandort] = useState('');
   const [filterDienstleistung, setFilterDienstleistung] = useState('');
   const [filterMinAe,    setFilterMinAe]    = useState('');
   const [filterMaxAe,    setFilterMaxAe]    = useState('');
+  const [showVergleich,  setShowVergleich]  = useState(false); // KAM-vs-AM-Block, standardmaessig eingeklappt
 
   // Nur im Monats-Modus serverseitig filtern; Zeitraum/Alle laden alles (Zeitraum filtert clientseitig).
   const params = { ...(company && { company_id: company }), ...(zeitMode === 'monat' && { monat }) };
@@ -106,6 +116,9 @@ export default function DealsBK() {
   const compOpts   = companies.map(c => ({ value: c.id, label: c.name }));
   const kamList    = employees.filter(e => ['KAM', 'Closer-KAM'].includes(e.rolle));
   const kamOptions = kamList.map(e => ({ value: e.id, label: `${e.name} (${e.company_name})` }));
+  // Rolle des Deal-KAMs -> Gruppe ('kam' | 'am' | null). Ableitung aus employees.rolle (aktueller Stand).
+  const empRolle = useMemo(() => Object.fromEntries(employees.map(e => [String(e.id), e.rolle])), [employees]);
+  const gruppeVonDeal = useCallback((d) => rolleGruppe(empRolle[String(d.kam_id)]), [empRolle]);
   // Erfassungswährung nach aktiver Company (CHF bei Risem, sonst €)
   const curSym = companyCurrency(companies, company) === 'CHF' ? 'CHF' : '€';
 
@@ -158,13 +171,14 @@ export default function DealsBK() {
   const listDeals = useMemo(() => deals.filter(d =>
     (canSeeAll || viewMode === 'alle' || String(d.kam_id) === String(user?.employee_id)) &&
     (!filterKam      || String(d.kam_id)    === filterKam) &&
+    (!filterRolle    || gruppeVonDeal(d)    === filterRolle) &&
     (!filterStatus   || d.status            === filterStatus) &&
     matchStandort(d.kam_standort, filterStandort) &&
     (!filterDienstleistung || d.dienstleistung === filterDienstleistung) &&
     (!filterMinAe || aeVal(d) >= Number(filterMinAe)) &&
     (!filterMaxAe || aeVal(d) <= Number(filterMaxAe)) &&
     (zeitMode !== 'zeitraum' || ((d.monat || '').trim() >= vonMonat && (d.monat || '').trim() <= bisMonat))
-  ), [deals, filterKam, filterStatus, filterStandort, filterDienstleistung, filterMinAe, filterMaxAe, viewMode, canSeeAll, user?.employee_id, zeitMode, vonMonat, bisMonat]);
+  ), [deals, filterKam, filterRolle, gruppeVonDeal, filterStatus, filterStandort, filterDienstleistung, filterMinAe, filterMaxAe, viewMode, canSeeAll, user?.employee_id, zeitMode, vonMonat, bisMonat]);
   const filtered = useMemo(() => listDeals.filter(isDealCompanyActive), [listDeals]);
 
   // Gesamt-KPIs
@@ -175,7 +189,8 @@ export default function DealsBK() {
     const m = {};
     // KAMs vorinitialisieren — bei Standort-/KAM-Filter entsprechend einschränken
     employees
-      .filter(e => ['KAM', 'Closer-KAM'].includes(e.rolle))
+      // Ohne Rollen-Filter wie bisher (KAM/Closer-KAM); mit Rollen-Filter genau die gewaehlte Gruppe.
+      .filter(e => filterRolle ? rolleGruppe(e.rolle) === filterRolle : ['KAM', 'Closer-KAM'].includes(e.rolle))
       .filter(e => matchStandort(e.standort, filterStandort))
       .filter(e => !filterKam      || String(e.id) === filterKam)
       .forEach(e => { m[e.id] = { id: e.id, name: e.name, deals: [] }; });
@@ -188,15 +203,44 @@ export default function DealsBK() {
     return Object.values(m)
       .map(k => ({ ...k, kpis: calcKpis(k.deals) }))
       .sort((a, b) => b.kpis.ae_summe - a.kpis.ae_summe);
-  }, [filtered, employees]);
+  }, [filtered, employees, filterRolle, filterStandort, filterKam]);
+
+  // ── Kompakt-Vergleich KAM vs. AM ─────────────────────────────────────────────
+  // Basis: respektiert Zeitmodus + Standort + Dienstleistung + Angebotshöhe, IGNORIERT den Rollen-Filter
+  // (zeigt immer beide Gruppen) sowie Status- und Personen-Filter. Bei Einzelpersonen-Scope ausgeblendet.
+  const vergleich = useMemo(() => {
+    const basis = deals.filter(d =>
+      (canSeeAll || viewMode === 'alle' || String(d.kam_id) === String(user?.employee_id)) &&
+      matchStandort(d.kam_standort, filterStandort) &&
+      (!filterDienstleistung || d.dienstleistung === filterDienstleistung) &&
+      (!filterMinAe || aeVal(d) >= Number(filterMinAe)) &&
+      (!filterMaxAe || aeVal(d) <= Number(filterMaxAe)) &&
+      (zeitMode !== 'zeitraum' || ((d.monat || '').trim() >= vonMonat && (d.monat || '').trim() <= bisMonat))
+    ).filter(isDealCompanyActive);
+    const headcount = g => employees.filter(e => e.aktiv && rolleGruppe(e.rolle) === g && matchStandort(e.standort, filterStandort)).length;
+    const build = g => {
+      const k = calcKpis(basis.filter(d => gruppeVonDeal(d) === g));
+      const hc = headcount(g);
+      return {
+        angebote: k.total, gewonnen: k.gewonnen, quote: parseFloat(k.quote_angebote),
+        ae: k.ae_summe, avgAngebot: k.total > 0 ? k.angebotswert_gesamt / k.total : 0,
+        personen: hc, aePerKopf: hc > 0 ? k.ae_summe / hc : 0,
+      };
+    };
+    const ohneRolle = new Set(basis.filter(d => d.kam_id && !gruppeVonDeal(d)).map(d => String(d.kam_id))).size;
+    return { kam: build('kam'), am: build('am'), ohneRolle };
+  }, [deals, employees, gruppeVonDeal, filterStandort, filterDienstleistung, filterMinAe, filterMaxAe, zeitMode, vonMonat, bisMonat, canSeeAll, viewMode, user?.employee_id]);
+  // Bei Einzelpersonen-Scope (KAM-Filter oder Nur-meine) ist ein Gruppenvergleich sinnlos -> ausblenden.
+  const vergleichSichtbar = !filterKam && !(!canSeeAll && viewMode === 'eigene');
 
   const sel = "bg-white border border-gray-300 text-gray-700 text-xs rounded px-2 py-1.5";
-  const hasFilters = filterKam || filterStatus || filterStandort || filterDienstleistung || filterMinAe || filterMaxAe;
-  const resetFilters = () => { setFilterKam(''); setFilterStatus(''); setFilterStandort(''); setFilterDienstleistung(''); setFilterMinAe(''); setFilterMaxAe(''); };
+  const hasFilters = filterKam || filterRolle || filterStatus || filterStandort || filterDienstleistung || filterMinAe || filterMaxAe;
+  const resetFilters = () => { setFilterKam(''); setFilterRolle(''); setFilterStatus(''); setFilterStandort(''); setFilterDienstleistung(''); setFilterMinAe(''); setFilterMaxAe(''); };
 
   // Aktive Filter kompakt (KPI-Kopfzeile) + Dateinamen-Suffix (CSV).
   const filterSummary = [
     filterStandort && `Standort: ${filterStandort}`,
+    filterRolle && `Rolle: ${ROLLE_GRUPPE_LABEL[filterRolle]}`,
     filterKam && `KAM: ${kamList.find(k => String(k.id) === filterKam)?.name || filterKam}`,
     filterStatus && `Status: ${filterStatus}`,
     filterDienstleistung && `Dienstleistung: ${filterDienstleistung}`,
@@ -300,6 +344,11 @@ export default function DealsBK() {
         <select value={filterStandort} onChange={e => setFilterStandort(e.target.value)} className={sel}>
           <option value="">Alle Standorte</option>
           {STANDORTE.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <select value={filterRolle} onChange={e => setFilterRolle(e.target.value)} className={sel} title="Rolle des zugeordneten KAM">
+          <option value="">Alle Rollen</option>
+          <option value="kam">Key Account Manager</option>
+          <option value="am">Account Manager</option>
         </select>
         <select value={filterKam} onChange={e => setFilterKam(e.target.value)} className={sel}>
           <option value="">Alle KAMs</option>
@@ -408,6 +457,63 @@ export default function DealsBK() {
               </table>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Kompakt-Vergleich KAM vs. AM — eigener Klappblock, ignoriert den Rollen-Filter (zeigt beide Gruppen) */}
+      {vergleichSichtbar && (
+        <div className="rounded-lg border border-gray-200 overflow-hidden">
+          <button onClick={() => setShowVergleich(v => !v)}
+            className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 hover:bg-gray-100">
+            <span className="text-xs font-bold text-gray-600 uppercase tracking-wide">KAM vs. Account Manager</span>
+            <span className="text-xs text-gray-400">{showVergleich ? '▲ einklappen' : '▼ vergleichen'}</span>
+          </button>
+          {showVergleich && (() => {
+            const K = vergleich.kam, A = vergleich.am;
+            const bcl = (a, b) => a > b ? 'font-bold text-gray-900' : 'text-gray-500'; // bessere Spalte dezent fett
+            const row = (label, g, o) => (
+              <tr className="border-t border-gray-100">
+                <td className="px-3 py-2 font-medium text-gray-700 whitespace-nowrap">{label}</td>
+                <td className={`px-3 py-2 text-right ${bcl(g.angebote, o.angebote)}`}>{g.angebote}</td>
+                <td className={`px-3 py-2 text-right ${bcl(g.gewonnen, o.gewonnen)}`}>{g.gewonnen}</td>
+                <td className={`px-3 py-2 text-right ${bcl(g.quote, o.quote)}`}>{g.quote.toFixed(2)}%</td>
+                <td className={`px-3 py-2 text-right whitespace-nowrap ${bcl(g.ae, o.ae)}`}>{formatEuro(g.ae)}</td>
+                <td className={`px-3 py-2 text-right whitespace-nowrap ${bcl(g.avgAngebot, o.avgAngebot)}`}>{formatEuro(g.avgAngebot)}</td>
+                <td className="px-3 py-2 text-right text-gray-600">{g.personen}</td>
+                <td className={`px-3 py-2 text-right whitespace-nowrap ${bcl(g.aePerKopf, o.aePerKopf)}`}>{formatEuro(g.aePerKopf)}</td>
+              </tr>
+            );
+            return (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 font-medium">
+                      <th className="px-3 py-2 text-left">Gruppe</th>
+                      <th className="px-3 py-2 text-right">Angebote</th>
+                      <th className="px-3 py-2 text-right">Gewonnen</th>
+                      <th className="px-3 py-2 text-right">Annahmequote</th>
+                      <th className="px-3 py-2 text-right">AE realisiert</th>
+                      <th className="px-3 py-2 text-right">Ø Angebotswert</th>
+                      <th className="px-3 py-2 text-right">Aktive Personen</th>
+                      <th className="px-3 py-2 text-right">Ø AE / Kopf</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {row('Key Account Manager', K, A)}
+                    {row('Account Manager', A, K)}
+                  </tbody>
+                </table>
+                {vergleich.ohneRolle > 0 && (
+                  <div className="px-3 py-2 text-xs text-amber-700 bg-amber-50 border-t border-amber-100">
+                    {vergleich.ohneRolle} Mitarbeiter mit BK-Deals ohne KAM/AM-Rolle — Zuordnung in der Mitarbeiterverwaltung
+                  </div>
+                )}
+                <div className="px-3 py-1.5 text-[11px] text-gray-400 border-t border-gray-100">
+                  Gruppierung nach aktueller Rolle des KAM · respektiert Zeitraum/Standort/Dienstleistung/Angebotshöhe · Ø AE/Kopf = AE ÷ aktive Personen
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
