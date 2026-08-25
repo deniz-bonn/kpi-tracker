@@ -30,6 +30,9 @@ const ABGERECHNET_OPTS = ['Nein', 'Ja', 'On Hold'];
 const ROLLE_GRUPPEN = { kam: ['KAM', 'Closer-KAM'], am: ['Account Manager'] };
 const ROLLE_GRUPPE_LABEL = { kam: 'Key Account Manager', am: 'Account Manager' };
 const rolleGruppe = (rolle) => ROLLE_GRUPPEN.kam.includes(rolle) ? 'kam' : ROLLE_GRUPPEN.am.includes(rolle) ? 'am' : null;
+// Gruppe eines Mitarbeiters: KAM/Closer-KAM -> kam, Account Manager -> am. 'Multi' ist mehrdeutig und
+// wird per employees.bk_gruppe ('kam'|'am'|null) explizit zugeordnet (Mitarbeiterverwaltung).
+const gruppeVonEmp = (e) => !e ? null : (e.rolle === 'Multi' ? (e.bk_gruppe === 'kam' || e.bk_gruppe === 'am' ? e.bk_gruppe : null) : rolleGruppe(e.rolle));
 
 // ── KPIs aus einem Deal-Array berechnen ──────────────────────────────────────
 function calcKpis(deals) {
@@ -116,9 +119,9 @@ export default function DealsBK() {
   const compOpts   = companies.map(c => ({ value: c.id, label: c.name }));
   const kamList    = employees.filter(e => ['KAM', 'Closer-KAM'].includes(e.rolle));
   const kamOptions = kamList.map(e => ({ value: e.id, label: `${e.name} (${e.company_name})` }));
-  // Rolle des Deal-KAMs -> Gruppe ('kam' | 'am' | null). Ableitung aus employees.rolle (aktueller Stand).
-  const empRolle = useMemo(() => Object.fromEntries(employees.map(e => [String(e.id), e.rolle])), [employees]);
-  const gruppeVonDeal = useCallback((d) => rolleGruppe(empRolle[String(d.kam_id)]), [empRolle]);
+  // Deal-KAM -> Gruppe ('kam' | 'am' | null) aus dem aktuellen Mitarbeiter-Datensatz (Rolle + bk_gruppe).
+  const empById = useMemo(() => Object.fromEntries(employees.map(e => [String(e.id), e])), [employees]);
+  const gruppeVonDeal = useCallback((d) => gruppeVonEmp(empById[String(d.kam_id)]), [empById]);
   // Erfassungswährung nach aktiver Company (CHF bei Risem, sonst €)
   const curSym = companyCurrency(companies, company) === 'CHF' ? 'CHF' : '€';
 
@@ -189,8 +192,9 @@ export default function DealsBK() {
     const m = {};
     // KAMs vorinitialisieren — bei Standort-/KAM-Filter entsprechend einschränken
     employees
-      // Ohne Rollen-Filter wie bisher (KAM/Closer-KAM); mit Rollen-Filter genau die gewaehlte Gruppe.
-      .filter(e => filterRolle ? rolleGruppe(e.rolle) === filterRolle : ['KAM', 'Closer-KAM'].includes(e.rolle))
+      // Ohne Rollen-Filter wie bisher (KAM/Closer-KAM); mit Rollen-Filter genau die gewaehlte Gruppe
+      // (inkl. Multi mit passender bk_gruppe-Zuordnung).
+      .filter(e => filterRolle ? gruppeVonEmp(e) === filterRolle : ['KAM', 'Closer-KAM'].includes(e.rolle))
       .filter(e => matchStandort(e.standort, filterStandort))
       .filter(e => !filterKam      || String(e.id) === filterKam)
       .forEach(e => { m[e.id] = { id: e.id, name: e.name, deals: [] }; });
@@ -217,7 +221,7 @@ export default function DealsBK() {
       (!filterMaxAe || aeVal(d) <= Number(filterMaxAe)) &&
       (zeitMode !== 'zeitraum' || ((d.monat || '').trim() >= vonMonat && (d.monat || '').trim() <= bisMonat))
     ).filter(isDealCompanyActive);
-    const headcount = g => employees.filter(e => e.aktiv && rolleGruppe(e.rolle) === g && matchStandort(e.standort, filterStandort)).length;
+    const headcount = g => employees.filter(e => e.aktiv && gruppeVonEmp(e) === g && matchStandort(e.standort, filterStandort)).length;
     const build = g => {
       const k = calcKpis(basis.filter(d => gruppeVonDeal(d) === g));
       const hc = headcount(g);
@@ -505,11 +509,11 @@ export default function DealsBK() {
                 </table>
                 {vergleich.ohneRolle > 0 && (
                   <div className="px-3 py-2 text-xs text-amber-700 bg-amber-50 border-t border-amber-100">
-                    {vergleich.ohneRolle} Mitarbeiter mit BK-Deals ohne KAM/AM-Rolle — Zuordnung in der Mitarbeiterverwaltung
+                    {vergleich.ohneRolle} Mitarbeiter mit BK-Deals ohne KAM/AM-Zuordnung (inkl. „Multi" ohne Auswahl) — in der Mitarbeiterverwaltung zuordnen
                   </div>
                 )}
                 <div className="px-3 py-1.5 text-[11px] text-gray-400 border-t border-gray-100">
-                  Gruppierung nach aktueller Rolle des KAM · respektiert Zeitraum/Standort/Dienstleistung/Angebotshöhe · Ø AE/Kopf = AE ÷ aktive Personen
+                  Gruppierung nach aktueller Rolle bzw. BK-Zuordnung des KAM (Multi) · respektiert Zeitraum/Standort/Dienstleistung/Angebotshöhe · Ø AE/Kopf = AE ÷ aktive Personen
                 </div>
               </div>
             );

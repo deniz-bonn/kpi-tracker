@@ -9,7 +9,7 @@ const STANDORTE = ['Bonn', 'Braunschweig', 'Österreich', 'Schweiz'];
 export default function Employees() {
   const { company, companies } = useOutletContext();
   const qc = useQueryClient();
-  const [form, setForm] = useState({ name: '', company_id: company || '', rolle: '', standort: '' });
+  const [form, setForm] = useState({ name: '', company_id: company || '', rolle: '', standort: '', bk_gruppe: '' });
   const [editId, setEditId] = useState(null);
   const [showInaktiv, setShowInaktiv] = useState(false);
 
@@ -17,14 +17,16 @@ export default function Employees() {
   const { data: employees = [] } = useQuery({ queryKey: ['employees', params], queryFn: () => employeesApi.list(params) });
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ['employees'] });
-  const createMut = useMutation({ mutationFn: employeesApi.create, onSuccess: () => { invalidate(); setForm({ name: '', company_id: '', rolle: '', standort: '' }); } });
+  const createMut = useMutation({ mutationFn: employeesApi.create, onSuccess: () => { invalidate(); setForm({ name: '', company_id: '', rolle: '', standort: '', bk_gruppe: '' }); } });
   const updateMut = useMutation({ mutationFn: ({ id, data }) => employeesApi.update(id, data), onSuccess: () => { invalidate(); setEditId(null); } });
   const toggleMut = useMutation({ mutationFn: ({ id, aktiv }) => employeesApi.update(id, { aktiv }), onSuccess: invalidate });
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (editId) updateMut.mutate({ id: editId, data: form });
-    else createMut.mutate(form);
+    // bk_gruppe nur fuer Multi mitschicken; sonst leeren (Gruppe ergibt sich dann aus der Rolle).
+    const data = { ...form, bk_gruppe: form.rolle === 'Multi' ? form.bk_gruppe : '' };
+    if (editId) updateMut.mutate({ id: editId, data });
+    else createMut.mutate(data);
   };
 
   const aktive   = employees.filter(e => e.aktiv);
@@ -35,7 +37,9 @@ export default function Employees() {
       <td className="px-3 py-2 text-gray-900 font-medium">{e.name}</td>
       <td className="px-3 py-2 text-gray-600">{e.company_name}</td>
       <td className="px-3 py-2">
-        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{e.rolle}</span>
+        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+          {e.rolle}{e.rolle === 'Multi' && e.bk_gruppe ? ` → ${e.bk_gruppe.toUpperCase()}` : ''}
+        </span>
       </td>
       <td className="px-3 py-2 text-gray-500 text-xs">{e.standort || '—'}</td>
       <td className="px-3 py-2">
@@ -45,7 +49,7 @@ export default function Employees() {
       </td>
       <td className="px-3 py-2">
         <div className="flex gap-2">
-          <button onClick={() => { setEditId(e.id); setForm({ name: e.name, company_id: e.company_id, rolle: e.rolle, standort: e.standort || '' }); }}
+          <button onClick={() => { setEditId(e.id); setForm({ name: e.name, company_id: e.company_id, rolle: e.rolle, standort: e.standort || '', bk_gruppe: e.bk_gruppe || '' }); }}
             className="text-gray-400 hover:text-blue-600 text-xs">Bearbeiten</button>
           <button onClick={() => toggleMut.mutate({ id: e.id, aktiv: e.aktiv ? 0 : 1 })}
             className="text-gray-400 hover:text-amber-600 text-xs">
@@ -111,13 +115,25 @@ export default function Employees() {
               {editId ? 'Speichern' : 'Hinzufügen'}
             </button>
             {editId && (
-              <button type="button" onClick={() => { setEditId(null); setForm({ name: '', company_id: '', rolle: '', standort: '' }); }}
+              <button type="button" onClick={() => { setEditId(null); setForm({ name: '', company_id: '', rolle: '', standort: '', bk_gruppe: '' }); }}
                 className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-800 border border-gray-300 rounded">
                 Abbrechen
               </button>
             )}
           </div>
         </div>
+        {form.rolle === 'Multi' && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3">
+            <label className="text-xs font-medium text-gray-600">BK-Auftragseingang zählt als:</label>
+            <select value={form.bk_gruppe || ''} onChange={e => setForm(f => ({ ...f, bk_gruppe: e.target.value }))}
+              className="bg-white border border-gray-300 text-gray-700 text-sm rounded px-3 py-1.5">
+              <option value="">— keine Zuordnung</option>
+              <option value="kam">Key Account Manager</option>
+              <option value="am">Account Manager</option>
+            </select>
+            <span className="text-[11px] text-gray-400">nur für Rolle „Multi" — bestimmt die Gruppe im Bestandskunden-Vergleich (KAM vs. AM)</span>
+          </div>
+        )}
       </form>
 
       {/* Aktive Mitarbeiter */}
