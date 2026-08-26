@@ -20,10 +20,42 @@ router.get('/', wrap(async (req, res) => {
 
 // BK-Gruppe (nur 'kam' | 'am' | null) validieren — betrifft praktisch nur rolle='Multi'.
 const normBkGruppe = v => (v === 'kam' || v === 'am') ? v : null;
+// Namens-Normalisierung für den Dubletten-Check (case-/whitespace-insensitiv).
+const normName = s => (s == null ? '' : String(s)).toLowerCase().replace(/\s+/g, ' ').trim();
+const isActive = v => v === true || v === 1;
+
+// Wie viele Deals hängen an einem Mitarbeiter (NK als Opener/Setter/Closer, BK/VL als KAM)?
+async function dealCountFor(id) {
+  const isPg = db.dialect === 'postgres';
+  const idp = isPg ? '$1' : '?';
+  const nk = Number((await db.get(
+    isPg ? `SELECT COUNT(*) n FROM deals_nk WHERE opener_id=$1 OR setter_id=$1 OR closer_id=$1`
+         : `SELECT COUNT(*) n FROM deals_nk WHERE opener_id=? OR setter_id=? OR closer_id=?`,
+    isPg ? [id] : [id, id, id]))?.n || 0);
+  const bk = Number((await db.get(`SELECT COUNT(*) n FROM deals_bk WHERE kam_id=${idp}`, [id]))?.n || 0);
+  const vl = Number((await db.get(`SELECT COUNT(*) n FROM deals_vl WHERE kam_id=${idp}`, [id]))?.n || 0);
+  return { total: nk + bk + vl, nk, bk, vl };
+}
 
 router.post('/', wrap(async (req, res) => {
-  const { name, company_id, rolle, standort, bk_gruppe } = req.body;
+  const { name, company_id, rolle, standort, bk_gruppe, confirm } = req.body;
   if (!name || !company_id || !rolle) return res.status(400).json({ error: 'name, company_id, rolle required' });
+
+  // Härtung gegen Mitarbeiter-Dubletten (siehe Vorfall #55/#70 „Veikko-Colin Poppinga"): Beim Anlegen
+  // eines normalisiert gleichen Namens — auch eines INAKTIVEN — warnen und auf den Bestand verweisen.
+  // Bewusst überschreibbar mit confirm=true. Gilt nur für den UI-/API-Anlegeweg (Importe schreiben direkt).
+  if (!confirm) {
+    const all = await db.all('SELECT id, name, rolle, standort, aktiv, company_id FROM employees');
+    const dupes = all.filter(e => normName(e.name) === normName(name));
+    if (dupes.length) {
+      const hatInaktiv = dupes.some(d => !isActive(d.aktiv));
+      return res.status(409).json({
+        error: 'duplicate_name',
+        message: `Es existiert bereits ein Mitarbeiter mit dem Namen „${name}"${hatInaktiv ? ' (auch inaktiv/archiviert)' : ''}. Reaktivieren statt neu anlegen?`,
+        existing: dupes.map(d => ({ id: d.id, name: d.name, rolle: d.rolle, standort: d.standort, aktiv: isActive(d.aktiv), company_id: d.company_id })),
+      });
+    }
+  }
   const bk = normBkGruppe(bk_gruppe);
 
   if (db.dialect === 'postgres') {
@@ -39,7 +71,24 @@ router.post('/', wrap(async (req, res) => {
 }));
 
 router.patch('/:id', wrap(async (req, res) => {
-  const { name, company_id, rolle, standort, aktiv, show_in_kpi } = req.body;
+  const { name, company_id, rolle, standort, aktiv, show_in_kpi, confirm } = req.body;
+
+  // Härtung: Deaktivieren eines Mitarbeiters, an dem noch Deals hängen -> warnen (mit Anzahl), außer confirm.
+  // Grund: inaktive MA verschwinden aus den Filter-Dropdowns; ihre Deals bleiben zugeordnet, sind aber
+  // nicht mehr filterbar (genau das Muster, das #55 zu „Filter-Geistern" gemacht hat).
+  const willDeactivate = aktiv !== undefined && aktiv !== null && (aktiv === 0 || aktiv === false || aktiv === '0');
+  if (willDeactivate && !confirm) {
+    const dc = await dealCountFor(req.params.id);
+    if (dc.total > 0) {
+      return res.status(409).json({
+        error: 'has_deals',
+        dealCount: dc.total,
+        breakdown: dc,
+        message: `An diesem Mitarbeiter hängen ${dc.total} Deals (NK ${dc.nk}, BK ${dc.bk}, VL ${dc.vl}). Wirklich deaktivieren? Die Deals bleiben zugeordnet, erscheinen aber nicht mehr in den Filtern.`,
+      });
+    }
+  }
+
   // bk_gruppe nur setzen, wenn im Body vorhanden (sonst wuerden Teil-Updates wie der Aktiv-Toggle
   // die Zuordnung ueberschreiben). Leerwert -> NULL (Zuordnung aufheben).
   const setBk = Object.prototype.hasOwnProperty.call(req.body, 'bk_gruppe');

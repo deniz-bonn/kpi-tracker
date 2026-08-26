@@ -12,22 +12,47 @@ export default function Employees() {
   const [form, setForm] = useState({ name: '', company_id: company || '', rolle: '', standort: '', bk_gruppe: '' });
   const [editId, setEditId] = useState(null);
   const [showInaktiv, setShowInaktiv] = useState(false);
+  const [dupWarn, setDupWarn] = useState(null); // { data, existing:[…], message } — Dubletten-Warnung beim Anlegen
 
   const params = { all: 1, ...(company && { company_id: company }) };
   const { data: employees = [] } = useQuery({ queryKey: ['employees', params], queryFn: () => employeesApi.list(params) });
 
+  const emptyForm = { name: '', company_id: '', rolle: '', standort: '', bk_gruppe: '' };
   const invalidate = () => qc.invalidateQueries({ queryKey: ['employees'] });
-  const createMut = useMutation({ mutationFn: employeesApi.create, onSuccess: () => { invalidate(); setForm({ name: '', company_id: '', rolle: '', standort: '', bk_gruppe: '' }); } });
+  const createMut = useMutation({
+    mutationFn: employeesApi.create,
+    onSuccess: () => { invalidate(); setForm(emptyForm); setDupWarn(null); },
+    onError: (err, variables) => {
+      const d = err?.response?.data;
+      // Härtung: Backend meldet 409 bei normalisiert gleichem Namen (auch inaktiv) -> Warnung anzeigen.
+      if (err?.response?.status === 409 && d?.error === 'duplicate_name') setDupWarn({ data: variables, existing: d.existing || [], message: d.message });
+      else alert(d?.message || d?.error || 'Fehler beim Anlegen');
+    },
+  });
   const updateMut = useMutation({ mutationFn: ({ id, data }) => employeesApi.update(id, data), onSuccess: () => { invalidate(); setEditId(null); } });
-  const toggleMut = useMutation({ mutationFn: ({ id, aktiv }) => employeesApi.update(id, { aktiv }), onSuccess: invalidate });
+  const toggleMut = useMutation({
+    mutationFn: ({ id, aktiv, confirm }) => employeesApi.update(id, { aktiv, ...(confirm ? { confirm: true } : {}) }),
+    onSuccess: invalidate,
+    onError: (err, variables) => {
+      const d = err?.response?.data;
+      // Härtung: Backend meldet 409, wenn an dem MA noch Deals hängen -> mit Anzahl rückfragen, dann bestätigt wiederholen.
+      if (err?.response?.status === 409 && d?.error === 'has_deals') {
+        if (window.confirm(d.message)) toggleMut.mutate({ id: variables.id, aktiv: 0, confirm: true });
+      } else alert(d?.message || d?.error || 'Fehler beim Aktualisieren');
+    },
+  });
 
   const handleSubmit = (e) => {
     e.preventDefault();
     // bk_gruppe nur fuer Multi mitschicken; sonst leeren (Gruppe ergibt sich dann aus der Rolle).
     const data = { ...form, bk_gruppe: form.rolle === 'Multi' ? form.bk_gruppe : '' };
     if (editId) updateMut.mutate({ id: editId, data });
-    else createMut.mutate(data);
+    else { setDupWarn(null); createMut.mutate(data); }
   };
+  // „Trotzdem neu anlegen" — Dubletten-Warnung bewusst übergehen.
+  const proceedCreate = () => { if (dupWarn) createMut.mutate({ ...dupWarn.data, confirm: true }); };
+  // „Reaktivieren statt neu anlegen" — bestehenden (inaktiven) Datensatz wieder aktiv setzen.
+  const reactivateExisting = (id) => { toggleMut.mutate({ id, aktiv: 1 }); setDupWarn(null); setForm(emptyForm); };
 
   const aktive   = employees.filter(e => e.aktiv);
   const inaktive = employees.filter(e => !e.aktiv);
@@ -87,6 +112,37 @@ export default function Employees() {
           </button>
         )}
       </div>
+
+      {/* Dubletten-Warnung beim Anlegen (Härtung gegen Fälle wie #55/#70) */}
+      {dupWarn && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold text-amber-800">⚠️ Möglicher Dubletten-Mitarbeiter</div>
+              <p className="text-xs text-amber-700 mt-0.5">{dupWarn.message}</p>
+            </div>
+            <button onClick={() => setDupWarn(null)} className="text-amber-500 hover:text-amber-700 text-xs">✕</button>
+          </div>
+          <div className="mt-3 space-y-1">
+            {dupWarn.existing.map(x => (
+              <div key={x.id} className="flex items-center justify-between gap-3 rounded border border-amber-200 bg-white px-3 py-1.5 text-xs">
+                <span className="text-gray-700">
+                  #{x.id} · <span className="font-medium">{x.name}</span> · {x.rolle}{x.standort ? ` · ${x.standort}` : ''} ·{' '}
+                  <span className={x.aktiv ? 'text-green-600' : 'text-gray-400'}>{x.aktiv ? 'aktiv' : 'inaktiv'}</span>
+                </span>
+                {!x.aktiv && (
+                  <button onClick={() => reactivateExisting(x.id)}
+                    className="px-2 py-1 rounded bg-green-600 hover:bg-green-500 text-white">Reaktivieren</button>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 flex gap-2">
+            <button onClick={proceedCreate} className="px-3 py-1.5 text-xs rounded border border-amber-400 text-amber-800 hover:bg-amber-100">Trotzdem neu anlegen</button>
+            <button onClick={() => setDupWarn(null)} className="px-3 py-1.5 text-xs rounded border border-gray-300 text-gray-500 hover:bg-gray-50">Abbrechen</button>
+          </div>
+        </div>
+      )}
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="rounded-xl border border-gray-200 bg-white p-4">
