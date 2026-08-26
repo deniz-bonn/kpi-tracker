@@ -39,6 +39,7 @@ function calcKpis(deals) {
   const gew = deals.filter(d => d.status === 'Gewonnen');
   const ae  = gew.reduce((s, d) => s + aeEur(d), 0);
   const agw = deals.reduce((s, d) => s + (Number(d.angebotswert_eur ?? d.angebotswert) || 0), 0);
+  const agwGew = gew.reduce((s, d) => s + (Number(d.angebotswert_eur ?? d.angebotswert) || 0), 0); // Angebotswert der gewonnenen Deals
   const n   = deals.length;
   const autoJ     = gew.filter(d => d.automatische_verlaengerung === 'Ja').length;
   const abgJ      = gew.filter(d => d.abgerechnet === 'Ja').length;
@@ -50,9 +51,12 @@ function calcKpis(deals) {
     verloren:            deals.filter(d => d.status === 'Verloren').length,
     ae_summe:            ae,
     angebotswert_gesamt: agw,
+    angebotswert_gewonnen: agwGew,
     wert_offen:          deals.filter(d => !['Gewonnen','Verloren'].includes(d.status))
                            .reduce((s, d) => s + (Number(d.angebotswert_eur ?? d.angebotswert) || 0), 0),
     quote_angebote:      n > 0 ? (gew.length / n * 100).toFixed(2) : '0.00',
+    // Annahmequote nach Angebotswert (€): gewonnener Angebotswert ÷ gesamter Angebotswert.
+    quote_angebotswert:  agw > 0 ? (agwGew / agw * 100).toFixed(2) : '0.00',
     quote_wert:          agw > 0 ? (ae / agw * 100).toFixed(2) : '0.00',
     auto_verlaengerung:       autoJ,
     auto_verlaengerung_quote: gew.length > 0 ? (autoJ / gew.length * 100).toFixed(1) : '0.0',
@@ -391,6 +395,7 @@ export default function DealsBK() {
                 ['Gewonnen',      gesamtKpis.gewonnen],
                 ['Verloren',      gesamtKpis.verloren],
                 ['Quote',         `${gesamtKpis.quote_angebote}%`],
+                ['Quote (€)',     `${gesamtKpis.quote_angebotswert}%`],
                 ['AE realisiert', formatEuro(gesamtKpis.ae_summe)],
                 ['Angebotswert',  formatEuro(gesamtKpis.angebotswert_gesamt)],
                 ['Offen (Wert)',  formatEuro(gesamtKpis.wert_offen)],
@@ -422,6 +427,7 @@ export default function DealsBK() {
                     <th className="px-3 py-2 text-right">Gewonnen</th>
                     <th className="px-3 py-2 text-right">Verloren</th>
                     <th className="px-3 py-2 text-right">Quote</th>
+                    <th className="px-3 py-2 text-right">Quote (€)</th>
                     <th className="px-3 py-2 text-right">AE realisiert</th>
                     <th className="px-3 py-2 text-right">Angebotswert</th>
                     <th className="px-3 py-2 text-right">Auto-VL</th>
@@ -432,7 +438,7 @@ export default function DealsBK() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {kamKpis.length === 0
-                    ? <tr><td colSpan={11} className="px-3 py-4 text-center text-gray-400">Keine Daten</td></tr>
+                    ? <tr><td colSpan={12} className="px-3 py-4 text-center text-gray-400">Keine Daten</td></tr>
                     : kamKpis.map(k => {
                         const q = parseFloat(k.kpis.quote_angebote);
                         return (
@@ -443,6 +449,9 @@ export default function DealsBK() {
                             <td className="px-3 py-2 text-right text-gray-600">{k.kpis.verloren}</td>
                             <td className={`px-3 py-2 text-right font-bold ${k.kpis.total === 0 ? 'text-gray-400' : quoteColor(q)}`}>
                               {k.kpis.quote_angebote}%
+                            </td>
+                            <td className={`px-3 py-2 text-right whitespace-nowrap ${k.kpis.total === 0 ? 'text-gray-400' : 'text-gray-700'}`}>
+                              {k.kpis.quote_angebotswert}%
                             </td>
                             <td className="px-3 py-2 text-right font-bold text-gray-900 whitespace-nowrap">{formatEuro(k.kpis.ae_summe)}</td>
                             <td className="px-3 py-2 text-right text-gray-500 whitespace-nowrap">{formatEuro(k.kpis.angebotswert_gesamt)}</td>
