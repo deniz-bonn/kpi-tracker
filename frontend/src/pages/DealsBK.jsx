@@ -395,8 +395,8 @@ export default function DealsBK() {
                 ['Gewonnen',      gesamtKpis.gewonnen],
                 ['Verloren',      gesamtKpis.verloren],
                 ['Quote',         `${gesamtKpis.quote_angebote}%`],
-                ['Quote (€)',     `${gesamtKpis.quote_angebotswert}%`],
                 ['AE realisiert', formatEuro(gesamtKpis.ae_summe)],
+                ['Quote (€)',     `${gesamtKpis.quote_angebotswert}%`],
                 ['Angebotswert',  formatEuro(gesamtKpis.angebotswert_gesamt)],
                 ['Offen (Wert)',  formatEuro(gesamtKpis.wert_offen)],
                 ['Auto-VL',           `${gesamtKpis.auto_verlaengerung} (${gesamtKpis.auto_verlaengerung_quote}%)`],
@@ -407,7 +407,7 @@ export default function DealsBK() {
               ].map(([label, val]) => (
                 <div key={label} className="text-xs">
                   <div className="text-gray-500 mb-0.5">{label}</div>
-                  <div className={`font-bold ${label === 'Quote' && gesamtKpis.total > 0 ? quoteColor(parseFloat(gesamtKpis.quote_angebote)) : 'text-gray-900'}`}>{val}</div>
+                  <div className={`font-bold ${gesamtKpis.total > 0 && (label === 'Quote' || label === 'Quote (€)') ? quoteColor(parseFloat(label === 'Quote' ? gesamtKpis.quote_angebote : gesamtKpis.quote_angebotswert)) : 'text-gray-900'}`}>{val}</div>
                 </div>
               ))}
             </div>
@@ -427,8 +427,8 @@ export default function DealsBK() {
                     <th className="px-3 py-2 text-right">Gewonnen</th>
                     <th className="px-3 py-2 text-right">Verloren</th>
                     <th className="px-3 py-2 text-right">Quote</th>
-                    <th className="px-3 py-2 text-right">Quote (€)</th>
                     <th className="px-3 py-2 text-right">AE realisiert</th>
+                    <th className="px-3 py-2 text-right">Quote (€)</th>
                     <th className="px-3 py-2 text-right">Angebotswert</th>
                     <th className="px-3 py-2 text-right">Auto-VL</th>
                     <th className="px-3 py-2 text-right">Abgerechnet</th>
@@ -450,10 +450,10 @@ export default function DealsBK() {
                             <td className={`px-3 py-2 text-right font-bold ${k.kpis.total === 0 ? 'text-gray-400' : quoteColor(q)}`}>
                               {k.kpis.quote_angebote}%
                             </td>
-                            <td className={`px-3 py-2 text-right whitespace-nowrap ${k.kpis.total === 0 ? 'text-gray-400' : 'text-gray-700'}`}>
+                            <td className="px-3 py-2 text-right font-bold text-gray-900 whitespace-nowrap">{formatEuro(k.kpis.ae_summe)}</td>
+                            <td className={`px-3 py-2 text-right font-bold whitespace-nowrap ${k.kpis.total === 0 ? 'text-gray-400' : quoteColor(parseFloat(k.kpis.quote_angebotswert))}`}>
                               {k.kpis.quote_angebotswert}%
                             </td>
-                            <td className="px-3 py-2 text-right font-bold text-gray-900 whitespace-nowrap">{formatEuro(k.kpis.ae_summe)}</td>
                             <td className="px-3 py-2 text-right text-gray-500 whitespace-nowrap">{formatEuro(k.kpis.angebotswert_gesamt)}</td>
                             <td className="px-3 py-2 text-right text-gray-500 whitespace-nowrap">{k.kpis.auto_verlaengerung} ({k.kpis.auto_verlaengerung_quote}%)</td>
                             <td className="px-3 py-2 text-right text-gray-500 whitespace-nowrap">{k.kpis.abgerechnet_ja} ({k.kpis.abgerechnet_quote}%)</td>
