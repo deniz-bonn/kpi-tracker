@@ -116,7 +116,7 @@ export default function Kuendigungen() {
     queryFn:  () => employeesApi.list(),
   });
 
-  const kamList = employees.filter(e => e.rolle === 'KAM');
+  const kamList = employees.filter(e => ['KAM', 'Closer-KAM', 'Account Manager', 'Multi'].includes(e.rolle));
 
   // Options for "Neuer Ansprechpartner": Vertrieb + all KAMs
   const neuerApOptions = useMemo(() => [

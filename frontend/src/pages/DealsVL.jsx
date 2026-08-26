@@ -128,7 +128,7 @@ export default function DealsVL() {
   };
 
   const compOpts   = companies.map(c => ({ value: c.id, label: c.name }));
-  const kamList    = employees.filter(e => ['KAM', 'Closer-KAM'].includes(e.rolle));
+  const kamList    = employees.filter(e => ['KAM', 'Closer-KAM', 'Account Manager', 'Multi'].includes(e.rolle));
   const kamOptions = kamList.map(e => ({ value: e.id, label: `${e.name} (${e.company_name})` }));
   // Erfassungswährung nach aktiver Company (CHF bei Risem, sonst €)
   const curSym = companyCurrency(companies, company) === 'CHF' ? 'CHF' : '€';
@@ -198,7 +198,7 @@ export default function DealsVL() {
     const m = {};
     // KAMs vorinitialisieren — bei Standort-/KAM-Filter entsprechend einschränken
     employees
-      .filter(e => ['KAM', 'Closer-KAM'].includes(e.rolle))
+      .filter(e => ['KAM', 'Closer-KAM', 'Account Manager', 'Multi'].includes(e.rolle))
       .filter(e => !filterStandort || e.standort === filterStandort)
       .filter(e => !filterKam      || String(e.id) === filterKam)
       .forEach(e => { m[e.id] = { id: e.id, name: e.name, deals: [] }; });

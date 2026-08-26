@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dealsApi, employeesApi } from '../utils/api';
@@ -33,6 +33,9 @@ const rolleGruppe = (rolle) => ROLLE_GRUPPEN.kam.includes(rolle) ? 'kam' : ROLLE
 // Gruppe eines Mitarbeiters: KAM/Closer-KAM -> kam, Account Manager -> am. 'Multi' ist mehrdeutig und
 // wird per employees.bk_gruppe ('kam'|'am'|null) explizit zugeordnet (Mitarbeiterverwaltung).
 const gruppeVonEmp = (e) => !e ? null : (e.rolle === 'Multi' ? (e.bk_gruppe === 'kam' || e.bk_gruppe === 'am' ? e.bk_gruppe : null) : rolleGruppe(e.rolle));
+// Rollen, die im Bestandskunden-Bereich einen Deal als KAM verantworten können (Deal-Formular).
+// Bewusst breit inkl. Account Manager + Multi, damit für diese Deals angelegt/bearbeitet werden können.
+const BK_KAM_ROLLEN = ['KAM', 'Closer-KAM', 'Account Manager', 'Multi'];
 
 // ── KPIs aus einem Deal-Array berechnen ──────────────────────────────────────
 function calcKpis(deals) {
@@ -121,11 +124,32 @@ export default function DealsBK() {
   const deleteMut = useMutation({ mutationFn: dealsApi.bk.delete, onSuccess: invalidate });
 
   const compOpts   = companies.map(c => ({ value: c.id, label: c.name }));
-  const kamList    = employees.filter(e => ['KAM', 'Closer-KAM'].includes(e.rolle));
-  const kamOptions = kamList.map(e => ({ value: e.id, label: `${e.name} (${e.company_name})` }));
+  // Deal-Formular: als KAM waehlbar sind alle BK-verantwortlichen Rollen (inkl. Account Manager/Multi).
+  const kamOptions = employees.filter(e => BK_KAM_ROLLEN.includes(e.rolle)).map(e => ({ value: e.id, label: `${e.name} (${e.company_name})` }));
   // Deal-KAM -> Gruppe ('kam' | 'am' | null) aus dem aktuellen Mitarbeiter-Datensatz (Rolle + bk_gruppe).
   const empById = useMemo(() => Object.fromEntries(employees.map(e => [String(e.id), e])), [employees]);
   const gruppeVonDeal = useCallback((d) => gruppeVonEmp(empById[String(d.kam_id)]), [empById]);
+
+  // Personen-Filter-Dropdown: alle Mitarbeiter, die im geladenen Zeit-Scope als Deal-KAM vorkommen
+  // (unabhaengig von der Rolle -> auch Account Manager & Ex-Rollen-Traeger mit historischen Deals),
+  // nie Personen ohne Deals. Bei aktivem Rollen-Filter auf dessen Gruppe eingeschraenkt. Alphabetisch.
+  const personenImScope = useMemo(() => {
+    const zeitOk = d => zeitMode !== 'zeitraum' || ((d.monat || '').trim() >= vonMonat && (d.monat || '').trim() <= bisMonat);
+    const byId = new Map();
+    for (const d of deals) {
+      if (!d.kam_id || !zeitOk(d)) continue;
+      const id = String(d.kam_id);
+      if (!byId.has(id)) { const e = empById[id]; byId.set(id, { id, name: e?.name || d.kam_name || `#${id}`, gruppe: gruppeVonEmp(e) }); }
+    }
+    let list = [...byId.values()];
+    if (filterRolle) list = list.filter(p => p.gruppe === filterRolle);
+    return list.sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  }, [deals, empById, filterRolle, zeitMode, vonMonat, bisMonat]);
+
+  // Faellt die gewaehlte Person aus dem Dropdown (z. B. nach Rollen-Filter-Wechsel) -> Auswahl loeschen.
+  useEffect(() => {
+    if (filterKam && !personenImScope.some(p => p.id === filterKam)) setFilterKam('');
+  }, [personenImScope, filterKam]);
   // Erfassungswährung nach aktiver Company (CHF bei Risem, sonst €)
   const curSym = companyCurrency(companies, company) === 'CHF' ? 'CHF' : '€';
 
@@ -249,7 +273,7 @@ export default function DealsBK() {
   const filterSummary = [
     filterStandort && `Standort: ${filterStandort}`,
     filterRolle && `Rolle: ${ROLLE_GRUPPE_LABEL[filterRolle]}`,
-    filterKam && `KAM: ${kamList.find(k => String(k.id) === filterKam)?.name || filterKam}`,
+    filterKam && `Mitarbeiter: ${(personenImScope.find(p => p.id === filterKam) || {}).name || empById[filterKam]?.name || filterKam}`,
     filterStatus && `Status: ${filterStatus}`,
     filterDienstleistung && `Dienstleistung: ${filterDienstleistung}`,
     filterMinAe && `ab ${formatEuro(Number(filterMinAe))}`,
@@ -358,9 +382,16 @@ export default function DealsBK() {
           <option value="kam">Key Account Manager</option>
           <option value="am">Account Manager</option>
         </select>
-        <select value={filterKam} onChange={e => setFilterKam(e.target.value)} className={sel}>
-          <option value="">Alle KAMs</option>
-          {kamList.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+        <select value={filterKam} onChange={e => setFilterKam(e.target.value)} className={sel} title="Mitarbeiter mit Deals im Zeitraum">
+          <option value="">Alle Mitarbeiter</option>
+          {[['kam', 'Key Account Manager'], ['am', 'Account Manager'], [null, 'Weitere']].map(([g, label]) => {
+            const opts = personenImScope.filter(p => p.gruppe === g);
+            return opts.length ? (
+              <optgroup key={label} label={label}>
+                {opts.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </optgroup>
+            ) : null;
+          })}
         </select>
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className={sel}>
           <option value="">Alle Status</option>
