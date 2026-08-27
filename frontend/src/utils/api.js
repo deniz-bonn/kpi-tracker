@@ -129,8 +129,12 @@ export const upsaleDealsApi = {
 };
 
 export const featureFlagsApi = {
-  list:   ()               => api.get('/feature-flags').then(r => r.data),
+  list:   ()               => api.get('/feature-flags').then(r => r.data),          // { flags, userFeatures }
   update: (feature, roles) => api.post('/feature-flags', { feature, roles }).then(r => r.data),
+  // Personenscharfe Freischaltungen (superadmin)
+  listUsers: ()                  => api.get('/feature-flags/users').then(r => r.data),          // { feature: [{user_id,name,role,active}] }
+  addUser:   (feature, user_id)  => api.post('/feature-flags/users', { feature, user_id }).then(r => r.data),
+  removeUser:(feature, user_id)  => api.delete('/feature-flags/users', { data: { feature, user_id } }).then(r => r.data),
 };
 
 export const bestenlisteApi = {

@@ -21,7 +21,8 @@ export function AuthProvider({ children }) {
     return t ? parseJwt(t) : null;
   });
   const [loading, setLoading]     = useState(false);
-  const [featureFlags, setFeatureFlags] = useState(null); // null = not yet loaded
+  const [featureFlags, setFeatureFlags] = useState(null); // null = not yet loaded (feature -> [role])
+  const [userFeatures, setUserFeatures] = useState([]);   // Features, für die DIESER User einzeln freigeschaltet ist
 
   // Keep axios default header in sync
   useEffect(() => {
@@ -43,12 +44,12 @@ export function AuthProvider({ children }) {
     return () => clearTimeout(timer);
   }, [token]);
 
-  // Fetch feature flags whenever user changes
+  // Fetch feature flags whenever user changes. Response: { flags, userFeatures }.
   useEffect(() => {
-    if (!user) { setFeatureFlags(null); return; }
+    if (!user) { setFeatureFlags(null); setUserFeatures([]); return; }
     featureFlagsApi.list()
-      .then(flags => setFeatureFlags(flags))
-      .catch(() => setFeatureFlags({})); // on error: empty flags = no extra access
+      .then(data => { setFeatureFlags(data?.flags || {}); setUserFeatures(data?.userFeatures || []); })
+      .catch(() => { setFeatureFlags({}); setUserFeatures([]); }); // on error: no extra access
   }, [user?.id]);
 
   // Heartbeat: keep last_seen fresh while the tab is open
@@ -81,7 +82,7 @@ export function AuthProvider({ children }) {
   const refreshFeatureFlags = useCallback(() => {
     if (!user) return;
     featureFlagsApi.list()
-      .then(flags => setFeatureFlags(flags))
+      .then(data => { setFeatureFlags(data?.flags || {}); setUserFeatures(data?.userFeatures || []); })
       .catch(() => {});
   }, [user?.id]);
 
@@ -94,22 +95,18 @@ export function AuthProvider({ children }) {
   const canSeeVL     = ['admin','superadmin','bk_vertrieb','backoffice','vertriebsleitung'].includes(user?.role);
   const canSeeAdmin  = isAdmin;
   const canSeeAll    = isAdmin || isBackoffice || isVertriebsleitung;
-  // superadmin always has access; others need featureFlags loaded + role listed
-  const canSeeKpiBeta = isSuperAdmin || (
-    featureFlags !== null && (featureFlags['kpi_beta'] || []).includes(user?.role)
-  );
-  // admins always see backup; other roles depend on the feature flag
-  const canSeeBackup = isAdmin || (
-    featureFlags !== null && (featureFlags['backup'] || []).includes(user?.role)
-  );
-  // Bestenliste (Beta): out-of-the-box nur Superadmin; weitere Rollen via Flag (Einstellungen).
-  const canSeeBestenliste = isSuperAdmin || (
-    featureFlags !== null && (featureFlags['bestenliste'] || []).includes(user?.role)
-  );
-  // Provisionen (Beta): out-of-the-box nur Superadmin; weitere Rollen via Flag (Einstellungen).
-  const canSeeProvisionen = isSuperAdmin || (
-    featureFlags !== null && (featureFlags['provisionen'] || []).includes(user?.role)
-  );
+  // Zentraler Feature-Check (spiegelt requireFeature im Backend): Zugriff über die Rolle
+  // ODER über eine personenscharfe Einzel-Freischaltung (userFeatures). Additiv, kein Deny.
+  const roleHasFeature = (key) => featureFlags !== null && (featureFlags[key] || []).includes(user?.role);
+  const userHasFeature = (key) => (userFeatures || []).includes(key);
+  // superadmin always has access; others: Rolle freigeschaltet ODER einzeln freigeschaltet
+  const canSeeKpiBeta = isSuperAdmin || roleHasFeature('kpi_beta') || userHasFeature('kpi_beta');
+  // admins always see backup; other roles depend on the feature flag / individual grant
+  const canSeeBackup = isAdmin || roleHasFeature('backup') || userHasFeature('backup');
+  // Bestenliste (Beta): out-of-the-box nur Superadmin; weitere via Rolle oder Einzel-Freischaltung.
+  const canSeeBestenliste = isSuperAdmin || roleHasFeature('bestenliste') || userHasFeature('bestenliste');
+  // Provisionen (Beta): out-of-the-box nur Superadmin; weitere via Rolle oder Einzel-Freischaltung.
+  const canSeeProvisionen = isSuperAdmin || roleHasFeature('provisionen') || userHasFeature('provisionen');
   // Admin-Sicht der Provisionen (Gesamtübersicht/Abschluss): zusätzlich Rolle Admin/Vertriebsleitung.
   const canSeeProvisionenAdmin = canSeeProvisionen && (isAdmin || isVertriebsleitung);
 
@@ -119,7 +116,7 @@ export function AuthProvider({ children }) {
       isSuperAdmin, isAdmin, isBackoffice, isVertriebsleitung,
       canSeeNK, canSeeBK, canSeeVL, canSeeAdmin, canSeeAll,
       canSeeKpiBeta, canSeeBackup, canSeeBestenliste,
-      canSeeProvisionen, canSeeProvisionenAdmin, featureFlags, refreshFeatureFlags,
+      canSeeProvisionen, canSeeProvisionenAdmin, featureFlags, userFeatures, refreshFeatureFlags,
     }}>
       {children}
     </AuthContext.Provider>

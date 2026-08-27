@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { companiesApi, targetsApi, adminApi, auditApi, employeesApi, featureFlagsApi, backupApi, exchangeRatesApi, monthlyTargetsStandortApi, provisionenApi } from '../utils/api';
 import { currentMonat } from '../utils/format';
@@ -35,13 +35,18 @@ function AccessControlSection() {
   const qc = useQueryClient();
   const [localFlags, setLocalFlags] = useState({});
   const [savedOk,    setSavedOk]    = useState(null);
+  const colSpan = CONTROLLABLE_ROLES.length + 2;
 
-  const { data: flags = {}, isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['feature-flags'],
-    queryFn:  featureFlagsApi.list,
+    queryFn:  featureFlagsApi.list,          // { flags, userFeatures }
   });
+  // Einzel-Freischaltungen je Feature (superadmin) + alle Nutzer für die Auswahl.
+  const { data: userGrants = {} } = useQuery({ queryKey: ['feature-flag-users'], queryFn: featureFlagsApi.listUsers });
+  const { data: allUsers   = [] } = useQuery({ queryKey: ['admin-users'],        queryFn: adminApi.listUsers });
 
-  useEffect(() => { setLocalFlags(flags); }, [flags]);
+  // data.flags hat stabile Referenz (react-query) -> kein Render-Loop.
+  useEffect(() => { if (data?.flags) setLocalFlags(data.flags); }, [data]);
 
   const saveMut = useMutation({
     mutationFn: ({ feature, roles }) => featureFlagsApi.update(feature, roles),
@@ -52,6 +57,9 @@ function AccessControlSection() {
       setTimeout(() => setSavedOk(null), 2000);
     },
   });
+  const invalidateUsers = () => { qc.invalidateQueries({ queryKey: ['feature-flag-users'] }); qc.invalidateQueries({ queryKey: ['feature-flags'] }); refreshFeatureFlags(); };
+  const addUserMut    = useMutation({ mutationFn: ({ feature, user_id }) => featureFlagsApi.addUser(feature, user_id),    onSuccess: invalidateUsers });
+  const removeUserMut = useMutation({ mutationFn: ({ feature, user_id }) => featureFlagsApi.removeUser(feature, user_id), onSuccess: invalidateUsers });
 
   const toggle = (feature, role) => {
     setLocalFlags(prev => {
@@ -65,7 +73,8 @@ function AccessControlSection() {
   return (
     <div className="space-y-4">
       <div className="text-xs bg-amber-50 border border-amber-200 text-amber-700 rounded px-3 py-2">
-        Superadmin hat immer vollen Zugang — unabhängig von diesen Einstellungen.
+        Superadmin hat immer vollen Zugang — unabhängig von diesen Einstellungen. Einzel-Freischaltungen gelten
+        <b> zusätzlich</b> zu den Rollen und bleiben personenbezogen, auch wenn sich die Rolle des Nutzers später ändert.
       </div>
       <div className="rounded-xl border border-gray-200 overflow-hidden">
         <div className="bg-[#2d2e30] px-4 py-3 border-b border-[#444]">
@@ -82,10 +91,21 @@ function AccessControlSection() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {CONTROLLED_FEATURES.map(feat => (
-              <tr key={feat.key} className="hover:bg-gray-50">
+            {CONTROLLED_FEATURES.map(feat => {
+              const granted    = userGrants[feat.key] || [];
+              const candidates = allUsers.filter(u => (u.active === true || u.active === 1) && !granted.some(g => g.user_id === u.id));
+              return (
+              <Fragment key={feat.key}>
+              <tr className="hover:bg-gray-50">
                 <td className="px-4 py-3">
-                  <div className="text-sm font-medium text-gray-800">{feat.label}</div>
+                  <div className="text-sm font-medium text-gray-800">
+                    {feat.label}
+                    {granted.length > 0 && (
+                      <span className="ml-2 align-middle text-[11px] font-medium text-blue-700 bg-blue-50 border border-blue-100 rounded-full px-2 py-0.5">
+                        +{granted.length} einzelne Nutzer
+                      </span>
+                    )}
+                  </div>
                   <div className="text-xs text-gray-400 mt-0.5">{feat.desc}</div>
                 </td>
                 {CONTROLLABLE_ROLES.map(role => (
@@ -112,7 +132,38 @@ function AccessControlSection() {
                   </button>
                 </td>
               </tr>
-            ))}
+              {/* Zusätzlich einzelne Nutzer (additiv zur Rolle) */}
+              <tr className="bg-gray-50/60">
+                <td colSpan={colSpan} className="px-4 pb-3 pt-0">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[11px] text-gray-500 mr-1">Zusätzlich einzelne Nutzer:</span>
+                    {granted.length === 0 && <span className="text-[11px] text-gray-400 italic">keine</span>}
+                    {granted.map(g => (
+                      <span key={g.user_id}
+                        className={`inline-flex items-center gap-1 text-[11px] rounded-full border px-2 py-0.5 ${
+                          g.active ? 'bg-white border-gray-200 text-gray-700' : 'bg-gray-100 border-gray-200 text-gray-400 line-through'
+                        }`}
+                        title={g.active ? '' : 'Nutzer ist deaktiviert — Freischaltung wirkungslos'}>
+                        {g.name}<span className="text-gray-400">· {ROLE_LABELS[g.role] || g.role}</span>
+                        {!g.active && <span className="not-italic no-underline text-gray-400">(inaktiv)</span>}
+                        <button onClick={() => removeUserMut.mutate({ feature: feat.key, user_id: g.user_id })}
+                          disabled={removeUserMut.isPending}
+                          className="ml-0.5 text-gray-400 hover:text-red-600 leading-none">✕</button>
+                      </span>
+                    ))}
+                    <select value="" disabled={addUserMut.isPending || candidates.length === 0}
+                      onChange={e => { if (e.target.value) addUserMut.mutate({ feature: feat.key, user_id: Number(e.target.value) }); }}
+                      className="text-[11px] bg-white border border-gray-300 text-gray-600 rounded px-2 py-0.5 disabled:opacity-50">
+                      <option value="">{candidates.length ? '+ Nutzer hinzufügen…' : 'alle Nutzer bereits/nicht verfügbar'}</option>
+                      {candidates.map(u => (
+                        <option key={u.id} value={u.id}>{u.name} · {ROLE_LABELS[u.role] || u.role}</option>
+                      ))}
+                    </select>
+                  </div>
+                </td>
+              </tr>
+              </Fragment>
+            );})}
           </tbody>
         </table>
       </div>
