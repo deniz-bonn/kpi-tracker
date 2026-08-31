@@ -128,6 +128,16 @@ export const upsaleDealsApi = {
   delete: (id)     => api.delete(`/upsale-deals/${id}`),
 };
 
+export const showRatesApi = {
+  overview:  ()               => api.get('/showrates/overview').then(r => r.data),
+  personen:  (monat)          => api.get('/showrates/personen', { params: { monat } }).then(r => r.data),
+  quellen:   (monat)          => api.get('/showrates/quellen',  { params: { monat } }).then(r => r.data),
+  qualitaet: ()               => api.get('/showrates/qualitaet').then(r => r.data),
+  mapping:   ()               => api.get('/showrates/mapping').then(r => r.data),
+  setMapping:(id, data)       => api.patch(`/showrates/mapping/${id}`, data).then(r => r.data),
+  sync:      (since)          => api.post('/showrates/sync', since ? { since } : {}).then(r => r.data),
+};
+
 export const featureFlagsApi = {
   list:   ()               => api.get('/feature-flags').then(r => r.data),          // { flags, userFeatures }
   update: (feature, roles) => api.post('/feature-flags', { feature, roles }).then(r => r.data),

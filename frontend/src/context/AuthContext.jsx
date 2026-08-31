@@ -107,6 +107,8 @@ export function AuthProvider({ children }) {
   const canSeeBestenliste = isSuperAdmin || roleHasFeature('bestenliste') || userHasFeature('bestenliste');
   // Provisionen (Beta): out-of-the-box nur Superadmin; weitere via Rolle oder Einzel-Freischaltung.
   const canSeeProvisionen = isSuperAdmin || roleHasFeature('provisionen') || userHasFeature('provisionen');
+  // Show Rates (Close): out-of-the-box nur Superadmin; weitere via Rolle oder Einzel-Freischaltung.
+  const canSeeShowRates = isSuperAdmin || roleHasFeature('show_rates_close') || userHasFeature('show_rates_close');
   // Admin-Sicht der Provisionen (Gesamtübersicht/Abschluss): zusätzlich Rolle Admin/Vertriebsleitung.
   const canSeeProvisionenAdmin = canSeeProvisionen && (isAdmin || isVertriebsleitung);
 
@@ -116,7 +118,7 @@ export function AuthProvider({ children }) {
       isSuperAdmin, isAdmin, isBackoffice, isVertriebsleitung,
       canSeeNK, canSeeBK, canSeeVL, canSeeAdmin, canSeeAll,
       canSeeKpiBeta, canSeeBackup, canSeeBestenliste,
-      canSeeProvisionen, canSeeProvisionenAdmin, featureFlags, userFeatures, refreshFeatureFlags,
+      canSeeProvisionen, canSeeProvisionenAdmin, canSeeShowRates, featureFlags, userFeatures, refreshFeatureFlags,
     }}>
       {children}
     </AuthContext.Provider>

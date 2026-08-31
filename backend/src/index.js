@@ -48,6 +48,7 @@ app.use('/api/activity-logs',  require('./routes/activity_logs'));  // requireAu
 app.use('/api/inbound-daily',  require('./routes/inbound_daily'));  // requireAuth inside
 app.use('/api/feature-flags',  require('./routes/feature_flags')); // requireAuth inside
 app.use('/api/bestenliste',    require('./routes/bestenliste'));  // requireAuth + requireFeature inside
+app.use('/api/showrates',      require('./routes/showrates'));    // requireAuth + requireFeature inside
 app.use('/api/provisionen',    require('./routes/provisionen'));  // requireAuth + requireFeature inside
 app.use('/api/upsale-deals',   require('./routes/upsale_deals'));   // requireAuth inside
 app.use('/api/admin',          require('./routes/admin'));       // requireAuth + requireRole inside
@@ -152,6 +153,20 @@ cron.schedule('30 0 * * *', async () => {
     console.log('[provisionen] Nachträge materialisiert für', new Date().toISOString().slice(0, 10));
   } catch (err) {
     console.error('[provisionen] Nachträge fehlgeschlagen:', err.message);
+  }
+}, { timezone: 'Europe/Berlin' });
+
+// Close-Show-Rates: naechtlicher Inkrement-Sync um 01:15 (read-only gegen Close).
+// Holt neue Lead-/Opportunity-Statuswechsel und leitet die termine neu ab. Laeuft nur, wenn ein
+// CLOSE_API_KEY gesetzt ist — ohne Key bleibt das Feature schlicht inaktiv, ohne Fehler zu werfen.
+cron.schedule('15 1 * * *', async () => {
+  if (!process.env.CLOSE_API_KEY) return;
+  try {
+    const { runSync } = require('./utils/closeSync');
+    const r = await runSync({ log: (m) => console.log(m) });
+    console.log('[close-sync] OK:', JSON.stringify({ events: r.events, termine: r.termine }));
+  } catch (err) {
+    console.error('[close-sync] Fehlgeschlagen:', err.message);
   }
 }, { timezone: 'Europe/Berlin' });
 

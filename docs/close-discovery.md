@@ -1,145 +1,130 @@
-# Close-API-Discovery — Show-Rate-Tracking Opener/Setter
+# Close-Integration — Show-Rate-Tracking Opener/Setter
 
-**Stand:** 2026-08-31 (Re-Check) · Erstbefund 2026-08-25 · **Modus:** read-only (nur GET über `backend/src/utils/closeClient.js`) · **Key:** `CLOSE_API_KEY` (Railway/`backend/.env`, nie im Repo/Log).
-**Zweck:** Feststellen, ob & wie die zwei Show-Rates (Opener: Settings stattgefunden ÷ gelegt; Setter: Sales Calls stattgefunden ÷ gelegt) aus Close berechenbar sind. **Phase 1 noch nicht umgesetzt.**
+**Stand:** 2026-08-31 (Revision 2, **grundlegend korrigiert**) · Erstbefund 25.08. · Re-Check 31.08.
+**Modus:** read-only (nur GET über `backend/src/utils/closeClient.js`) · **Key:** `CLOSE_API_KEY` (Railway/`backend/.env`, nie im Repo/Log).
 
-## Kernbefund (TL;DR, Stand 31.08.)
+## ⚠️ Korrektur gegenüber Revision 1
 
-**Die Datenstruktur in Close ist für Show-Rates bereits perfekt — sie wird nur nicht benutzt.** Die Custom-Activity-Typen *Setting*, *Setter Call* und *Closing Call* haben „Ergebnis des Calls" als **Pflichtfeld** mit exakt den Auswahlwerten, die eine Show-Rate braucht (No-Show / Abgesagt / Verschoben vs. stattgefunden). Im Re-Check-Fenster **24.08.–31.08.** (10.059 Aktivitäten) gab es aber nur **23 Custom-Activities**: 22× *Setting terminiert* (feldlos) und **1×** *Setting*. Gegenüber dem Erstbefund (25.08.) also **unverändert**.
+Revision 1 kam zu dem Schluss, Show-Rates seien **nicht** berechenbar und es brauche erst eine Prozessumstellung auf die Custom-Activity-Typen *Setting* / *Setter Call* / *Closing Call*. **Das war falsch.** Die Discovery hatte sich auf Custom Activities fokussiert und die Status-Events (`LeadStatusChange` 1.656, `OpportunityStatusChange` 91 im 8-Tage-Fenster) als Rauschen abgetan.
 
-→ **Verdikt:** Kein Technik-, sondern ein **Nutzungsproblem**. Sobald das Team die reichen Typen verwendet, sind beide Show-Rates ohne Close-Umbau berechenbar. Die eine echte Design-Lücke ist die **Opener-Attribution** (siehe §5).
+Ein Loom-Screencast der Vertriebsleitung (31.08.) plus API-Gegenprobe zeigen: **Der Funnel läuft vollständig über Lead-Status und Opportunity-Status.** Custom Activities sind nicht Teil des Prozesses — im gesamten Screencast wird der „Activity"-Button nie geklickt. Deshalb waren die reichen Typen leer: nicht aus Nachlässigkeit, sondern weil sie im Prozess keine Rolle spielen.
 
-**Entschieden (31.08., Deniz):** Verbindlicher Marker werden die **reichen Typen** — *Setting* / *Setter Call* / *Closing Call*, mit Ergebnis (+ Quelle) als Pflicht.
+**Neues Verdikt: Die Show-Rates sind aus der Status-Historie heute schon rückwirkend berechenbar** — ohne Prozessumstellung und ohne Wartezeit. Es fehlt nur eine strukturelle Ergänzung (§5).
 
-## 1. Organisationen — Mehr-Org bestätigt, unverändert
+## 1. Wie der Funnel tatsächlich läuft
 
-- Der Key gehört zu **einer** Org: **fach.digital GmbH** (`orga_J6dLgd…`), API-User `deniz@fach-digital.de`. Ein Close-Key = eine Org.
-- **Alle 155** NK-Deals mit Close-Lead-Link im `kommentar` gehören laut Tracker zu **Risem** — und liefern gegen diesen Key **HTTP 404**. Der **deutsche** Funnel liegt in DIESER Org, ist aber aus `deals_nk` nicht verlinkt.
-- **Folge:** Architektur muss **mehrere Keys/Orgs** vorsehen (fach.digital + Risem, Morawitz offen). → offene Frage B.
+Belegt durch Screencast (Bild + Ton) und API:
 
-## 2. Aktivitätslandschaft (Re-Check 24.08.–31.08., 10.059 Aktivitäten)
+1. **Lead-Status** wird auf einen kanal-spezifischen Wert gesetzt: `Setting terminiert aus MailMarketing` / `… aus FAX Leads` / `… aus Post`, später `Closing terminiert aus …`, am Ende `✅ Closes aus …` bzw. `Kein Interesse aus …`.
+2. **Opportunity** (Pipeline „Sales") trägt den Detail-Status: `Setting terminiert` → `Closing-Termin ausstehend` → `Closing terminiert` → Ausgang.
+3. **„Assigned to"** der Opportunity wird auf die Person gesetzt, die den Termin gelegt hat (im Video: Wechsel Andreas Buharin → Markus Bauer).
+4. Zusätzlich wird eine **Task** angelegt (z. B. „QC", Assignee, Datum/Uhrzeit).
 
-`Call` 4.678 · `LeadStatusChange` 1.656 · `Email` 1.315 · `Note` 1.145 · `Created` 778 · `TaskCompleted` 358 · `OpportunityStatusChange` 91 · **`CustomActivity` 23** · `SMS` 13 · **`Meeting` 2**
+**Pipeline „Sales" — 19 Status (vollständig):**
+`Setting terminiert` · `Setting Follow-Up (Kurzfristig)` · `Follow-Up` · `Closing-Termin ausstehend` · `Closing terminiert` · `Closing No-Show / Absagen` · `Angebot verschickt` · `Closing #High Potentials` · `Closing Call #2 terminiert` · `Soft-Close (Onboarding)` · `Closing Follow-Up (Kurzfristig)` · `Closing Follow-Up (Langfristig)` · `Won` *(won)* · `Lost` *(lost)* · `Setting abgesagt` *(lost)* · `Closing abgesagt` *(lost)* · `Setting No-Show` *(lost)* · `Unqualifiziert` *(lost)* · `Blacklist` *(lost)*
 
-- **Meetings sind keine Quelle** (2 im Fenster) — der Kalender-Sync-Ansatz aus dem Ursprungskonzept trägt nicht. Bestätigt.
-- **Call-Dispositions sind zu 99,9 % gefüllt** (4.675/4.678: `answered` 3.062, `no-answer` 1.235, `busy` 115, `error` 104, `vm-answer` 81, `blocked` 50, `vm-left` 28). **Aber:** das sind *Telefonie*-Ergebnisse (wurde abgehoben), **keine Termin-Ausgänge**. Als Show-Rate-Quelle **untauglich**; brauchbar wäre daraus höchstens eine separate KPI „Erreichbarkeitsquote je Opener".
+Das ist ein vollständiger Show-Rate-Funnel: gelegt, stattgefunden und nicht-stattgefunden sind sauber getrennt.
 
-## 3. Custom-Activity-Typen — Schema ist show-rate-fähig
+## 2. Datenquelle & API (verifiziert)
 
-10 Typen existieren. `*` = Pflichtfeld. Instanzen = Re-Check-Fenster.
-
-| Typ | „Ergebnis"-Feld | „Quelle"-Feld | Instanzen |
-|---|---|---|--:|
-| **Setting** | ✅ *Ergebnis des Calls* | ✅ *Quelle* (nicht Pflicht) | **1** |
-| **Setter Call** | ✅ *Ergebnis des Calls* | ✅ *Quelle* **(Pflicht)** | 0 |
-| **Closing Call** | ✅ *Ergebnis des Calls* | — kein Quelle-Feld | 0 |
-| **Closing Folgetermine** | ✅ *Ergebnis* + *Art* (CC2/Onboarding) | — | 0 |
-| **Follow-Up** | ✅ *Ergebnis des Calls* + *Setting oder Closing?* | — | 0 |
-| **Setting Terminier (NEU)** | — | ✅ *Lead Quelle* (Pflicht) + ***Caller*** | 0 |
-| **Setting terminiert** | ❌ nur *Notizen* | ❌ | **22** (alle von *Dominik Bous*) |
-| **Setting terminiert (Marketing)** | ❌ nur *Notiz* | ❌ | 0 |
-| Entscheider erreicht / Outreach Setting | (Prozessfelder, kein Termin-Ausgang) | — | 0 |
-
-**Auswahlwerte (die Basis des Status-Mappings):**
-
-- **Setting / Setter Call → *Ergebnis des Calls*:** `Abgesagt` · `CC terminiert` · `No-Show` · `Qualifiziert` · `Unqualifiziert` · `Verschoben`
-- **Closing Call → *Ergebnis des Calls*:** `Abgesagt` · `CC2 terminiert` · `Follow-Up` · `Gewonnen` · `No-Show` · `Onboarding terminiert` · `Schriftliches Angebot` · `Verbales Angebot` · `Unqualifiziert` · `Verloren` · `Verschoben`
-- **Quelle:** *Setter Call:* `Cold Call` · `Cold Mail` · `Empfehlung` · `Fax` · `Messe` · `Sonstiger Inbound` · `Sonstiger Outbound` — *Setting:* dieselbe Liste **ohne** `Messe`/`Sonstiger Outbound` ⚠️ (inkonsistent, siehe To-Dos)
-
-## 4. Status-Mapping für `termine.status` — implementierungsreif
-
-| Close-Ergebnis | `termine.status` | zählt in Show-Rate |
-|---|---|---|
-| `Qualifiziert`, `Unqualifiziert`, `CC terminiert` | `stattgefunden` | **Zähler + Nenner** |
-| `CC2 terminiert`, `Onboarding terminiert`, `Verbales/Schriftliches Angebot`, `Gewonnen`, `Verloren`, `Follow-Up` (nur Closing Call) | `stattgefunden` | **Zähler + Nenner** |
-| `No-Show` | `no_show` | nur Nenner |
-| `Abgesagt` | `abgesagt` | nur Nenner |
-| `Verschoben` | `verschoben` | nur Nenner (Folge-Termin separat) |
-
-**Show-Rate** = `stattgefunden` ÷ (alle Termine des Zeitraums). Typ **Follow-Up** ist **kein Termin** (Werte: Kein Bedarf / Nicht erreicht / Neuer Meeting-Termin …) → aus den Show-Rates **ausschließen**.
-
-## 5. ⚠️ Die verbleibende echte Lücke: Opener-Attribution
-
-Für den **Setter** ist die Zuordnung gelöst: Der Setter dokumentiert seinen *Setter Call* selbst → `user_id` = Setter. Setter-Show-Rate = *Closing Calls stattgefunden* ÷ *Setter Calls mit Ergebnis `CC terminiert`*.
-
-Für den **Opener** nicht: Die *Setting*-Activity wird von dem dokumentiert, der den Termin **durchführt** (Setter/Closer) — nicht von dem, der ihn **gelegt** hat. Der Typ *Setting* hat **kein** Opener-/Caller-Feld. Nur *Setting Terminier (NEU)* hat ein **`Caller`**-Feld (0 Instanzen).
-
-**Entschieden (31.08., Deniz): Weg (A)** — Feld **„Opener"** am Typ *Setting* ergänzen (Pflicht). Ein Objekt trägt dann Ausgang **und** Opener; die Show-Rate kommt aus einer Quelle, kein Pairing, robust bei Verschiebungen.
-*(Verworfen: Weg (B) — *Setting Terminier (NEU)* als Nenner mit *Setting* als Zähler paaren; bräuchte zwei disziplinierte Buchungen je Termin und ist bei Verschiebungen/Mehrfachterminen fehleranfällig.)*
-
-> ### ⚠️ Feldtyp entscheidet über die Datenqualität
-> Das bestehende `Caller`-Feld an *Setting Terminier (NEU)* ist **`type=text`** — **Freitext**. So darf das neue Feld **nicht** angelegt werden: Freitext produziert Namensvarianten und Tippfehler (im Account belegt: Close *Murciano* vs. Tracker *Muciano*, Zweitkonto „Drake aus Godesberg") und macht die Opener-Zuordnung genauso kaputt wie die Mitarbeiter-Dublette #55/#70.
->
-> **Vorgabe:** Feldtyp **`User`** (liefert eine Close-User-ID → deterministisch über `close_user_map` auflösbar). Falls im Account nicht verfügbar: **`choices`** mit fester Opener-Liste. **Niemals `text`.**
-> *(Im Account bisher genutzte Typen: `text`, `choices`, `date`, `richtextarea`, `contact` — ein `User`-Feld gibt es noch nicht; `contact` ist die Lead-Seite und hier falsch.)*
-
-## 6. User-Zuordnung — billiger als gedacht
-
-**Wichtig:** `employees` hat kein E-Mail-Feld, **aber `users` (Login) hat eins** und ist über `users.employee_id` mit `employees` verknüpft. Die Brücke **Close-User-E-Mail → `users.email` → `users.employee_id` → `employees`** existiert also schon — **kein Schema-Umbau an `employees` nötig** (korrigiert den Erstbefund).
-
-Von 20 Close-Usern: **9 exakter Namens-Match**, **6 über `users.email`** auflösbar (Vereinigung ≈ 12). Nicht auflösbar bzw. Datenmüll:
-
-| Close-User | Problem |
+| Endpoint | Ergebnis |
 |---|---|
-| *Drake aus Godesberg* `<c.naekel@hioffice.com>` | **Zweitkonto von Clemens Näkel** → splittet seine Zahlen |
-| ⟨ohne Namen⟩ `<mikail.kotaman@fach-digial.de>` | Tippfehler-Domain, **Dublette** zu Mikail Kotaman |
-| *Cold Mail*, *Probe Arbeiten2/3* | Funktions-/Sammelkonten, keine Personen |
-| Andreas Vasie-Alexandru, Marc Rox, Zachary Churney, Zaid Chouari | reale Personen, **fehlen in `employees`** |
-| Marcel *Murciano* vs. employees *Muciano* | Schreibfehler im Tracker (1 Zeichen) |
+| `GET /activity/status_change/opportunity/` | ✅ **org-weit + Datumsfilter** — liefert `old_status_label`, `new_status_label`, `old/new_status_type`, `user_id`/`user_name`, `opportunity_id`, `lead_id`, `activity_at`, `date_created/updated`, Pipeline-Infos |
+| `GET /activity/status_change/lead/` | ✅ org-weit + Datumsfilter — `old/new_status_label`, `user_id`, `lead_id` |
+| `GET /activity/?_type=…` | ❌ HTTP 400 („must provide a single lead_id filter") |
+| `GET /activity/opportunitystatuschange/` | ❌ HTTP 404 (Pfad existiert nicht) |
+| `GET /pipeline/`, `/status/lead/`, `/opportunity/`, `/custom_field/opportunity/` | ✅ |
 
-→ **Explizite Mapping-Tabelle** bleibt nötig (Auto-Vorschlag via E-Mail/Name + manuelle Pflege), plus **Daten-Qualitäts-Panel** für unzuordenbare Termine. Die Close-Dubletten sind derselbe Fehlertyp wie die Tracker-Dublette #55/#70 — Personen-Attribution braucht saubere Identitäten.
+→ Inkrementeller Sync über die beiden `status_change`-Endpoints mit `date_created__gte`. Kein Sweep des kompletten Aktivitäts-Feeds nötig (1.033 Events für 3 Monate statt ~120.000 Aktivitäten).
 
-## 7. To-Dos in Close — Voraussetzung für Phase 1
+## 3. Status-Mapping (implementierungsreif)
 
-Reihenfolge bewusst so: erst Feld anlegen (1), dann den falschen Weg schließen (2), sonst buchen die Leute weiter ins Leere.
+**Termin „gelegt"** = Übergang **in** `Setting terminiert` (Opener) bzw. `Closing terminiert` (Setter).
+**Ausgang** = der nächste Status danach:
 
-| # | To-Do | Warum |
-|--:|---|---|
-| 1 | **Feld „Opener" am Typ *Setting*** anlegen — **Pflicht**, Typ **`User`** (Fallback `choices`, **nie `text`**) | löst die Attributionslücke §5 |
-| 2 | ***Setting terminiert*** + ***Setting terminiert (Marketing)*** **stilllegen** | dorthin laufen heute 22 wertlose Buchungen/Woche |
-| 3 | ***Quelle* am Typ *Setting* auf Pflicht** + Liste an *Setter Call* angleichen (`Messe`, `Sonstiger Outbound` fehlen) | Quelle-Dimension der Opener-Show-Rate |
-| 4 | *Setting Terminier (NEU)* klären: stilllegen oder in *Setting* aufgehen lassen | sonst zwei konkurrierende Wege |
-| 5 | Close-User bereinigen: *Drake aus Godesberg* (= Clemens Näkel) und Tippfehler-Konto `fach-digial.de` (= Mikail Kotaman) deaktivieren, Sammelkonten kennzeichnen | sonst splittet die Personen-Attribution |
-| 6 | Team briefen: jeder Termin wird als *Setting* / *Setter Call* / *Closing Call* gebucht | Adoption ist der eigentliche Engpass |
+| Folgestatus | Wertung |
+|---|---|
+| `Setting No-Show`, `Setting abgesagt` / `Closing No-Show / Absagen`, `Closing abgesagt` | **nicht stattgefunden** (nur Nenner) |
+| `Closing-Termin ausstehend`, `Closing terminiert`, `Follow-Up`, `Setting Follow-Up (Kurzfristig)`, `Angebot verschickt`, `Closing #High Potentials`, `Closing Call #2 terminiert`, `Soft-Close (Onboarding)`, `Closing Follow-Up (Kurz/Lang)`, `Won`, `Unqualifiziert` | **stattgefunden** (Zähler + Nenner) |
+| kein Folgestatus | **offen** — aus der Quote ausschließen, im Datenqualitäts-Panel zeigen |
+| `Lost`, `Blacklist` direkt | unklar — nicht werten, separat ausweisen |
 
-### Readiness-Check — wann Phase 1 startet
+**Quelle-Dimension gratis:** steckt im Lead-Status-Suffix (`… aus MailMarketing` / `… aus FAX Leads` / `… aus Post`). Kein zusätzliches Feld nötig.
 
-Phase 1 beginnt, wenn ein read-only Lauf über **14 zusammenhängende Tage** zeigt:
-- *Setting*-Instanzen ≳ Zahl der bisherigen *Setting terminiert*-Buchungen (~20/Woche), *Setting terminiert* nahe **0**
-- **Ergebnis** zu ~100 % gefüllt (ist Pflichtfeld → automatisch), **Opener** zu ~100 % gefüllt und auflösbar
-- *Closing Call*-Instanzen vorhanden (sonst keine Setter-Show-Rate)
-- ≥ 2 unterschiedliche Ersteller je Typ (kein Einzelkämpfer-Artefakt wie heute: 22/22 von einer Person)
+## 4. Prototyp-Ergebnis (read-only gerechnet, 1.033 Statuswechsel, 719 Opportunities)
 
-## 8. Offene Entscheidungen (Rest)
+| | Juni | Juli | August |
+|---|--:|--:|--:|
+| **Settings** gelegt → Show-Rate | 15 → 100 % (Basis 3) | 28 → **93,3 %** (Basis 15) | 24 → **72,7 %** (Basis 11) |
+| **Closings** gelegt → Show-Rate | 27 → 90 % (Basis 10) | 137 → **83,5 %** (Basis 85) | 94 → **73,5 %** (Basis 49) |
 
-| | Frage | Status |
-|---|---|---|
-| ~~A~~ | Verbindlicher Marker | ✅ **entschieden: reiche Typen** (*Setting* / *Setter Call* / *Closing Call*) |
-| ~~C~~ | Opener-Attribution | ✅ **entschieden: Weg (A)** — Pflichtfeld „Opener" am Typ *Setting*, Typ `User` |
-| ~~B~~ | Mehr-Org-Scope | ✅ **entschieden: Phase 1 = nur Org fach.digital.** Risem/Morawitz später als **zweiter Key** — Sync deshalb von Anfang an **je Org-Key parametrisieren** (kein Hardcoding einer Org), aber nur einen Key betreiben |
-| ~~D₁~~ | Parallellauf | ✅ **entschieden: Beta-Board / `activity_logs` bleiben unangetastet** und dienen als **Referenz zum Abgleich**. Keine Umstellung, bevor die Close-Zahlen bewiesen sind |
-| **D₂** | **Backfill-Grenze** (z. B. ab 01.07.2026 oder erst ab Close-Umstellung) | offen — **blockiert Phase 1 nicht** (Config-Wert). Hinweis: Ein Backfill *vor* der Umstellung liefert fast nur Leerdaten, weil die reichen Typen bis 31.08. praktisch ungenutzt waren |
-| **E** | **UI-Ort:** eigener Bereich vs. Erweiterung des Beta-Boards | **bewusst aufgeschoben bis nach dem Readiness-Check.** Tendenz: **eigener Bereich „Show Rates (Close)"** hinter **Feature-Flag** (`show_rates_close`) mit **Einzelnutzer-Freischaltung** (Infrastruktur steht seit Migration 099, `feature_flag_users`) → kontrollierter Rollout an einzelne Personen, ohne einer ganzen Rolle etwas zu öffnen. Beta-Board bleibt daneben als Parallellauf-Referenz |
+Je Person (Closings, Attribution = wer den Status setzte): Clemens Näkel 89,5 % (77/86) · Andreas Buharin 63,2 % (24/38) · Brian Groten 62,5 % (5/8) · Mikail Kotaman 83,3 % (5/6) · Markus Bauer 100 % (4/4).
 
-## 9. Phase 1 — Umsetzungsplan (**gestartet wird erst nach §7**, Entscheidung 31.08.)
+## 5. ⚠️ Die strukturelle Lücke: Lead- vs. Opportunity-Ebene
 
-Reihenfolge, sobald der Readiness-Check grün ist:
+Der Setting-Funnel läuft fast ausschließlich auf **Lead**-Ebene, die Ausgangs-Status existieren aber nur auf **Opportunity**-Ebene.
 
-1. **`termine`-Tabelle** + **`close_user_map`** (Close-User ↔ employee, Auto-Vorschlag via `users.email`, manuelle Pflege-UI).
-2. **Nightly Inkrement-Sync**: `/activity/` mit `date_created`/`date_updated`-Filter (org-weit möglich), clientseitig auf `_type='CustomActivity'` + Typ-ID filtern (Close erlaubt org-weites Custom-Activity-Listing nicht). Idempotent über Close-Objekt-`id`. **Von Anfang an je Org-Key parametrisiert**, betrieben zunächst nur mit dem fach.digital-Key (Entscheidung B).
-3. **Daten-Qualitäts-Panel**: Termine ohne Ausgang/Quelle/zuordenbaren User, je Person — macht die Lücke sichtbar und **treibt die Umstellung**.
-4. **Bereich „Show Rates (Close)"** hinter Feature-Flag `show_rates_close` mit Einzelnutzer-Freischaltung (Entscheidung E): Opener-/Setter-Show-Rate je Monat/Person/Quelle, sobald (1)–(3) Daten liefern. Der endgültige UI-Ort wird erst nach dem Readiness-Check final entschieden.
-5. **Abgleich gegen das Beta-Board** (`activity_logs`) als Parallellauf-Referenz — erst wenn die Close-Zahlen plausibel sind, wird über eine Umstellung gesprochen.
+| August 2026 (distinkte Leads) | Lead-Ebene | Opportunity-Ebene | Überlappung | Abdeckung |
+|---|--:|--:|--:|--:|
+| Settings | **311** | 23 | 7 | **2,3 %** |
+| Closings | 129 | 91 | 43 | 33,3 % |
 
-**Technisch bereits fertig:** GET-only-Wrapper (`closeClient.js` — Backoff, Paginierung, `Object.freeze`, kein POST/PUT/DELETE vorhanden). Aufwand (1)–(5): mehrere Tage.
+Lead-Status kennen **kein No-Show/Abgesagt** (nur `Kein Interesse aus …`) → auf Lead-Ebene ist „nicht stattgefunden" nicht von „stattgefunden, aber kein Interesse" unterscheidbar.
 
-## 10. Ablauf & Zuständigkeit (Stand 31.08.)
+**Folge:** Setter-/Closing-Show-Rate ist belastbar. **Opener-/Setting-Show-Rate ist es nicht** (Basis 2,3 %). Fix: Opportunity bereits beim Setting anlegen — oder je Kanal Lead-Status „Setting No-Show/abgesagt aus …" ergänzen.
 
-**Im Code passiert bis auf Weiteres nichts.** Reihenfolge:
+Zweite Lücke: **hoher Offen-Anteil** (August: Settings 13/24, Closings 41/94 ohne Folgestatus) → gehört ins Datenqualitäts-Panel.
 
-1. **Deniz:** Close-To-Dos 1–6 aus §7 umsetzen und Team briefen → meldet, sobald live.
-2. **Dann +14 Tage:** read-only **Readiness-Check** (§7) — Skript-Muster: Sweep `/activity/` über das Fenster, Custom-Activities je Typ, Füllquote *Ergebnis*/*Quelle*/*Opener*, Ersteller-Verteilung.
-3. **Erst wenn grün:** Phase 1 nach §9 bauen. Ist er rot, wird nachgebrieft statt gebaut — ein Sync auf ungepflegte Daten erzeugt nur ein leeres Dashboard.
+Monatsvolumen Lead-Ebene: `Setting terminiert aus MailMarketing` 310/447/310 (Jun/Jul/Aug), `aus FAX Leads` 71/31/8; `Closing terminiert aus MailMarketing` 77/145/127.
+
+## 6. Personen-Attribution
+
+- **Primär:** `user_id`/`user_name` des Statuswechsel-Events — wer den Status setzte. Funktioniert ohne jede Disziplinänderung und lieferte im Prototyp plausible Werte.
+  **Voraussetzung:** jeder setzt seine eigenen Status. Setzt eine Person zentral für alle, kippt die Einzelauswertung (Warnsignal: die 22 Custom-Activities kamen alle von einer Person).
+- **Sekundär:** Opportunity `user_id` („Assigned to") — laut Prozess der Termin-Leger; Risiko, dass er über die Stufen überschrieben wird.
+- **Opportunity-Custom-Fields:** `Closer` (Typ `user` ✔), `Setter` (Typ **`contact`** ❌ — Lead-seitige Kontaktperson, für Mitarbeiter-Zuordnung unbrauchbar; sollte `user` sein), `Upfront Cash` (number).
+- **Mapping Close-User ↔ employee:** Brücke `users.email` → `users.employee_id` → `employees` (kein E-Mail-Feld an `employees` nötig). 9/20 exakter Namensmatch, 6/20 über E-Mail; Rest sind Zweit-/Sammelkonten (*Drake aus Godesberg* = Clemens Näkel; Tippfehler-Domain `fach-digial.de` = Mikail Kotaman; *Cold Mail*, *Probe Arbeiten2/3*) oder Personen, die in `employees` fehlen.
+
+## 7. To-Dos in Close (an die Vertriebsleitung übergeben, v2)
+
+1. **Opportunity beim Setting anlegen** (Status `Setting terminiert`) — löst §5. *(Alternative: Lead-Status für No-Show/Abgesagt je Kanal.)*
+2. **Ausgang konsequent nachtragen**, auch No-Show/Abgesagt.
+3. Opportunity-Feld **`Setter` auf Typ `user`** umstellen.
+4. **Close-Benutzer bereinigen** (Zweit-/Sammelkonten).
+
+**Ausdrücklich NICHT:** Opener-Feld anlegen, Quelle-Feld pflichtig machen, Activity-Typen stilllegen, Team auf Custom Activities briefen. **Und: an Lead-/Opportunity-Status darf nichts deaktiviert oder umbenannt werden** — Verwechslungsgefahr, weil Activity-Typ, Opportunity-Status und Lead-Status ähnlich heißen.
+
+## 8. Verworfen: der Custom-Activity-Weg (Revision 1)
+
+Zur Nachvollziehbarkeit — die Typen existieren und sind schemaseitig gut, werden aber nicht benutzt (24.–31.08.: 22× *Setting terminiert* (feldlos), 1× *Setting*, alle anderen 0):
+*Setting* / *Setter Call*: `Ergebnis des Calls` (Pflicht, choices: `Abgesagt` · `CC terminiert` · `No-Show` · `Qualifiziert` · `Unqualifiziert` · `Verschoben`), *Setter Call* zusätzlich `Quelle` (Pflicht). *Closing Call*: `Ergebnis des Calls` (Pflicht, 11 Werte inkl. `No-Show`, `Verschoben`, `Gewonnen`). *Setting Terminier (NEU)*: `Lead Quelle` (Pflicht) + `Caller` (Typ **text** — Freitext, für Attribution untauglich).
+Ein Umstieg hierauf wäre Doppelerfassung neben dem gelebten Prozess gewesen.
+
+**Ebenfalls geprüft und ausgeschlossen:** Meetings (2 im 8-Tage-Fenster) und Call-Dispositions (99,9 % gefüllt, aber reine Telefonie-Ergebnisse `answered`/`no-answer`/`busy` — keine Termin-Ausgänge).
+
+## 9. Phase 1 — Umsetzungsplan (Status-basiert)
+
+1. **`termine`-Tabelle** aus der Opportunity-Status-Historie + **`close_user_map`** (Auto-Vorschlag via `users.email`, Pflege-UI).
+2. **Backfill** ab Juni 2026 (weiter zurück möglich, Statuswechsel sind historisch vollständig) + **nächtlicher Inkrement-Sync** über `/activity/status_change/opportunity/` und `/lead/` mit `date_created__gte`. Je Org-Key parametrisiert, betrieben zunächst nur mit dem fach.digital-Key.
+3. **Datenqualitäts-Panel**: Offen-Quote je Person/Monat, Settings ohne Opportunity, unzuordenbare Close-User.
+4. **Bereich „Show Rates (Close)"** hinter Feature-Flag `show_rates_close` mit Einzelnutzer-Freischaltung (`feature_flag_users`, Migration 099). Setter-Rate live; **Opener-Rate bis §5 gelöst ist als „Datenbasis unzureichend" kennzeichnen** statt eine falsche Zahl zu zeigen.
+5. Abgleich gegen das Beta-Board (`activity_logs`) als Parallellauf-Referenz.
+
+**Scope:** nur Org fach.digital (Risem/Morawitz später als zweiter Key). Beta-Board bleibt unangetastet.
+
+## 10. Status
+
+- ✅ Prozess verstanden und verifiziert, Datenquelle gesichert, Mapping steht.
+- ✅ **Phase 1 gebaut** (Migration 100, `utils/closeSync.js`, `routes/showrates.js`, Seite `ShowRates.jsx`,
+  nächtlicher Sync 01:15 Europe/Berlin). Verifiziert gegen echtes Postgres + Prod-Backup + echten
+  read-only Close-Sync: 9.780 Events → 325 Termine, Sync idempotent, alle sechs Prototyp-Zahlen
+  reproduziert, 325/325 Termine einem Mitarbeiter zugeordnet, Feature-Flag inkl. Einzel-Freischaltung
+  greift. SQLite-Pfad liefert identische Ergebnisse.
+- **Gefundener und behobener Bug:** Postgres liefert `TIMESTAMPTZ` als JS-`Date`, SQLite als String —
+  `String(v).slice(0,10)` ergab in PG „Mon Aug 31". Datumsableitung läuft jetzt über
+  `Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' })`; `toISOString()` wäre ebenfalls falsch
+  gewesen (ein Termin am 01.08. 01:30 Berliner Zeit wäre in den Juli gerutscht).
+- ⏳ To-Dos in Close bei der Vertriebsleitung (Anleitung v2 übergeben).
 
 ---
-*Methodik: read-only Läufe gegen die Close-API — Erstbefund 25.08. (Objektlandschaft, August-Sweep ~12k, Org-Abgleich der Deal-Links, Feldverteilungen); Re-Check 31.08. (Sweep 24.08.–31.08. mit 10.059 Aktivitäten, Typ-/Felddefinitionen inkl. Auswahllisten, Dispositions-Gegenprobe, User-Abgleich gegen Prod-Backup). Kein Schreibzugriff.*
+*Methodik: read-only Läufe gegen die Close-API (Erstbefund 25.08., Re-Check 31.08. inkl. Feld-/Auswahllisten, Status-Historie 01.06.–31.08. mit 1.033 Opportunity- und 8.744 Lead-Statuswechseln, Overlap-Analyse, Prototyp-Berechnung) sowie Auswertung eines Loom-Screencasts der Vertriebsleitung (32 Frames + Transkript). Kein Schreibzugriff.*

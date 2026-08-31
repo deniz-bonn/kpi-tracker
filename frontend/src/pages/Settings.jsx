@@ -20,6 +20,7 @@ const CONTROLLED_FEATURES = [
   { key: 'kpi_beta', label: 'KPI Mitarbeiter Beta', desc: 'Beta-Dashboard mit täglichem Activity-Tracking' },
   { key: 'bestenliste', label: 'Bestenliste (Beta)', desc: 'Motivations-Leaderboard für den Vertrieb (nur NK-Daten)' },
   { key: 'provisionen', label: 'Provisionen (Beta)', desc: 'Provisionsabrechnung NK (Bonn/Braunschweig) — eigene Provision + Admin-Übersicht' },
+  { key: 'show_rates_close', label: 'Show Rates (Close)', desc: 'Opener-/Setter-Show-Rates aus den Close-Statusdaten (Beta)' },
   { key: 'backup',   label: 'Datensicherung',       desc: 'Backup-Export und automatische Datensicherung herunterladen' },
 ];
 const CONTROLLABLE_ROLES = [
