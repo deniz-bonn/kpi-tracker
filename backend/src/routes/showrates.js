@@ -22,10 +22,13 @@ const P = (i) => pg() ? `$${i}` : '?';
 const ymExpr = (c) => pg() ? `to_char(${c} AT TIME ZONE 'Europe/Berlin', 'YYYY-MM')` : `substr(${c}, 1, 7)`;
 const NOW = () => pg() ? 'NOW()' : `datetime('now')`;
 
-// Ab welcher Basis gilt eine Opener-Quote als belastbar? Solange die Settings ueberwiegend nur
-// auf Lead-Ebene laufen (Opportunity fehlt), ist die Stichprobe nicht repraesentativ.
-const MIN_ABDECKUNG = 0.5;   // 50 % der Lead-Settings brauchen eine Opportunity
-const MIN_BASIS     = 10;    // und mindestens 10 bewertbare Termine im Monat
+// Ab wann ist eine Quote belastbar? Entscheidend ist, welcher ANTEIL der gelegten Termine
+// ueberhaupt einen nachgetragenen Ausgang hat. Bleibt die Haelfte offen, ist die Quote nur
+// eine Aussage ueber die selbst gewaehlte Teilmenge der gepflegten Termine.
+// (Frueher wurde hierfuer die Opportunity-Abdeckung gegen die Lead-Ebene benutzt — untauglich,
+//  seit fuer nahezu jeden Termin eine Opportunity existiert; die Kennzahl ueberschritt 100 %.)
+const MIN_BEWERTET = 50;     // Prozent der gelegten Termine mit Ausgang
+const MIN_BASIS    = 10;     // und mindestens 10 bewertbare Termine im Monat
 
 const quote = (ja, nein) => (ja + nein) > 0 ? Number((ja / (ja + nein) * 100).toFixed(1)) : null;
 const leer = () => ({ gelegt: 0, stattgefunden: 0, nicht_stattgefunden: 0, offen: 0, unklar: 0, basis: 0, rate: null });
@@ -71,15 +74,13 @@ router.get('/overview', wrap(async (req, res) => {
   const abd = await abdeckung();
   const abdIdx = Object.fromEntries(abd.map(a => [`${a.monat}|${a.art}`, a]));
   for (const m of monate) for (const art of ['setting', 'closing']) {
-    const a = abdIdx[`${m.monat}|${art}`];
-    m[art].abdeckung = a ? a.quote : null;
-    m[art].leadTermine = a ? a.lead : null;
-    // Belastbar nur bei ausreichender Abdeckung UND ausreichender Basis.
-    m[art].belastbar = !!(m[art].basis >= MIN_BASIS && a && a.quote !== null && a.quote >= MIN_ABDECKUNG * 100);
+    const z = m[art];
+    z.bewertetQuote = z.gelegt > 0 ? Number((z.basis / z.gelegt * 100).toFixed(1)) : null;
+    z.belastbar = !!(z.basis >= MIN_BASIS && z.bewertetQuote !== null && z.bewertetQuote >= MIN_BEWERTET);
   }
   const letzterSync = await db.get(`SELECT MAX(synced_at) s FROM close_status_events`);
   res.json({ monate, abdeckung: abd, letzterSync: letzterSync?.s || null,
-    schwellen: { minAbdeckungProzent: MIN_ABDECKUNG * 100, minBasis: MIN_BASIS } });
+    schwellen: { minBewertetProzent: MIN_BEWERTET, minBasis: MIN_BASIS } });
 }));
 
 // GET /api/showrates/personen?monat=YYYY-MM — je Mitarbeiter (Attribution = wer den Status setzte)
@@ -138,6 +139,15 @@ router.get('/qualitaet', wrap(async (req, res) => {
   const offeneUser = await db.all(
     `SELECT close_user_id, close_name, close_email FROM close_user_map
       WHERE employee_id IS NULL AND ignorieren = ${pg() ? 'FALSE' : '0'} ORDER BY close_name`);
+  // Unbekannte Status: faellt auf, sobald in Close ein Status ergaenzt wird, den das Mapping
+  // nicht kennt. Ohne diese Anzeige wuerden solche Termine still aus der Quote verschwinden.
+  const { BEKANNT } = require('../utils/closeSync');
+  const gesehen = await db.all(
+    `SELECT new_status_id id, MAX(new_status_label) label, COUNT(*) n FROM close_status_events
+      WHERE typ='opportunity' AND new_status_id IS NOT NULL GROUP BY new_status_id`);
+  const unbekannteStatus = gesehen.filter(r => !BEKANNT.has(r.id))
+    .map(r => ({ status_id: r.id, label: r.label, n: Number(r.n) }));
+  const herkunft = await db.all(`SELECT herkunft, art, COUNT(*) n FROM termine GROUP BY herkunft, art`);
   res.json({
     offenJePerson,
     offenGesamt: offenAlt.length,
@@ -145,6 +155,8 @@ router.get('/qualitaet', wrap(async (req, res) => {
     termineOhneZuordnung: ohneZuordnung,
     closeUserOhneMapping: offeneUser,
     abdeckung: await abdeckung(),
+    unbekannteStatus,
+    herkunft,
   });
 }));
 

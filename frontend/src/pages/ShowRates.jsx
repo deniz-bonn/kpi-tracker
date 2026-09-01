@@ -17,8 +17,8 @@ function RateZelle({ z }) {
   if (!z.belastbar) {
     return (
       <span className="inline-flex items-center gap-1 text-[11px] text-gray-500" title={
-        `Nicht belastbar: nur ${z.basis} bewertbare Termine` +
-        (z.abdeckung != null ? `, Opportunity-Abdeckung ${z.abdeckung} % (von ${z.leadTermine} auf Lead-Ebene)` : '')}>
+        `Nicht belastbar: ${z.basis} von ${z.gelegt} Terminen haben einen nachgetragenen Ausgang` +
+        (z.bewertetQuote != null ? ` (${z.bewertetQuote} %)` : '')}>
         <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />Datenbasis unzureichend
       </span>
     );
@@ -112,7 +112,7 @@ export default function ShowRates() {
                       <th className="px-3 py-2 text-right">No-Show / abgesagt</th>
                       <th className="px-3 py-2 text-right">offen</th>
                       <th className="px-3 py-2 text-right">Show Rate</th>
-                      <th className="px-3 py-2 text-right">Abdeckung</th>
+                      <th className="px-3 py-2 text-right">bewertet</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -129,8 +129,8 @@ export default function ShowRates() {
                               <td className="px-3 py-1.5 text-right text-amber-600">{z.offen}</td>
                               <td className="px-3 py-1.5 text-right"><RateZelle z={z} /></td>
                               <td className="px-3 py-1.5 text-right text-gray-400">
-                                {z.abdeckung != null ? `${z.abdeckung} %` : '—'}
-                                {z.leadTermine ? <span className="text-gray-300"> ({z.leadTermine} Leads)</span> : null}
+                                {z.bewertetQuote != null ? `${z.bewertetQuote} %` : '—'}
+                                <span className="text-gray-300"> ({z.basis}/{z.gelegt})</span>
                               </td>
                             </tr>
                           );
@@ -141,9 +141,9 @@ export default function ShowRates() {
             </div>
           ))}
           <p className="text-[11px] text-gray-400">
-            „Abdeckung" = Anteil der auf Lead-Ebene terminierten Termine, für die es eine Opportunity mit auswertbarem Ausgang gibt.
-            Unter {ov?.schwellen?.minAbdeckungProzent ?? 50} % oder bei weniger als {ov?.schwellen?.minBasis ?? 10} bewertbaren
-            Terminen wird bewusst keine Quote ausgewiesen.
+            „bewertet" = Anteil der gelegten Termine, bei denen der Ausgang nachgetragen wurde. Nur diese fließen in die Quote ein.
+            Unter {ov?.schwellen?.minBewertetProzent ?? 50} % oder bei weniger als {ov?.schwellen?.minBasis ?? 10} bewertbaren
+            Terminen wird bewusst keine Quote ausgewiesen — sie wäre dann nur eine Aussage über die gepflegte Teilmenge.
           </p>
         </>
       )}

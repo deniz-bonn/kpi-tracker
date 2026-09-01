@@ -1,6 +1,6 @@
 # Close-Integration — Show-Rate-Tracking Opener/Setter
 
-**Stand:** 2026-08-31 (Revision 2, **grundlegend korrigiert**) · Erstbefund 25.08. · Re-Check 31.08.
+**Stand:** 2026-09-01 (Revision 3) · Erstbefund 25.08. · Re-Check 31.08. · Pipeline-Umstellung 31.08./01.09.
 **Modus:** read-only (nur GET über `backend/src/utils/closeClient.js`) · **Key:** `CLOSE_API_KEY` (Railway/`backend/.env`, nie im Repo/Log).
 
 ## ⚠️ Korrektur gegenüber Revision 1
@@ -126,5 +126,45 @@ Ein Umstieg hierauf wäre Doppelerfassung neben dem gelebten Prozess gewesen.
   gewesen (ein Termin am 01.08. 01:30 Berliner Zeit wäre in den Juli gerutscht).
 - ⏳ To-Dos in Close bei der Vertriebsleitung (Anleitung v2 übergeben).
 
+## 11. Revision 3 — Pipeline-Umstellung der Vertriebsleitung (31.08./01.09.)
+
+Die Vertriebsleitung hat die Sales-Pipeline umbenannt (QC/SC-Schema) und Altstatus mit Suffix
+„Inaktiv" versehen. Zwei API-Eigenheiten kamen dabei ans Licht, die Rev. 2 nicht kannte:
+
+**(a) Status-Labels sind NICHT stabil.** Close löst sie dynamisch auf — nach einer Umbenennung
+liefern auch historische Events das neue Label (belegt: alle 24 Juni-Events kamen mit neuen Namen
+zurück). Eine label-basierte Ableitung bricht dadurch lautlos. → Mapping läuft jetzt über die
+stabile `status_id`; jede Umbenennung ist 1:1 belegt, die Historie bleibt lückenlos.
+
+**(b) Beim ANLEGEN einer Opportunity feuert Close kein `status_change`-Event.** Von 40 an einem Tag
+angelegten Opportunities hatten **38** keines. → Ein Termin gilt jetzt auch dann als „gelegt", wenn
+die Opportunity bereits mit dem Terminiert-Status angelegt wurde (Anfangsstatus = `old_status_id`
+des ersten Events, sonst der aktuelle Status).
+
+**Folge — Korrektur von §5:** Die dort berichtete Opportunity-Abdeckung von 2,3 % war ein
+**Messfehler** (nur Statuswechsel gezählt). Tatsächlich werden Opportunities längst angelegt:
+
+| | Juni | Juli | August |
+|---|--:|--:|--:|
+| Settings (QC) gelegt | 279 | 500 | 399 |
+| Closings (SC) gelegt | 102 | 211 | 170 |
+
+Damit entfällt To-Do 1 aus §7 (war bereits erfüllt). Der verbleibende Engpass ist allein das
+**Nachtragen der Ausgänge**.
+
+**Neues Belastbarkeits-Gate:** Die alte Kennzahl (Opportunity-Abdeckung gegen Lead-Ebene) ist
+untauglich geworden — sie überschritt 100 %, seit für nahezu jeden Termin eine Opportunity
+existiert. Sie ist ersetzt durch den **Anteil bewerteter Termine** (Ausgang nachgetragen):
+Quote wird nur ausgewiesen bei ≥ 50 % bewertet und ≥ 10 bewertbaren Terminen.
+Ist-Stand: Juli 59,4 % / 57,8 % → ausgewiesen (Settings 75,1 %, Closings 76,2 %);
+Juni und August (41–48 %) → unterdrückt.
+
+**Weitere Härtung:** Termine vor dem Backfill-Start werden verworfen (ihre Statushistorie ist nicht
+gespiegelt, der Ausgang sähe fälschlich „offen" aus). Unbekannte `status_id` erscheinen im
+Datenqualitäts-Panel, damit künftige Pipeline-Änderungen auffallen statt still zu brechen.
+
+**Offen (an die Vertriebsleitung, Feedback v3):** Wertung von `QC Verschoben`, Bedeutung von
+`QC=SC Ausstehend`, sowie ob die Felder `Setter`/`Closer` gepflegt werden (aktuell 4 bzw. 2 von 20).
+
 ---
-*Methodik: read-only Läufe gegen die Close-API (Erstbefund 25.08., Re-Check 31.08. inkl. Feld-/Auswahllisten, Status-Historie 01.06.–31.08. mit 1.033 Opportunity- und 8.744 Lead-Statuswechseln, Overlap-Analyse, Prototyp-Berechnung) sowie Auswertung eines Loom-Screencasts der Vertriebsleitung (32 Frames + Transkript). Kein Schreibzugriff.*
+*Methodik: read-only Läufe gegen die Close-API (Rev. 3 zusätzlich: Umbenennungs-Karte alt→neu per status_id, Anlage-vs-Wechsel-Analyse, Prototyp gegen echtes Postgres) (Erstbefund 25.08., Re-Check 31.08. inkl. Feld-/Auswahllisten, Status-Historie 01.06.–31.08. mit 1.033 Opportunity- und 8.744 Lead-Statuswechseln, Overlap-Analyse, Prototyp-Berechnung) sowie Auswertung eines Loom-Screencasts der Vertriebsleitung (32 Frames + Transkript). Kein Schreibzugriff.*
