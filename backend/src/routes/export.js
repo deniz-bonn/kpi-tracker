@@ -99,25 +99,20 @@ router.get('/bk.csv', wrap(async (req, res) => {
   res.send('﻿' + toCSV(rows));
 }));
 
-// ── GET /api/export/vl.csv ───────────────────────────────────────────────────
-router.get('/vl.csv', wrap(async (req, res) => {
-  const { where, params } = buildFilter(req, 'kam_id');
-  const sql = `
-    SELECT d.datum, d.monat, c.name as company, d.kunde,
-           d.dienstleistung, k.name as kam,
-           d.angebotswert, d.ae_wert, d.laufzeit_monate,
-           d.wie_vielt_verlaengerung, d.status, d.abgerechnet,
-           d.gewonnen_monat, d.gewonnen_datum, d.kommentar
-    FROM deals_vl d
-    LEFT JOIN companies c ON c.id = d.company_id
-    LEFT JOIN employees k ON k.id = d.kam_id
-    ${where} ORDER BY d.datum DESC
-  `;
-  const rows = db.dialect === 'postgres' ? await db.all(sql, params) : db.all(sql, params);
-  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-  res.setHeader('Content-Disposition', 'attachment; filename="verlaengerungen.csv"');
-  res.send('﻿' + toCSV(rows));
-}));
+// ── GET /api/export/vl.csv — STILLGELEGT (deprecated, 01.09.2026) ────────────
+// Der VL-Bereich exportiert seit dem Rollen-Filter clientseitig (DealsVL.jsx -> exportFiltered),
+// weil der Rollen-Filter (KAM/Account Manager) rein im Browser existiert. Dieser Endpoint kannte
+// ihn nicht und haette bei aktivem Filter stillschweigend ZU VIELE Zeilen geliefert.
+// Bewusst nicht geloescht, sondern sprechend abgewiesen: ein 404 waere fuer Aufrufer nicht
+// erklaerbar. Keine Aufrufstelle mehr im Frontend (geprueft). Kann spaeter entfallen.
+router.get('/vl.csv', (req, res) => {
+  res.status(410).json({
+    error: 'Endpoint stillgelegt',
+    hinweis: 'VL-Export bitte über den CSV-Button im Bereich Verlängerungen ziehen — nur dieser '
+           + 'berücksichtigt den clientseitigen Rollen-Filter (KAM/Account Manager). '
+           + 'Dieser Endpoint lieferte ungefilterte Daten.',
+  });
+});
 
 // ── GET /api/export/kpi-vollexport.csv ───────────────────────────────────────
 // Vollexport der KPI-Mitarbeiter-Beta-Auswertung (Sektionen S0–S8), Long-Format.

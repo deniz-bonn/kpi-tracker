@@ -238,19 +238,23 @@ export default function DealsBK() {
       (!filterMaxAe || aeVal(d) <= Number(filterMaxAe)) &&
       (zeitMode !== 'zeitraum' || ((d.monat || '').trim() >= vonMonat && (d.monat || '').trim() <= bisMonat))
     ).filter(isDealCompanyActive);
-    const headcount = g => employees.filter(e => e.aktiv && gruppeVonEmp(e) === g && matchStandort(e.standort, filterStandort)).length;
     const build = g => {
-      const k = calcKpis(basis.filter(d => gruppeVonDeal(d) === g));
-      const hc = headcount(g);
+      const ds = basis.filter(d => gruppeVonDeal(d) === g);
+      const k = calcKpis(ds);
+      // "Aktive Personen" = Personen mit mindestens einem Deal im Zeitraum (Definition wie im
+      // VL-Bereich). Bewusst NICHT alle aktiven Gruppenmitglieder und nicht zusaetzlich auf
+      // employees.aktiv gefiltert: sonst zaehlte der AE eines deaktivierten Mitarbeiters mit,
+      // sein Kopf aber nicht -> verzerrter Pro-Kopf-Wert.
+      const hc = new Set(ds.filter(d => d.kam_id).map(d => String(d.kam_id))).size;
       return {
         angebote: k.total, gewonnen: k.gewonnen, quote: parseFloat(k.quote_angebote),
         ae: k.ae_summe, avgAngebot: k.total > 0 ? k.angebotswert_gesamt / k.total : 0,
-        personen: hc, aePerKopf: hc > 0 ? k.ae_summe / hc : 0,
+        personen: hc, aePerKopf: hc > 0 ? k.ae_summe / hc : null,
       };
     };
     const ohneRolle = new Set(basis.filter(d => d.kam_id && !gruppeVonDeal(d)).map(d => String(d.kam_id))).size;
     return { kam: build('kam'), am: build('am'), ohneRolle };
-  }, [deals, employees, gruppeVonDeal, filterStandort, filterDienstleistung, filterMinAe, filterMaxAe, zeitMode, vonMonat, bisMonat, canSeeAll, viewMode, user?.employee_id]);
+  }, [deals, gruppeVonDeal, filterStandort, filterDienstleistung, filterMinAe, filterMaxAe, zeitMode, vonMonat, bisMonat, canSeeAll, viewMode, user?.employee_id]);
   // Bei Einzelpersonen-Scope (KAM-Filter oder Nur-meine) ist ein Gruppenvergleich sinnlos -> ausblenden.
   const vergleichSichtbar = !filterKam && !(!canSeeAll && viewMode === 'eigene');
 
@@ -503,7 +507,9 @@ export default function DealsBK() {
           </button>
           {showVergleich && (() => {
             const K = vergleich.kam, A = vergleich.am;
-            const bcl = (a, b) => a > b ? 'font-bold text-gray-900' : 'text-gray-500'; // bessere Spalte dezent fett
+            // bessere Spalte dezent fett; null (n/d) gewinnt nie und verliert nie
+            const bcl = (a, b) => (a != null && (b == null || a > b)) ? 'font-bold text-gray-900' : 'text-gray-500';
+            const eur = v => v == null ? '–' : formatEuro(v);
             const row = (label, g, o) => (
               <tr className="border-t border-gray-100">
                 <td className="px-3 py-2 font-medium text-gray-700 whitespace-nowrap">{label}</td>
@@ -513,7 +519,7 @@ export default function DealsBK() {
                 <td className={`px-3 py-2 text-right whitespace-nowrap ${bcl(g.ae, o.ae)}`}>{formatEuro(g.ae)}</td>
                 <td className={`px-3 py-2 text-right whitespace-nowrap ${bcl(g.avgAngebot, o.avgAngebot)}`}>{formatEuro(g.avgAngebot)}</td>
                 <td className="px-3 py-2 text-right text-gray-600">{g.personen}</td>
-                <td className={`px-3 py-2 text-right whitespace-nowrap ${bcl(g.aePerKopf, o.aePerKopf)}`}>{formatEuro(g.aePerKopf)}</td>
+                <td className={`px-3 py-2 text-right whitespace-nowrap ${bcl(g.aePerKopf, o.aePerKopf)}`}>{eur(g.aePerKopf)}</td>
               </tr>
             );
             return (
@@ -542,7 +548,7 @@ export default function DealsBK() {
                   </div>
                 )}
                 <div className="px-3 py-1.5 text-[11px] text-gray-400 border-t border-gray-100">
-                  Gruppierung nach aktueller Rolle bzw. BK-Zuordnung des KAM (Multi) · respektiert Zeitraum/Standort/Dienstleistung/Angebotshöhe · Ø AE/Kopf = AE ÷ aktive Personen
+                  Gruppierung nach aktueller Rolle bzw. BK-Zuordnung des KAM (Multi) · respektiert Zeitraum/Standort/Dienstleistung/Angebotshöhe · Ø AE/Kopf = AE ÷ Personen mit ≥ 1 BK-Deal im Zeitraum
                 </div>
               </div>
             );

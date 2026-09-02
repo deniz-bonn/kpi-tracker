@@ -1,7 +1,8 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dealsApi, employeesApi, upsaleDealsApi } from '../utils/api';
+import { ROLLE_GRUPPE_LABEL, gruppeVonEmp, KAM_ROLLEN, PERSONEN_GRUPPEN } from '../utils/rollen';
 import DealModal from '../components/DealModal';
 import { formatEuro, isDealCompanyActive } from '../utils/format';
 import { useAuth } from '../context/AuthContext';
@@ -80,6 +81,7 @@ export default function Kuendigungen() {
   const [showAllMonths, setShowAllMonths] = useState(false);
   const [terminiertLocal, setTerminiertLocal] = useState({}); // optimistic local state per row id
   const [filterKam,      setFilterKam]      = useState('');
+  const [filterRolle,    setFilterRolle]    = useState(''); // '' | 'kam' | 'am' (Rolle des Deal-KAMs)
   const [filterDeals,    setFilterDeals]    = useState('');
   const [filterStandort, setFilterStandort] = useState(new Set());
   const [sortBy,         setSortBy]         = useState('ablauf_asc');
@@ -116,7 +118,11 @@ export default function Kuendigungen() {
     queryFn:  () => employeesApi.list(),
   });
 
-  const kamList = employees.filter(e => ['KAM', 'Closer-KAM', 'Account Manager', 'Multi'].includes(e.rolle));
+  // Formularfeld "neuer AP": alle bestandsverantwortlichen Rollen (zentrale Liste).
+  const kamList = employees.filter(e => KAM_ROLLEN.includes(e.rolle));
+  // Deal-KAM -> Gruppe ('kam' | 'am' | null) aus dem aktuellen Mitarbeiter-Datensatz (Rolle + bk_gruppe).
+  const empById = useMemo(() => Object.fromEntries(employees.map(e => [String(e.id), e])), [employees]);
+  const gruppeVonDeal = useCallback((d) => gruppeVonEmp(empById[String(d.kam_id)]), [empById]);
 
   // Options for "Neuer Ansprechpartner": Vertrieb + all KAMs
   const neuerApOptions = useMemo(() => [
@@ -369,11 +375,32 @@ const createDealMut = useMutation({
   const listDeals = useMemo(() => monthFiltered.filter(d => {
     if (filterStandort.size > 0 && !filterStandort.has(d.kam_standort)) return false;
     if (filterKam && String(d.kam_id) !== filterKam) return false;
+    if (filterRolle && gruppeVonDeal(d) !== filterRolle) return false;
     if (filterDeals === '_mit_deal'  && (upsaleByVlId[d.id] || []).length === 0) return false;
     if (filterDeals === '_ohne_deal' && (upsaleByVlId[d.id] || []).length > 0)   return false;
     return true;
-  }), [monthFiltered, filterStandort, filterKam, filterDeals, upsaleByVlId]);
+  }), [monthFiltered, filterStandort, filterKam, filterRolle, gruppeVonDeal, filterDeals, upsaleByVlId]);
   const filtered = useMemo(() => listDeals.filter(isDealCompanyActive), [listDeals]);
+
+  // Personen-Filter-Dropdown: alle Mitarbeiter, die im aktuellen Monats-Scope als Deal-KAM
+  // vorkommen (rollenunabhaengig -> auch Account Manager & Ex-Rollen-Traeger), nie Personen ohne
+  // Kuendigungen. Bei aktivem Rollen-Filter auf dessen Gruppe eingeschraenkt. Alphabetisch.
+  const personenImScope = useMemo(() => {
+    const byId = new Map();
+    for (const d of monthFiltered) {
+      if (!d.kam_id) continue;
+      const id = String(d.kam_id);
+      if (!byId.has(id)) { const e = empById[id]; byId.set(id, { id, name: e?.name || d.kam_name || `#${id}`, gruppe: gruppeVonEmp(e) }); }
+    }
+    let list = [...byId.values()];
+    if (filterRolle) list = list.filter(p => p.gruppe === filterRolle);
+    return list.sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  }, [monthFiltered, empById, filterRolle]);
+
+  // Faellt die gewaehlte Person aus dem Dropdown (z. B. nach Rollen-Filter-Wechsel) -> Auswahl loeschen.
+  useEffect(() => {
+    if (filterKam && !personenImScope.some(p => p.id === filterKam)) setFilterKam('');
+  }, [personenImScope, filterKam]);
 
   const sorted = useMemo(() => {
     const arr = [...listDeals];
@@ -448,7 +475,7 @@ const createDealMut = useMutation({
     });
 
   const sel = 'bg-white border border-gray-300 text-gray-700 text-xs rounded px-2 py-1.5';
-  const hasF = filterKam || filterDeals || filterStandort.size > 0;
+  const hasF = filterKam || filterRolle || filterDeals || filterStandort.size > 0;
 
   return (
     <div className="space-y-4">
@@ -540,9 +567,24 @@ const createDealMut = useMutation({
         <span className="text-xs text-gray-400 mx-1">|</span>
 
         {canSeeAll && (
-          <select value={filterKam} onChange={e => setFilterKam(e.target.value)} className={sel}>
-            <option value="">Alle Account Manager</option>
-            {kamList.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+          <select value={filterRolle} onChange={e => setFilterRolle(e.target.value)} className={sel} title="Rolle des zugeordneten KAM">
+            <option value="">Alle Rollen</option>
+            <option value="kam">Key Account Manager</option>
+            <option value="am">Account Manager</option>
+          </select>
+        )}
+
+        {canSeeAll && (
+          <select value={filterKam} onChange={e => setFilterKam(e.target.value)} className={sel} title="Mitarbeiter mit Kündigungen im Scope">
+            <option value="">Alle Mitarbeiter</option>
+            {PERSONEN_GRUPPEN.map(([g, label]) => {
+              const opts = personenImScope.filter(p => p.gruppe === g);
+              return opts.length ? (
+                <optgroup key={label} label={label}>
+                  {opts.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </optgroup>
+              ) : null;
+            })}
           </select>
         )}
 
@@ -564,7 +606,7 @@ const createDealMut = useMutation({
         </select>
 
         {hasF && (
-          <button onClick={() => { setFilterKam(''); setFilterDeals(''); setFilterStandort(new Set()); }}
+          <button onClick={() => { setFilterKam(''); setFilterRolle(''); setFilterDeals(''); setFilterStandort(new Set()); }}
             className="text-xs text-gray-500 hover:text-red-500 ml-1">
             ✕ Zurücksetzen
           </button>
