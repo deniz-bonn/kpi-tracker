@@ -1,7 +1,7 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { dealsApi, employeesApi, exportApi } from '../utils/api';
+import { dealsApi, employeesApi } from '../utils/api';
 import StatusBadge from '../components/StatusBadge';
 import DealModal from '../components/DealModal';
 import { formatEuro, formatMoney, companyCurrency, isDealCompanyActive, isAeCounted, currentMonat, periodLabel, periodFileSuffix } from '../utils/format';
@@ -11,6 +11,7 @@ import { celebrateWin, shouldCelebrate } from '../components/Celebration';
 // Nur fuer realisierten AE (ae_summe); verlorener_ae bleibt ungegated (mögliches Volumen).
 const aeEur = d => isAeCounted(d) ? (Number(d.ae_wert_eur ?? d.ae_wert) || 0) : 0;
 import { useAuth } from '../context/AuthContext';
+import { ROLLE_GRUPPE_LABEL, gruppeVonEmp, KAM_ROLLEN, PERSONEN_GRUPPEN } from '../utils/rollen';
 
 const STATUS_OPTS = ['Offen', 'Gewonnen', 'Verloren'];
 const STANDORTE   = ['Bonn', 'Braunschweig', 'Österreich', 'Schweiz'];
@@ -48,8 +49,10 @@ export default function DealsVL() {
   const [modal, setModal]                = useState(null);
   const [showKpis, setShowKpis]          = useState(true);
   const [showChurn, setShowChurn]        = useState(false);
+  const [showVergleich, setShowVergleich] = useState(false); // KAM-vs-AM-Block, standardmaessig eingeklappt
 
   const [filterKam,      setFilterKam]      = useState('');
+  const [filterRolle,    setFilterRolle]    = useState(''); // '' | 'kam' | 'am' (Rolle des Deal-KAMs)
   const [filterStatus,   setFilterStatus]   = useState('');
   const [filterStandort, setFilterStandort] = useState('');
   const [importResult,   setImportResult]   = useState(null);
@@ -128,8 +131,12 @@ export default function DealsVL() {
   };
 
   const compOpts   = companies.map(c => ({ value: c.id, label: c.name }));
-  const kamList    = employees.filter(e => ['KAM', 'Closer-KAM', 'Account Manager', 'Multi'].includes(e.rolle));
+  // Deal-Formular: als KAM waehlbar sind alle VL-verantwortlichen Rollen (inkl. Account Manager/Multi).
+  const kamList    = employees.filter(e => KAM_ROLLEN.includes(e.rolle));
   const kamOptions = kamList.map(e => ({ value: e.id, label: `${e.name} (${e.company_name})` }));
+  // Deal-KAM -> Gruppe ('kam' | 'am' | null) aus dem aktuellen Mitarbeiter-Datensatz (Rolle + bk_gruppe).
+  const empById = useMemo(() => Object.fromEntries(employees.map(e => [String(e.id), e])), [employees]);
+  const gruppeVonDeal = useCallback((d) => gruppeVonEmp(empById[String(d.kam_id)]), [empById]);
   // Erfassungswährung nach aktiver Company (CHF bei Risem, sonst €)
   const curSym = companyCurrency(companies, company) === 'CHF' ? 'CHF' : '€';
 
@@ -184,21 +191,45 @@ export default function DealsVL() {
   // listDeals treibt die Liste (auch noch-nicht-aktive Companies); filtered = nur aktive, treibt Stats.
   const listDeals = useMemo(() => deals.filter(d =>
     (!filterKam      || String(d.kam_id)   === filterKam) &&
+    (!filterRolle    || gruppeVonDeal(d)   === filterRolle) &&
     (!filterStatus   || d.status           === filterStatus) &&
     (!filterStandort || d.kam_standort     === filterStandort) &&
     (zeitMode !== 'zeitraum' || ((d.monat || '').trim() >= vonMonat && (d.monat || '').trim() <= bisMonat))
-  ), [deals, filterKam, filterStatus, filterStandort, zeitMode, vonMonat, bisMonat]);
+  ), [deals, filterKam, filterRolle, gruppeVonDeal, filterStatus, filterStandort, zeitMode, vonMonat, bisMonat]);
   const filtered = useMemo(() => listDeals.filter(isDealCompanyActive), [listDeals]);
 
   // Gesamt-KPIs
   const gesamtKpis = useMemo(() => calcKpis(filtered), [filtered]);
+
+  // Personen-Filter-Dropdown: alle Mitarbeiter, die im geladenen Zeit-Scope als Deal-KAM vorkommen
+  // (unabhaengig von der Rolle -> auch Account Manager & Ex-Rollen-Traeger mit historischen Deals),
+  // nie Personen ohne Deals. Bei aktivem Rollen-Filter auf dessen Gruppe eingeschraenkt. Alphabetisch.
+  const personenImScope = useMemo(() => {
+    const zeitOk = d => zeitMode !== 'zeitraum' || ((d.monat || '').trim() >= vonMonat && (d.monat || '').trim() <= bisMonat);
+    const byId = new Map();
+    for (const d of deals) {
+      if (!d.kam_id || !zeitOk(d)) continue;
+      const id = String(d.kam_id);
+      if (!byId.has(id)) { const e = empById[id]; byId.set(id, { id, name: e?.name || d.kam_name || `#${id}`, gruppe: gruppeVonEmp(e) }); }
+    }
+    let list = [...byId.values()];
+    if (filterRolle) list = list.filter(p => p.gruppe === filterRolle);
+    return list.sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  }, [deals, empById, filterRolle, zeitMode, vonMonat, bisMonat]);
+
+  // Faellt die gewaehlte Person aus dem Dropdown (z. B. nach Rollen-Filter-Wechsel) -> Auswahl loeschen.
+  useEffect(() => {
+    if (filterKam && !personenImScope.some(p => p.id === filterKam)) setFilterKam('');
+  }, [personenImScope, filterKam]);
 
   // KPIs pro KAM — alle KAMs (des aktiven Standort-Filters) immer anzeigen, auch ohne Deals im Zeitraum
   const kamKpis = useMemo(() => {
     const m = {};
     // KAMs vorinitialisieren — bei Standort-/KAM-Filter entsprechend einschränken
     employees
-      .filter(e => ['KAM', 'Closer-KAM', 'Account Manager', 'Multi'].includes(e.rolle))
+      // Ohne Rollen-Filter wie bisher (alle VL-Rollen); mit Rollen-Filter genau die gewaehlte Gruppe
+      // (inkl. Multi mit passender Gruppen-Zuordnung).
+      .filter(e => filterRolle ? gruppeVonEmp(e) === filterRolle : KAM_ROLLEN.includes(e.rolle))
       .filter(e => !filterStandort || e.standort === filterStandort)
       .filter(e => !filterKam      || String(e.id) === filterKam)
       .forEach(e => { m[e.id] = { id: e.id, name: e.name, deals: [] }; });
@@ -211,7 +242,7 @@ export default function DealsVL() {
     return Object.values(m)
       .map(k => ({ ...k, kpis: calcKpis(k.deals) }))
       .sort((a, b) => b.kpis.ae_summe - a.kpis.ae_summe);
-  }, [filtered, employees]);
+  }, [filtered, employees, filterRolle, filterStandort, filterKam]);
 
   // Churn-Rate aufgeschlüsselt nach Verlängerungs-Nummer (1., 2., 3. …)
   const churnByNr = useMemo(() => {
@@ -229,8 +260,67 @@ export default function DealsVL() {
       .sort((a, b) => (a.nr || 999) - (b.nr || 999));
   }, [filtered]);
 
+  // ── Kompakt-Vergleich KAM vs. AM ─────────────────────────────────────────────
+  // Basis: respektiert Zeitmodus + Standort, IGNORIERT den Rollen-Filter (zeigt immer beide Gruppen)
+  // sowie Status- und Personen-Filter — ein Status-Filter wuerde die Aufteilung
+  // Gewonnen/Verloren/Offen trivial verzerren. Bei Einzelpersonen-Scope ausgeblendet. (BK-Muster)
+  const vergleich = useMemo(() => {
+    const basis = deals.filter(d =>
+      (!filterStandort || d.kam_standort === filterStandort) &&
+      (zeitMode !== 'zeitraum' || ((d.monat || '').trim() >= vonMonat && (d.monat || '').trim() <= bisMonat))
+    ).filter(isDealCompanyActive);
+    const build = g => {
+      const ds = basis.filter(d => gruppeVonDeal(d) === g);
+      const k = calcKpis(ds);
+      const entschieden = k.gewonnen + k.verloren;
+      // "Aktive Gruppenmitglieder" = Personen mit mindestens einem VL-Deal im Scope. Bewusst NICHT
+      // zusaetzlich auf employees.aktiv gefiltert: sonst zaehlte der AE eines deaktivierten
+      // Mitarbeiters mit, sein Kopf aber nicht -> verzerrter Pro-Kopf-Wert.
+      const koepfe = new Set(ds.filter(d => d.kam_id).map(d => String(d.kam_id))).size;
+      return {
+        total: k.total, gewonnen: k.gewonnen, verloren: k.verloren,
+        offen: k.total - k.gewonnen - k.verloren,
+        quote: entschieden > 0 ? (k.gewonnen / entschieden * 100) : null,   // n/d wenn nichts entschieden
+        ae: k.ae_summe, personen: koepfe,
+        aePerKopf: koepfe > 0 ? k.ae_summe / koepfe : null,
+      };
+    };
+    const ohneRolle = new Set(basis.filter(d => d.kam_id && !gruppeVonDeal(d)).map(d => String(d.kam_id))).size;
+    return { kam: build('kam'), am: build('am'), ohneRolle };
+  }, [deals, gruppeVonDeal, filterStandort, zeitMode, vonMonat, bisMonat]);
+  // Bei Einzelpersonen-Filter ist ein Gruppenvergleich sinnlos -> ausblenden.
+  const vergleichSichtbar = !filterKam;
+
+  // Aktive Filter kompakt (Kopfzeile) + Dateinamen-Suffix (CSV).
+  const filterSummary = [
+    filterStandort && `Standort: ${filterStandort}`,
+    filterRolle && `Rolle: ${ROLLE_GRUPPE_LABEL[filterRolle]}`,
+    filterKam && `Mitarbeiter: ${(personenImScope.find(p => p.id === filterKam) || {}).name || empById[filterKam]?.name || filterKam}`,
+    filterStatus && `Status: ${filterStatus}`,
+  ].filter(Boolean).join(' · ');
+  const fileFilterSuffix = filterRolle ? `_${filterRolle.toUpperCase()}` : '';
+
+  // CSV der aktuell gefilterten Menge (client-seitig) — spiegelt ALLE Filter wie die Liste,
+  // auch den clientseitigen Rollen-Filter, den der Server-Export nicht kennt. Spalten wie Server-Export.
+  const exportFiltered = () => {
+    const cols = [
+      ['datum', d => d.datum], ['monat', d => d.monat], ['company', d => d.company_name], ['kunde', d => d.kunde],
+      ['dienstleistung', d => d.dienstleistung], ['kam', d => d.kam_name],
+      ['angebotswert', d => d.angebotswert], ['ae_wert', d => d.ae_wert], ['laufzeit_monate', d => d.laufzeit_monate],
+      ['wie_vielt_verlaengerung', d => d.wie_vielt_verlaengerung], ['status', d => d.status], ['abgerechnet', d => d.abgerechnet],
+      ['gewonnen_monat', d => d.gewonnen_monat], ['gewonnen_datum', d => (d.gewonnen_datum ? String(d.gewonnen_datum).slice(0, 10) : '')],
+      ['kommentar', d => d.kommentar],
+    ];
+    const esc = v => { if (v == null) return ''; const s = String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+    const lines = [cols.map(c => c[0]).join(','), ...filtered.map(d => cols.map(c => esc(c[1](d))).join(','))];
+    const blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = `verlaengerungen${periodFileSuffix(zeitMode, monat, vonMonat, bisMonat)}${fileFilterSuffix}.csv`;
+    a.click(); URL.revokeObjectURL(a.href);
+  };
+
   const sel = "bg-white border border-gray-300 text-gray-700 text-xs rounded px-2 py-1.5";
-  const hasFilters = filterKam || filterStatus || filterStandort;
+  const hasFilters = filterKam || filterRolle || filterStatus || filterStandort;
 
   return (
     <div className="space-y-4">
@@ -241,6 +331,7 @@ export default function DealsVL() {
           <p className="text-xs text-gray-500 mt-0.5">
             {periodLabel(zeitMode, monat, vonMonat, bisMonat)} · {filtered.length} anstehend · {gesamtKpis.gewonnen} realisiert · {gesamtKpis.verloren} Kündigungen · Churn-Rate: {gesamtKpis.churn_rate.toFixed(2)}%
           </p>
+          {filterSummary && <p className="text-xs font-medium text-blue-600 mt-0.5">Filter: {filterSummary}</p>}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button onClick={() => setShowKpis(v => !v)}
@@ -269,11 +360,8 @@ export default function DealsVL() {
             </div>
           )}
           <button
-            onClick={() => exportApi.download('vl.csv', `verlaengerungen${periodFileSuffix(zeitMode, monat, vonMonat, bisMonat)}.csv`, {
-              ...(company && { company_id: company }),
-              ...(zeitMode === 'monat' && { monat }),
-              ...(zeitMode === 'zeitraum' && { monat_von: vonMonat, monat_bis: bisMonat }),
-            })}
+            onClick={exportFiltered}
+            title="Exportiert genau die aktuell gefilterte Menge"
             className="px-3 py-1.5 bg-white border border-gray-300 hover:border-gray-400 text-gray-600 text-sm rounded">
             ↓ CSV
           </button>
@@ -309,16 +397,28 @@ export default function DealsVL() {
           <option value="">Alle Standorte</option>
           {STANDORTE.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
-        <select value={filterKam} onChange={e => setFilterKam(e.target.value)} className={sel}>
-          <option value="">Alle Account Manager</option>
-          {kamList.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+        <select value={filterRolle} onChange={e => setFilterRolle(e.target.value)} className={sel} title="Rolle des zugeordneten KAM">
+          <option value="">Alle Rollen</option>
+          <option value="kam">Key Account Manager</option>
+          <option value="am">Account Manager</option>
+        </select>
+        <select value={filterKam} onChange={e => setFilterKam(e.target.value)} className={sel} title="Mitarbeiter mit Deals im Zeitraum">
+          <option value="">Alle Mitarbeiter</option>
+          {PERSONEN_GRUPPEN.map(([g, label]) => {
+            const opts = personenImScope.filter(p => p.gruppe === g);
+            return opts.length ? (
+              <optgroup key={label} label={label}>
+                {opts.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </optgroup>
+            ) : null;
+          })}
         </select>
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className={sel}>
           <option value="">Alle Status</option>
           {STATUS_OPTS.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
         {hasFilters && (
-          <button onClick={() => { setFilterKam(''); setFilterStatus(''); setFilterStandort(''); }}
+          <button onClick={() => { setFilterKam(''); setFilterRolle(''); setFilterStatus(''); setFilterStandort(''); }}
             className="text-xs text-gray-500 hover:text-white ml-1">✕ Zurücksetzen</button>
         )}
       </div>
@@ -460,6 +560,69 @@ export default function DealsVL() {
               </table>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Kompakt-Vergleich KAM vs. AM — eigener Klappblock, ignoriert den Rollen-Filter (zeigt beide Gruppen) */}
+      {vergleichSichtbar && (
+        <div className="rounded-lg border border-gray-200 overflow-hidden">
+          <button onClick={() => setShowVergleich(v => !v)}
+            className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 hover:bg-gray-100">
+            <span className="text-xs font-bold text-gray-600 uppercase tracking-wide">KAM vs. Account Manager</span>
+            <span className="text-xs text-gray-400">{showVergleich ? '▲ einklappen' : '▼ vergleichen'}</span>
+          </button>
+          {showVergleich && (() => {
+            const K = vergleich.kam, A = vergleich.am;
+            // Bessere Seite dezent fett; null (n/d) verliert nie und gewinnt nie.
+            const bcl = (a, b) => (a != null && (b == null || a > b)) ? 'font-bold text-gray-900' : 'text-gray-500';
+            const pct = v => v == null ? '–' : `${v.toFixed(2)}%`;
+            const eur = v => v == null ? '–' : formatEuro(v);
+            const row = (label, g, o) => (
+              <tr className="border-t border-gray-100">
+                <td className="px-3 py-2 font-medium text-gray-700 whitespace-nowrap">{label}</td>
+                <td className={`px-3 py-2 text-right ${bcl(g.total, o.total)}`}>{g.total}</td>
+                <td className={`px-3 py-2 text-right ${bcl(g.gewonnen, o.gewonnen)}`}>{g.gewonnen}</td>
+                <td className="px-3 py-2 text-right text-red-600">{g.verloren}</td>
+                <td className="px-3 py-2 text-right text-gray-500">{g.offen}</td>
+                <td className={`px-3 py-2 text-right ${bcl(g.quote, o.quote)}`}>{pct(g.quote)}</td>
+                <td className={`px-3 py-2 text-right whitespace-nowrap ${bcl(g.ae, o.ae)}`}>{formatEuro(g.ae)}</td>
+                <td className="px-3 py-2 text-right text-gray-600">{g.personen}</td>
+                <td className={`px-3 py-2 text-right whitespace-nowrap ${bcl(g.aePerKopf, o.aePerKopf)}`}>{eur(g.aePerKopf)}</td>
+              </tr>
+            );
+            return (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 font-medium">
+                      <th className="px-3 py-2 text-left">Gruppe</th>
+                      <th className="px-3 py-2 text-right">Verlängerungen</th>
+                      <th className="px-3 py-2 text-right">Gewonnen</th>
+                      <th className="px-3 py-2 text-right">Verloren</th>
+                      <th className="px-3 py-2 text-right">Offen</th>
+                      <th className="px-3 py-2 text-right">VL-Quote</th>
+                      <th className="px-3 py-2 text-right">AE realisiert</th>
+                      <th className="px-3 py-2 text-right">Aktive Personen</th>
+                      <th className="px-3 py-2 text-right">Ø AE / Kopf</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {row('Key Account Manager', K, A)}
+                    {row('Account Manager', A, K)}
+                  </tbody>
+                </table>
+                {vergleich.ohneRolle > 0 && (
+                  <div className="px-3 py-2 text-xs text-amber-700 bg-amber-50 border-t border-amber-100">
+                    {vergleich.ohneRolle} Mitarbeiter mit VL-Deals ohne KAM/AM-Zuordnung (inkl. „Multi" ohne Auswahl) — in der Mitarbeiterverwaltung zuordnen
+                  </div>
+                )}
+                <div className="px-3 py-1.5 text-[11px] text-gray-400 border-t border-gray-100">
+                  Gruppierung nach aktueller Rolle bzw. Gruppen-Zuordnung des KAM (Multi) · respektiert Zeitraum + Standort,
+                  ignoriert Status- und Personen-Filter · VL-Quote = Gewonnen ÷ (Gewonnen + Verloren) · Ø AE/Kopf = AE ÷ Personen mit ≥ 1 VL-Deal im Zeitraum
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 

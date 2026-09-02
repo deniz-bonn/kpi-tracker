@@ -10,6 +10,7 @@ import { celebrateWin, shouldCelebrate } from '../components/Celebration';
 // AE-Euro-Betrag fuer Umsatz-Summen, 0 wenn der AE (noch) nicht getrackt wird (ae_ab_monat-Gate).
 const aeEur = d => isAeCounted(d) ? (Number(d.ae_wert_eur ?? d.ae_wert) || 0) : 0;
 import { useAuth } from '../context/AuthContext';
+import { ROLLE_GRUPPE_LABEL, gruppeVonEmp, KAM_ROLLEN, PERSONEN_GRUPPEN } from '../utils/rollen';
 
 const STATUS_OPTS = ['Offen', 'Gewonnen', 'Verloren'];
 const STANDORTE   = ['Bonn / Braunschweig', 'Österreich', 'Schweiz'];
@@ -23,19 +24,7 @@ const DIENSTLEISTUNGEN_BK = ['RaaS Kontingente','RaaS Kleinkunde Laufzeit','Kont
 const AUTO_VL_OPTS = ['Ja', 'Nein'];
 const ABGERECHNET_OPTS = ['Nein', 'Ja', 'On Hold'];
 
-// ── Rollen-Gruppen fuer den BK-Rollenfilter (zentrale Zuordnung, nicht ueber die UI verstreut) ──
-// Gruppiert wird nach der AKTUELLEN Rolle des Deal-KAMs (employees.rolle des kam_id). Bei einem
-// Rollenwechsel wandern auch historische Deals in die neue Gruppe — kein Rollen-Verlauf, fuer diesen
-// Vergleichszweck bewusst ausreichend. Werte werden dynamisch aus employees.rolle abgeleitet.
-const ROLLE_GRUPPEN = { kam: ['KAM', 'Closer-KAM'], am: ['Account Manager'] };
-const ROLLE_GRUPPE_LABEL = { kam: 'Key Account Manager', am: 'Account Manager' };
-const rolleGruppe = (rolle) => ROLLE_GRUPPEN.kam.includes(rolle) ? 'kam' : ROLLE_GRUPPEN.am.includes(rolle) ? 'am' : null;
-// Gruppe eines Mitarbeiters: KAM/Closer-KAM -> kam, Account Manager -> am. 'Multi' ist mehrdeutig und
-// wird per employees.bk_gruppe ('kam'|'am'|null) explizit zugeordnet (Mitarbeiterverwaltung).
-const gruppeVonEmp = (e) => !e ? null : (e.rolle === 'Multi' ? (e.bk_gruppe === 'kam' || e.bk_gruppe === 'am' ? e.bk_gruppe : null) : rolleGruppe(e.rolle));
-// Rollen, die im Bestandskunden-Bereich einen Deal als KAM verantworten können (Deal-Formular).
-// Bewusst breit inkl. Account Manager + Multi, damit für diese Deals angelegt/bearbeitet werden können.
-const BK_KAM_ROLLEN = ['KAM', 'Closer-KAM', 'Account Manager', 'Multi'];
+// Rollen-Gruppen (KAM/AM) kommen zentral aus utils/rollen.js — gleiche Definition wie im VL-Bereich.
 
 // ── KPIs aus einem Deal-Array berechnen ──────────────────────────────────────
 function calcKpis(deals) {
@@ -125,7 +114,7 @@ export default function DealsBK() {
 
   const compOpts   = companies.map(c => ({ value: c.id, label: c.name }));
   // Deal-Formular: als KAM waehlbar sind alle BK-verantwortlichen Rollen (inkl. Account Manager/Multi).
-  const kamOptions = employees.filter(e => BK_KAM_ROLLEN.includes(e.rolle)).map(e => ({ value: e.id, label: `${e.name} (${e.company_name})` }));
+  const kamOptions = employees.filter(e => KAM_ROLLEN.includes(e.rolle)).map(e => ({ value: e.id, label: `${e.name} (${e.company_name})` }));
   // Deal-KAM -> Gruppe ('kam' | 'am' | null) aus dem aktuellen Mitarbeiter-Datensatz (Rolle + bk_gruppe).
   const empById = useMemo(() => Object.fromEntries(employees.map(e => [String(e.id), e])), [employees]);
   const gruppeVonDeal = useCallback((d) => gruppeVonEmp(empById[String(d.kam_id)]), [empById]);
@@ -384,7 +373,7 @@ export default function DealsBK() {
         </select>
         <select value={filterKam} onChange={e => setFilterKam(e.target.value)} className={sel} title="Mitarbeiter mit Deals im Zeitraum">
           <option value="">Alle Mitarbeiter</option>
-          {[['kam', 'Key Account Manager'], ['am', 'Account Manager'], [null, 'Weitere']].map(([g, label]) => {
+          {PERSONEN_GRUPPEN.map(([g, label]) => {
             const opts = personenImScope.filter(p => p.gruppe === g);
             return opts.length ? (
               <optgroup key={label} label={label}>
