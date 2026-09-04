@@ -55,6 +55,18 @@ export default function DealsNK() {
     queryKey: ['employees'], queryFn: () => employeesApi.list(),
   });
 
+  // ── Datenquelle fuer das Treppchen: Deals nach ABSCHLUSSMONAT (gewonnen_monat) ──────────────
+  // Verbindliche Regel: AE zaehlt im gewonnen_monat. Ein im Juli angebotenes, im August gewonnenes
+  // Angebot gehoert mit vollem AE in den August. Die Deal-Liste dieser Seite ist aber bewusst nach
+  // ANGEBOTSMONAT gefiltert (Kohorten-Semantik der Abschlussquoten-Tabellen) — dort fehlt so ein
+  // Deal im August komplett. Deshalb holt das Podium seine Daten separat.
+  // Nur im Monats-Modus noetig: in 'zeitraum'/'alle' laedt die Seite ohnehin alle Monate.
+  const { data: gewonnenImMonat = [] } = useQuery({
+    queryKey: ['deals-nk-gewonnen', company, monat],
+    queryFn: () => dealsApi.nk.list({ ...(company && { company_id: company }), gewonnen_monat: monat }),
+    enabled: zeitMode === 'monat',
+  });
+
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['deals-nk'] });
     qc.invalidateQueries({ queryKey: ['kpis-overview'] });
@@ -296,6 +308,40 @@ export default function DealsNK() {
     }).filter(e => e.ohne > 0).sort((a, b) => b.ohne - a.ohne);
   }, [calls]);
 
+  // ── Podium-Basis: gewonnene Deals des ABSCHLUSSMONATS, mit denselben Filtern wie die Seite ──
+  // Bewusst OHNE den Status-Filter (das Podium zeigt immer Abschluesse) und ohne Angebotsmonat-Bezug.
+  const podiumBasis = useMemo(() => {
+    const quelle = zeitMode === 'monat' ? gewonnenImMonat : deals;
+    return quelle
+      .filter(d => d.status === 'Gewonnen')
+      .filter(d => zeitMode !== 'zeitraum'
+        || ((d.gewonnen_monat || '').trim() >= vonMonat && (d.gewonnen_monat || '').trim() <= bisMonat))
+      .filter(d => !filterQuelle   || d.quelle === filterQuelle)
+      .filter(d => !filterStandort || d.closer_standort === filterStandort)
+      .filter(d => !filterCloser   || String(d.closer_id) === filterCloser)
+      .filter(d => !filterOpener   || String(d.opener_id) === filterOpener)
+      .filter(d => !filterSetter   || String(d.setter_id) === filterSetter)
+      .filter(isDealCompanyActive);
+  }, [zeitMode, gewonnenImMonat, deals, vonMonat, bisMonat, filterQuelle, filterStandort, filterCloser, filterOpener, filterSetter]);
+
+  // Podium-Zeilen je Rolle: { name, ae_summe } — dieselbe Form, die MiniPodium/computeMedals erwarten.
+  const podiumRows = (idKey, nameKey) => {
+    const m = {};
+    for (const d of podiumBasis) {
+      const id = d[idKey]; if (!id) continue;
+      (m[id] = m[id] || { name: d[nameKey], ae_summe: 0 }).ae_summe += aeEur(d);
+    }
+    return Object.values(m).sort((a, b) => b.ae_summe - a.ae_summe);
+  };
+  const closerPodium = useMemo(() => podiumRows('closer_id', 'closer_name'), [podiumBasis]);
+  const setterPodium = useMemo(() => podiumRows('setter_id', 'setter_name'), [podiumBasis]);
+  const openerPodium = useMemo(() => podiumRows('opener_id', 'opener_name'), [podiumBasis]);
+  const PODIUM_HINWEIS = 'zählt Abschlüsse des Monats';
+  const PODIUM_TITEL = 'Das Treppchen rankt die im gewählten Monat ABGESCHLOSSENEN Deals (gewonnen_monat) '
+    + 'mit vollem AE — unabhängig davon, in welchem Monat das Angebot rausging. Die Tabelle darunter ist '
+    + 'dagegen angebotsmonat-basiert (Kohorte: was wurde aus den Angeboten dieses Monats). Deshalb können '
+    + 'Podium und Tabelle abweichen.';
+
   // Treppchen: Medaillen je Tabelle auf Basis der (bereits nach AE sortierten) Zeilen.
   const closerMedals = useMemo(() => computeMedals(closerStats), [closerStats]);
   const setterMedals = useMemo(() => computeMedals(setterStats), [setterStats]);
@@ -527,7 +573,7 @@ export default function DealsNK() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             {/* Closer */}
             <div className="rounded-lg border border-gray-200 overflow-hidden">
-              <MiniPodium rows={closerStats} />
+              <MiniPodium rows={closerPodium} hinweisText={PODIUM_HINWEIS} hinweisTitel={PODIUM_TITEL} />
               <div className="px-3 py-2 bg-[#2d2e30] border-b border-[#444]">
                 <span className="text-xs font-bold text-white uppercase tracking-wide">Abschlussquote nach Closer</span>
               </div>
@@ -570,7 +616,7 @@ export default function DealsNK() {
 
             {/* Setter */}
             <div className="rounded-lg border border-gray-200 overflow-hidden">
-              <MiniPodium rows={setterStats} />
+              <MiniPodium rows={setterPodium} hinweisText={PODIUM_HINWEIS} hinweisTitel={PODIUM_TITEL} />
               <div className="px-3 py-2 bg-[#2d2e30] border-b border-[#444]">
                 <span className="text-xs font-bold text-white uppercase tracking-wide">Abschlussquote nach Setter</span>
               </div>
@@ -608,7 +654,7 @@ export default function DealsNK() {
 
           {/* Opener-Tabelle — auf-/zuklappbar */}
           <div className="rounded-lg border border-gray-200 overflow-hidden">
-            <MiniPodium rows={openerStats} />
+            <MiniPodium rows={openerPodium} hinweisText={PODIUM_HINWEIS} hinweisTitel={PODIUM_TITEL} />
             <button
               onClick={() => setShowOpener(v => !v)}
               className="w-full flex items-center justify-between px-3 py-2 bg-[#2d2e30] hover:bg-[#3a3a3a] transition-colors"
