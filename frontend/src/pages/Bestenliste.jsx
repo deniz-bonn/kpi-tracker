@@ -1,7 +1,27 @@
 import { useState } from 'react';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { bestenlisteApi } from '../utils/api';
-import { formatEuro } from '../utils/format';
+import { formatEuro, currentMonat } from '../utils/format';
+
+// ── Monats-Helfer fuer den Monatswaehler ─────────────────────────────────────
+// Der Server erwartet einen Stichtag (?ref=YYYY-MM-DD) und leitet daraus Monat, Trend-Vergleich
+// (Stichtag minus 7 Tage) und Vormonatssieger ab. Fuer einen abgeschlossenen Monat schicken wir
+// deshalb dessen LETZTEN Tag — dann ist der Trend "letzte Woche des Monats" und der
+// Vormonatssieger der davorliegende Monat. Fuer den laufenden Monat schicken wir NICHTS,
+// damit der Server "jetzt" nimmt (Trend gegen die echte Vorwoche).
+const shiftMonat = (ym, delta) => {
+  const [y, m] = ym.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+const letzterTag = (ym) => {
+  const [y, m] = ym.split('-').map(Number);
+  return `${ym}-${String(new Date(y, m, 0).getDate()).padStart(2, '0')}`;
+};
+const monatLang = (ym) => {
+  const [y, m] = ym.split('-').map(Number);
+  return new Date(y, m - 1, 1).toLocaleString('de-DE', { month: 'long', year: 'numeric' });
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Bestenliste (Beta) — Motivations-Leaderboard. Kein Controlling: nur Top 10,
@@ -92,11 +112,18 @@ export default function Bestenliste() {
   const [rolle, setRolle]       = useState('closer');
   const [wertung, setWertung]   = useState('volumen');
   const [zeitraum, setZeitraum] = useState('monat');
+  const [monat, setMonat]       = useState(currentMonat());
+
+  // Der Monatswaehler greift nur im Monats-Modus; Quartal/Jahr bleiben auf der laufenden Periode.
+  const istMonatsModus   = zeitraum === 'monat';
+  const istAktuellerMonat = monat === currentMonat();
+  const ref = (istMonatsModus && !istAktuellerMonat) ? letzterTag(monat) : undefined;
 
   const { data, isLoading, isError, isFetching } = useQuery({
-    queryKey: ['bestenliste', rolle, wertung, zeitraum],
-    queryFn: () => bestenlisteApi.list({ rolle, wertung, zeitraum }),
-    refetchInterval: 60_000,        // live: alle 60s aktualisieren
+    queryKey: ['bestenliste', rolle, wertung, zeitraum, ref || 'live'],
+    queryFn: () => bestenlisteApi.list({ rolle, wertung, zeitraum, ...(ref && { ref }) }),
+    // Ein abgeschlossener Monat aendert sich nicht mehr -> kein Live-Refetch.
+    refetchInterval: ref ? false : 60_000,
     placeholderData: keepPreviousData, // kein Flackern beim Umschalten
   });
 
@@ -115,8 +142,8 @@ export default function Bestenliste() {
           <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">Beta</span>
         </div>
         <div className="flex items-center gap-1.5 text-xs text-gray-400">
-          <span className={`h-2 w-2 rounded-full ${isFetching ? 'bg-emerald-400 animate-pulse' : 'bg-emerald-400'}`} />
-          Live · {data?.meta?.zeitraum_label || '—'}
+          <span className={`h-2 w-2 rounded-full ${ref ? 'bg-gray-300' : (isFetching ? 'bg-emerald-400 animate-pulse' : 'bg-emerald-400')}`} />
+          {ref ? 'Archiv' : 'Live'} · {data?.meta?.zeitraum_label || '—'}
         </div>
       </div>
 
@@ -144,6 +171,25 @@ export default function Bestenliste() {
             <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Zeitraum</div>
             <Segmented options={ZEITRAEUME} value={zeitraum} onChange={setZeitraum} />
           </div>
+          {istMonatsModus && (
+            <div className="space-y-1">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Monat</div>
+              <div className="inline-flex items-center rounded-lg bg-gray-100 p-1 gap-1">
+                <button onClick={() => setMonat(m => shiftMonat(m, -1))}
+                  title="Vorheriger Monat"
+                  className="px-2 py-1.5 rounded-md text-xs font-semibold text-gray-500 hover:text-gray-700 hover:bg-white">‹</button>
+                <span className="px-2 text-xs font-semibold text-gray-700 min-w-[7.5rem] text-center">{monatLang(monat)}</span>
+                <button onClick={() => setMonat(m => shiftMonat(m, 1))}
+                  disabled={istAktuellerMonat}
+                  title={istAktuellerMonat ? 'Kein zukünftiger Monat' : 'Nächster Monat'}
+                  className="px-2 py-1.5 rounded-md text-xs font-semibold text-gray-500 hover:text-gray-700 hover:bg-white disabled:opacity-30 disabled:hover:bg-transparent">›</button>
+                {!istAktuellerMonat && (
+                  <button onClick={() => setMonat(currentMonat())}
+                    className="px-2 py-1.5 rounded-md text-xs font-semibold text-indigo-600 hover:bg-white">heute</button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -160,7 +206,18 @@ export default function Bestenliste() {
       {leer && (
         <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-10 text-center text-gray-500">
           <div className="text-3xl mb-2">{rolleInfo?.emoji}</div>
-          Noch keine gewonnenen Deals als <b>{rolleInfo?.label}</b> in diesem Zeitraum.
+          {istMonatsModus ? (
+            <>
+              Noch keine Abschlüsse als <b>{rolleInfo?.label}</b> im {monatLang(monat)}
+              {' – '}
+              <button onClick={() => setMonat(m => shiftMonat(m, -1))}
+                className="font-semibold text-indigo-600 hover:text-indigo-800 underline decoration-dotted">
+                {monatLang(shiftMonat(monat, -1))} anzeigen
+              </button>
+            </>
+          ) : (
+            <>Noch keine gewonnenen Deals als <b>{rolleInfo?.label}</b> in diesem Zeitraum.</>
+          )}
         </div>
       )}
 
