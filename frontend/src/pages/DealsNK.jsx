@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dealsApi, employeesApi, exportApi } from '../utils/api';
@@ -308,6 +308,18 @@ export default function DealsNK() {
     }).filter(e => e.ohne > 0).sort((a, b) => b.ohne - a.ohne);
   }, [calls]);
 
+  // Teilnehmer-Regeln des Treppchens — identisch zur Bestenliste (aktiv + show_in_kpi != 0).
+  // Bewusst NUR fuer die drei Podien: Kohorten-Tabellen und Deal-Liste zeigen weiterhin ALLE,
+  // damit die operativen Daten vollstaendig und pruefbar bleiben.
+  // employeesApi.list() liefert ohne ?all nur aktive Mitarbeiter -> wer fehlt, ist inaktiv.
+  const empById = useMemo(() => Object.fromEntries(employees.map(e => [String(e.id), e])), [employees]);
+  const podiumTeilnahme = useCallback((id) => {
+    const e = empById[String(id)];
+    if (!e) return false;                                  // inaktiv (oder unbekannt)
+    if (e.aktiv === 0 || e.aktiv === false) return false;   // defensiv, falls doch alle geliefert werden
+    return e.show_in_kpi !== 0;                             // KPI-Sichtbarkeit wie in der Bestenliste
+  }, [empById]);
+
   // ── Podium-Basis: gewonnene Deals des ABSCHLUSSMONATS, mit denselben Filtern wie die Seite ──
   // Bewusst OHNE den Status-Filter (das Podium zeigt immer Abschluesse) und ohne Angebotsmonat-Bezug.
   const podiumBasis = useMemo(() => {
@@ -325,22 +337,25 @@ export default function DealsNK() {
   }, [zeitMode, gewonnenImMonat, deals, vonMonat, bisMonat, filterQuelle, filterStandort, filterCloser, filterOpener, filterSetter]);
 
   // Podium-Zeilen je Rolle: { name, ae_summe } — dieselbe Form, die MiniPodium/computeMedals erwarten.
+  // Teilnahme wird je ROLLE geprueft (wie in der Bestenliste, die den gerankten Mitarbeiter filtert):
+  // fuer das Closer-Podium zaehlt die Sichtbarkeit des Closers, nicht die der uebrigen Beteiligten.
   const podiumRows = (idKey, nameKey) => {
     const m = {};
     for (const d of podiumBasis) {
-      const id = d[idKey]; if (!id) continue;
+      const id = d[idKey]; if (!id || !podiumTeilnahme(id)) continue;
       (m[id] = m[id] || { name: d[nameKey], ae_summe: 0 }).ae_summe += aeEur(d);
     }
     return Object.values(m).sort((a, b) => b.ae_summe - a.ae_summe);
   };
-  const closerPodium = useMemo(() => podiumRows('closer_id', 'closer_name'), [podiumBasis]);
-  const setterPodium = useMemo(() => podiumRows('setter_id', 'setter_name'), [podiumBasis]);
-  const openerPodium = useMemo(() => podiumRows('opener_id', 'opener_name'), [podiumBasis]);
+  const closerPodium = useMemo(() => podiumRows('closer_id', 'closer_name'), [podiumBasis, podiumTeilnahme]);
+  const setterPodium = useMemo(() => podiumRows('setter_id', 'setter_name'), [podiumBasis, podiumTeilnahme]);
+  const openerPodium = useMemo(() => podiumRows('opener_id', 'opener_name'), [podiumBasis, podiumTeilnahme]);
   const PODIUM_HINWEIS = 'zählt Abschlüsse des Monats';
   const PODIUM_TITEL = 'Das Treppchen rankt die im gewählten Monat ABGESCHLOSSENEN Deals (gewonnen_monat) '
     + 'mit vollem AE — unabhängig davon, in welchem Monat das Angebot rausging. Die Tabelle darunter ist '
     + 'dagegen angebotsmonat-basiert (Kohorte: was wurde aus den Angeboten dieses Monats). Deshalb können '
-    + 'Podium und Tabelle abweichen.';
+    + 'Podium und Tabelle abweichen. Im Treppchen erscheinen — wie in der Bestenliste — nur aktive '
+    + 'Mitarbeiter mit KPI-Sichtbarkeit; die Tabelle darunter zeigt alle.';
 
   // Treppchen: Medaillen je Tabelle auf Basis der (bereits nach AE sortierten) Zeilen.
   const closerMedals = useMemo(() => computeMedals(closerStats), [closerStats]);

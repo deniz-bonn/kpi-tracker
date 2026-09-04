@@ -25,7 +25,20 @@ const TABLES = [
   'provision_zeitraeume',
   'provision_config',
   'provision_buchungen',
+  // Aenderungshistorie — inzwischen Beweismittel (Monatsdifferenzen, Mitarbeiter-Dubletten,
+  // Provisions-Rueckfragen). Ein Restore ohne sie waere ein Informationsverlust, der erst im
+  // Ernstfall auffaellt. Bewusst als LETZTE Tabelle: sie referenziert nur users.
+  'audit_logs',
 ];
+
+// Tabellen, die nicht vollstaendig gesichert werden. audit_logs waechst mit jeder Deal-Aenderung
+// (old_data + new_data je Zeile) und wuerde das Backup sonst mit der Zeit dominieren -> gleitendes
+// 12-Monats-Fenster. Aeltere Eintraege bleiben in der DB, sie sind nur nicht Teil der Sicherung.
+const TABLE_WHERE = {
+  audit_logs: () => db.dialect === 'postgres'
+    ? `WHERE created_at >= NOW() - INTERVAL '12 months'`
+    : `WHERE created_at >= datetime('now', '-12 months')`,
+};
 
 // Deal-Tabellen: gewonnen_monat muss immer aus gewonnen_datum ableitbar sein, weil daran die
 // AE-Buchung haengt. Ein roher Restore schreibt die Zeilen 1:1 aus dem Backup-JSON und umgeht
@@ -48,7 +61,8 @@ async function generateBackup() {
   const tables = {};
   for (const table of TABLES) {
     try {
-      tables[table] = await db.all(`SELECT * FROM ${table}`);
+      const where = TABLE_WHERE[table] ? ' ' + TABLE_WHERE[table]() : '';
+      tables[table] = await db.all(`SELECT * FROM ${table}${where}`);
     } catch {
       tables[table] = [];
     }
@@ -129,6 +143,16 @@ router.post('/import', requireRole('superadmin'), wrap(async (req, res) => {
           );
         } catch { /* table has no serial id */ }
       }
+      // ACHTUNG: 'DEFAULT' ist KEIN gueltiger Wert (gueltig: origin | replica | local) -> dieses
+      // Statement wirft immer, der catch macht ROLLBACK und der Import endet mit HTTP 500.
+      // BEWUSST NICHT hier gefixt: der Restore hat ein zweites, schwereres Problem — BEGIN,
+      // die DELETEs und COMMIT laufen ueber pool.query() und damit potenziell auf
+      // verschiedenen Verbindungen, das BEGIN ist verwaist und die DELETEs greifen nicht
+      // (empirisch belegt: nach dem Import sind geloeschte Zeilen weiterhin vorhanden).
+      // Wuerde man nur den Wert korrigieren, meldete der Import HTTP 200 und WIRKTE
+      // erfolgreich, obwohl er nur mergt statt ersetzt — schlimmer als der jetzige
+      // laute Fehlschlag. Fix gehoert in einen eigenen Change mit echter Transaktion
+      // (dedizierter Client via pool.connect()).
       await db.run("SET session_replication_role = 'DEFAULT'");
       await db.run('COMMIT');
     } catch (err) {
