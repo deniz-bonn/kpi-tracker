@@ -9,6 +9,25 @@ const { resolveGewonnenFelder } = require('../utils/gewonnen');
 
 router.use(requireAuth);
 
+// EUR-Anreicherung: zusaetzlich den Umstellungs-AE (Dauervertrag) umrechnen, damit die separate
+// Summe bei CHF-Companies (Risem) nicht Waehrungen mischt. Fliesst in KEINE bestehende Summe.
+const VL_EUR_MAP = {
+  angebotswert: 'angebotswert_eur',
+  ae_wert: 'ae_wert_eur',
+  dauervertrag_ae_wert: 'dauervertrag_ae_wert_eur',
+};
+
+// Dauervertrag-Felder normalisieren: ohne Haken gibt es weder Betrag noch Datum. Serverseitig
+// erzwungen, damit auch ueber die API keine verwaisten Werte entstehen koennen.
+function normDauervertrag(body) {
+  const an = Number(body.dauervertrag_umgestellt) || 0;
+  return {
+    dauervertrag_umgestellt: an,
+    dauervertrag_ae_wert: an ? (body.dauervertrag_ae_wert ?? null) : null,
+    dauervertrag_datum:   an ? (body.dauervertrag_datum   ?? null) : null,
+  };
+}
+
 const BASE_SELECT = `
   SELECT d.*, c.name as company_name, c.currency, c.aktiv_ab, c.ae_ab_monat, k.name as kam_name, k.standort as kam_standort
   FROM deals_vl d
@@ -80,14 +99,14 @@ router.get('/', wrap(async (req, res) => {
   // Kein aktiv_ab-Filter: Deal-LISTEN zeigen alle Companies; Stats/Auswertungen blenden aus.
 
   const where = conditions.length ? ' WHERE ' + conditions.join(' AND ') : '';
-  res.json(await enrichDealsEur(await db.all(BASE_SELECT + where + ' ORDER BY d.datum DESC', params)));
+  res.json(await enrichDealsEur(await db.all(BASE_SELECT + where + ' ORDER BY d.datum DESC', params), VL_EUR_MAP));
 }));
 
 router.get('/:id', wrap(async (req, res) => {
   const p = db.dialect === 'postgres' ? '$1' : '?';
   const row = await db.get(BASE_SELECT + ` WHERE d.id=${p}`, [req.params.id]);
   if (!row) return res.status(404).json({ error: 'Not found' });
-  res.json(await enrichDealsEur(row));
+  res.json(await enrichDealsEur(row, VL_EUR_MAP));
 }));
 
 router.post('/import-kontakt', wrap(async (req, res) => {
@@ -186,13 +205,16 @@ router.post('/', wrap(async (req, res) => {
     'gekuendigt_am','auslaufend_am','ansprechpartner','telefon','email_kontakt',
     'upsale_angesprochen','upsale_summe','upsale_angenommen','upsale_angenommen_summe',
     'weitergeben_an_vertrieb','terminiert','neuer_ap_intern',
+    'dauervertrag_umgestellt','dauervertrag_ae_wert','dauervertrag_datum',
     'vertragsnummer','vertragsbeginn','ende_laufzeit','ende_kuendigungsfrist'];
+  const dv = normDauervertrag(body);
   const values = fields.map(f => {
     if (f === 'gewonnen_datum') return gewonnen_datum;
     if (f === 'gewonnen_monat') return gewonnen_monat;
     if (f === 'abgerechnet') return body[f] ?? (body.status === 'Gewonnen' ? 'Nein' : null);
     if (f === 'upsale_angesprochen' || f === 'upsale_angenommen') return Number(body[f]) || 0;
     if (f === 'terminiert') return Number(body[f]) || 0;
+    if (f in dv) return dv[f];
     if (f === 'neuer_ap_intern') {
       const v = body[f] ?? null;
       if (!v && body.weitergeben_an_vertrieb === 'Ja') return 'Vertrieb';
@@ -234,14 +256,25 @@ router.put('/:id', wrap(async (req, res) => {
     'gekuendigt_am','auslaufend_am','ansprechpartner','telefon','email_kontakt',
     'upsale_angesprochen','upsale_summe','upsale_angenommen','upsale_angenommen_summe',
     'weitergeben_an_vertrieb','terminiert','neuer_ap_intern',
+    'dauervertrag_umgestellt','dauervertrag_ae_wert','dauervertrag_datum',
     'vertragsnummer','vertragsbeginn','ende_laufzeit','ende_kuendigungsfrist'];
   // Fields only editable inline in Kündigungen — preserve existing value when not in form body
   const PRESERVE_FIELDS = ['gekuendigt_am','auslaufend_am','ansprechpartner','telefon','email_kontakt','terminiert','neuer_ap_intern'];
+  // Dauervertrag: nur anfassen, wenn der Haken im Body mitkommt. Sonst bestehenden Zustand
+  // erhalten — die Kuendigungen-Seite schickt Teil-Bodies (siehe PRESERVE_FIELDS) und wuerde
+  // die Markierung sonst stillschweigend loeschen.
+  const dvImBody = req.body.dauervertrag_umgestellt !== undefined;
+  const dv = dvImBody ? normDauervertrag(req.body) : {
+    dauervertrag_umgestellt: Number(existing?.dauervertrag_umgestellt) || 0,
+    dauervertrag_ae_wert:    existing?.dauervertrag_ae_wert ?? null,
+    dauervertrag_datum:      existing?.dauervertrag_datum ?? null,
+  };
   const values = fields.map(f => {
     if (f === 'gewonnen_datum') return gewonnen_datum;
     if (f === 'gewonnen_monat') return gewonnen_monat;
     if (f === 'abgerechnet') return req.body[f] ?? (req.body.status === 'Gewonnen' ? 'Nein' : null);
     if (f === 'upsale_angesprochen' || f === 'upsale_angenommen') return Number(req.body[f]) || 0;
+    if (f in dv) return dv[f];
     if (f === 'terminiert') {
       if (req.body.terminiert !== undefined) return Number(req.body.terminiert) || 0;
       return Number(existing?.terminiert) || 0;

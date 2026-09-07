@@ -43,8 +43,10 @@ async function enrichDealsEur(rows, fieldMap) {
     const cur = r.currency || 'EUR';
     r.currency = cur;
     for (const [src, dest] of Object.entries(map)) {
-      // realisierte Werte mit gewonnen_monat umrechnen, sonst mit Angebotsmonat
-      const monat = (src === 'ae_wert' || src === 'angenommenes_volumen') ? (r.gewonnen_monat || r.monat) : r.monat;
+      // realisierte Werte mit gewonnen_monat umrechnen, sonst mit Angebotsmonat.
+      // dauervertrag_ae_wert entsteht bei/nach dem Gewinn -> ebenfalls Gewinnmonat.
+      const monat = (src === 'ae_wert' || src === 'angenommenes_volumen' || src === 'dauervertrag_ae_wert')
+        ? (r.gewonnen_monat || r.monat) : r.monat;
       r[dest] = r[src] == null ? null : toEur(r[src], cur, monat, rates);
     }
   }

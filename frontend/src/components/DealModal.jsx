@@ -4,8 +4,12 @@ export default function DealModal({ title, fields, initial = {}, onSave, onClose
   const [form, setForm]     = useState(initial);
   const [errors, setErrors] = useState({});
 
-  // Set a field value, then run autoFill for all other fields that depend on this change
+  // Set a field value, then run autoFill for all other fields that depend on this change.
+  // Ein Feld kann `onBeforeChange(nextValue, form)` deklarieren und mit `false` abbrechen —
+  // gebraucht fuer Rueckfragen, bevor abhaengige Felder geleert werden.
   const set = (k, v) => {
+    const feld = fields.find(f => f.name === k);
+    if (typeof feld?.onBeforeChange === 'function' && feld.onBeforeChange(v, form) === false) return;
     setForm(prev => {
       const next = { ...prev, [k]: v };
 
@@ -65,6 +69,16 @@ export default function DealModal({ title, fields, initial = {}, onSave, onClose
                   <div className="w-full bg-gray-50 border border-gray-200 text-gray-500 text-sm rounded px-3 py-1.5">
                     {form[f.name] ? String(form[f.name]).slice(0, 10) : <span className="italic text-gray-400">—</span>}
                   </div>
+                ) : f.type === 'checkbox' ? (
+                  <label className="flex items-center gap-2 cursor-pointer select-none py-1">
+                    <input
+                      type="checkbox"
+                      checked={!!Number(form[f.name]) || form[f.name] === true}
+                      onChange={e => { set(f.name, e.target.checked ? 1 : 0); setErrors(er => ({ ...er, [f.name]: false })); }}
+                      className="w-4 h-4 accent-blue-600 cursor-pointer"
+                    />
+                    <span className="text-sm text-gray-700">{f.checkboxText ?? 'Ja'}</span>
+                  </label>
                 ) : f.type === 'select' ? (
                   <select
                     value={form[f.name] ?? ''}

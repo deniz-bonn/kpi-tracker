@@ -19,6 +19,31 @@ const STANDORTE   = ['Bonn', 'Braunschweig', 'Österreich', 'Schweiz'];
 const DIENSTLEISTUNGEN_VL = ['RaaS Kontingente','RaaS Kleinkunde Laufzeit','Kontingent (Alt)','Karriereseite','Karriereseite Wartung','Social-Media','Glaubenssätze','Media-Day','Website','Sonstiges'];
 const ABGERECHNET_OPTS = ['Nein', 'Ja', 'On Hold'];
 
+// ── Kennzeichnung "Verlängerung auf Dauervertrag umgestellt" ─────────────────
+// ALLE Anzeigetexte zentral: Die Begriffs-Transkription aus der Sprachnachricht ist unsicher
+// ("Dauerras" — vermutlich Dauervertrag/Dauerrechnung). Arbeitsbegriff ist "Dauervertrag";
+// nach Rückfrage bei Thorsten genügt es, hier zu korrigieren — keine Suchaktion nötig.
+// WICHTIG: dauervertrag_ae_wert fließt in KEINE bestehende Summe (VL-AE, ae_gesamt, Ziele,
+// Provisionen) — er wird ausschließlich separat ausgewiesen.
+const DV = {
+  begriff:      'Dauervertrag',
+  checkbox:     'Auf Dauervertrag umgestellt',
+  checkboxText: 'Ja, auf Dauervertrag umgestellt',
+  aeLabel:      'Neuer AE (Dauervertrag)',
+  datumLabel:   'Umstellungsdatum',
+  badge:        'Dauervertrag',
+  filterAlle:   'Dauervertrag: Alle',
+  filterNur:    'Nur umgestellte',
+  filterOhne:   'Ohne Umstellung',
+  chip:         'Auf Dauervertrag umgestellt',
+  spalte:       'Dauerverträge',
+  hinweis:      'Zählt separat — fließt nicht in den VL-AE, ins Dashboard oder in Provisionen.',
+  bestaetigung: 'Haken entfernen? Neuer AE und Umstellungsdatum werden dabei geleert.',
+};
+const istDv = (d) => Number(d?.dauervertrag_umgestellt) === 1;
+// EUR-Wert der Umstellung (Backend liefert dauervertrag_ae_wert_eur fuer CHF-Companies mit).
+const dvAe  = (d) => Number(d?.dauervertrag_ae_wert_eur ?? d?.dauervertrag_ae_wert) || 0;
+
 // ── KPIs aus einem Deal-Array berechnen ──────────────────────────────────────
 function calcKpis(deals) {
   const gew  = deals.filter(d => d.status === 'Gewonnen');
@@ -32,6 +57,9 @@ function calcKpis(deals) {
     ae_summe:         gew.reduce((s, d)   => s + aeEur(d), 0),
     verlorener_ae:    verl.reduce((s, d)  => s + (Number(d.ae_wert_eur ?? d.ae_wert) || Number(d.angebotswert_eur ?? d.angebotswert) || 0), 0),
     churn_rate:       n > 0 ? ((n - gew.length) / n) * 100 : 0,
+    // Separat ausgewiesen — bewusst NICHT in ae_summe/moeglicher_ae/verlorener_ae eingerechnet.
+    dv_n:             deals.filter(istDv).length,
+    dv_ae:            deals.filter(istDv).reduce((s, d) => s + dvAe(d), 0),
     abgerechnet_ja:   gew.filter(d => d.abgerechnet === 'Ja').length,
     abgerechnet_quote: gew.length > 0 ? (gew.filter(d => d.abgerechnet === 'Ja').length / gew.length * 100).toFixed(1) : '0.0',
   };
@@ -53,6 +81,7 @@ export default function DealsVL() {
 
   const [filterKam,      setFilterKam]      = useState('');
   const [filterRolle,    setFilterRolle]    = useState(''); // '' | 'kam' | 'am' (Rolle des Deal-KAMs)
+  const [filterDv,       setFilterDv]       = useState(''); // '' | 'nur' | 'ohne' (Dauervertrag-Umstellung)
   const [filterStatus,   setFilterStatus]   = useState('');
   const [filterStandort, setFilterStandort] = useState('');
   const [importResult,   setImportResult]   = useState(null);
@@ -172,6 +201,32 @@ export default function DealsVL() {
           ? ((form.ende_kuendigungsfrist || '').slice(0, 10) || new Date().toISOString().slice(0, 10))
           : undefined,
     },
+    // Dauervertrag-Umstellung: nur bei Gewonnen anlegbar (eine verlorene Verlängerung kann nicht
+    // umgestellt sein). Bereits markierte Deals bleiben sichtbar, auch wenn der Status später
+    // wechselt — sonst entstünde unsichtbar verwaiste Daten, die niemand mehr korrigieren kann.
+    {
+      name: 'dauervertrag_umgestellt', label: DV.checkbox, type: 'checkbox',
+      checkboxText: DV.checkboxText, hint: DV.hinweis,
+      show: f => f.status === 'Gewonnen' || Number(f.dauervertrag_umgestellt) === 1,
+      // Rückfrage, bevor Betrag und Datum geleert werden.
+      onBeforeChange: (v, f) => (!v && (f.dauervertrag_ae_wert || f.dauervertrag_datum))
+        ? window.confirm(DV.bestaetigung) : true,
+    },
+    {
+      name: 'dauervertrag_ae_wert', label: `${DV.aeLabel} (${curSym})`, type: 'number',
+      show:     f => Number(f.dauervertrag_umgestellt) === 1,
+      required: f => Number(f.dauervertrag_umgestellt) === 1,
+      autoFill: (f, changed) => changed === 'dauervertrag_umgestellt' && Number(f.dauervertrag_umgestellt) !== 1 ? '' : undefined,
+    },
+    {
+      name: 'dauervertrag_datum', label: DV.datumLabel, type: 'date',
+      show: f => Number(f.dauervertrag_umgestellt) === 1,
+      // Beim Setzen mit heute vorbelegen (editierbar), beim Entfernen leeren.
+      autoFill: (f, changed) => changed !== 'dauervertrag_umgestellt' ? undefined
+        : (Number(f.dauervertrag_umgestellt) === 1
+            ? (f.dauervertrag_datum || new Date().toISOString().slice(0, 10))
+            : ''),
+    },
     { name: 'weitergeben_an_vertrieb', label: 'Weitergeben an Vertrieb?', type: 'select', options: ['Ja', 'Nein'], show: f => f.status === 'Verloren', required: f => f.status === 'Verloren', hint: 'Ja = Kunde erscheint im Kündigungen-Tab als Up-Sale Potenzial' },
     { name: 'gekuendigt_am',         label: 'Gekündigt am',            type: 'date',   show: f => f.status === 'Verloren', required: f => f.status === 'Verloren' },
     { name: 'auslaufend_am',         label: 'Auslaufend am',           type: 'date',   show: f => f.status === 'Verloren', required: f => f.status === 'Verloren' },
@@ -192,10 +247,11 @@ export default function DealsVL() {
   const listDeals = useMemo(() => deals.filter(d =>
     (!filterKam      || String(d.kam_id)   === filterKam) &&
     (!filterRolle    || gruppeVonDeal(d)   === filterRolle) &&
+    (!filterDv       || (filterDv === 'nur' ? istDv(d) : !istDv(d))) &&
     (!filterStatus   || d.status           === filterStatus) &&
     (!filterStandort || d.kam_standort     === filterStandort) &&
     (zeitMode !== 'zeitraum' || ((d.monat || '').trim() >= vonMonat && (d.monat || '').trim() <= bisMonat))
-  ), [deals, filterKam, filterRolle, gruppeVonDeal, filterStatus, filterStandort, zeitMode, vonMonat, bisMonat]);
+  ), [deals, filterKam, filterRolle, gruppeVonDeal, filterDv, filterStatus, filterStandort, zeitMode, vonMonat, bisMonat]);
   const filtered = useMemo(() => listDeals.filter(isDealCompanyActive), [listDeals]);
 
   // Gesamt-KPIs
@@ -297,8 +353,9 @@ export default function DealsVL() {
     filterRolle && `Rolle: ${ROLLE_GRUPPE_LABEL[filterRolle]}`,
     filterKam && `Mitarbeiter: ${(personenImScope.find(p => p.id === filterKam) || {}).name || empById[filterKam]?.name || filterKam}`,
     filterStatus && `Status: ${filterStatus}`,
+    filterDv && (filterDv === 'nur' ? DV.filterNur : DV.filterOhne),
   ].filter(Boolean).join(' · ');
-  const fileFilterSuffix = filterRolle ? `_${filterRolle.toUpperCase()}` : '';
+  const fileFilterSuffix = (filterRolle ? `_${filterRolle.toUpperCase()}` : '') + (filterDv ? `_${DV.begriff}-${filterDv}` : '');
 
   // CSV der aktuell gefilterten Menge (client-seitig) — spiegelt ALLE Filter wie die Liste,
   // auch den clientseitigen Rollen-Filter, den der Server-Export nicht kennt. Spalten wie Server-Export.
@@ -308,6 +365,9 @@ export default function DealsVL() {
       ['dienstleistung', d => d.dienstleistung], ['kam', d => d.kam_name],
       ['angebotswert', d => d.angebotswert], ['ae_wert', d => d.ae_wert], ['laufzeit_monate', d => d.laufzeit_monate],
       ['wie_vielt_verlaengerung', d => d.wie_vielt_verlaengerung], ['status', d => d.status], ['abgerechnet', d => d.abgerechnet],
+      ['dauervertrag_umgestellt', d => (istDv(d) ? 'Ja' : 'Nein')],
+      ['dauervertrag_ae_wert', d => d.dauervertrag_ae_wert],
+      ['dauervertrag_datum', d => (d.dauervertrag_datum ? String(d.dauervertrag_datum).slice(0, 10) : '')],
       ['gewonnen_monat', d => d.gewonnen_monat], ['gewonnen_datum', d => (d.gewonnen_datum ? String(d.gewonnen_datum).slice(0, 10) : '')],
       ['kommentar', d => d.kommentar],
     ];
@@ -320,7 +380,7 @@ export default function DealsVL() {
   };
 
   const sel = "bg-white border border-gray-300 text-gray-700 text-xs rounded px-2 py-1.5";
-  const hasFilters = filterKam || filterRolle || filterStatus || filterStandort;
+  const hasFilters = filterKam || filterRolle || filterDv || filterStatus || filterStandort;
 
   return (
     <div className="space-y-4">
@@ -332,6 +392,12 @@ export default function DealsVL() {
             {periodLabel(zeitMode, monat, vonMonat, bisMonat)} · {filtered.length} anstehend · {gesamtKpis.gewonnen} realisiert · {gesamtKpis.verloren} Kündigungen · Churn-Rate: {gesamtKpis.churn_rate.toFixed(2)}%
           </p>
           {filterSummary && <p className="text-xs font-medium text-blue-600 mt-0.5">Filter: {filterSummary}</p>}
+          {gesamtKpis.dv_n > 0 && (
+            <p className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700"
+               title={DV.hinweis}>
+              {DV.chip}: {gesamtKpis.dv_n} · neuer AE Σ {formatEuro(gesamtKpis.dv_ae)}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button onClick={() => setShowKpis(v => !v)}
@@ -413,12 +479,17 @@ export default function DealsVL() {
             ) : null;
           })}
         </select>
+        <select value={filterDv} onChange={e => setFilterDv(e.target.value)} className={sel} title={DV.hinweis}>
+          <option value="">{DV.filterAlle}</option>
+          <option value="nur">{DV.filterNur}</option>
+          <option value="ohne">{DV.filterOhne}</option>
+        </select>
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className={sel}>
           <option value="">Alle Status</option>
           {STATUS_OPTS.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
         {hasFilters && (
-          <button onClick={() => { setFilterKam(''); setFilterRolle(''); setFilterStatus(''); setFilterStandort(''); }}
+          <button onClick={() => { setFilterKam(''); setFilterRolle(''); setFilterDv(''); setFilterStatus(''); setFilterStandort(''); }}
             className="text-xs text-gray-500 hover:text-white ml-1">✕ Zurücksetzen</button>
         )}
       </div>
@@ -530,12 +601,13 @@ export default function DealsVL() {
                     <th className="px-3 py-2 text-right">Möglicher AE</th>
                     <th className="px-3 py-2 text-right">Realisierter AE</th>
                     <th className="px-3 py-2 text-right">Verlorener AE</th>
+                    <th className="px-3 py-2 text-right" title={DV.hinweis}>{DV.spalte} (n · Σ)</th>
                     <th className="px-3 py-2 text-right">Abgerechnet</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {kamKpis.length === 0
-                    ? <tr><td colSpan={9} className="px-3 py-4 text-center text-gray-400">Keine Daten</td></tr>
+                    ? <tr><td colSpan={10} className="px-3 py-4 text-center text-gray-400">Keine Daten</td></tr>
                     : kamKpis.map(k => {
                         const cr = k.kpis.churn_rate;
                         const churnCls = cr > 70 ? 'text-red-600' : cr > 40 ? 'text-amber-600' : 'text-green-600';
@@ -551,6 +623,11 @@ export default function DealsVL() {
                             <td className="px-3 py-2 text-right text-gray-500 whitespace-nowrap">{formatEuro(k.kpis.moeglicher_ae)}</td>
                             <td className="px-3 py-2 text-right font-bold text-gray-900 whitespace-nowrap">{formatEuro(k.kpis.ae_summe)}</td>
                             <td className="px-3 py-2 text-right text-gray-500 whitespace-nowrap">{formatEuro(k.kpis.verlorener_ae)}</td>
+                            <td className="px-3 py-2 text-right whitespace-nowrap">
+                              {k.kpis.dv_n > 0
+                                ? <span className="text-indigo-700 font-medium">{k.kpis.dv_n} · {formatEuro(k.kpis.dv_ae)}</span>
+                                : <span className="text-gray-300">—</span>}
+                            </td>
                             <td className="px-3 py-2 text-right text-gray-500 whitespace-nowrap">{k.kpis.abgerechnet_ja} ({k.kpis.abgerechnet_quote}%)</td>
                           </tr>
                         );
@@ -642,7 +719,15 @@ export default function DealsVL() {
             ) : listDeals.map(d => (
               <tr key={d.id} className={`hover:bg-gray-50 ${d.status === 'Verloren' ? 'opacity-60' : ''}`}>
                 <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{d.datum?.slice(0,10)}</td>
-                <td className="px-3 py-2 text-gray-900 font-medium">{d.kunde}</td>
+                <td className="px-3 py-2 text-gray-900 font-medium">
+                  {d.kunde}
+                  {istDv(d) && (
+                    <span className="ml-1.5 align-middle text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded px-1.5 py-0.5"
+                          title={`${DV.checkbox}${d.dauervertrag_datum ? ` am ${String(d.dauervertrag_datum).slice(0, 10)}` : ''} · ${DV.aeLabel}: ${formatEuro(dvAe(d))}`}>
+                      {DV.badge}
+                    </span>
+                  )}
+                </td>
                 <td className="px-3 py-2 text-gray-600 text-xs whitespace-nowrap">
                   {d.kam_name || '—'}
                   {d.kam_standort && <span className="ml-1 text-gray-400">({d.kam_standort})</span>}
