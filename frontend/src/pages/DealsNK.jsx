@@ -8,7 +8,8 @@ import { formatEuro, formatMoney, companyCurrency, isDealCompanyActive, isAeCoun
 import { computeMedals, medalRowClass, medalBarClass, MedalBadge, MiniPodium } from '../components/medals';
 import { celebrateWin, shouldCelebrate } from '../components/Celebration';
 import { useAuth } from '../context/AuthContext';
-import { KEIN_ANGEBOT_GRUENDE, GRUND_LABEL, INFO_TEXTE, hatAngebot, istKeinAngebot } from '../utils/nkConstants';
+import { KEIN_ANGEBOT_GRUENDE, GRUND_LABEL, INFO_TEXTE, hatAngebot, istKeinAngebot,
+         rollenStats, zeitraumVorTracking, KEIN_ANGEBOT_HINWEIS } from '../utils/nkConstants';
 import InfoPopover from '../components/InfoPopover';
 
 // AE-Euro-Betrag eines Deals fuer Umsatz-Summen, 0 wenn der AE (noch) nicht getrackt wird
@@ -218,48 +219,17 @@ export default function DealsNK() {
     };
   }).sort((a, b) => b.ae_summe - a.ae_summe), [angebote]);
 
-  // Setter-Statistiken
-  const setterStats = useMemo(() => {
-    const m = {};
-    angebote.forEach(d => {
-      if (!d.setter_id) return;
-      if (!m[d.setter_id]) m[d.setter_id] = { name: d.setter_name, total: 0, gewonnen: 0, ae_summe: 0 };
-      m[d.setter_id].total++;
-      if (d.status === 'Gewonnen') { m[d.setter_id].gewonnen++; m[d.setter_id].ae_summe += aeEur(d); }
-    });
-    return Object.values(m)
-      .map(s => ({ ...s, quote: s.total > 0 ? (s.gewonnen / s.total * 100).toFixed(2) : '0.00' }))
-      .sort((a, b) => b.ae_summe - a.ae_summe);
-  }, [angebote]);
+  // ── Personen-Statistiken: EINE Rechenquelle (rollenStats), Basis je Rolle ──────────────────
+  // Setter/Opener rechnen auf ALLE Closing Calls (ROLLEN_BASIS), der Closer weiterhin auf
+  // Angebote. Eingang ist immer `calls` — die Funktion filtert die angebotslosen Calls fuer
+  // die angebotsbasierten Sichten selbst heraus.
+  // Uebergangs-Ehrlichkeit: vor dem Kein-Angebot-Feature (live 16.08.2026) wurden angebotslose
+  // Calls kaum erfasst -> zu kleiner Nenner -> zu gute Quote. Nur Kennzeichnung, keine Rueckrechnung.
+  const vorTracking = zeitraumVorTracking(zeitMode, monat, vonMonat);
 
-  // Opener-Statistiken
-  const openerStats = useMemo(() => {
-    const m = {};
-    angebote.forEach(d => {
-      if (!d.opener_id) return;
-      if (!m[d.opener_id]) m[d.opener_id] = { name: d.opener_name, standort: d.opener_standort, total: 0, gewonnen: 0, ae_summe: 0 };
-      m[d.opener_id].total++;
-      if (d.status === 'Gewonnen') { m[d.opener_id].gewonnen++; m[d.opener_id].ae_summe += aeEur(d); }
-    });
-    return Object.values(m)
-      .map(o => ({ ...o, quote: o.total > 0 ? (o.gewonnen / o.total * 100).toFixed(2) : '0.00' }))
-      .sort((a, b) => b.ae_summe - a.ae_summe);
-  }, [angebote]);
-
-  // Closer-Statistiken
-  const closerStats = useMemo(() => {
-    const m = {};
-    angebote.forEach(d => {
-      if (!d.closer_id) return;
-      if (!m[d.closer_id]) m[d.closer_id] = { name: d.closer_name, total: 0, gewonnen: 0, verloren: 0, ae_summe: 0 };
-      m[d.closer_id].total++;
-      if (d.status === 'Gewonnen') { m[d.closer_id].gewonnen++; m[d.closer_id].ae_summe += aeEur(d); }
-      if (d.status === 'Verloren') m[d.closer_id].verloren++;
-    });
-    return Object.values(m)
-      .map(c => ({ ...c, offen: c.total - c.gewonnen - c.verloren, quote: c.total > 0 ? (c.gewonnen / c.total * 100).toFixed(2) : '0.00' }))
-      .sort((a, b) => b.ae_summe - a.ae_summe);
-  }, [angebote]);
+  const setterStats = useMemo(() => rollenStats(calls, 'setter', aeEur), [calls]);
+  const openerStats = useMemo(() => rollenStats(calls, 'opener', aeEur), [calls]);
+  const closerStats = useMemo(() => rollenStats(calls, 'closer', aeEur), [calls]);
 
   // ── Angebotsquote & bereinigte Closing Rate (Basis: ALLE Closing Calls) ──
   const angebotStats = useMemo(() => {
@@ -277,36 +247,17 @@ export default function DealsNK() {
     };
   }, [calls]);
 
-  // Pro Closer: Calls / Angebote / Angebotsquote / Gewonnen / Rate klassisch & bereinigt
-  const closerAngebot = useMemo(() => {
-    const m = {};
-    calls.forEach(d => {
-      if (!d.closer_id) return;
-      const e = m[d.closer_id] || (m[d.closer_id] = { name: d.closer_name, calls: 0, mit: 0, gew: 0 });
-      e.calls++; if (hatAngebot(d)) e.mit++; if (d.status === 'Gewonnen') e.gew++;
-    });
-    return Object.values(m).map(e => ({
-      ...e,
-      angebotsquote: e.calls > 0 ? (e.mit / e.calls * 100) : 0,
-      rateKlassisch: e.mit   > 0 ? (e.gew / e.mit   * 100) : 0,
-      rateBereinigt: e.calls > 0 ? (e.gew / e.calls * 100) : 0,
-    })).sort((a, b) => b.calls - a.calls);
-  }, [calls]);
+  // Pro Closer im Angebots-Block: bewusst mit Basis-Override 'calls' — hier stehen klassische
+  // und bereinigte Rate nebeneinander, deshalb muessen die angebotslosen Calls sichtbar sein.
+  const closerAngebot = useMemo(
+    () => [...rollenStats(calls, 'closer', aeEur, 'calls')].sort((a, b) => b.calls - a.calls),
+    [calls]);
 
-  // Pro Setter (Schulungshebel): Calls beteiligt / ohne Angebot (n, %) / Top-Grund
-  const setterAngebot = useMemo(() => {
-    const m = {};
-    calls.forEach(d => {
-      if (!d.setter_id) return;
-      const e = m[d.setter_id] || (m[d.setter_id] = { name: d.setter_name, calls: 0, ohne: 0, gruende: {} });
-      e.calls++;
-      if (istKeinAngebot(d)) { e.ohne++; const g = d.kein_angebot_grund || 'unbekannt'; e.gruende[g] = (e.gruende[g] || 0) + 1; }
-    });
-    return Object.values(m).map(e => {
-      const top = Object.entries(e.gruende).sort((a, b) => b[1] - a[1])[0];
-      return { ...e, ohneQuote: e.calls > 0 ? (e.ohne / e.calls * 100) : 0, topGrund: top ? (GRUND_LABEL[top[0]] || top[0]) : '—' };
-    }).filter(e => e.ohne > 0).sort((a, b) => b.ohne - a.ohne);
-  }, [calls]);
+  // Pro Setter (Schulungshebel): dieselben Zeilen wie die Setter-Tabelle, nur auf die Setter
+  // mit angebotslosen Calls verengt und nach deren Anzahl sortiert.
+  const setterAngebot = useMemo(
+    () => setterStats.filter(e => e.ohne > 0).sort((a, b) => b.ohne - a.ohne),
+    [setterStats]);
 
   // Teilnehmer-Regeln des Treppchens — identisch zur Bestenliste (aktiv + show_in_kpi != 0).
   // Bewusst NUR fuer die drei Podien: Kohorten-Tabellen und Deal-Liste zeigen weiterhin ALLE,
@@ -497,9 +448,9 @@ export default function DealsNK() {
                     <tr key={c.name || 'x'} className="border-b border-gray-50 last:border-0">
                       <td className="px-3 py-1.5 text-gray-800">{c.name || '—'}</td>
                       <td className="px-3 py-1.5 text-right text-gray-700">{c.calls}</td>
-                      <td className="px-3 py-1.5 text-right text-gray-700">{c.mit}</td>
+                      <td className="px-3 py-1.5 text-right text-gray-700">{c.mitAngebot}</td>
                       <td className="px-3 py-1.5 text-right text-gray-700">{c.angebotsquote.toFixed(0)}%</td>
-                      <td className="px-3 py-1.5 text-right text-gray-700">{c.gew}</td>
+                      <td className="px-3 py-1.5 text-right text-gray-700">{c.gewonnen}</td>
                       <td className="px-3 py-1.5 text-right text-gray-700">{c.rateKlassisch.toFixed(0)}%</td>
                       <td className="px-3 py-1.5 text-right font-semibold text-gray-900">{c.rateBereinigt.toFixed(0)}%</td>
                     </tr>
@@ -516,7 +467,10 @@ export default function DealsNK() {
                 <table className="w-full text-xs">
                   <thead><tr className="text-gray-400 border-b border-gray-100">
                     <th className="px-3 py-1.5 text-left">Setter</th><th className="px-3 py-1.5 text-right">Calls</th>
-                    <th className="px-3 py-1.5 text-right">ohne Angebot</th><th className="px-3 py-1.5 text-left">Top-Grund</th>
+                    <th className="px-3 py-1.5 text-right">ohne Angebot</th>
+                    <th className="px-3 py-1.5 text-right">Gewonnen</th>
+                    <th className="px-3 py-1.5 text-right"><span className="inline-flex items-center justify-end">Quote (alle Calls)<InfoPopover text={INFO_TEXTE.quoteSetter} label="Quote (alle Calls)" /></span></th>
+                    <th className="px-3 py-1.5 text-left">Top-Grund</th>
                   </tr></thead>
                   <tbody>
                     {setterAngebot.map(s => (
@@ -524,6 +478,8 @@ export default function DealsNK() {
                         <td className="px-3 py-1.5 text-gray-800">{s.name || '—'}</td>
                         <td className="px-3 py-1.5 text-right text-gray-700">{s.calls}</td>
                         <td className="px-3 py-1.5 text-right text-amber-700 font-semibold">{s.ohne} · {s.ohneQuote.toFixed(0)}%</td>
+                        <td className="px-3 py-1.5 text-right text-gray-700">{s.gewonnen}</td>
+                        <td className="px-3 py-1.5 text-right font-semibold text-gray-900">{s.quote.toFixed(0)}%</td>
                         <td className="px-3 py-1.5 text-gray-600">{s.topGrund}</td>
                       </tr>
                     ))}
@@ -609,16 +565,16 @@ export default function DealsNK() {
                     {closerStats.length === 0
                       ? <tr><td colSpan={7} className="px-3 py-4 text-center text-gray-400">Keine Daten</td></tr>
                       : closerStats.map((c, i) => {
-                          const q = parseFloat(c.quote);
+                          const q = c.quote;
                           const medal = closerMedals[i];
                           return (
                             <tr key={i} className={medalRowClass(medal)}>
                               <td className={`px-3 py-1.5 text-gray-700 font-medium ${medalBarClass(medal)}`}><MedalBadge medal={medal} />{c.name}</td>
-                              <td className="px-3 py-1.5 text-right text-gray-600">{c.total}</td>
+                              <td className="px-3 py-1.5 text-right text-gray-600">{c.calls}</td>
                               <td className="px-3 py-1.5 text-right text-green-700 font-medium">{c.gewonnen}</td>
                               <td className="px-3 py-1.5 text-right text-red-600">{c.verloren}</td>
                               <td className="px-3 py-1.5 text-right text-gray-500">{c.offen}</td>
-                              <td className={`px-3 py-1.5 text-right font-bold ${q >= 30 ? 'text-green-600' : q > 0 ? 'text-amber-600' : 'text-gray-400'}`}>{c.quote}%</td>
+                              <td className={`px-3 py-1.5 text-right font-bold ${q >= 30 ? 'text-green-600' : q > 0 ? 'text-amber-600' : 'text-gray-400'}`}>{c.quote.toFixed(2)}%</td>
                               <td className="px-3 py-1.5 text-right text-gray-700 font-medium">{formatEuro(c.ae_summe)}</td>
                             </tr>
                           );
@@ -639,24 +595,28 @@ export default function DealsNK() {
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 font-medium">
                     <th className="px-3 py-2 text-left">Setter</th>
-                    <th className="px-3 py-2 text-right">Settings</th>
+                    <th className="px-3 py-2 text-right">Calls (alle)</th>
+                    <th className="px-3 py-2 text-right">davon mit Angebot</th>
                     <th className="px-3 py-2 text-right">Gewonnen</th>
-                    <th className="px-3 py-2 text-right">Quote</th>
+                    <th className="px-3 py-2 text-right">
+                      <span className="inline-flex items-center justify-end">Quote (alle Calls)<InfoPopover text={INFO_TEXTE.quoteSetter} label="Quote (alle Calls)" /></span>
+                    </th>
                     <th className="px-3 py-2 text-right">Realisierte AE</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {setterStats.length === 0
-                    ? <tr><td colSpan={5} className="px-3 py-4 text-center text-gray-400">Keine Daten</td></tr>
+                    ? <tr><td colSpan={6} className="px-3 py-4 text-center text-gray-400">Keine Daten</td></tr>
                     : setterStats.map((s, i) => {
-                        const q = parseFloat(s.quote);
+                        const q = s.quote;
                         const medal = setterMedals[i];
                         return (
                           <tr key={i} className={medalRowClass(medal)}>
                             <td className={`px-3 py-1.5 text-gray-700 font-medium ${medalBarClass(medal)}`}><MedalBadge medal={medal} />{s.name}</td>
-                            <td className="px-3 py-1.5 text-right text-gray-600">{s.total}</td>
+                            <td className="px-3 py-1.5 text-right text-gray-600">{s.calls}</td>
+                            <td className="px-3 py-1.5 text-right text-gray-400">{s.mitAngebot}</td>
                             <td className="px-3 py-1.5 text-right text-green-700 font-medium">{s.gewonnen}</td>
-                            <td className={`px-3 py-1.5 text-right font-bold ${q >= 30 ? 'text-green-600' : q > 0 ? 'text-amber-600' : 'text-gray-400'}`}>{s.quote}%</td>
+                            <td className={`px-3 py-1.5 text-right font-bold ${q >= 30 ? 'text-green-600' : q > 0 ? 'text-amber-600' : 'text-gray-400'}`}>{s.quote.toFixed(2)}%</td>
                             <td className="px-3 py-1.5 text-right text-blue-700 font-medium">{s.ae_summe > 0 ? formatEuro(s.ae_summe) : '—'}</td>
                           </tr>
                         );
@@ -664,6 +624,11 @@ export default function DealsNK() {
                   }
                 </tbody>
               </table>
+              {vorTracking && (
+                <div className="px-3 py-1.5 bg-amber-50 border-t border-amber-100 text-[11px] text-amber-800">
+                  ⚠ {KEIN_ANGEBOT_HINWEIS}
+                </div>
+              )}
             </div>
           </div>
 
@@ -684,10 +649,12 @@ export default function DealsNK() {
                     <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 font-medium">
                       <th className="px-3 py-2 text-left">Opener</th>
                       <th className="px-3 py-2 text-left">Standort</th>
-                      <th className="px-3 py-2 text-right">Angebote</th>
+                      <th className="px-3 py-2 text-right">Calls (alle)</th>
+                      <th className="px-3 py-2 text-right">davon mit Angebot</th>
                       <th className="px-3 py-2 text-right">Gewonnen</th>
-                      <th className="px-3 py-2 text-right">Verloren</th>
-                      <th className="px-3 py-2 text-right">Annahmequote</th>
+                      <th className="px-3 py-2 text-right">
+                        <span className="inline-flex items-center justify-end">Quote (alle Calls)<InfoPopover text={INFO_TEXTE.quoteOpener} label="Quote (alle Calls)" /></span>
+                      </th>
                       <th className="px-3 py-2 text-right">Realisierte AE</th>
                     </tr>
                   </thead>
@@ -695,17 +662,17 @@ export default function DealsNK() {
                     {openerStats.length === 0
                       ? <tr><td colSpan={7} className="px-3 py-4 text-center text-gray-400">Keine Daten</td></tr>
                       : openerStats.map((o, i) => {
-                          const q = parseFloat(o.quote);
+                          const q = o.quote;
                           const medal = openerMedals[i];
                           return (
                             <tr key={i} className={medalRowClass(medal)}>
                               <td className={`px-3 py-1.5 text-gray-700 font-medium ${medalBarClass(medal)}`}><MedalBadge medal={medal} />{o.name}</td>
                               <td className="px-3 py-1.5 text-gray-400">{o.standort || '—'}</td>
-                              <td className="px-3 py-1.5 text-right text-gray-600">{o.total}</td>
+                              <td className="px-3 py-1.5 text-right text-gray-600">{o.calls}</td>
+                              <td className="px-3 py-1.5 text-right text-gray-400">{o.mitAngebot}</td>
                               <td className="px-3 py-1.5 text-right text-green-700 font-medium">{o.gewonnen}</td>
-                              <td className="px-3 py-1.5 text-right text-red-600">{o.total - o.gewonnen}</td>
                               <td className={`px-3 py-1.5 text-right font-bold ${q >= 30 ? 'text-green-600' : q > 0 ? 'text-amber-600' : 'text-gray-400'}`}>
-                                {o.total > 0 ? `${o.quote}%` : '—'}
+                                {o.calls > 0 ? `${o.quote.toFixed(2)}%` : '—'}
                               </td>
                               <td className="px-3 py-1.5 text-right text-blue-700 font-medium">
                                 {o.ae_summe > 0 ? formatEuro(o.ae_summe) : '—'}
@@ -718,6 +685,11 @@ export default function DealsNK() {
                 </table>
               </div>
             )}
+              {vorTracking && (
+                <div className="px-3 py-1.5 bg-amber-50 border-t border-amber-100 text-[11px] text-amber-800">
+                  ⚠ {KEIN_ANGEBOT_HINWEIS}
+                </div>
+              )}
           </div>
 
           {/* Standortvergleich — nur sichtbar wenn alle Standorte */}

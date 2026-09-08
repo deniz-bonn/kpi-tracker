@@ -25,7 +25,7 @@
 | Route | Seite | Inhalt |
 |---|---|---|
 | `/dashboard` | Dashboard | AE-Gesamtübersicht nach Standort/Bereich, Monatsziel, Ziel/Differenz (nur Admin+VL sichtbar) |
-| `/neukunden` | Neukunden (NK) | NK-Deals (Angebote), Gesamt-KPIs, Abschlussquote nach Closer / Setter / Opener (aufklappbar) / Standortvergleich (aufklappbar) |
+| `/neukunden` | Neukunden (NK) | NK-Deals (alle Closing Calls, mit und ohne Angebot), Gesamt-KPIs, Abschlussquote nach Closer (angebotsbasiert) / Setter / Opener (auf alle Calls, aufklappbar) / Standortvergleich (aufklappbar) |
 | `/bestandskunden` | Bestandskunden (BK) | BK-Deals, KPIs nach KAM, Daniel-Termine/Win-Rate, Annahmequoten-Ampel |
 | `/verlaengerungen` | Verlängerungen (VL) | VL-Deals, KPIs nach KAM (sortiert nach AE), Churn-Rate nach Verlängerungs-Nr. (aufklappbar), Zeitmodus Monat/Zeitraum/Alle |
 | `/kuendigungen` | Kündigungen — Up-Sale Potenzial | Gekündigte VL-Kunden mit Up-Sale-Tracking, wegfallender AE |
@@ -84,8 +84,26 @@ Weitere Regeln:
 | **Show-Rate Setting** | `settings_stattgefunden / settings_geplant` | 80 % |
 | **Durchstellungsquote** | `beratung_vereinbart / settings_stattgefunden` — **NICHT** beratungen_stattgefunden! | 40 % |
 | **Show-Rate Closing (Sales)** | `beratungen_stattgefunden / beratungen_geplant` | 80 % |
-| **Closing-Rate** | `NK gewonnen / NK Angebote` (deals_nk des Monats) | 50 % |
+| **Closing-Rate (Closer, klassisch)** | `NK gewonnen / NK Angebote` (deals_nk des Monats) — Abschlussstärke, wenn es zum Angebot kam | 50 % |
+| **Closing-Rate (Closer, bereinigt)** | `NK gewonnen / alle Closing Calls` (inkl. „kein Angebot erstellt") | — |
+| **Abschlussquote Setter** | `NK gewonnen / alle Closing Calls des Setters` (inkl. „kein Angebot erstellt") | — |
+| **Abschlussquote Opener** | `NK gewonnen / alle Closing Calls des Openers` (inkl. „kein Angebot erstellt") | — |
 | **Churn-Rate (VL)** | `(Möglich − Realisiert) / Möglich` — offene zählen als (noch) nicht realisiert | — |
+
+**Setter- und Opener-Quoten rechnen auf ALLE Calls (verbindlich):**
+Bei Settern und Openern ist die Abschlussquote überall `Gewonnen ÷ alle erfassten Closing Calls`
+(inkl. „kein Angebot erstellt"), **nicht** `Gewonnen ÷ Angebote`. Begründung: Ein Setter/Opener verantwortet die
+Qualität aller Termine, die er liefert — auch die, aus denen mangels Qualifizierung nie ein Angebot
+wurde. Die angebotsbasierte Quote blendet genau seinen Fehleranteil aus; die Rate auf alle Calls ist
+die echte Zahl. Die Spalte „davon mit Angebot" bleibt als Kontext sichtbar, rechnet aber nicht mit.
+**Beim Closer bleibt es bei beiden Sichten** (klassisch mit Soll 50 %, bereinigt daneben).
+- Einzige Rechenquelle: `rollenStats()` in `frontend/src/utils/nkConstants.js`; die Basis je Rolle
+  steht in `ROLLEN_BASIS` — eine erneute Definitionsänderung kostet nur diese eine Konstante.
+- **Übergangs-Ehrlichkeit:** Das Kein-Angebot-Tracking (Migration 092) ist am **16.08.2026** live
+  gegangen. Für Zeiträume vor `KEIN_ANGEBOT_AB` (`2026-08`) tragen die Setter-/Opener-Tabellen einen
+  Hinweis: zu kleiner Nenner → Quote ggf. überzeichnet. Bewusst **keine** Rückrechnung.
+- Nicht betroffen: Treppchen/Bestenliste (AE-basiert), Standortvergleich und Gesamt-KPIs
+  (Closer-Sicht, angebotsbasiert), KPI-Mitarbeiter-Beta (rechnet auf `activity_logs`).
 
 **Begriffsdefinitionen („gelegt"):**
 - **Sales Calls gelegt** = `beratung_vereinbart + beratung_vereinbart_direkt` (vereinbarte Beratungsgespräche, Opener-Eingabe — nicht die stattgefundenen!)

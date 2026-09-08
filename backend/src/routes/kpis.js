@@ -184,6 +184,8 @@ router.get('/employees', wrap(async (req, res) => {
       SUM(CASE WHEN d.status='Verloren' THEN 1 ELSE 0 END) as verloren,
       SUM(CASE WHEN d.status='Offen' THEN 1 ELSE 0 END) as offen,
       0 as ae_summe
+      -- VERBINDLICH (KONZEPT.md §5): Opener-Quote rechnet auf ALLE erfassten Closing Calls,
+      -- inkl. angebotslose (angebot_erstellt = false). Hier bewusst KEIN Angebots-Filter.
       FROM deals_nk d JOIN employees e ON e.id=d.opener_id
       WHERE e.show_in_kpi != 0 ${nkOpenerF.conds.length ? 'AND '+nkOpenerF.conds.join(' AND ') : ''}
       GROUP BY e.id,e.name ORDER BY gewonnen DESC`, nkOpenerF.params),
@@ -194,6 +196,8 @@ router.get('/employees', wrap(async (req, res) => {
       SUM(CASE WHEN d.status='Verloren' THEN 1 ELSE 0 END) as verloren,
       SUM(CASE WHEN d.status='Offen' THEN 1 ELSE 0 END) as offen,
       0 as ae_summe
+      -- VERBINDLICH (KONZEPT.md §5): Setter-Quote rechnet auf ALLE erfassten Closing Calls,
+      -- inkl. angebotslose (angebot_erstellt = false). Hier bewusst KEIN Angebots-Filter.
       FROM deals_nk d JOIN employees e ON e.id=d.setter_id
       WHERE e.show_in_kpi != 0 ${nkSetterF.conds.length ? 'AND '+nkSetterF.conds.join(' AND ') : ''}
       GROUP BY e.id,e.name ORDER BY gewonnen DESC`, nkSetterF.params),

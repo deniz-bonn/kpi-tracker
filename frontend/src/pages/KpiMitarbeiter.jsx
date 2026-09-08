@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { kpisApi } from '../utils/api';
 import { formatEuro, currentMonat } from '../utils/format';
 
-function EmpTable({ title, rows, showAE = false, color = 'blue' }) {
+function EmpTable({ title, rows, showAE = false, color = 'blue', totalLabel = 'Erstellt', fussnote = '' }) {
   const headerColors = { blue: 'text-blue-400', green: 'text-green-400', purple: 'text-purple-400', amber: 'text-amber-400' };
   if (!rows?.length) return null;
 
@@ -17,7 +17,7 @@ function EmpTable({ title, rows, showAE = false, color = 'blue' }) {
         <thead className="bg-[#3a3a3a] text-gray-300 text-xs">
           <tr>
             <th className="px-4 py-2 text-left">Mitarbeiter</th>
-            <th className="px-3 py-2 text-center">Erstellt</th>
+            <th className="px-3 py-2 text-center">{totalLabel}</th>
             <th className="px-3 py-2 text-center text-green-400">Gewonnen</th>
             <th className="px-3 py-2 text-center text-red-400">Verloren</th>
             <th className="px-3 py-2 text-center text-amber-400">Offen</th>
@@ -70,6 +70,7 @@ function EmpTable({ title, rows, showAE = false, color = 'blue' }) {
           </tr>
         </tfoot>
       </table>
+      {fussnote && <div className="px-4 py-1.5 border-t border-gray-100 text-[11px] text-gray-500">{fussnote}</div>}
     </div>
   );
 }
@@ -159,8 +160,13 @@ export default function KpiMitarbeiter() {
               </div>
               <SectionSummary rows={data?.nk_closer} showAE color="blue" />
               <EmpTable title="Closer — Abschlussquote & AE" rows={data?.nk_closer} showAE color="blue" />
-              <EmpTable title="Opener — Terminierungsquote"  rows={data?.nk_opener}        color="blue" />
-              <EmpTable title="Setter — Setting-Quote"       rows={data?.nk_setter}        color="blue" />
+              {/* Setter/Opener rechnen verbindlich auf ALLE Closing Calls (KONZEPT.md §5) — die
+                  SQL-Aggregation in routes/kpis.js zaehlt ohnehin alle Deals, nicht nur Angebote.
+                  Beschriftung explizit, damit das niemand versehentlich auf Angebote zurueckdreht. */}
+              <EmpTable title="Opener — Quote (alle Calls)" rows={data?.nk_opener} color="blue"
+                        totalLabel="Calls (alle)" fussnote="Quote = Gewonnen ÷ alle erfassten Closing Calls (inkl. ohne Angebot)" />
+              <EmpTable title="Setter — Quote (alle Calls)" rows={data?.nk_setter} color="blue"
+                        totalLabel="Calls (alle)" fussnote="Quote = Gewonnen ÷ alle erfassten Closing Calls (inkl. ohne Angebot)" />
             </div>
           ) : null}
 
