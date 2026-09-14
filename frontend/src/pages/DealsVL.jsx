@@ -11,6 +11,8 @@ import { celebrateWin, shouldCelebrate } from '../components/Celebration';
 // Nur fuer realisierten AE (ae_summe); verlorener_ae bleibt ungegated (mögliches Volumen).
 const aeEur = d => isAeCounted(d) ? (Number(d.ae_wert_eur ?? d.ae_wert) || 0) : 0;
 import { useAuth } from '../context/AuthContext';
+import InfoPopover from '../components/InfoPopover';
+import { SICHT_KOHORTE_VL } from '../utils/aeSichten';
 import { ROLLE_GRUPPE_LABEL, gruppeVonEmp, KAM_ROLLEN, PERSONEN_GRUPPEN } from '../utils/rollen';
 
 const STATUS_OPTS = ['Offen', 'Gewonnen', 'Verloren'];
@@ -509,12 +511,14 @@ export default function DealsVL() {
                 ['Kündigungen',    gesamtKpis.verloren],
                 ['Churn-Rate (Anzahl)', `${gesamtKpis.churn_rate.toFixed(2)}%`],
                 ['Möglicher AE',   formatEuro(gesamtKpis.moeglicher_ae)],
-                ['Realisierter AE',formatEuro(gesamtKpis.ae_summe)],
+                ['Realisierter AE',formatEuro(gesamtKpis.ae_summe), SICHT_KOHORTE_VL],
                 ['Verlorener AE',  formatEuro(gesamtKpis.verlorener_ae)],
                 ['Abgerechnet',    `${gesamtKpis.abgerechnet_ja} (${gesamtKpis.abgerechnet_quote}%)`],
-              ].map(([label, val]) => (
+              ].map(([label, val, tip]) => (
                 <div key={label} className="text-xs">
-                  <div className="text-gray-500 mb-0.5">{label}</div>
+                  <div className="text-gray-500 mb-0.5 flex items-center">
+                    {label}{tip && <InfoPopover text={tip} label={label} />}
+                  </div>
                   <div className={`font-bold ${label === 'Churn-Rate (Anzahl)'
                     ? (gesamtKpis.churn_rate > 70 ? 'text-red-600' : gesamtKpis.churn_rate > 40 ? 'text-amber-600' : 'text-green-600')
                     : 'text-gray-900'}`}>{val}</div>

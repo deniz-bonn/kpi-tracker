@@ -19,12 +19,17 @@ const VL_EUR_MAP = {
 
 // Dauervertrag-Felder normalisieren: ohne Haken gibt es weder Betrag noch Datum. Serverseitig
 // erzwungen, damit auch ueber die API keine verwaisten Werte entstehen koennen.
-function normDauervertrag(body) {
-  const an = Number(body.dauervertrag_umgestellt) || 0;
+// `existing` ist optional (beim Anlegen gibt es keinen Vorzustand): kommt der Haken im Body,
+// aber ein Unterfeld fehlt, bleibt der bestehende Wert stehen statt auf NULL zu fallen.
+// Ohne Haken werden beide Felder weiterhin hart geleert — das ist die Regel, nicht der Sonderfall.
+function normDauervertrag(body, existing) {
+  const an    = Number(body.dauervertrag_umgestellt) || 0;
+  const wert  = body.dauervertrag_ae_wert !== undefined ? body.dauervertrag_ae_wert : (existing?.dauervertrag_ae_wert ?? null);
+  const datum = body.dauervertrag_datum   !== undefined ? body.dauervertrag_datum   : (existing?.dauervertrag_datum   ?? null);
   return {
     dauervertrag_umgestellt: an,
-    dauervertrag_ae_wert: an ? (body.dauervertrag_ae_wert ?? null) : null,
-    dauervertrag_datum:   an ? (body.dauervertrag_datum   ?? null) : null,
+    dauervertrag_ae_wert: an ? (wert  ?? null) : null,
+    dauervertrag_datum:   an ? (datum ?? null) : null,
   };
 }
 
@@ -258,13 +263,19 @@ router.put('/:id', wrap(async (req, res) => {
     'weitergeben_an_vertrieb','terminiert','neuer_ap_intern',
     'dauervertrag_umgestellt','dauervertrag_ae_wert','dauervertrag_datum',
     'vertragsnummer','vertragsbeginn','ende_laufzeit','ende_kuendigungsfrist'];
-  // Fields only editable inline in Kündigungen — preserve existing value when not in form body
-  const PRESERVE_FIELDS = ['gekuendigt_am','auslaufend_am','ansprechpartner','telefon','email_kontakt','terminiert','neuer_ap_intern'];
-  // Dauervertrag: nur anfassen, wenn der Haken im Body mitkommt. Sonst bestehenden Zustand
-  // erhalten — die Kuendigungen-Seite schickt Teil-Bodies (siehe PRESERVE_FIELDS) und wuerde
-  // die Markierung sonst stillschweigend loeschen.
+  // TEIL-UPDATES: Fehlt ein Feld im Body, bleibt der bestehende Wert stehen (siehe unten in
+  // `values`). Frueher fiel jedes nicht mitgeschickte Feld auf NULL — das loeschte bei einem
+  // Teil-Body die Klassifizierung des Deals. Kritisch war kam_id: die Spalte ist NULLABLE, der
+  // KAM verschwand also STILL und der Deal fiel aus jeder Standort-Spalte (VL-Seite wie
+  // Auswertung), ohne Fehlermeldung. datum/monat/company_id/kunde/status sind NOT NULL und
+  // krachten stattdessen mit einem 500er — ein Teil-PUT war damit ohnehin unbrauchbar.
+  // Ueber die UI war beides nicht erreichbar (das VL-Formular schickt `initial`, also die volle
+  // Deal-Zeile; die Kuendigungen-Seite nutzt PATCH) — der Schutz gilt API-Skripten und kuenftigen
+  // Aufrufern. Ein EXPLIZITES null im Body loescht weiterhin: PUT bleibt PUT.
+  // Dauervertrag: nur anfassen, wenn der Haken im Body mitkommt, sonst bestehenden Zustand
+  // erhalten.
   const dvImBody = req.body.dauervertrag_umgestellt !== undefined;
-  const dv = dvImBody ? normDauervertrag(req.body) : {
+  const dv = dvImBody ? normDauervertrag(req.body, existing) : {
     dauervertrag_umgestellt: Number(existing?.dauervertrag_umgestellt) || 0,
     dauervertrag_ae_wert:    existing?.dauervertrag_ae_wert ?? null,
     dauervertrag_datum:      existing?.dauervertrag_datum ?? null,
@@ -272,8 +283,14 @@ router.put('/:id', wrap(async (req, res) => {
   const values = fields.map(f => {
     if (f === 'gewonnen_datum') return gewonnen_datum;
     if (f === 'gewonnen_monat') return gewonnen_monat;
-    if (f === 'abgerechnet') return req.body[f] ?? (req.body.status === 'Gewonnen' ? 'Nein' : null);
-    if (f === 'upsale_angesprochen' || f === 'upsale_angenommen') return Number(req.body[f]) || 0;
+    if (f === 'abgerechnet') {
+      if (req.body[f] === undefined) return existing?.abgerechnet ?? null;
+      return req.body[f] ?? (req.body.status === 'Gewonnen' ? 'Nein' : null);
+    }
+    if (f === 'upsale_angesprochen' || f === 'upsale_angenommen') {
+      if (req.body[f] === undefined) return Number(existing?.[f]) || 0;
+      return Number(req.body[f]) || 0;
+    }
     if (f in dv) return dv[f];
     if (f === 'terminiert') {
       if (req.body.terminiert !== undefined) return Number(req.body.terminiert) || 0;
@@ -287,7 +304,8 @@ router.put('/:id', wrap(async (req, res) => {
       if (weitergeben === 'Nein' && kamId) return String(kamId);
       return existing?.neuer_ap_intern ?? null;
     }
-    if (PRESERVE_FIELDS.includes(f) && req.body[f] === undefined) return existing?.[f] ?? null;
+    // Teil-Update: nicht mitgeschickte Felder behalten ihren Wert. Explizites null loescht.
+    if (req.body[f] === undefined) return existing?.[f] ?? null;
     return req.body[f] ?? null;
   });
 

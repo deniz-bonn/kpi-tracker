@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { kpisApi, monthlyTargetsApi, auswertungApi } from '../utils/api';
 import { formatEuro } from '../utils/format';
 import { useAuth } from '../context/AuthContext';
+import InfoPopover from '../components/InfoPopover';
+import { SICHT_ABSCHLUSS_VL, SICHT_ABSCHLUSS_BK, SICHT_DEUTSCHLAND } from '../utils/aeSichten';
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
 const MONTH_NAMES_LONG = [
@@ -273,8 +275,12 @@ export default function Dashboard() {
             <tr className="bg-[#2d2e30] border-b border-[#444]">
               <th className={`${th} text-gray-300 sticky left-0 bg-[#2d2e30] z-10 min-w-[90px]`} rowSpan={2}>Monat</th>
               <th colSpan={6} className={`${th} text-blue-300 border-l border-[#444] text-center`}>Neukunden NK</th>
-              <th colSpan={5} className={`${th} text-green-300 border-l border-[#444] text-center`}>Bestandskunden BK</th>
-              <th colSpan={5} className={`${th} text-purple-300 border-l border-[#444] text-center`}>Verlängerungen VL</th>
+              <th colSpan={5} className={`${th} text-green-300 border-l border-[#444] text-center`}>
+                Bestandskunden BK<InfoPopover text={SICHT_ABSCHLUSS_BK} label="Bestandskunden BK" />
+              </th>
+              <th colSpan={5} className={`${th} text-purple-300 border-l border-[#444] text-center`}>
+                Verlängerungen VL<InfoPopover text={SICHT_ABSCHLUSS_VL} label="Verlängerungen VL" />
+              </th>
               <th className={`${th} text-white border-l border-[#444]`} rowSpan={2}>Umsatz Gesamt</th>
               {canSeeTargets && <th className={`${th} text-amber-300 border-l border-[#444]`} rowSpan={2}>Ziel</th>}
               {canSeeTargets && <th className={`${th} text-white border-l border-[#444]`} rowSpan={2}>Differenz</th>}
@@ -291,7 +297,9 @@ export default function Dashboard() {
               <th className={th}>Schweiz</th>
               <th className={`${th} text-gray-300`}>Gesamt</th>
               <th className={`${th} text-gray-300`}>Anteil</th>
-              <th className={`${th} border-l border-[#444]`}>Deutschland</th>
+              <th className={`${th} border-l border-[#444]`}>
+                Deutschland<InfoPopover text={SICHT_DEUTSCHLAND} label="Deutschland (VL)" />
+              </th>
               <th className={th}>Österreich</th>
               <th className={th}>Schweiz</th>
               <th className={`${th} text-gray-300`}>Gesamt</th>

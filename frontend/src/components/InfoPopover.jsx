@@ -64,9 +64,9 @@ export default function InfoPopover({ text, label }) {
           onMouseEnter={show}
           onMouseLeave={hideSoon}
           style={{ position: 'fixed', top: pos.top, left: pos.left, width: 280 }}
-          className="z-[70] rounded-lg bg-gray-900 text-left text-xs leading-relaxed px-3 py-2 shadow-xl"
+          className="z-[70] rounded-lg bg-gray-900 text-left text-xs leading-relaxed px-3 py-2 shadow-xl whitespace-normal normal-case tracking-normal"
         >
-          {label && <div className="font-semibold text-white mb-0.5">{label}</div>}
+          {label && <div className="font-semibold text-white mb-0.5 normal-case tracking-normal">{label}</div>}
           <div className="text-gray-200 font-normal normal-case tracking-normal">{text}</div>
         </div>
       )}
