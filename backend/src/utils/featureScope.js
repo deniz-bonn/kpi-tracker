@@ -14,6 +14,16 @@
 const db = require('../db');
 
 const pg = () => db.dialect === 'postgres';
+
+// SQL liefert 0/1 (bzw. bigint in PG) — einmal zentral in Booleans wandeln, damit jeder Aufrufer
+// mit === false pruefen kann statt mit Number(...) === 0.
+const alsBool = (v, standard = true) => (v == null ? standard : Number(v) === 1);
+const normPerson = (p) => ({
+  id: p.id, name: p.name, rolle: p.rolle, standort: p.standort, user_id: p.user_id ?? null,
+  hat_konto:      alsBool(p.hat_konto),
+  konto_aktiv:    alsBool(p.konto_aktiv),
+  freigeschaltet: alsBool(p.freigeschaltet),
+});
 const T  = () => (pg() ? 'TRUE' : '1');
 
 /**
@@ -37,15 +47,16 @@ async function freigeschaltetePersonen(feature, { standort = null } = {}) {
   const params = [feature, feature];
   let wStandort = '';
   if (standort) { wStandort = ` AND e.standort = ${ph(3)}`; params.push(standort); }
-  return db.all(
-    `SELECT e.id, e.name, e.rolle, e.standort, MIN(u.id) AS user_id
+  return (await db.all(
+    `SELECT e.id, e.name, e.rolle, e.standort, MIN(u.id) AS user_id,
+            1 AS hat_konto, 1 AS konto_aktiv, 1 AS freigeschaltet
        FROM employees e
        JOIN users u ON u.employee_id = e.id
       WHERE e.aktiv = ${T()} AND u.active = ${T()}
         AND ${freigeschaltetSql(ph(1), ph(2))}${wStandort}
       GROUP BY e.id, e.name, e.rolle, e.standort
       ORDER BY e.name`,
-    params);
+    params)).map(normPerson);
 }
 
 /** Ist genau dieser Mitarbeiter fuer `feature` freigeschaltet? Dieselbe Regel, eine Zeile. */
@@ -67,4 +78,53 @@ async function istFreigeschaltet(employeeId, feature) {
   return !!r;
 }
 
-module.exports = { freigeschaltetePersonen, istFreigeschaltet };
+/**
+ * ALLE dashboard-relevanten Mitarbeiter — unabhaengig von Freischaltung und Nutzerkonto.
+ *
+ * Fuer den vollen Kontroll-Scope (Superadmin und wer ausdruecklich gleichgestellt wurde).
+ * Begruendung: Die Ansicht braucht nur die employee_id, keinen Login. Wer keinen Account hat oder
+ * dessen Konto deaktiviert ist, hat trotzdem Deals, Provision und ggf. Incentive-Ziele — und genau
+ * die soll die Kontrolle sehen koennen. Der Zustand wird nicht versteckt, sondern als Badge
+ * ausgewiesen (hat_konto / konto_aktiv / freigeschaltet).
+ *
+ * "Relevant" = aktiver Mitarbeiter mit NK-Beteiligung (als Opener, Setter oder Closer) ODER
+ * mit einem Incentive-Ziel.
+ */
+async function alleRelevantenPersonen(feature, { standort = null } = {}) {
+  const ph = (n) => (pg() ? `$${n}` : '?');
+  // Reihenfolge der Parameter MUSS der Reihenfolge im SQL entsprechen (SQLite bindet positionell).
+  const params = [feature, feature];
+  let wStandort = '';
+  if (standort) { wStandort = ` AND e.standort = ${ph(3)}`; params.push(standort); }
+  return (await db.all(
+    `SELECT e.id, e.name, e.rolle, e.standort, MIN(u.id) AS user_id,
+            MAX(CASE WHEN u.id IS NOT NULL THEN 1 ELSE 0 END) AS hat_konto,
+            MAX(CASE WHEN u.active = ${T()} THEN 1 ELSE 0 END) AS konto_aktiv,
+            MAX(CASE WHEN u.active = ${T()} AND ${freigeschaltetSql(ph(1), ph(2))}
+                     THEN 1 ELSE 0 END) AS freigeschaltet
+       FROM employees e
+       LEFT JOIN users u ON u.employee_id = e.id
+      WHERE e.aktiv = ${T()}${wStandort}
+        AND ( EXISTS (SELECT 1 FROM deals_nk d
+                       WHERE d.opener_id = e.id OR d.setter_id = e.id OR d.closer_id = e.id)
+           OR EXISTS (SELECT 1 FROM incentive_ziele z WHERE z.employee_id = e.id) )
+      GROUP BY e.id, e.name, e.rolle, e.standort
+      ORDER BY e.name`,
+    params)).map(normPerson);
+}
+
+/** Ist dieser Mitarbeiter ueberhaupt dashboard-relevant? (Validierung fuer den vollen Scope.) */
+async function istRelevant(employeeId) {
+  if (!employeeId) return false;
+  const ph = (n) => (pg() ? `$${n}` : '?');
+  const r = await db.get(
+    `SELECT 1 AS ok FROM employees e
+      WHERE e.aktiv = ${T()} AND e.id = ${ph(1)}
+        AND ( EXISTS (SELECT 1 FROM deals_nk d
+                       WHERE d.opener_id = e.id OR d.setter_id = e.id OR d.closer_id = e.id)
+           OR EXISTS (SELECT 1 FROM incentive_ziele z WHERE z.employee_id = e.id) )
+      LIMIT 1`, [employeeId]);
+  return !!r;
+}
+
+module.exports = { freigeschaltetePersonen, istFreigeschaltet, alleRelevantenPersonen, istRelevant };

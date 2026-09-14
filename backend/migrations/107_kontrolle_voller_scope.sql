@@ -1,0 +1,16 @@
+-- Migration 107: Voller Kontroll-Scope (SQLite — Begruendung siehe .pg.sql).
+--
+-- Flag 'kontrolle_alle_mitarbeiter' entscheidet, WIE WEIT die Kontroll-Sicht reicht — nicht, ob
+-- jemand sie hat (das bleiben mein_dashboard_kontrolle / meine_provision_kontrolle):
+--   ohne Flag  -> nur Personen, die fuer die jeweilige Nutzer-Sicht freigeschaltet sind
+--                 (delegierte Kontrolleure sehen genau das, was freigegeben wurde)
+--   mit Flag   -> alle aktiven Mitarbeiter mit NK-Beteiligung oder Incentive-Ziel,
+--                 auch ohne Nutzerkonto und mit deaktiviertem Konto
+--                 (die Ansicht braucht nur die employee_id, keinen Login)
+--
+-- BEWUSST OHNE Rollen-Seed: Superadmin hat es strukturell (hatFeature laesst ihn durch); alle
+-- anderen werden ausdruecklich per Chip gleichgestellt. Ein Default waere hier zu weitreichend.
+--
+-- Nichts zu tun ausser dem Eintrag in KNOWN_FEATURES (Code) — diese Migration dokumentiert nur,
+-- dass das Flag existiert, und haelt die Nummernfolge geschlossen.
+SELECT 1;

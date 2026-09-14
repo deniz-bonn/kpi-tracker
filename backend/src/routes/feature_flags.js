@@ -11,7 +11,8 @@ const validRoles    = ['admin', 'vertriebsleitung', 'backoffice', 'bk_vertrieb',
 // Freischaltungen sind nur für diese Keys erlaubt.
 const KNOWN_FEATURES = ['kpi_beta', 'bestenliste', 'provisionen', 'backup', 'show_rates_close',
   'mein_dashboard', 'mein_dashboard_kontrolle',
-  'meine_provision', 'meine_provision_kontrolle'];
+  'meine_provision', 'meine_provision_kontrolle',
+  'kontrolle_alle_mitarbeiter'];
 
 // feature -> [role] Map aus feature_flags aufbauen.
 async function loadRoleFlags() {

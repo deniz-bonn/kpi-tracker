@@ -3,7 +3,8 @@ const db     = require('../db');
 const wrap   = require('../middleware/asyncHandler');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { requireFeature, requireAnyFeature, hatFeature } = require('../middleware/requireFeature');
-const { freigeschaltetePersonen, istFreigeschaltet } = require('../utils/featureScope');
+const { freigeschaltetePersonen, istFreigeschaltet,
+        alleRelevantenPersonen, istRelevant } = require('../utils/featureScope');
 const { logAudit } = require('../utils/audit');
 const { projektionLaufend, backfillLaufend, abschliesseZeitraum, staffelStatus, kreisFor,
         resolveZeitraum, detailFor } = require('../utils/provisionen');
@@ -37,13 +38,16 @@ router.use(requireAuth);
 // 'meine_provision', damit durch die Trennung niemand Zugang verliert.
 const NUTZER_SICHT   = 'meine_provision';
 const KONTROLL_SICHT = 'meine_provision_kontrolle';
+// Voller Kontroll-Scope (bereichsuebergreifend, siehe mein_dashboard.js): alle relevanten
+// Mitarbeiter statt nur der freigeschalteten. Superadmin implizit.
+const VOLLER_SCOPE   = 'kontrolle_alle_mitarbeiter';
 const nurAdminFeature = requireFeature('provisionen');
 
 // resolveZeitraum() und detailFor() liegen in utils/provisionen.js — geteilt mit "Mein Dashboard",
 // damit beide Seiten denselben Zeitraum und dieselbe Summenbildung benutzen.
 
 // ── Abrechnungszeitraeume ──
-router.get('/zeitraeume', requireAnyFeature(NUTZER_SICHT, 'provisionen'), wrap(async (req, res) => {
+router.get('/zeitraeume', requireAnyFeature(NUTZER_SICHT, KONTROLL_SICHT, 'provisionen'), wrap(async (req, res) => {
   const where = KREISE.includes(req.query.kreis) ? ` WHERE kreis=${ph(1)}` : '';
   const params = where ? [req.query.kreis] : [];
   res.json(await db.all(`SELECT id, von, bis, label, status, abgeschlossen_am, kreis FROM provision_zeitraeume${where} ORDER BY kreis, von DESC`, params));
@@ -53,16 +57,23 @@ router.get('/zeitraeume', requireAnyFeature(NUTZER_SICHT, 'provisionen'), wrap(a
 // `als` verhaelt sich exakt wie im Dashboard: nur fuer Berechtigte, nur fuer Personen, die fuer
 // die Nutzer-Sicht freigeschaltet sind, und fuer alle anderen STILL ignoriert (kein 403, kein
 // Hinweis darauf, welche IDs existieren).
-router.get('/me', requireFeature(NUTZER_SICHT), wrap(async (req, res) => {
-  const darfFremd = await hatFeature(req.user, KONTROLL_SICHT);
+// requireAnyFeature: wer NUR die Kontroll-Sicht hat (z.B. Vertriebsleitung), muss hier durch —
+// sonst faende er die Seite offen und den Endpoint mit 403 verschlossen.
+router.get('/me', requireAnyFeature(NUTZER_SICHT, KONTROLL_SICHT), wrap(async (req, res) => {
+  const darfFremd   = await hatFeature(req.user, KONTROLL_SICHT);
+  const vollerScope = darfFremd && await hatFeature(req.user, VOLLER_SCOPE);
   const gewuenscht = darfFremd && req.query.als ? Number(req.query.als) : null;
-  const alsId = (gewuenscht && await istFreigeschaltet(gewuenscht, NUTZER_SICHT)) ? gewuenscht : null;
+  const darfOeffnen = vollerScope ? istRelevant(gewuenscht) : istFreigeschaltet(gewuenscht, NUTZER_SICHT);
+  const alsId = (gewuenscht && await darfOeffnen) ? gewuenscht : null;
   const empId = alsId || req.user.employee_id;
   const alsFremde = !!(alsId && String(alsId) !== String(req.user.employee_id));
   const sicht = {
     fremdsicht_erlaubt: darfFremd,
     als_fremde: alsFremde,
-    personen: darfFremd ? await freigeschaltetePersonen(NUTZER_SICHT) : [],
+    voller_scope: vollerScope,
+    personen: darfFremd
+      ? (vollerScope ? await alleRelevantenPersonen(NUTZER_SICHT) : await freigeschaltetePersonen(NUTZER_SICHT))
+      : [],
   };
   if (!empId) return res.json({ employee: null, zeitraum: null, summe: 0, perTyp: {}, buchungen: [], sicht,
     hinweis: darfFremd

@@ -12,8 +12,9 @@ const router = require('express').Router();
 const db     = require('../db');
 const wrap   = require('../middleware/asyncHandler');
 const { requireAuth, requireRole } = require('../middleware/auth');
-const { requireFeature, hatFeature } = require('../middleware/requireFeature');
-const { freigeschaltetePersonen, istFreigeschaltet } = require('../utils/featureScope');
+const { requireFeature, requireAnyFeature, hatFeature } = require('../middleware/requireFeature');
+const { freigeschaltetePersonen, istFreigeschaltet,
+        alleRelevantenPersonen, istRelevant } = require('../utils/featureScope');
 const { logAudit } = require('../utils/audit');
 const { kreisFor, resolveZeitraum, detailFor, staffelStatus } = require('../utils/provisionen');
 const { aeEurGatedSql, moneyEurSql } = require('../utils/currency');
@@ -25,7 +26,11 @@ const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
 const heute = inc.heute;
 
 router.use(requireAuth);
-router.use(requireFeature('mein_dashboard'));
+// Die Seite oeffnet sich auch fuer reine Kontrolleure: wer nur KONTROLL_SICHT hat (z.B. die
+// Vertriebsleitung), braucht Zugriff, ohne selbst fuer die Nutzer-Sicht freigeschaltet zu sein.
+// Vorher pruefte der Router nur NUTZER_SICHT — das Frontend liess solche Nutzer auf die Seite,
+// der Server antwortete 403. Genau das traf Tobias Boettcher.
+router.use(requireAnyFeature('mein_dashboard', 'mein_dashboard_kontrolle'));
 
 // Status, die als "offen" gelten — deckungsgleich mit der Deal-Liste im NK-Bereich.
 const OFFEN = ['Offen', 'In Verhandlung', 'In Closing Call 2'];
@@ -61,6 +66,11 @@ const rollenAn = (d, empId) => [
 // Superadmin hat beides strukturell (hatFeature laesst ihn durch).
 const NUTZER_SICHT   = 'mein_dashboard';
 const KONTROLL_SICHT = 'mein_dashboard_kontrolle';
+// Bereichsuebergreifend: wer den VOLLEN Kontroll-Scope hat, sieht ALLE dashboard-relevanten
+// Mitarbeiter — auch ohne Nutzerkonto und mit deaktiviertem Konto. Superadmin hat es strukturell;
+// weitere Personen werden ausdruecklich gleichgestellt (Chip in der Zugriffssteuerung).
+// Delegierte Kontrolleure OHNE dieses Flag sehen weiterhin nur die Freischalt-Menge.
+const VOLLER_SCOPE   = 'kontrolle_alle_mitarbeiter';
 
 /**
  * Der komplette Dashboard-Datensatz EINER Person.
@@ -181,25 +191,34 @@ async function dashboardFuer(empId, { zeitraumId = null, ss = null } = {}) {
 // Die Auswahl fuer "Aus der Sicht von" IST die Freischalt-Liste der Nutzer-Sicht: nur wer den
 // Bereich selbst sehen darf, taucht hier auf. Serverseitig wird ?als= gegen dieselbe Menge
 // validiert (istFreigeschaltet), nicht nur das Dropdown gefiltert.
-const personenFuerAuswahl = (standort = null) => freigeschaltetePersonen(NUTZER_SICHT, { standort });
+const personenFuerAuswahl = (vollerScope, standort = null) => vollerScope
+  ? alleRelevantenPersonen(NUTZER_SICHT, { standort })
+  : freigeschaltetePersonen(NUTZER_SICHT, { standort });
+
+/** Darf diese Person geoeffnet werden? Voller Scope: jede relevante. Sonst: nur freigeschaltete. */
+const darfOeffnen = (vollerScope, empId) => vollerScope
+  ? istRelevant(empId)
+  : istFreigeschaltet(empId, NUTZER_SICHT);
 
 // ── GET /api/mein-dashboard[?als=<employee_id>] ──────────────────────────────
 router.get('/', wrap(async (req, res) => {
-  const darfFremd = await hatFeature(req.user, KONTROLL_SICHT);
+  const darfFremd   = await hatFeature(req.user, KONTROLL_SICHT);
+  const vollerScope = darfFremd && await hatFeature(req.user, VOLLER_SCOPE);
 
   // `als` wirkt NUR fuer Berechtigte UND nur fuer Personen, die fuer die Nutzer-Sicht
   // freigeschaltet sind. Fuer alle anderen wird der Parameter still ignoriert — kein 403,
   // keine Fehlermeldung: ein Vertriebler soll ueber die Antwort nicht einmal herausfinden
   // koennen, welche employee_id existiert oder wer freigeschaltet ist.
   const gewuenscht = darfFremd && req.query.als ? Number(req.query.als) : null;
-  const alsId = (gewuenscht && await istFreigeschaltet(gewuenscht, NUTZER_SICHT)) ? gewuenscht : null;
+  const alsId = (gewuenscht && await darfOeffnen(vollerScope, gewuenscht)) ? gewuenscht : null;
   const empId = alsId || req.user.employee_id;
   const alsFremde = !!(alsId && String(alsId) !== String(req.user.employee_id));
 
   const sicht = {
     fremdsicht_erlaubt: darfFremd,
     als_fremde: alsFremde,
-    personen: darfFremd ? await personenFuerAuswahl() : [],
+    voller_scope: vollerScope,
+    personen: darfFremd ? await personenFuerAuswahl(vollerScope) : [],
   };
 
   if (!empId) {
@@ -225,8 +244,9 @@ router.get('/team', wrap(async (req, res) => {
   if (!await hatFeature(req.user, KONTROLL_SICHT)) {
     return res.status(403).json({ error: 'Keine Berechtigung für den Team-Überblick' });
   }
+  const vollerScope = await hatFeature(req.user, VOLLER_SCOPE);
   const standort = req.query.standort || 'Bonn';
-  const personen = await personenFuerAuswahl(standort === 'alle' ? null : standort);
+  const personen = await personenFuerAuswahl(vollerScope, standort === 'alle' ? null : standort);
 
   // staffelStatus einmal statt je Person — dieselbe Quelle, nur nicht n-mal abgefragt.
   const ss = await staffelStatus(heute().slice(0, 7));
@@ -241,6 +261,7 @@ router.get('/team', wrap(async (req, res) => {
     const i = d.incentive;
     zeilen.push({
       employee_id: p.id, name: p.name, rolle: p.rolle, standort: p.standort,
+      hat_konto: p.hat_konto, konto_aktiv: p.konto_aktiv, freigeschaltet: p.freigeschaltet,
       messbasis: i?.messbasis || null, showrate_art: i?.showrate_art || null,
       provision: d.provision.summe,
       forecast: d.forecast.forecast,
@@ -280,7 +301,7 @@ router.get('/team', wrap(async (req, res) => {
   res.json({
     standort, standorte: ['Bonn', 'Braunschweig', 'Österreich', 'Schweiz'],
     teamgate: await inc.teamGate(monate),
-    zeilen,
+    zeilen, voller_scope: vollerScope,
     // Incentive-Teilnehmer ohne Freischaltung — sie sehen ihr Dashboard nicht und stehen deshalb
     // auch nicht in der Tabelle.
     nicht_freigeschaltet: fehlend,

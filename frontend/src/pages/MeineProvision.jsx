@@ -66,7 +66,14 @@ export default function MeineProvision() {
               onChange={(e) => { setAls(e.target.value === 'eigene' ? null : Number(e.target.value)); setZid(''); }}
               className="bg-white border border-gray-300 text-gray-700 text-xs rounded px-2 py-1.5 max-w-[220px]">
         <option value="eigene">Meine eigene Sicht</option>
-        {(sicht.personen || []).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+        {(sicht.personen || []).map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.name}
+            {p.hat_konto === false ? '  (kein Konto)'
+              : p.konto_aktiv === false ? '  (Konto inaktiv)'
+              : p.freigeschaltet === false ? '  (nicht freigeschaltet)' : ''}
+          </option>
+        ))}
       </select>
     </div>
   ) : null;

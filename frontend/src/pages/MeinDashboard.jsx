@@ -449,6 +449,21 @@ function MitarbeiterSicht({ data, zeitraumId, setZeitraumId }) {
 // ── Team-Überblick (für Superadmin / Vertriebsleitung) ───────────────────────
 // Aggregiert NICHT selbst: jede Zeile kommt aus demselben Rechenweg wie die Einzelsicht
 // (dashboardFuer je Person im Backend), hier wird nur projiziert und dargestellt.
+// Kontostatus einer Person. Im vollen Kontroll-Scope stehen auch Personen in der Liste, die den
+// Bereich selbst nicht sehen — das wird ausgewiesen, nicht versteckt.
+function KontoBadge({ p }) {
+  if (p.hat_konto === false)
+    return <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600"
+                 title="Kein Nutzerkonto — sieht seine Seite nicht">kein Konto</span>;
+  if (p.konto_aktiv === false)
+    return <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full bg-red-50 text-red-700"
+                 title="Konto deaktiviert — kann sich nicht einloggen">Konto inaktiv</span>;
+  if (p.freigeschaltet === false)
+    return <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-800"
+                 title="Nicht für den Bereich freigeschaltet">nicht freigeschaltet</span>;
+  return null;
+}
+
 function StatusChip({ status }) {
   if (!status) return <span className="text-gray-300">—</span>;
   return (
@@ -554,6 +569,7 @@ function TeamUeberblick({ onPerson }) {
                     <td className="px-3 py-1.5 font-medium text-gray-800">
                       {z.name}
                       {z.vorlaeufig && <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">vorläufig</span>}
+                      <KontoBadge p={z} />
                     </td>
                     <td className="px-3 py-1.5 text-gray-600">
                       {z.messbasis || <span className="text-gray-300">kein Incentive</span>}
@@ -586,7 +602,9 @@ function TeamUeberblick({ onPerson }) {
         </table>
         <div className="px-3 py-1.5 border-t border-gray-100 text-[11px] text-gray-500">
           Zeile anklicken öffnet die Sicht dieser Person — exakt so, wie sie sie selbst sieht.
-          Gelistet ist, wer für „Mein Dashboard" freigeschaltet ist.
+          {data?.voller_scope
+            ? ' Gelistet sind alle Mitarbeiter mit NK-Beteiligung oder Incentive-Ziel; die Badges zeigen, wer die Seite selbst nicht sieht.'
+            : ' Gelistet ist, wer für „Mein Dashboard" freigeschaltet ist.'}
           „—" bei der Show-Rate heißt: Datenbasis unzureichend oder keine Termine gelegt.
         </div>
       </div>
@@ -641,7 +659,12 @@ export default function MeinDashboard() {
           <option value="team">Team-Überblick</option>
           {data?.employee && <option value="eigene">Meine eigene Sicht</option>}
           {(sicht.personen || []).map(p => (
-            <option key={p.id} value={p.id}>{p.name}</option>
+            <option key={p.id} value={p.id}>
+              {p.name}
+              {p.hat_konto === false ? '  (kein Konto)'
+                : p.konto_aktiv === false ? '  (Konto inaktiv)'
+                : p.freigeschaltet === false ? '  (nicht freigeschaltet)' : ''}
+            </option>
           ))}
         </select>
       </div>
