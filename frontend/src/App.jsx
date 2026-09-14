@@ -30,7 +30,8 @@ const ROLES = {
 
 // Inner component so useAuth() works (AuthProvider wraps it)
 function AppRoutes() {
-  const { canSeeKpiBeta, canSeeBestenliste, canSeeProvisionen, canSeeProvisionenAdmin, canSeeShowRates, canSeeMeinDashboard } = useAuth();
+  const { canSeeKpiBeta, canSeeBestenliste, canSeeProvisionen, canSeeProvisionenAdmin, canSeeShowRates,
+          canSeeMeinDashboard, canSeeMeineProvision } = useAuth();
 
   return (
     <Routes>
@@ -98,7 +99,7 @@ function AppRoutes() {
         } />
         {/* "Meine Provision" bleibt bis zur Umschaltung erreichbar (Beta-Parallellauf). */}
         <Route path="meine-provision" element={
-          <ProtectedRoute canAccess={canSeeProvisionen}>
+          <ProtectedRoute canAccess={canSeeMeineProvision}>
             <MeineProvision />
           </ProtectedRoute>
         } />

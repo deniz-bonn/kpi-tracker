@@ -9,7 +9,9 @@ const pg = () => db.dialect === 'postgres';
 const validRoles    = ['admin', 'vertriebsleitung', 'backoffice', 'bk_vertrieb', 'nk_vertrieb'];
 // Bekannte, steuerbare Features (Sync mit CONTROLLED_FEATURES im Frontend). Einzel-
 // Freischaltungen sind nur für diese Keys erlaubt.
-const KNOWN_FEATURES = ['kpi_beta', 'bestenliste', 'provisionen', 'backup', 'show_rates_close', 'mein_dashboard', 'mein_dashboard_team'];
+const KNOWN_FEATURES = ['kpi_beta', 'bestenliste', 'provisionen', 'backup', 'show_rates_close',
+  'mein_dashboard', 'mein_dashboard_kontrolle',
+  'meine_provision', 'meine_provision_kontrolle'];
 
 // feature -> [role] Map aus feature_flags aufbauen.
 async function loadRoleFlags() {

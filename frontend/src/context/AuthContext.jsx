@@ -115,10 +115,13 @@ export function AuthProvider({ children }) {
   // Show Rates (Close): out-of-the-box nur Superadmin; weitere via Rolle oder Einzel-Freischaltung.
   const canSeeShowRates = isSuperAdmin || roleHasFeature('show_rates_close') || userHasFeature('show_rates_close');
   // Mein Dashboard (Beta): out-of-the-box nur Superadmin; weitere via Rolle oder Einzel-Freischaltung.
-  // Wer die Team-Sicht hat, braucht auch die Seite selbst — sonst muesste man zwei Flags setzen.
-  const canSeeMeinDashboard = isSuperAdmin
-    || roleHasFeature('mein_dashboard') || userHasFeature('mein_dashboard')
-    || roleHasFeature('mein_dashboard_team') || userHasFeature('mein_dashboard_team');
+  // Einheitliches Muster je Bereich: Nutzer-Sicht (eigene Daten) + Kontroll-Sicht (Fremdsicht).
+  const hat = (k) => isSuperAdmin || roleHasFeature(k) || userHasFeature(k);
+  // Wer die Kontroll-Sicht hat, braucht auch die Seite selbst — sonst muesste man zwei Flags setzen.
+  const canSeeMeinDashboard          = hat('mein_dashboard') || hat('mein_dashboard_kontrolle');
+  const canSeeMeinDashboardKontrolle = hat('mein_dashboard_kontrolle');
+  const canSeeMeineProvision          = hat('meine_provision') || hat('meine_provision_kontrolle');
+  const canSeeMeineProvisionKontrolle = hat('meine_provision_kontrolle');
   // Admin-Sicht der Provisionen (Gesamtübersicht/Abschluss): zusätzlich Rolle Admin/Vertriebsleitung.
   const canSeeProvisionenAdmin = canSeeProvisionen && (isAdmin || isVertriebsleitung);
 
@@ -128,7 +131,9 @@ export function AuthProvider({ children }) {
       isSuperAdmin, isAdmin, isBackoffice, isVertriebsleitung,
       canSeeNK, canSeeBK, canSeeVL, canSeeAdmin, canSeeAll,
       canSeeKpiBeta, canSeeBackup, canSeeBestenliste,
-      canSeeProvisionen, canSeeProvisionenAdmin, canSeeShowRates, canSeeMeinDashboard,
+      canSeeProvisionen, canSeeProvisionenAdmin, canSeeShowRates,
+      canSeeMeinDashboard, canSeeMeinDashboardKontrolle,
+      canSeeMeineProvision, canSeeMeineProvisionKontrolle,
       featureFlags, featureFlagsGeladen, userFeatures, refreshFeatureFlags,
     }}>
       {children}

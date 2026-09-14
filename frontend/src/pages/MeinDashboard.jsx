@@ -554,13 +554,6 @@ function TeamUeberblick({ onPerson }) {
                     <td className="px-3 py-1.5 font-medium text-gray-800">
                       {z.name}
                       {z.vorlaeufig && <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">vorläufig</span>}
-                      {/* Ein inaktives Konto heisst: die Person kann ihr Dashboard gar nicht oeffnen.
-                          Das ist eine Fuehrungsinformation, kein Grund sie auszublenden. */}
-                      {z.hat_konto === false
-                        ? <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600" title="Kein Nutzerkonto — sieht sein Dashboard nicht">kein Konto</span>
-                        : z.konto_aktiv === false
-                        ? <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full bg-red-50 text-red-700" title="Konto deaktiviert — kann sich nicht einloggen">Konto inaktiv</span>
-                        : null}
                     </td>
                     <td className="px-3 py-1.5 text-gray-600">
                       {z.messbasis || <span className="text-gray-300">kein Incentive</span>}
@@ -593,9 +586,23 @@ function TeamUeberblick({ onPerson }) {
         </table>
         <div className="px-3 py-1.5 border-t border-gray-100 text-[11px] text-gray-500">
           Zeile anklicken öffnet die Sicht dieser Person — exakt so, wie sie sie selbst sieht.
+          Gelistet ist, wer für „Mein Dashboard" freigeschaltet ist.
           „—" bei der Show-Rate heißt: Datenbasis unzureichend oder keine Termine gelegt.
         </div>
       </div>
+
+      {/* Incentive-Teilnehmer ohne Freischaltung wuerden sonst kommentarlos fehlen. */}
+      {data?.nicht_freigeschaltet?.length > 0 && (
+        <div className="text-xs bg-amber-50 border border-amber-200 text-amber-900 rounded-lg px-3 py-2">
+          <b>{data.nicht_freigeschaltet.length} Incentive-Teilnehmer sehen ihr Dashboard nicht</b> und
+          stehen deshalb nicht in der Tabelle:
+          <ul className="mt-1 space-y-0.5">
+            {data.nicht_freigeschaltet.map(p => (
+              <li key={p.employee_id}>· {p.name} — {p.grund}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

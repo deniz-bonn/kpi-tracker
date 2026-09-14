@@ -172,7 +172,8 @@ export const bestenlisteApi = {
 
 export const provisionenApi = {
   zeitraeume:  (kreis)          => api.get('/provisionen/zeitraeume', { params: (kreis && kreis !== 'Alle') ? { kreis } : {} }).then(r => r.data),
-  me:          (zeitraum_id)    => api.get('/provisionen/me', { params: { zeitraum_id } }).then(r => r.data),
+  // `als` wirkt serverseitig nur mit 'meine_provision_kontrolle' und nur fuer freigeschaltete Personen.
+  me:          (zeitraum_id, als) => api.get('/provisionen/me', { params: { zeitraum_id, ...(als ? { als } : {}) } }).then(r => r.data),
   overview:    (params)         => api.get('/provisionen/admin/overview', { params: params || {} }).then(r => r.data),
   employee:    (id, zeitraum_id)=> api.get(`/provisionen/admin/employee/${id}`, { params: { zeitraum_id } }).then(r => r.data),
   config:      ()               => api.get('/provisionen/config').then(r => r.data),

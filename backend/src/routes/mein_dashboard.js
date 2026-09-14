@@ -13,6 +13,7 @@ const db     = require('../db');
 const wrap   = require('../middleware/asyncHandler');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { requireFeature, hatFeature } = require('../middleware/requireFeature');
+const { freigeschaltetePersonen, istFreigeschaltet } = require('../utils/featureScope');
 const { logAudit } = require('../utils/audit');
 const { kreisFor, resolveZeitraum, detailFor, staffelStatus } = require('../utils/provisionen');
 const { aeEurGatedSql, moneyEurSql } = require('../utils/currency');
@@ -54,10 +55,12 @@ const rollenAn = (d, empId) => [
   String(d.closer_id) === String(empId) ? 'Closer' : null,
 ].filter(Boolean);
 
-// Feature, das die FREMDE Sicht freischaltet (Team-Ueberblick + "Sehen als").
-// Superadmin hat es immer (hatFeature laesst ihn durch); weitere Rollen sind ueber die
-// Zugriffssteuerung schaltbar. Default per Migration: vertriebsleitung.
-const FREMDSICHT = 'mein_dashboard_team';
+// Zwei Berechtigungen je Bereich, einheitliches Muster (siehe auch routes/provisionen.js):
+//   NUTZER_SICHT   — sieht den Bereich mit den EIGENEN Daten
+//   KONTROLL_SICHT — Team-Ueberblick + "Aus der Sicht von"
+// Superadmin hat beides strukturell (hatFeature laesst ihn durch).
+const NUTZER_SICHT   = 'mein_dashboard';
+const KONTROLL_SICHT = 'mein_dashboard_kontrolle';
 
 /**
  * Der komplette Dashboard-Datensatz EINER Person.
@@ -175,51 +178,28 @@ async function dashboardFuer(empId, { zeitraumId = null, ss = null } = {}) {
   };
 }
 
-/**
- * Dashboard-relevante Vertriebler — die Auswahl fuer "Sehen als" und die Zeilen des Ueberblicks.
- *
- * Massgeblich ist `employees.aktiv`, NICHT `users.active`. Ein deaktiviertes Nutzerkonto heisst nur,
- * dass die Person sich nicht einloggen kann — sie hat trotzdem Deals, Provision und Incentive-Ziele,
- * und genau die will die Kontrollsicht zeigen. (Im Prod-Stand vom 26.08.2026 sind z.B. die Konten
- * von Clemens Naekel und Julius Kawka inaktiv; mit einem Filter auf users.active waeren ausgerechnet
- * die Incentive-Teilnehmer aus dem Ueberblick gefallen.)
- * Der Kontostatus wird stattdessen mitgeliefert und im UI ausgewiesen — "kann sich nicht einloggen"
- * ist fuer die Fuehrung eine Information, kein Grund zum Ausblenden.
- * Aufgenommen wird, wer ein Nutzerkonto ODER ein Incentive-Ziel hat.
- */
-async function sichtbarePersonen(standort = null) {
-  const T = db.dialect === 'postgres' ? 'TRUE' : '1';
-  const w = standort ? ` AND e.standort = ${P(1)}` : '';
-  return db.all(
-    `SELECT e.id, e.name, e.rolle, e.standort,
-            MAX(CASE WHEN u.id IS NOT NULL THEN 1 ELSE 0 END)      AS hat_konto,
-            MAX(CASE WHEN u.active = ${T} THEN 1 ELSE 0 END)       AS konto_aktiv,
-            MAX(CASE WHEN z.id IS NOT NULL THEN 1 ELSE 0 END)      AS hat_incentive
-       FROM employees e
-       LEFT JOIN users u ON u.employee_id = e.id
-       LEFT JOIN incentive_ziele z ON z.employee_id = e.id
-      WHERE e.aktiv = ${T}${w}
-      GROUP BY e.id, e.name, e.rolle, e.standort
-     HAVING MAX(CASE WHEN u.id IS NOT NULL THEN 1 ELSE 0 END) = 1
-         OR MAX(CASE WHEN z.id IS NOT NULL THEN 1 ELSE 0 END) = 1
-      ORDER BY e.name`, standort ? [standort] : []);
-}
+// Die Auswahl fuer "Aus der Sicht von" IST die Freischalt-Liste der Nutzer-Sicht: nur wer den
+// Bereich selbst sehen darf, taucht hier auf. Serverseitig wird ?als= gegen dieselbe Menge
+// validiert (istFreigeschaltet), nicht nur das Dropdown gefiltert.
+const personenFuerAuswahl = (standort = null) => freigeschaltetePersonen(NUTZER_SICHT, { standort });
 
 // ── GET /api/mein-dashboard[?als=<employee_id>] ──────────────────────────────
 router.get('/', wrap(async (req, res) => {
-  const darfFremd = await hatFeature(req.user, FREMDSICHT);
+  const darfFremd = await hatFeature(req.user, KONTROLL_SICHT);
 
-  // `als` wirkt NUR fuer Berechtigte. Fuer alle anderen wird der Parameter still ignoriert —
-  // kein 403, keine Fehlermeldung: ein Vertriebler soll ueber die Antwort nicht einmal
-  // herausfinden koennen, welche employee_id existiert.
-  const alsId = darfFremd && req.query.als ? Number(req.query.als) : null;
+  // `als` wirkt NUR fuer Berechtigte UND nur fuer Personen, die fuer die Nutzer-Sicht
+  // freigeschaltet sind. Fuer alle anderen wird der Parameter still ignoriert — kein 403,
+  // keine Fehlermeldung: ein Vertriebler soll ueber die Antwort nicht einmal herausfinden
+  // koennen, welche employee_id existiert oder wer freigeschaltet ist.
+  const gewuenscht = darfFremd && req.query.als ? Number(req.query.als) : null;
+  const alsId = (gewuenscht && await istFreigeschaltet(gewuenscht, NUTZER_SICHT)) ? gewuenscht : null;
   const empId = alsId || req.user.employee_id;
   const alsFremde = !!(alsId && String(alsId) !== String(req.user.employee_id));
 
   const sicht = {
     fremdsicht_erlaubt: darfFremd,
     als_fremde: alsFremde,
-    personen: darfFremd ? await sichtbarePersonen() : [],
+    personen: darfFremd ? await personenFuerAuswahl() : [],
   };
 
   if (!empId) {
@@ -242,11 +222,11 @@ router.get('/', wrap(async (req, res) => {
 
 // ── GET /api/mein-dashboard/team — Ueberblick fuer Berechtigte ───────────────
 router.get('/team', wrap(async (req, res) => {
-  if (!await hatFeature(req.user, FREMDSICHT)) {
+  if (!await hatFeature(req.user, KONTROLL_SICHT)) {
     return res.status(403).json({ error: 'Keine Berechtigung für den Team-Überblick' });
   }
   const standort = req.query.standort || 'Bonn';
-  const personen = await sichtbarePersonen(standort === 'alle' ? null : standort);
+  const personen = await personenFuerAuswahl(standort === 'alle' ? null : standort);
 
   // staffelStatus einmal statt je Person — dieselbe Quelle, nur nicht n-mal abgefragt.
   const ss = await staffelStatus(heute().slice(0, 7));
@@ -261,7 +241,6 @@ router.get('/team', wrap(async (req, res) => {
     const i = d.incentive;
     zeilen.push({
       employee_id: p.id, name: p.name, rolle: p.rolle, standort: p.standort,
-      konto_aktiv: Number(p.konto_aktiv) === 1, hat_konto: Number(p.hat_konto) === 1,
       messbasis: i?.messbasis || null, showrate_art: i?.showrate_art || null,
       provision: d.provision.summe,
       forecast: d.forecast.forecast,
@@ -280,10 +259,31 @@ router.get('/team', wrap(async (req, res) => {
   const irgendeinZiel = await db.get(`SELECT zeitraum_von, zeitraum_bis FROM incentive_ziele LIMIT 1`);
   const monate = irgendeinZiel
     ? inc.monateVon(irgendeinZiel.zeitraum_von, irgendeinZiel.zeitraum_bis) : [];
+  // Wer ein Incentive-Ziel hat, aber NICHT freigeschaltet ist, faellt aus der Tabelle — sonst
+  // kommentarlos. Das ist fast immer ein Versehen (fehlende Freischaltung, deaktiviertes Konto,
+  // kein Nutzerkonto) und gehoert der Fuehrung vor Augen, statt als Luecke unterzugehen.
+  const drin = new Set(zeilen.map(z => String(z.employee_id)));
+  const fehlend = (await db.all(
+    `SELECT e.id, TRIM(e.name) AS name, e.standort,
+            MAX(CASE WHEN u.id IS NOT NULL THEN 1 ELSE 0 END) AS hat_konto,
+            MAX(CASE WHEN u.active = ${db.dialect === 'postgres' ? 'TRUE' : '1'} THEN 1 ELSE 0 END) AS konto_aktiv
+       FROM incentive_ziele z
+       JOIN employees e ON e.id = z.employee_id
+       LEFT JOIN users u ON u.employee_id = e.id
+      GROUP BY e.id, e.name, e.standort`))
+    .filter(r => !drin.has(String(r.id)))
+    .map(r => ({ employee_id: r.id, name: r.name, standort: r.standort,
+      grund: Number(r.hat_konto) !== 1 ? 'kein Nutzerkonto'
+           : Number(r.konto_aktiv) !== 1 ? 'Konto deaktiviert'
+           : 'nicht für „Mein Dashboard" freigeschaltet' }));
+
   res.json({
     standort, standorte: ['Bonn', 'Braunschweig', 'Österreich', 'Schweiz'],
     teamgate: await inc.teamGate(monate),
     zeilen,
+    // Incentive-Teilnehmer ohne Freischaltung — sie sehen ihr Dashboard nicht und stehen deshalb
+    // auch nicht in der Tabelle.
+    nicht_freigeschaltet: fehlend,
     konfiguration: { closing_rate: ZIEL_CLOSING_RATE, teamziel: inc.TEAMZIEL_MONAT },
   });
 }));

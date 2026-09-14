@@ -19,10 +19,12 @@ const ROLE_LABELS = { superadmin:'Super Admin', admin:'Admin', vertriebsleitung:
 const CONTROLLED_FEATURES = [
   { key: 'kpi_beta', label: 'KPI Mitarbeiter Beta', desc: 'Beta-Dashboard mit täglichem Activity-Tracking' },
   { key: 'bestenliste', label: 'Bestenliste (Beta)', desc: 'Motivations-Leaderboard für den Vertrieb (nur NK-Daten)' },
-  { key: 'provisionen', label: 'Provisionen (Beta)', desc: 'Provisionsabrechnung NK (Bonn/Braunschweig) — eigene Provision + Admin-Übersicht' },
+  { key: 'provisionen', label: 'Provisionen — Admin-Übersicht', desc: 'Gesamtübersicht, Abschluss, Konfiguration und Export (/provisionen)' },
+  { key: 'meine_provision', label: 'Meine Provision', desc: 'Eigener Kontoauszug je Abrechnungszeitraum' },
+  { key: 'meine_provision_kontrolle', label: 'Meine Provision — Kontroll-Sicht', desc: '„Aus der Sicht von …": öffnet die Provisionssicht ANDERER freigeschalteter Personen. Superadmin immer.' },
   { key: 'show_rates_close', label: 'Show Rates (Close)', desc: 'Opener-/Setter-Show-Rates aus den Close-Statusdaten (Beta)' },
   { key: 'mein_dashboard', label: 'Mein Dashboard', desc: 'Persönliche Startseite je Vertriebler: Provision, eigene Deals, Forecast, Incentive (Beta)' },
-  { key: 'mein_dashboard_team', label: 'Mein Dashboard — Team-Sicht', desc: 'Team-Überblick und „Sehen als …": öffnet Provisions- und Incentive-Daten ANDERER Personen. Superadmin immer; Standard zusätzlich Vertriebsleitung.' },
+  { key: 'mein_dashboard_kontrolle', label: 'Mein Dashboard — Kontroll-Sicht', desc: 'Team-Überblick und „Aus der Sicht von …": öffnet Provisions- und Incentive-Daten ANDERER freigeschalteter Personen. Superadmin immer.' },
   { key: 'backup',   label: 'Datensicherung',       desc: 'Backup-Export und automatische Datensicherung herunterladen' },
 ];
 const CONTROLLABLE_ROLES = [

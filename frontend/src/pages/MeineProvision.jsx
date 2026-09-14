@@ -38,12 +38,17 @@ function StaffelBar({ label, satz, monthAe, restBisNext, nextSatz, erreichtAm })
 
 export default function MeineProvision() {
   const [zid, setZid] = useState('');
+  // "Aus der Sicht von": null = eigene Sicht. Serverseitig durchgesetzt — der Parameter wirkt nur
+  // mit 'meine_provision_kontrolle' und nur fuer Personen, die fuer 'meine_provision'
+  // freigeschaltet sind. Dieselbe Komponente, nur andere Daten: kein Nachbau.
+  const [als, setAls] = useState(null);
   const { data: zeitraeume = [] } = useQuery({ queryKey: ['prov-zeitraeume', 'all'], queryFn: () => provisionenApi.zeitraeume() });
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['prov-me', zid],
-    queryFn: () => provisionenApi.me(zid || undefined),
+    queryKey: ['prov-me', zid, als],
+    queryFn: () => provisionenApi.me(zid || undefined, als || undefined),
     placeholderData: keepPreviousData,
   });
+  const sicht = data?.sicht;
 
   const zSel = zid || data?.zeitraum?.id || '';
   const buchungen = data?.buchungen || [];
@@ -54,8 +59,44 @@ export default function MeineProvision() {
     ? 'Abrechnungszeitraum jeweils 21. des Vormonats bis 20. des Monats.'
     : 'Abrechnungszeitraum: voller Kalendermonat (1. bis Monatsende).';
 
+  const auswahl = sicht?.fremdsicht_erlaubt ? (
+    <div className="flex items-center gap-2">
+      <span className="text-[11px] text-gray-500">Ansicht</span>
+      <select value={als ? String(als) : 'eigene'}
+              onChange={(e) => { setAls(e.target.value === 'eigene' ? null : Number(e.target.value)); setZid(''); }}
+              className="bg-white border border-gray-300 text-gray-700 text-xs rounded px-2 py-1.5 max-w-[220px]">
+        <option value="eigene">Meine eigene Sicht</option>
+        {(sicht.personen || []).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+      </select>
+    </div>
+  ) : null;
+
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-5">
+      {(sicht?.fremdsicht_erlaubt || sicht?.als_fremde) && (
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          {sicht?.als_fremde ? (
+            <div className="flex items-center gap-3 flex-wrap bg-amber-50 border border-amber-300 rounded-lg px-3 py-2">
+              <span className="text-xs text-amber-900">
+                👁 <b>Ansicht als {data?.employee?.name}</b> — so sieht {String(data?.employee?.name || '').split(' ')[0]} seine
+                Provision. Du siehst fremde Provisionsdaten.
+              </span>
+              <button onClick={() => { setAls(null); setZid(''); }}
+                      className="text-xs px-2 py-1 rounded border border-amber-400 text-amber-900 hover:bg-amber-100">
+                ← Zurück zu meiner Sicht
+              </button>
+            </div>
+          ) : <div className="text-xs text-gray-500">
+                Du darfst die Provisionssicht freigeschalteter Mitarbeiter öffnen.
+              </div>}
+          {auswahl}
+        </div>
+      )}
+      {data && !data.employee && (
+        <div className="text-sm text-gray-500 py-6">
+          {data.hinweis || 'Kein Mitarbeiter mit diesem Account verknüpft.'}
+        </div>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-gray-900">💰 Meine Provision</h1>

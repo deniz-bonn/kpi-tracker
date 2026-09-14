@@ -2,7 +2,8 @@ const router = require('express').Router();
 const db     = require('../db');
 const wrap   = require('../middleware/asyncHandler');
 const { requireAuth, requireRole } = require('../middleware/auth');
-const { requireFeature } = require('../middleware/requireFeature');
+const { requireFeature, requireAnyFeature, hatFeature } = require('../middleware/requireFeature');
+const { freigeschaltetePersonen, istFreigeschaltet } = require('../utils/featureScope');
 const { logAudit } = require('../utils/audit');
 const { projektionLaufend, backfillLaufend, abschliesseZeitraum, staffelStatus, kreisFor,
         resolveZeitraum, detailFor } = require('../utils/provisionen');
@@ -27,22 +28,46 @@ const round2 = n => Math.round((Number(n) || 0) * 100) / 100;
 const heute = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
 router.use(requireAuth);
-router.use(requireFeature('provisionen'));
+
+// Zwei Berechtigungen, einheitliches Muster (siehe auch routes/mein_dashboard.js):
+//   NUTZER_SICHT   'meine_provision'            — eigene Provision (/me)
+//   KONTROLL_SICHT 'meine_provision_kontrolle'  — "Aus der Sicht von" auf /me
+// 'provisionen' bleibt das ADMIN-Flag fuer /admin/*, /config und den Export. Frueher gab
+// 'provisionen' beides frei; Migration 106 spiegelt alle bestehenden Freischaltungen auf
+// 'meine_provision', damit durch die Trennung niemand Zugang verliert.
+const NUTZER_SICHT   = 'meine_provision';
+const KONTROLL_SICHT = 'meine_provision_kontrolle';
+const nurAdminFeature = requireFeature('provisionen');
 
 // resolveZeitraum() und detailFor() liegen in utils/provisionen.js — geteilt mit "Mein Dashboard",
 // damit beide Seiten denselben Zeitraum und dieselbe Summenbildung benutzen.
 
 // ── Abrechnungszeitraeume ──
-router.get('/zeitraeume', wrap(async (req, res) => {
+router.get('/zeitraeume', requireAnyFeature(NUTZER_SICHT, 'provisionen'), wrap(async (req, res) => {
   const where = KREISE.includes(req.query.kreis) ? ` WHERE kreis=${ph(1)}` : '';
   const params = where ? [req.query.kreis] : [];
   res.json(await db.all(`SELECT id, von, bis, label, status, abgeschlossen_am, kreis FROM provision_zeitraeume${where} ORDER BY kreis, von DESC`, params));
 }));
 
-// ── Eigene Provision (Mitarbeiter) — NUR eigene Daten, serverseitig erzwungen ──
-router.get('/me', wrap(async (req, res) => {
-  const empId = req.user.employee_id;
-  if (!empId) return res.json({ employee: null, zeitraum: null, summe: 0, perTyp: {}, buchungen: [], hinweis: 'Kein Mitarbeiter mit diesem Account verknüpft.' });
+// ── Eigene Provision — NUR eigene Daten, ausser die Kontroll-Sicht ist freigeschaltet ──
+// `als` verhaelt sich exakt wie im Dashboard: nur fuer Berechtigte, nur fuer Personen, die fuer
+// die Nutzer-Sicht freigeschaltet sind, und fuer alle anderen STILL ignoriert (kein 403, kein
+// Hinweis darauf, welche IDs existieren).
+router.get('/me', requireFeature(NUTZER_SICHT), wrap(async (req, res) => {
+  const darfFremd = await hatFeature(req.user, KONTROLL_SICHT);
+  const gewuenscht = darfFremd && req.query.als ? Number(req.query.als) : null;
+  const alsId = (gewuenscht && await istFreigeschaltet(gewuenscht, NUTZER_SICHT)) ? gewuenscht : null;
+  const empId = alsId || req.user.employee_id;
+  const alsFremde = !!(alsId && String(alsId) !== String(req.user.employee_id));
+  const sicht = {
+    fremdsicht_erlaubt: darfFremd,
+    als_fremde: alsFremde,
+    personen: darfFremd ? await freigeschaltetePersonen(NUTZER_SICHT) : [],
+  };
+  if (!empId) return res.json({ employee: null, zeitraum: null, summe: 0, perTyp: {}, buchungen: [], sicht,
+    hinweis: darfFremd
+      ? 'Dein Account ist mit keinem Mitarbeiter verknüpft — wähle oben eine Person.'
+      : 'Kein Mitarbeiter mit diesem Account verknüpft.' });
   const emp = await db.get(`SELECT id, name, standort FROM employees WHERE id=${ph(1)}`, [empId]);
   const kreis = kreisFor(emp?.standort) || 'bonn';                        // eigener Abrechnungskreis
   const z = await resolveZeitraum(req.query.zeitraum_id, kreis);
@@ -52,14 +77,18 @@ router.get('/me', wrap(async (req, res) => {
   const atStaffel = kreis === 'oesterreich'
     ? { opener: ss.atOpener.find(o => o.employee_id === empId) || null, setter: ss.atSetter.find(s => s.employee_id === empId) || null }
     : null;
-  if (!z) return res.json({ employee: emp, zeitraum: null, kreis, summe: 0, perTyp: {}, buchungen: [], staffel, teamStaffel, atStaffel });
-  res.json({ employee: emp, zeitraum: z, kreis, ...(await detailFor(empId, z)), staffel, teamStaffel, atStaffel });
+  if (alsFremde) {
+    await logAudit({ user: req.user, action: 'sehen_als', entityType: 'meine_provision',
+      entityId: empId, newData: { employee_id: empId, name: emp?.name } });
+  }
+  if (!z) return res.json({ employee: emp, zeitraum: null, kreis, summe: 0, perTyp: {}, buchungen: [], staffel, teamStaffel, atStaffel, sicht });
+  res.json({ employee: emp, zeitraum: z, kreis, ...(await detailFor(empId, z)), staffel, teamStaffel, atStaffel, sicht });
 }));
 
 // ── Admin/Vertriebsleitung: Gesamtuebersicht + Einzeldetail ──
 const adminOnly = requireRole('admin', 'vertriebsleitung');
 
-router.get('/admin/overview', adminOnly, wrap(async (req, res) => {
+router.get('/admin/overview', adminOnly, nurAdminFeature, wrap(async (req, res) => {
   const kreis = KREISE.includes(req.query.kreis) ? req.query.kreis : 'bonn';
   const z = await resolveZeitraum(req.query.zeitraum_id, kreis);
   if (!z) return res.json({ zeitraum: null, kreis, gesamt: 0, zeilen: [] });
@@ -72,7 +101,7 @@ router.get('/admin/overview', adminOnly, wrap(async (req, res) => {
   res.json({ zeitraum: z, kreis, gesamt: round2(zeilen.reduce((a, r) => a + r.summe, 0)), zeilen, staffel });
 }));
 
-router.get('/admin/employee/:id', adminOnly, wrap(async (req, res) => {
+router.get('/admin/employee/:id', adminOnly, nurAdminFeature, wrap(async (req, res) => {
   const emp = await db.get(`SELECT id, name, standort FROM employees WHERE id=${ph(1)}`, [Number(req.params.id)]);
   const z = await resolveZeitraum(req.query.zeitraum_id, kreisFor(emp?.standort) || 'bonn');
   if (!z) return res.json({ employee: emp, zeitraum: null, summe: 0, perTyp: {}, buchungen: [] });
@@ -80,7 +109,7 @@ router.get('/admin/employee/:id', adminOnly, wrap(async (req, res) => {
 }));
 
 // ── Konfiguration (Saetze/Schwellen) — Lesen fuer Admin, Schreiben nur Superadmin ──
-router.get('/config', adminOnly, wrap(async (req, res) => {
+router.get('/config', adminOnly, nurAdminFeature, wrap(async (req, res) => {
   res.json(await db.all(`SELECT * FROM provision_config ORDER BY kreis, gueltig_ab DESC`));
 }));
 
@@ -89,7 +118,7 @@ const CONFIG_COLS = ['opener_satz', 'setter_satz', 'opener_setter_pauschal', 'cl
 
 // Bearbeitet die skalaren Saetze/Schwellen eines Kreises. Modus-Spalten (fix/staffel/flat_vl) und die
 // AT-Staffeltabelle sind strukturell (Migration) und hier bewusst NICHT editierbar.
-router.put('/config/:gueltig_ab', requireRole('superadmin'), wrap(async (req, res) => {
+router.put('/config/:gueltig_ab', requireRole('superadmin'), nurAdminFeature, wrap(async (req, res) => {
   const g = req.params.gueltig_ab;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(g)) return res.status(400).json({ error: 'gueltig_ab muss YYYY-MM-DD sein' });
   const f = req.body || {};
@@ -108,7 +137,7 @@ router.put('/config/:gueltig_ab', requireRole('superadmin'), wrap(async (req, re
 }));
 
 // ── Zeitraum abschliessen (NUR Superadmin): einfrieren + Folgeperiode ──
-router.post('/admin/zeitraeume/:id/abschluss', requireRole('superadmin'), wrap(async (req, res) => {
+router.post('/admin/zeitraeume/:id/abschluss', requireRole('superadmin'), nurAdminFeature, wrap(async (req, res) => {
   const r = await abschliesseZeitraum(Number(req.params.id), req.user.id);
   if (r.error === 'not_found') return res.status(404).json({ error: 'Zeitraum nicht gefunden' });
   if (r.error === 'already_closed') return res.status(400).json({ error: 'Zeitraum ist bereits abgeschlossen' });
@@ -118,7 +147,7 @@ router.post('/admin/zeitraeume/:id/abschluss', requireRole('superadmin'), wrap(a
 }));
 
 // ── StB-Export (NUR Superadmin — Lohndaten): CSV je Mitarbeiter mit Aufschlüsselung nach Typ ──
-router.get('/admin/zeitraeume/:id/export.csv', requireRole('superadmin'), wrap(async (req, res) => {
+router.get('/admin/zeitraeume/:id/export.csv', requireRole('superadmin'), nurAdminFeature, wrap(async (req, res) => {
   const z = await db.get(`SELECT * FROM provision_zeitraeume WHERE id=${ph(1)}`, [Number(req.params.id)]);
   if (!z) return res.status(404).json({ error: 'Zeitraum nicht gefunden' });
   const rows = await db.all(
@@ -154,11 +183,11 @@ router.get('/admin/zeitraeume/:id/export.csv', requireRole('superadmin'), wrap(a
 }));
 
 // ── Backfill des laufenden Zeitraums (nur Superadmin): erst Dry-Run, dann Commit ──
-router.get('/admin/backfill/projektion', requireRole('superadmin'), wrap(async (req, res) => {
+router.get('/admin/backfill/projektion', requireRole('superadmin'), nurAdminFeature, wrap(async (req, res) => {
   res.json(await projektionLaufend(req.query.kreis));
 }));
 
-router.post('/admin/backfill', requireRole('superadmin'), wrap(async (req, res) => {
+router.post('/admin/backfill', requireRole('superadmin'), nurAdminFeature, wrap(async (req, res) => {
   const kreis = KREISE.includes(req.body?.kreis) ? req.body.kreis : null;
   const r = await backfillLaufend(kreis);
   await logAudit({ user: req.user, action: 'backfill', entityType: 'provision', entityId: r.kreis || 'alle', newData: { kreis: r.kreis, gewonneneInScope: r.gewonneneInScope } });

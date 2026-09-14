@@ -44,4 +44,16 @@ function requireFeature(feature) {
   };
 }
 
-module.exports = { requireFeature, hatFeature };
+/** Zugriff, wenn EINES der Features freigeschaltet ist — fuer Endpoints, die zwei Bereiche bedienen
+ *  (z.B. /provisionen/zeitraeume: sowohl die eigene Sicht als auch der Admin-Bereich brauchen es). */
+function requireAnyFeature(...features) {
+  return async (req, res, next) => {
+    try {
+      if (!req.user) return res.status(401).json({ error: 'Nicht angemeldet' });
+      for (const f of features) if (await hatFeature(req.user, f)) return next();
+      return res.status(403).json({ error: 'Kein Zugriff auf dieses Feature' });
+    } catch (e) { next(e); }
+  };
+}
+
+module.exports = { requireFeature, requireAnyFeature, hatFeature };
