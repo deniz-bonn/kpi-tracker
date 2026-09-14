@@ -86,6 +86,11 @@ export function AuthProvider({ children }) {
       .catch(() => {});
   }, [user?.id]);
 
+  // Sind die Feature-Flags schon da? featureFlags startet als null und wird nach dem Fetch gesetzt
+  // (im Fehlerfall auf {} — dann gilt "geladen, aber kein Zusatzzugriff"). Routen-Guards brauchen
+  // dieses Signal, weil canSee* VOR dem Laden faelschlich false ist und sonst wegleiten wuerde.
+  const featureFlagsGeladen = featureFlags !== null;
+
   const isSuperAdmin = user?.role === 'superadmin';
   const isAdmin      = user?.role === 'admin' || isSuperAdmin;
   const isBackoffice = user?.role === 'backoffice';
@@ -118,7 +123,8 @@ export function AuthProvider({ children }) {
       isSuperAdmin, isAdmin, isBackoffice, isVertriebsleitung,
       canSeeNK, canSeeBK, canSeeVL, canSeeAdmin, canSeeAll,
       canSeeKpiBeta, canSeeBackup, canSeeBestenliste,
-      canSeeProvisionen, canSeeProvisionenAdmin, canSeeShowRates, featureFlags, userFeatures, refreshFeatureFlags,
+      canSeeProvisionen, canSeeProvisionenAdmin, canSeeShowRates,
+      featureFlags, featureFlagsGeladen, userFeatures, refreshFeatureFlags,
     }}>
       {children}
     </AuthContext.Provider>
