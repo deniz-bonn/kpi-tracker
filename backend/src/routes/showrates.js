@@ -11,6 +11,7 @@ const db = require('../db');
 const wrap = require('../middleware/asyncHandler');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { requireFeature } = require('../middleware/requireFeature');
+const { logAudit } = require('../utils/audit');
 
 router.use(requireAuth);
 router.use(requireFeature('show_rates_close'));
@@ -190,18 +191,49 @@ router.patch('/mapping/:closeUserId', requireRole('admin'), wrap(async (req, res
   res.json(await db.get(`SELECT * FROM close_user_map WHERE close_user_id=${P(1)}`, [req.params.closeUserId]));
 }));
 
-// POST /api/showrates/sync — manueller Sync (Admin/Superadmin). since=YYYY-MM-DD fuer Backfill.
-router.post('/sync', requireRole('admin'), wrap(async (req, res) => {
+// POST /api/showrates/sync — manueller Sync.
+//
+// BERECHTIGUNG: bewusst KEIN requireRole mehr. Der Router traegt oben requireFeature('show_rates_close');
+// wer den Bereich sehen darf (ueber die Rolle ODER eine Einzel-Freischaltung in feature_flag_users),
+// darf ihn auch aktualisieren. Der Sync ist read-only gegen Close und schreibt nur in die eigenen
+// close_*-Tabellen — er kann keine Geschaeftsdaten veraendern. Der Button ist nur die Sichtbarkeit;
+// durchgesetzt wird hier.
+//
+// ASYNCHRON: runSync dauert beim Voll-Backfill ~70 s und lief so in den 20-s-Timeout des Clients
+// ("fehlgeschlagen", obwohl er im Hintergrund weiterlief). Daher 202 + Status-Polling.
+router.post('/sync', wrap(async (req, res) => {
   const { since } = req.body || {};
   if (since && !/^\d{4}-\d{2}-\d{2}$/.test(since)) return res.status(400).json({ error: 'since muss YYYY-MM-DD sein' });
-  const { runSync } = require('../utils/closeSync');
-  try {
-    const r = await runSync({ since, log: (m) => console.log(m) });
-    res.json({ ok: true, ...r });
-  } catch (e) {
-    console.error('[showrates] Sync fehlgeschlagen:', e.message);
-    res.status(502).json({ ok: false, error: e.message });
+  if (!process.env.CLOSE_API_KEY) return res.status(503).json({ error: 'Kein Close-API-Key konfiguriert' });
+
+  const job = require('../utils/closeSyncJob');
+  // Superadmin umgeht den Cooldown (Debugging/Nachfassen), alle anderen nicht.
+  const r = await job.starten({
+    since: since || null,
+    ausgeloestVon: 'manuell',
+    user: req.user,
+    cooldownUmgehen: req.user?.role === 'superadmin',
+  });
+
+  if (!r.ok && r.grund === 'laeuft') {
+    return res.status(409).json({ error: 'Sync läuft bereits', grund: 'laeuft',
+      runId: r.runId, gestartetAm: r.gestartetAm });
   }
+  if (!r.ok && r.grund === 'cooldown') {
+    return res.status(429).json({ error: 'Zuletzt erfolgreich synchronisiert — bitte kurz warten',
+      grund: 'cooldown', restSek: r.restSek, letzterLauf: r.letzterLauf, cooldownMin: job.COOLDOWN_MIN });
+  }
+
+  await logAudit({ user: req.user, action: 'close_sync', entityType: 'showrates', entityId: r.runId,
+    newData: { since: since || null, ausgeloest_von: 'manuell' } });
+
+  res.status(202).json({ ok: true, runId: r.runId, gestartetAm: r.gestartetAm, status: 'laeuft' });
+}));
+
+// GET /api/showrates/sync/status — Fortschritt des laufenden Laufs + Historie (auch die Cron-Laeufe).
+router.get('/sync/status', wrap(async (req, res) => {
+  const job = require('../utils/closeSyncJob');
+  res.json(await job.status({ historie: Math.min(Number(req.query.historie) || 10, 50) }));
 }));
 
 module.exports = router;

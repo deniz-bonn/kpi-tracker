@@ -156,18 +156,21 @@ cron.schedule('30 0 * * *', async () => {
   }
 }, { timezone: 'Europe/Berlin' });
 
+// Close-Show-Rates: beim Start verwaiste Sync-Laeufe schliessen (Deploy/Neustart mitten im Lauf).
+require('./utils/closeSyncJob').aufraeumen().catch(() => {});
+
 // Close-Show-Rates: naechtlicher Inkrement-Sync um 01:15 (read-only gegen Close).
 // Holt neue Lead-/Opportunity-Statuswechsel und leitet die termine neu ab. Laeuft nur, wenn ein
 // CLOSE_API_KEY gesetzt ist — ohne Key bleibt das Feature schlicht inaktiv, ohne Fehler zu werfen.
 cron.schedule('15 1 * * *', async () => {
   if (!process.env.CLOSE_API_KEY) return;
-  try {
-    const { runSync } = require('./utils/closeSync');
-    const r = await runSync({ log: (m) => console.log(m) });
-    console.log('[close-sync] OK:', JSON.stringify({ events: r.events, termine: r.termine }));
-  } catch (err) {
-    console.error('[close-sync] Fehlgeschlagen:', err.message);
-  }
+  // Ueber den Job-Runner statt direkt runSync: derselbe Lock (kein Zusammenstoss mit einem
+  // gleichzeitigen manuellen Lauf) und derselbe Protokoll-Eintrag in close_sync_runs. Damit ist
+  // die Frage "laeuft der Nightly?" in der App beantwortbar statt nur in den Railway-Logs.
+  // Der Cron umgeht den Cooldown bewusst — er ist der geplante Lauf, nicht ein Klick.
+  const job = require('./utils/closeSyncJob');
+  const r = await job.starten({ ausgeloestVon: 'cron', cooldownUmgehen: true });
+  if (!r.ok) console.warn('[close-sync] Nightly uebersprungen:', r.grund);
 }, { timezone: 'Europe/Berlin' });
 
 // ── Serve built React frontend (production / Railway) ────────────────────────

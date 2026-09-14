@@ -1,8 +1,19 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { showRatesApi } from '../utils/api';
-import { useAuth } from '../context/AuthContext';
 import { currentMonat } from '../utils/format';
+
+// Zeitstempel-Anzeige. Postgres liefert ISO mit Zone, SQLite 'YYYY-MM-DD HH:MM:SS' in UTC —
+// letzteres parst der Browser als lokale Zeit, deshalb das Z ergaenzen, bevor daraus ein Date wird.
+function alsDatum(v) {
+  if (!v) return null;
+  if (v instanceof Date) return v;
+  const s = String(v);
+  const d = new Date(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(s) ? s.replace(' ', 'T') + 'Z' : s);
+  return isNaN(d) ? null : d;
+}
+const uhrzeit  = (v) => alsDatum(v)?.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) ?? '—';
+const zeitpunkt = (v) => alsDatum(v)?.toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }) ?? '—';
 
 // Show Rates (Close) — Opener/Setter. Datenbasis ist die lokal gespiegelte Close-Status-Historie
 // (siehe docs/close-discovery.md Rev. 2). Quote = stattgefunden / (stattgefunden + nicht stattgefunden);
@@ -27,7 +38,6 @@ function RateZelle({ z }) {
 }
 
 export default function ShowRates() {
-  const { isAdmin } = useAuth();
   const qc = useQueryClient();
   const [monat, setMonat] = useState(currentMonat());
   const [tab, setTab] = useState('uebersicht');
@@ -37,11 +47,87 @@ export default function ShowRates() {
   const { data: quellen = [] }  = useQuery({ queryKey: ['sr-quellen', monat],  queryFn: () => showRatesApi.quellen(monat) });
   const { data: qual }          = useQuery({ queryKey: ['sr-qualitaet'],       queryFn: showRatesApi.qualitaet });
 
+  // ── Sync: 202 + Polling statt synchronem Warten ──────────────────────────────
+  // Der Voll-Backfill dauert ~70 s; synchron lief er in den 20-s-Timeout von axios und meldete
+  // "fehlgeschlagen", obwohl er im Hintergrund weiterlief. Jetzt: starten, dann Status pollen.
+  //
+  // Zwei Fallen, die hier bewusst adressiert sind:
+  //  (a) refetchInterval als einfacher Wert startete NICHT zuverlaessig neu, wenn der letzte Fetch
+  //      schon abgeschlossen war. Deshalb die Funktionsform + ein explizites refetch() nach dem 202.
+  //  (b) Ein Lauf kann schneller fertig sein als der erste Poll (ein 401 kommt nach ~0,6 s zurueck).
+  //      Ein "lief vorher, laeuft jetzt nicht mehr"-Vergleich verpasst das. Deshalb merken wir uns
+  //      die runId und lesen ihr Ergebnis aus der Historie — unabhaengig davon, wie schnell es ging.
+  const [hinweis, setHinweis] = useState(null);        // { art: 'info'|'fehler', text }
+  const [pollt, setPollt]     = useState(false);       // steuert das Poll-Intervall
+  const laufendeId = useRef(null);                     // runId, auf deren Ergebnis wir warten
+
+  const { data: syncStatus, refetch: statusNeuLaden } = useQuery({
+    queryKey: ['sr-sync-status'],
+    queryFn: showRatesApi.syncStatus,
+  });
+
+  // Bewusst ein eigenes Intervall statt refetchInterval: dessen Neustart nach einem bereits
+  // abgeschlossenen Fetch war hier nicht verlaesslich (gemessen: nach dem 202 kam genau EIN
+  // Status-Request, danach nichts mehr, die UI blieb auf "Synchronisiere…" stehen).
+  useEffect(() => {
+    if (!pollt) return;
+    const t = setInterval(() => statusNeuLaden(), 2000);
+    return () => clearInterval(t);
+  }, [pollt, statusNeuLaden]);
+
+  const laeuft = !!syncStatus?.laeuft;
+
+  // Ergebnis des selbst gestarteten Laufs aus der Historie lesen, sobald es da ist.
+  useEffect(() => {
+    const id = laufendeId.current;
+    if (!id || !syncStatus?.laeufe) return;
+    const lauf = syncStatus.laeufe.find(l => l.id === id);
+    if (!lauf || lauf.status === 'laeuft') return;
+
+    laufendeId.current = null;
+    setPollt(false);
+    ['sr-overview', 'sr-personen', 'sr-quellen', 'sr-qualitaet'].forEach(k => qc.invalidateQueries({ queryKey: [k] }));
+    if (lauf.status === 'ok') {
+      setHinweis({ art: 'info', text: `Sync fertig in ${Number(lauf.dauer_sek).toFixed(0)} s · `
+        + `${lauf.events ?? '—'} Events · ${lauf.termine ?? '—'} Termine` });
+    } else {
+      setHinweis({ art: 'fehler', text: `Sync fehlgeschlagen: ${lauf.fehler || lauf.status}` });
+    }
+  }, [syncStatus, qc]);
+
   const syncMut = useMutation({
     mutationFn: (since) => showRatesApi.sync(since),
-    onSuccess: () => ['sr-overview', 'sr-personen', 'sr-quellen', 'sr-qualitaet']
-      .forEach(k => qc.invalidateQueries({ queryKey: [k] })),
+    onMutate: () => setHinweis(null),
+    onSuccess: (r) => {
+      if (r.httpStatus === 202) {
+        laufendeId.current = r.runId;
+        setPollt(true);
+        statusNeuLaden();                                // erster Abruf sofort, dann alle 2 s
+        return;
+      }
+      if (r.httpStatus === 409) {
+        laufendeId.current = r.runId ?? null;
+        setPollt(true);
+        statusNeuLaden();
+        setHinweis({ art: 'info', text: `Sync läuft bereits — gestartet ${uhrzeit(r.gestartetAm)}` });
+        return;
+      }
+      if (r.httpStatus === 429) {
+        const min = Math.ceil((r.restSek || 0) / 60);
+        setHinweis({ art: 'info', text: `Zuletzt synchronisiert ${uhrzeit(r.letzterLauf)} — `
+          + `frühestens in ${min} Minute${min === 1 ? '' : 'n'} wieder (Cooldown ${r.cooldownMin} min).` });
+      }
+    },
+    onError: (e) => setHinweis({ art: 'fehler', text: e?.response?.data?.error || e.message }),
   });
+
+  // Laeuft beim Seitenaufruf schon ein fremder Sync (z.B. der Nightly), mitlaufen lassen.
+  useEffect(() => {
+    if (laeuft && !laufendeId.current) {
+      laufendeId.current = syncStatus?.laufend?.runId ?? null;
+      setPollt(true);
+    }
+  }, [laeuft, syncStatus]);
 
   const monate = ov?.monate || [];
   const aktuell = useMemo(() => monate.find(m => m.monat === monat), [monate, monat]);
@@ -62,9 +148,16 @@ export default function ShowRates() {
           <p className="text-xs text-gray-500 mt-0.5">
             Aus den Lead- und Opportunity-Statusdaten in Close · Quote = stattgefunden ÷ (stattgefunden + No-Show/Abgesagt)
           </p>
-          {ov?.letzterSync && (
+          {(syncStatus?.letzterErfolg || ov?.letzterSync) && (
             <p className="text-xs text-gray-400 mt-0.5">
-              Letzter Sync: {new Date(ov.letzterSync).toLocaleString('de-DE')}
+              {syncStatus?.letzterErfolg
+                ? <>Zuletzt synchronisiert: {uhrzeit(syncStatus.letzterErfolg.beendet_am)}
+                    {' · '}{syncStatus.letzterErfolg.events ?? '—'} Events
+                    {' · '}{syncStatus.letzterErfolg.termine ?? '—'} Termine
+                    {syncStatus.letzterErfolg.ausgeloest_von === 'cron'
+                      ? ' (nächtlicher Lauf)'
+                      : syncStatus.letzterErfolg.user_name ? ` (${syncStatus.letzterErfolg.user_name})` : ''}</>
+                : <>Letzter Sync: {zeitpunkt(ov.letzterSync)}</>}
             </p>
           )}
         </div>
@@ -72,18 +165,33 @@ export default function ShowRates() {
           <select value={monat} onChange={e => setMonat(e.target.value)} className={sel}>
             {monatsOpts.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
-          {isAdmin && (
-            <button onClick={() => syncMut.mutate(undefined)} disabled={syncMut.isPending}
-              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm rounded">
-              {syncMut.isPending ? 'Synchronisiere…' : '↻ Sync'}
-            </button>
-          )}
+          {/* Kein Rollen-Gate mehr: wer den Bereich sieht, darf synchronisieren (serverseitig
+              durchgesetzt ueber requireFeature). Der Button ist nur die Sichtbarkeit. */}
+          <button onClick={() => syncMut.mutate(undefined)} disabled={syncMut.isPending || laeuft}
+            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm rounded">
+            {laeuft ? 'Synchronisiere…' : syncMut.isPending ? 'Starte…' : '↻ Sync'}
+          </button>
         </div>
       </div>
 
-      {syncMut.isError && (
-        <div className="text-xs bg-red-50 border border-red-200 text-red-700 rounded px-3 py-2">
-          Sync fehlgeschlagen: {syncMut.error?.response?.data?.error || syncMut.error?.message}
+      {hinweis && (
+        <div className={`text-xs rounded px-3 py-2 border ${hinweis.art === 'fehler'
+          ? 'bg-red-50 border-red-200 text-red-700' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
+          {hinweis.text}
+        </div>
+      )}
+
+      {laeuft && (
+        <div className="text-xs bg-blue-50 border border-blue-200 text-blue-800 rounded px-3 py-2">
+          <div className="font-semibold">
+            Sync läuft{syncStatus?.laufend?.gestartetAm ? ` — gestartet ${uhrzeit(syncStatus.laufend.gestartetAm)}` : ''}
+            {syncStatus?.laufend?.ausgeloestVon === 'cron' ? ' (nächtlicher Lauf)' : ''}
+          </div>
+          {syncStatus?.laufend?.schritte?.length > 0 && (
+            <pre className="mt-1 whitespace-pre-wrap font-mono text-[11px] text-blue-700 leading-snug">
+              {syncStatus.laufend.schritte.join('\n')}
+            </pre>
+          )}
         </div>
       )}
 
@@ -224,6 +332,54 @@ export default function ShowRates() {
       {/* ── Datenqualität ── */}
       {tab === 'qualitaet' && qual && (
         <div className="space-y-3">
+          {/* Sync-Historie: beantwortet "laeuft der naechtliche Lauf?" und "wer hat manuell
+              ausgeloest?" ohne Railway-Logs. Cron- und Hand-Laeufe stehen in derselben Liste. */}
+          <div className={card}>
+            <div className={head}>
+              <span className="text-xs font-bold text-white uppercase tracking-wide">Sync-Historie</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead><tr className="bg-gray-50 border-b border-gray-100 text-gray-500 font-medium">
+                  <th className="px-3 py-2 text-left">Start</th>
+                  <th className="px-3 py-2 text-left">Auslöser</th>
+                  <th className="px-3 py-2 text-left">Status</th>
+                  <th className="px-3 py-2 text-right">Dauer</th>
+                  <th className="px-3 py-2 text-right">Events</th>
+                  <th className="px-3 py-2 text-right">Termine</th>
+                </tr></thead>
+                <tbody className="divide-y divide-gray-100">
+                  {(syncStatus?.laeufe || []).length === 0
+                    ? <tr><td colSpan={6} className="px-3 py-4 text-center text-gray-400">Noch keine protokollierten Läufe.</td></tr>
+                    : syncStatus.laeufe.map(l => (
+                        <tr key={l.id} className="hover:bg-gray-50">
+                          <td className="px-3 py-1.5 text-gray-700 whitespace-nowrap">{zeitpunkt(l.gestartet_am)}</td>
+                          <td className="px-3 py-1.5 text-gray-600">
+                            {l.ausgeloest_von === 'cron' ? 'nächtlich (01:15)' : (l.user_name || 'manuell')}
+                            {l.since && <span className="text-gray-400"> · Backfill ab {l.since}</span>}
+                          </td>
+                          <td className="px-3 py-1.5">
+                            <span className={
+                              l.status === 'ok' ? 'text-green-700 font-medium'
+                              : l.status === 'laeuft' ? 'text-blue-700 font-medium'
+                              : 'text-red-600 font-medium'}>
+                              {l.status === 'ok' ? 'ok' : l.status === 'laeuft' ? 'läuft' : l.status === 'abgebrochen' ? 'abgebrochen' : 'Fehler'}
+                            </span>
+                            {l.fehler && <span className="text-red-500 ml-1" title={l.fehler}>· {String(l.fehler).slice(0, 60)}</span>}
+                          </td>
+                          <td className="px-3 py-1.5 text-right text-gray-600">{l.dauer_sek != null ? `${Number(l.dauer_sek).toFixed(0)} s` : '—'}</td>
+                          <td className="px-3 py-1.5 text-right text-gray-600">{l.events ?? '—'}</td>
+                          <td className="px-3 py-1.5 text-right text-gray-600">{l.termine ?? '—'}</td>
+                        </tr>
+                      ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="px-3 py-1.5 border-t border-gray-100 text-[11px] text-gray-500">
+              Der nächtliche Lauf startet um 01:15 (Europe/Berlin). Fehlt er hier für eine Nacht, lief er nicht.
+            </div>
+          </div>
+
           <div className="text-xs bg-amber-50 border border-amber-200 text-amber-800 rounded px-3 py-2">
             <b>{qual.offenGesamt}</b> Termine ohne nachgetragenen Ausgang. Sie fließen <b>nicht</b> in die Quote ein —
             je mehr davon, desto dünner die Datenbasis.

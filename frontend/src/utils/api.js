@@ -135,7 +135,13 @@ export const showRatesApi = {
   qualitaet: ()               => api.get('/showrates/qualitaet').then(r => r.data),
   mapping:   ()               => api.get('/showrates/mapping').then(r => r.data),
   setMapping:(id, data)       => api.patch(`/showrates/mapping/${id}`, data).then(r => r.data),
-  sync:      (since)          => api.post('/showrates/sync', since ? { since } : {}).then(r => r.data),
+  // Sync ist asynchron: POST liefert 202 + runId, der Fortschritt kommt aus syncStatus().
+  // validateStatus, damit 409 (laeuft bereits) und 429 (Cooldown) als Antwort ankommen und
+  // nicht als Exception — die UI zeigt dafuer einen Hinweis, keinen Fehler.
+  sync:      (since)          => api.post('/showrates/sync', since ? { since } : {},
+                                   { validateStatus: (s) => s === 202 || s === 409 || s === 429 })
+                                 .then(r => ({ httpStatus: r.status, ...r.data })),
+  syncStatus:()                => api.get('/showrates/sync/status').then(r => r.data),
 };
 
 export const featureFlagsApi = {
