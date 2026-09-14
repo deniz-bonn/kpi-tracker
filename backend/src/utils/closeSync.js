@@ -119,9 +119,25 @@ async function naechsterStart(tageUeberlappung = 7) {
   return d.toISOString().slice(0, 10);
 }
 
+// Inkrement-Fenster fuer Opportunities — analog zu naechsterStart() fuer die Events, nur ueber
+// date_updated (danach filtert die Close-Abfrage). Leere Tabelle -> Voll-Backfill, damit ein
+// frischer Stand nie mit Luecken startet. Die Ueberlappung faengt nachtraegliche Aenderungen.
+async function naechsterStartOpps(tageUeberlappung = 7) {
+  const r = await db.get(`SELECT MAX(date_updated) m FROM close_opportunities`);
+  if (!r || !r.m) return process.env.CLOSE_BACKFILL_AB || '2026-06-01';
+  const d = new Date(r.m);
+  d.setDate(d.getDate() - tageUeberlappung);
+  return d.toISOString().slice(0, 10);
+}
+
 // ── (2) Opportunities spiegeln (Anlage-Erkennung + Rollenfelder) ─────────────
+// Frueher wurde hier bei JEDEM Lauf ab CLOSE_BACKFILL_AB gelesen — der naechtliche Sync wuchs
+// dadurch linear mit dem Opportunity-Bestand (gemessen: 1.628 Opportunities = 23 s, obwohl sich
+// nichts geaendert hatte). Jetzt inkrementell wie die Events. Ein explizites `since` (manueller
+// Backfill) hat weiterhin Vorrang. Der Upsert loescht nie, aeltere Opportunities bleiben stehen —
+// und deriveTermine liest ohnehin die ganze Tabelle, nicht nur die Zeilen dieses Laufs.
 async function syncOpportunities({ since, log = () => {} } = {}) {
-  const von = since || process.env.CLOSE_BACKFILL_AB || '2026-06-01';
+  const von = since || await naechsterStartOpps();
   const cf = (await close.get('/custom_field/opportunity/', { _limit: 100 })).data || [];
   const idVon = (name) => (cf.find(f => f.name === name) || {}).id;
   const setterCf = idVon('Setter'), closerCf = idVon('Closer');
