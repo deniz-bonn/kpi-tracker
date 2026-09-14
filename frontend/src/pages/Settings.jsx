@@ -22,6 +22,7 @@ const CONTROLLED_FEATURES = [
   { key: 'provisionen', label: 'Provisionen (Beta)', desc: 'Provisionsabrechnung NK (Bonn/Braunschweig) — eigene Provision + Admin-Übersicht' },
   { key: 'show_rates_close', label: 'Show Rates (Close)', desc: 'Opener-/Setter-Show-Rates aus den Close-Statusdaten (Beta)' },
   { key: 'mein_dashboard', label: 'Mein Dashboard', desc: 'Persönliche Startseite je Vertriebler: Provision, eigene Deals, Forecast, Incentive (Beta)' },
+  { key: 'mein_dashboard_team', label: 'Mein Dashboard — Team-Sicht', desc: 'Team-Überblick und „Sehen als …": öffnet Provisions- und Incentive-Daten ANDERER Personen. Superadmin immer; Standard zusätzlich Vertriebsleitung.' },
   { key: 'backup',   label: 'Datensicherung',       desc: 'Backup-Export und automatische Datensicherung herunterladen' },
 ];
 const CONTROLLABLE_ROLES = [

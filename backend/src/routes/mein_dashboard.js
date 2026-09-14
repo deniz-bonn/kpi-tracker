@@ -12,7 +12,7 @@ const router = require('express').Router();
 const db     = require('../db');
 const wrap   = require('../middleware/asyncHandler');
 const { requireAuth, requireRole } = require('../middleware/auth');
-const { requireFeature } = require('../middleware/requireFeature');
+const { requireFeature, hatFeature } = require('../middleware/requireFeature');
 const { logAudit } = require('../utils/audit');
 const { kreisFor, resolveZeitraum, detailFor, staffelStatus } = require('../utils/provisionen');
 const { aeEurGatedSql, moneyEurSql } = require('../utils/currency');
@@ -54,18 +54,28 @@ const rollenAn = (d, empId) => [
   String(d.closer_id) === String(empId) ? 'Closer' : null,
 ].filter(Boolean);
 
-// ── GET /api/mein-dashboard ──────────────────────────────────────────────────
-router.get('/', wrap(async (req, res) => {
-  const empId = req.user.employee_id;
-  if (!empId) {
-    return res.json({ employee: null, hinweis: 'Kein Mitarbeiter mit diesem Account verknüpft.' });
-  }
+// Feature, das die FREMDE Sicht freischaltet (Team-Ueberblick + "Sehen als").
+// Superadmin hat es immer (hatFeature laesst ihn durch); weitere Rollen sind ueber die
+// Zugriffssteuerung schaltbar. Default per Migration: vertriebsleitung.
+const FREMDSICHT = 'mein_dashboard_team';
+
+/**
+ * Der komplette Dashboard-Datensatz EINER Person.
+ *
+ * Bewusst als Funktion und nicht im Handler: "Sehen als" und der Team-Ueberblick muessen exakt
+ * dieselben Zahlen liefern wie der eigene Aufruf. Gaebe es hier zwei Wege, koennte die Kontrolle
+ * etwas anderes zeigen als der Mitarbeiter — und waere damit wertlos.
+ * `ss` (staffelStatus) kann durchgereicht werden, damit der Team-Ueberblick es nicht je Person neu
+ * berechnet; das Ergebnis ist identisch, nur die Abfrage faellt einmal statt n-mal an.
+ */
+async function dashboardFuer(empId, { zeitraumId = null, ss = null } = {}) {
   const emp = await db.get(
     `SELECT id, name, rolle, standort FROM employees WHERE id=${P(1)}`, [empId]);
-  const kreis = kreisFor(emp?.standort) || 'bonn';
+  if (!emp) return null;
+  const kreis = kreisFor(emp.standort) || 'bonn';
 
   // ── 1) Provision: laufender/gewaehlter Zeitraum + Historie ──
-  const z = await resolveZeitraum(req.query.zeitraum_id, kreis);
+  const z = await resolveZeitraum(zeitraumId, kreis);
   const provision = z ? await detailFor(empId, z) : { summe: 0, perTyp: {}, buchungen: [] };
   const zeitraeume = await db.all(
     `SELECT id, von, bis, label, status, abgeschlossen_am FROM provision_zeitraeume
@@ -75,8 +85,8 @@ router.get('/', wrap(async (req, res) => {
     `SELECT zeitraum_id, COALESCE(SUM(betrag),0) summe FROM provision_buchungen
       WHERE employee_id=${P(1)} GROUP BY zeitraum_id`, [empId]);
   const summeVon = Object.fromEntries(summen.map(s => [String(s.zeitraum_id), r2(s.summe)]));
-  const ss = await staffelStatus(heute().slice(0, 7));
-  const staffel = ss.closers.find(c => c.employee_id === empId) || null;
+  const st = ss || await staffelStatus(heute().slice(0, 7));
+  const staffel = st.closers.find(c => c.employee_id === empId) || null;
 
   // ── 2) Eigene Deals ──
   const alle = await meineDeals(empId);
@@ -155,13 +165,126 @@ router.get('/', wrap(async (req, res) => {
     };
   }
 
-  res.json({
+  return {
     employee: { id: emp.id, name: emp.name, rolle: emp.rolle, standort: emp.standort, kreis },
     provision: { zeitraum: z, ...provision, staffel,
       zeitraeume: zeitraeume.map(zz => ({ ...zz, summe: summeVon[String(zz.id)] || 0 })) },
     deals, forecast, kpis, incentive,
     konfiguration: { closing_rate: ZIEL_CLOSING_RATE, teamziel: inc.TEAMZIEL_MONAT,
       freeze_tag: inc.FREEZE_TAG },
+  };
+}
+
+/**
+ * Dashboard-relevante Vertriebler — die Auswahl fuer "Sehen als" und die Zeilen des Ueberblicks.
+ *
+ * Massgeblich ist `employees.aktiv`, NICHT `users.active`. Ein deaktiviertes Nutzerkonto heisst nur,
+ * dass die Person sich nicht einloggen kann — sie hat trotzdem Deals, Provision und Incentive-Ziele,
+ * und genau die will die Kontrollsicht zeigen. (Im Prod-Stand vom 26.08.2026 sind z.B. die Konten
+ * von Clemens Naekel und Julius Kawka inaktiv; mit einem Filter auf users.active waeren ausgerechnet
+ * die Incentive-Teilnehmer aus dem Ueberblick gefallen.)
+ * Der Kontostatus wird stattdessen mitgeliefert und im UI ausgewiesen — "kann sich nicht einloggen"
+ * ist fuer die Fuehrung eine Information, kein Grund zum Ausblenden.
+ * Aufgenommen wird, wer ein Nutzerkonto ODER ein Incentive-Ziel hat.
+ */
+async function sichtbarePersonen(standort = null) {
+  const T = db.dialect === 'postgres' ? 'TRUE' : '1';
+  const w = standort ? ` AND e.standort = ${P(1)}` : '';
+  return db.all(
+    `SELECT e.id, e.name, e.rolle, e.standort,
+            MAX(CASE WHEN u.id IS NOT NULL THEN 1 ELSE 0 END)      AS hat_konto,
+            MAX(CASE WHEN u.active = ${T} THEN 1 ELSE 0 END)       AS konto_aktiv,
+            MAX(CASE WHEN z.id IS NOT NULL THEN 1 ELSE 0 END)      AS hat_incentive
+       FROM employees e
+       LEFT JOIN users u ON u.employee_id = e.id
+       LEFT JOIN incentive_ziele z ON z.employee_id = e.id
+      WHERE e.aktiv = ${T}${w}
+      GROUP BY e.id, e.name, e.rolle, e.standort
+     HAVING MAX(CASE WHEN u.id IS NOT NULL THEN 1 ELSE 0 END) = 1
+         OR MAX(CASE WHEN z.id IS NOT NULL THEN 1 ELSE 0 END) = 1
+      ORDER BY e.name`, standort ? [standort] : []);
+}
+
+// ── GET /api/mein-dashboard[?als=<employee_id>] ──────────────────────────────
+router.get('/', wrap(async (req, res) => {
+  const darfFremd = await hatFeature(req.user, FREMDSICHT);
+
+  // `als` wirkt NUR fuer Berechtigte. Fuer alle anderen wird der Parameter still ignoriert —
+  // kein 403, keine Fehlermeldung: ein Vertriebler soll ueber die Antwort nicht einmal
+  // herausfinden koennen, welche employee_id existiert.
+  const alsId = darfFremd && req.query.als ? Number(req.query.als) : null;
+  const empId = alsId || req.user.employee_id;
+  const alsFremde = !!(alsId && String(alsId) !== String(req.user.employee_id));
+
+  const sicht = {
+    fremdsicht_erlaubt: darfFremd,
+    als_fremde: alsFremde,
+    personen: darfFremd ? await sichtbarePersonen() : [],
+  };
+
+  if (!empId) {
+    return res.json({ employee: null, sicht,
+      hinweis: darfFremd
+        ? 'Dein Account ist mit keinem Mitarbeiter verknüpft — nutze den Team-Überblick oder wähle oben eine Person.'
+        : 'Kein Mitarbeiter mit diesem Account verknüpft.' });
+  }
+
+  const daten = await dashboardFuer(empId, { zeitraumId: req.query.zeitraum_id });
+  if (!daten) return res.json({ employee: null, sicht, hinweis: 'Mitarbeiter nicht gefunden.' });
+
+  // Leise protokollieren, wer wessen Sicht geoeffnet hat.
+  if (alsFremde) {
+    await logAudit({ user: req.user, action: 'sehen_als', entityType: 'mein_dashboard',
+      entityId: empId, newData: { employee_id: empId, name: daten.employee.name } });
+  }
+  res.json({ ...daten, sicht });
+}));
+
+// ── GET /api/mein-dashboard/team — Ueberblick fuer Berechtigte ───────────────
+router.get('/team', wrap(async (req, res) => {
+  if (!await hatFeature(req.user, FREMDSICHT)) {
+    return res.status(403).json({ error: 'Keine Berechtigung für den Team-Überblick' });
+  }
+  const standort = req.query.standort || 'Bonn';
+  const personen = await sichtbarePersonen(standort === 'alle' ? null : standort);
+
+  // staffelStatus einmal statt je Person — dieselbe Quelle, nur nicht n-mal abgefragt.
+  const ss = await staffelStatus(heute().slice(0, 7));
+
+  // Bewusst derselbe Rechenweg wie die Einzelsicht: dashboardFuer() je Person, danach nur
+  // projiziert. Kein zweiter Pfad fuer AE/Show-Rate/Forecast — sonst koennte die Tabelle
+  // etwas anderes zeigen als die Detailsicht.
+  const zeilen = [];
+  for (const p of personen) {
+    const d = await dashboardFuer(p.id, { ss });
+    if (!d) continue;
+    const i = d.incentive;
+    zeilen.push({
+      employee_id: p.id, name: p.name, rolle: p.rolle, standort: p.standort,
+      konto_aktiv: Number(p.konto_aktiv) === 1, hat_konto: Number(p.hat_konto) === 1,
+      messbasis: i?.messbasis || null, showrate_art: i?.showrate_art || null,
+      provision: d.provision.summe,
+      forecast: d.forecast.forecast,
+      ae_gesamt: i?.ae_gesamt ?? null,
+      sr_mittel: i?.sr_mittel ?? null,
+      sr_nicht_messbar: i ? i.sr_nicht_messbar : null,
+      ae_forecast: i?.ae_forecast?.ae_forecast ?? null,
+      ziele: i?.ziele || null,
+      status: i?.status || null,
+      vorlaeufig: i?.vorlaeufig || false,
+      hat_incentive: !!i,
+    });
+  }
+
+  // Teamgate einmal fuer alle — gleiche Komponente wie in der Mitarbeiter-Sicht.
+  const irgendeinZiel = await db.get(`SELECT zeitraum_von, zeitraum_bis FROM incentive_ziele LIMIT 1`);
+  const monate = irgendeinZiel
+    ? inc.monateVon(irgendeinZiel.zeitraum_von, irgendeinZiel.zeitraum_bis) : [];
+  res.json({
+    standort, standorte: ['Bonn', 'Braunschweig', 'Österreich', 'Schweiz'],
+    teamgate: await inc.teamGate(monate),
+    zeilen,
+    konfiguration: { closing_rate: ZIEL_CLOSING_RATE, teamziel: inc.TEAMZIEL_MONAT },
   });
 }));
 

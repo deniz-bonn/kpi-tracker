@@ -119,15 +119,13 @@ function Reise({ name, untertitel, farbe, ziel, ist, srIst, srZiel, srNichtMessb
   );
 }
 
-export default function MeinDashboard() {
-  const [zeitraumId, setZeitraumId] = useState(null);
+// ── Mitarbeiter-Sicht ────────────────────────────────────────────────────────
+// Bekommt die Daten als Prop. Genau diese Komponente rendert auch "Sehen als …" — es gibt
+// KEINE Admin-Variante der Sektionen. Saehe ein Mitarbeiter etwas Falsches, sieht der
+// Kontrollierende exakt dasselbe Falsche.
+function MitarbeiterSicht({ data, zeitraumId, setZeitraumId }) {
   const [auf, setAuf] = useState(null);          // welche Deal-Kachel ist aufgeklappt
   const [auszug, setAuszug] = useState(null);    // welcher Zeitraum zeigt seinen Kontoauszug
-
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['mein-dashboard', zeitraumId],
-    queryFn: () => meinDashboardApi.load(zeitraumId),
-  });
 
   const inc = data?.incentive;
   // Fokus = die Zielkomponente mit dem groessten relativen Rueckstand. Reine Hervorhebung,
@@ -140,16 +138,6 @@ export default function MeinDashboard() {
     if (aeLuecke === 0 && srLuecke === 0) return null;
     return srLuecke > aeLuecke ? 'sr' : 'ae';
   }, [inc]);
-
-  if (isLoading) return <div className="text-sm text-gray-400 py-10">Lade…</div>;
-  if (error) return <div className="text-sm text-red-600 py-10">Konnte nicht geladen werden: {error.message}</div>;
-  if (!data?.employee) {
-    return (
-      <div className="text-sm text-gray-500 py-10">
-        {data?.hinweis || 'Kein Mitarbeiter mit diesem Account verknüpft.'}
-      </div>
-    );
-  }
 
   const { employee, provision, deals, forecast, kpis } = data;
   const z = provision.zeitraum;
@@ -454,6 +442,254 @@ export default function MeinDashboard() {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+// ── Team-Überblick (für Superadmin / Vertriebsleitung) ───────────────────────
+// Aggregiert NICHT selbst: jede Zeile kommt aus demselben Rechenweg wie die Einzelsicht
+// (dashboardFuer je Person im Backend), hier wird nur projiziert und dargestellt.
+function StatusChip({ status }) {
+  if (!status) return <span className="text-gray-300">—</span>;
+  return (
+    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${STATUS_CLASS[status] || STATUS_CLASS.offen}`}>
+      {STATUS_TEXT[status] || status}
+    </span>
+  );
+}
+
+function TeamUeberblick({ onPerson }) {
+  const [standort, setStandort] = useState('Bonn');
+  const [sort, setSort] = useState('ziel');   // 'ziel' | 'name' | 'ae'
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['mein-dashboard-team', standort],
+    queryFn: () => meinDashboardApi.team(standort),
+  });
+
+  // Grösster Rückstand je Person — dieselbe Fokus-Logik wie in der Einzelsicht.
+  const mitFokus = useMemo(() => (data?.zeilen || []).map(z => {
+    const m = z.ziele?.muenchen;
+    const aeL = m?.ae ? Math.max(0, 1 - (z.ae_gesamt || 0) / m.ae) : 0;
+    const srL = (m?.sr && z.sr_mittel != null) ? Math.max(0, 1 - z.sr_mittel / m.sr) : 0;
+    return { ...z, fokus: !z.hat_incentive ? null : (aeL === 0 && srL === 0) ? null : (srL > aeL ? 'Show-Rate' : 'Auftragseingang'),
+      // Ohne Incentive-Ziel gibt es keine Luecke — solche Zeilen duerfen bei "Zielerreichung"
+      // nicht wie Bestplatzierte oben stehen, sondern gehoeren ans Ende.
+      fokusLuecke: z.hat_incentive ? Math.max(aeL, srL) : Infinity };
+  }), [data]);
+
+  const zeilen = useMemo(() => {
+    const arr = [...mitFokus];
+    if (sort === 'name') arr.sort((a, b) => String(a.name).localeCompare(String(b.name)));
+    else if (sort === 'ae') arr.sort((a, b) => (b.ae_gesamt || 0) - (a.ae_gesamt || 0));
+    else arr.sort((a, b) => a.fokusLuecke - b.fokusLuecke);   // beste Zielerreichung zuerst
+    return arr;
+  }, [mitFokus, sort]);
+
+  if (isLoading) return <div className="text-sm text-gray-400 py-10">Lade Team-Überblick…</div>;
+
+  return (
+    <div className="space-y-3 text-gray-900">
+      {/* Teamgate — dieselbe Darstellung wie in der Mitarbeiter-Sicht */}
+      {data?.teamgate?.length > 0 && (
+        <div className={card}>
+          <div className={head}>
+            <span className={headT}>Teamziel — Neukundenumsatz Bonn, je Monat {formatEuro(data.konfiguration.teamziel)}</span>
+          </div>
+          <div className="p-4 flex gap-4 flex-wrap">
+            {data.teamgate.map(g => (
+              <div key={g.monat} className="flex-1 min-w-[240px]">
+                <div className="flex justify-between text-xs">
+                  <b>{g.monat}</b>
+                  <span className="text-gray-500">{formatEuro(g.ae)} / {formatEuro(g.ziel)}</span>
+                </div>
+                <Balken anteil={pct(g.ae, g.ziel)} farbe={g.erreicht ? 'bg-green-600' : 'bg-amber-500'} hoehe="h-3" />
+                <div className="text-[11px] text-gray-400">
+                  {g.erreicht ? '✓ erreicht' : `noch ${formatEuro(g.rest)}`}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-[11px] text-gray-500">Standort</span>
+        <select value={standort} onChange={e => setStandort(e.target.value)}
+                className="bg-white border border-gray-300 text-gray-700 text-xs rounded px-2 py-1.5">
+          {(data?.standorte || ['Bonn']).map(s => <option key={s} value={s}>{s}</option>)}
+          <option value="alle">Alle Standorte</option>
+        </select>
+        <span className="text-[11px] text-gray-500 ml-3">Sortierung</span>
+        <select value={sort} onChange={e => setSort(e.target.value)}
+                className="bg-white border border-gray-300 text-gray-700 text-xs rounded px-2 py-1.5">
+          <option value="ziel">Zielerreichung</option>
+          <option value="ae">Auftragseingang</option>
+          <option value="name">Name</option>
+        </select>
+      </div>
+
+      <div className={`${card} overflow-x-auto`}>
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-100 text-gray-500">
+              <th className="px-3 py-2 text-left">Mitarbeiter</th>
+              <th className="px-3 py-2 text-left">Messbasis</th>
+              <th className="px-3 py-2 text-right">Provision</th>
+              <th className="px-3 py-2 text-right">AE Sep+Okt</th>
+              <th className="px-3 py-2 text-right">Show-Rate</th>
+              <th className="px-3 py-2 text-right">AE-Forecast</th>
+              <th className="px-3 py-2 text-center">Warschau</th>
+              <th className="px-3 py-2 text-center">München</th>
+              <th className="px-3 py-2 text-left">Fokus</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {zeilen.length === 0
+              ? <tr><td colSpan={9} className="px-3 py-6 text-center text-gray-400">Keine Vertriebler an diesem Standort.</td></tr>
+              : zeilen.map(z => (
+                  <tr key={z.employee_id} className="hover:bg-blue-50/40 cursor-pointer"
+                      onClick={() => onPerson(z.employee_id)}
+                      title="Sicht dieser Person öffnen">
+                    <td className="px-3 py-1.5 font-medium text-gray-800">
+                      {z.name}
+                      {z.vorlaeufig && <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">vorläufig</span>}
+                      {/* Ein inaktives Konto heisst: die Person kann ihr Dashboard gar nicht oeffnen.
+                          Das ist eine Fuehrungsinformation, kein Grund sie auszublenden. */}
+                      {z.hat_konto === false
+                        ? <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600" title="Kein Nutzerkonto — sieht sein Dashboard nicht">kein Konto</span>
+                        : z.konto_aktiv === false
+                        ? <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full bg-red-50 text-red-700" title="Konto deaktiviert — kann sich nicht einloggen">Konto inaktiv</span>
+                        : null}
+                    </td>
+                    <td className="px-3 py-1.5 text-gray-600">
+                      {z.messbasis || <span className="text-gray-300">kein Incentive</span>}
+                      {z.showrate_art && <span className="text-gray-400"> · {z.showrate_art === 'setting' ? 'Setting' : 'Beratung'}</span>}
+                    </td>
+                    <td className="px-3 py-1.5 text-right text-gray-700">{formatEuro(z.provision)}</td>
+                    <td className="px-3 py-1.5 text-right font-medium text-gray-900">
+                      {z.ae_gesamt != null ? formatEuro(z.ae_gesamt) : '—'}
+                      {z.ziele?.warschau?.ae != null && (
+                        <div className="text-[10px] text-gray-400">Ziel {formatEuro(z.ziele.warschau.ae)}</div>
+                      )}
+                    </td>
+                    <td className="px-3 py-1.5 text-right">
+                      {z.sr_mittel == null
+                        ? <span className="text-gray-400" title="Datenbasis unzureichend oder keine Termine">—</span>
+                        : <span className="font-medium">{z.sr_mittel} %</span>}
+                      {z.ziele?.warschau?.sr != null && (
+                        <div className="text-[10px] text-gray-400">Ziel {z.ziele.warschau.sr} %</div>
+                      )}
+                    </td>
+                    <td className="px-3 py-1.5 text-right text-gray-600">
+                      {z.ae_forecast != null ? formatEuro(z.ae_forecast) : '—'}
+                    </td>
+                    <td className="px-3 py-1.5 text-center"><StatusChip status={z.status?.warschau} /></td>
+                    <td className="px-3 py-1.5 text-center"><StatusChip status={z.status?.muenchen} /></td>
+                    <td className="px-3 py-1.5 text-gray-600">{z.fokus || <span className="text-green-700">—</span>}</td>
+                  </tr>
+                ))}
+          </tbody>
+        </table>
+        <div className="px-3 py-1.5 border-t border-gray-100 text-[11px] text-gray-500">
+          Zeile anklicken öffnet die Sicht dieser Person — exakt so, wie sie sie selbst sieht.
+          „—" bei der Show-Rate heißt: Datenbasis unzureichend oder keine Termine gelegt.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Seite ────────────────────────────────────────────────────────────────────
+export default function MeinDashboard() {
+  const [zeitraumId, setZeitraumId] = useState(null);
+  const [ansicht, setAnsicht] = useState(null);   // null = eigene Sicht · 'team' · employee_id
+
+  const alsId = (ansicht && ansicht !== 'team') ? ansicht : null;
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['mein-dashboard', zeitraumId, alsId],
+    queryFn: () => meinDashboardApi.load(zeitraumId, alsId),
+  });
+
+  const sicht = data?.sicht;
+  // Berechtigte ohne eigenen Mitarbeiter landen im Team-Überblick statt in der Sackgasse
+  // "kein Mitarbeiter verknüpft".
+  const zeigeTeam = ansicht === 'team'
+    || (ansicht === null && !isLoading && !data?.employee && sicht?.fremdsicht_erlaubt);
+
+  if (isLoading) return <div className="text-sm text-gray-400 py-10">Lade…</div>;
+  if (error) return <div className="text-sm text-red-600 py-10">Konnte nicht geladen werden: {error.message}</div>;
+
+  const auswahl = (
+    sicht?.fremdsicht_erlaubt ? (
+      <div className="flex items-center gap-2">
+        <span className="text-[11px] text-gray-500">Ansicht</span>
+        <select
+          value={zeigeTeam ? 'team' : (alsId ? String(alsId) : 'eigene')}
+          onChange={e => {
+            const v = e.target.value;
+            setAnsicht(v === 'team' ? 'team' : v === 'eigene' ? null : Number(v));
+          }}
+          className="bg-white border border-gray-300 text-gray-700 text-xs rounded px-2 py-1.5 max-w-[220px]">
+          <option value="team">Team-Überblick</option>
+          {data?.employee && <option value="eigene">Meine eigene Sicht</option>}
+          {(sicht.personen || []).map(p => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
+      </div>
+    ) : null
+  );
+
+  if (zeigeTeam) {
+    return (
+      <div className="space-y-3 text-gray-900">
+        <div className="flex items-start justify-between flex-wrap gap-3">
+          <div>
+            <h1 className="text-xl font-bold text-gray-800">Team-Überblick</h1>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Incentive- und Provisionsstand aller Vertriebler · Zeile anklicken öffnet die Sicht der Person
+            </p>
+          </div>
+          {auswahl}
+        </div>
+        <TeamUeberblick onPerson={(id) => setAnsicht(id)} />
+      </div>
+    );
+  }
+
+  if (!data?.employee) {
+    return (
+      <div className="space-y-3">
+        {auswahl}
+        <div className="text-sm text-gray-500 py-10">
+          {data?.hinweis || 'Kein Mitarbeiter mit diesem Account verknüpft.'}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {(sicht?.fremdsicht_erlaubt || sicht?.als_fremde) && (
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          {/* Verwechslungsschutz: unmissverstaendlich, wessen Seite hier steht. */}
+          {sicht?.als_fremde ? (
+            <div className="flex items-center gap-3 flex-wrap bg-amber-50 border border-amber-300 rounded-lg px-3 py-2">
+              <span className="text-xs text-amber-900">
+                👁 <b>Ansicht als {data.employee.name}</b> — so sieht {data.employee.name.split(' ')[0]} seine Seite.
+                Du siehst fremde Provisions- und Incentive-Daten.
+              </span>
+              <button onClick={() => setAnsicht('team')}
+                      className="text-xs px-2 py-1 rounded border border-amber-400 text-amber-900 hover:bg-amber-100">
+                ← Zum Team-Überblick
+              </button>
+            </div>
+          ) : <div />}
+          {auswahl}
+        </div>
+      )}
+      <MitarbeiterSicht data={data} zeitraumId={zeitraumId} setZeitraumId={setZeitraumId} />
     </div>
   );
 }

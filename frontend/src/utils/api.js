@@ -146,7 +146,11 @@ export const showRatesApi = {
 
 // Mein Dashboard — EIN gebuendelter Call statt acht Einzelabfragen.
 export const meinDashboardApi = {
-  load:        (zeitraumId) => api.get('/mein-dashboard', { params: zeitraumId ? { zeitraum_id: zeitraumId } : {} }).then(r => r.data),
+  // `als` wirkt serverseitig nur fuer Berechtigte; fuer alle anderen wird der Parameter ignoriert.
+  load:        (zeitraumId, als) => api.get('/mein-dashboard', { params: {
+                   ...(zeitraumId ? { zeitraum_id: zeitraumId } : {}),
+                   ...(als ? { als } : {}) } }).then(r => r.data),
+  team:        (standort)   => api.get('/mein-dashboard/team', { params: standort ? { standort } : {} }).then(r => r.data),
   ziele:       ()           => api.get('/mein-dashboard/incentive/ziele').then(r => r.data),
   zielSpeichern: (id, data) => api.put(`/mein-dashboard/incentive/ziele/${id}`, data).then(r => r.data),
   freeze:      (body)       => api.post('/mein-dashboard/incentive/freeze', body || {}).then(r => r.data),

@@ -115,7 +115,10 @@ export function AuthProvider({ children }) {
   // Show Rates (Close): out-of-the-box nur Superadmin; weitere via Rolle oder Einzel-Freischaltung.
   const canSeeShowRates = isSuperAdmin || roleHasFeature('show_rates_close') || userHasFeature('show_rates_close');
   // Mein Dashboard (Beta): out-of-the-box nur Superadmin; weitere via Rolle oder Einzel-Freischaltung.
-  const canSeeMeinDashboard = isSuperAdmin || roleHasFeature('mein_dashboard') || userHasFeature('mein_dashboard');
+  // Wer die Team-Sicht hat, braucht auch die Seite selbst — sonst muesste man zwei Flags setzen.
+  const canSeeMeinDashboard = isSuperAdmin
+    || roleHasFeature('mein_dashboard') || userHasFeature('mein_dashboard')
+    || roleHasFeature('mein_dashboard_team') || userHasFeature('mein_dashboard_team');
   // Admin-Sicht der Provisionen (Gesamtübersicht/Abschluss): zusätzlich Rolle Admin/Vertriebsleitung.
   const canSeeProvisionenAdmin = canSeeProvisionen && (isAdmin || isVertriebsleitung);
 
