@@ -144,6 +144,14 @@ export const showRatesApi = {
   syncStatus:()                => api.get('/showrates/sync/status').then(r => r.data),
 };
 
+// Mein Dashboard — EIN gebuendelter Call statt acht Einzelabfragen.
+export const meinDashboardApi = {
+  load:        (zeitraumId) => api.get('/mein-dashboard', { params: zeitraumId ? { zeitraum_id: zeitraumId } : {} }).then(r => r.data),
+  ziele:       ()           => api.get('/mein-dashboard/incentive/ziele').then(r => r.data),
+  zielSpeichern: (id, data) => api.put(`/mein-dashboard/incentive/ziele/${id}`, data).then(r => r.data),
+  freeze:      (body)       => api.post('/mein-dashboard/incentive/freeze', body || {}).then(r => r.data),
+};
+
 export const featureFlagsApi = {
   list:   ()               => api.get('/feature-flags').then(r => r.data),          // { flags, userFeatures }
   update: (feature, roles) => api.post('/feature-flags', { feature, roles }).then(r => r.data),

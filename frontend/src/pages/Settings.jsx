@@ -21,6 +21,7 @@ const CONTROLLED_FEATURES = [
   { key: 'bestenliste', label: 'Bestenliste (Beta)', desc: 'Motivations-Leaderboard für den Vertrieb (nur NK-Daten)' },
   { key: 'provisionen', label: 'Provisionen (Beta)', desc: 'Provisionsabrechnung NK (Bonn/Braunschweig) — eigene Provision + Admin-Übersicht' },
   { key: 'show_rates_close', label: 'Show Rates (Close)', desc: 'Opener-/Setter-Show-Rates aus den Close-Statusdaten (Beta)' },
+  { key: 'mein_dashboard', label: 'Mein Dashboard', desc: 'Persönliche Startseite je Vertriebler: Provision, eigene Deals, Forecast, Incentive (Beta)' },
   { key: 'backup',   label: 'Datensicherung',       desc: 'Backup-Export und automatische Datensicherung herunterladen' },
 ];
 const CONTROLLABLE_ROLES = [

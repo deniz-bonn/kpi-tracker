@@ -4,7 +4,8 @@ const wrap   = require('../middleware/asyncHandler');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { requireFeature } = require('../middleware/requireFeature');
 const { logAudit } = require('../utils/audit');
-const { projektionLaufend, backfillLaufend, abschliesseZeitraum, staffelStatus, kreisFor } = require('../utils/provisionen');
+const { projektionLaufend, backfillLaufend, abschliesseZeitraum, staffelStatus, kreisFor,
+        resolveZeitraum, detailFor } = require('../utils/provisionen');
 const KREISE = ['bonn', 'braunschweig', 'oesterreich'];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -28,25 +29,8 @@ const heute = () => { const d = new Date(); return `${d.getFullYear()}-${String(
 router.use(requireAuth);
 router.use(requireFeature('provisionen'));
 
-// Zeitraum bestimmen: expliziter (validierter) Query-Param oder der laufende (von <= heute, neuester)
-// DES KREISES. Jeder Zeitraum gehoert zu genau einem Abrechnungskreis (bonn/braunschweig/oesterreich).
-async function resolveZeitraum(zeitraumId, kreis = 'bonn') {
-  const zid = zeitraumId != null && zeitraumId !== '' ? Number(zeitraumId) : null;
-  if (zid) return db.get(`SELECT * FROM provision_zeitraeume WHERE id=${ph(1)}`, [zid]);
-  const cur = await db.get(`SELECT * FROM provision_zeitraeume WHERE kreis=${ph(1)} AND von <= ${ph(2)} ORDER BY von DESC LIMIT 1`, [kreis, heute()]);
-  return cur || db.get(`SELECT * FROM provision_zeitraeume WHERE kreis=${ph(1)} ORDER BY von DESC LIMIT 1`, [kreis]);
-}
-
-// Buchungen + Zusammenfassung eines Mitarbeiters in einem Zeitraum.
-async function detailFor(employeeId, z) {
-  const buchungen = await db.all(
-    `SELECT id, deal_id, rolle, typ, satz, bemessungsgrundlage, betrag, kalendermonat, gewonnen_datum, beschreibung, eingefroren, created_at
-       FROM provision_buchungen WHERE employee_id=${ph(1)} AND zeitraum_id=${ph(2)} ORDER BY created_at, id`,
-    [employeeId, z.id]);
-  const perTyp = {}; let summe = 0;
-  for (const b of buchungen) { const be = num(b.betrag); summe += be; perTyp[b.typ] = round2(num(perTyp[b.typ]) + be); b.betrag = be; }
-  return { summe: round2(summe), perTyp, buchungen };
-}
+// resolveZeitraum() und detailFor() liegen in utils/provisionen.js — geteilt mit "Mein Dashboard",
+// damit beide Seiten denselben Zeitraum und dieselbe Summenbildung benutzen.
 
 // ── Abrechnungszeitraeume ──
 router.get('/zeitraeume', wrap(async (req, res) => {

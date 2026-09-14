@@ -630,9 +630,38 @@ async function abschliesseZeitraum(zeitraumId, userId, stichtag) {
   return { abgeschlossen: { ...z, status: 'abgeschlossen', abgeschlossen_am: today, abgeschlossen_von: userId ?? null }, neuerZeitraum: neu };
 }
 
+// ── Lesehilfen, die sich Provisions-Route und "Mein Dashboard" teilen ────────
+// Bewusst hier und nicht in der Route: beide Seiten muessen denselben Zeitraum und dieselbe
+// Summenbildung benutzen, sonst zeigt das Dashboard eine andere Provision als der Provisionsbereich.
+
+/** Zeitraum bestimmen: expliziter (validierter) Param oder der laufende DES KREISES. */
+async function resolveZeitraum(zeitraumId, kreis = 'bonn') {
+  const zid = zeitraumId != null && zeitraumId !== '' ? Number(zeitraumId) : null;
+  if (zid) return db.get(`SELECT * FROM provision_zeitraeume WHERE id=${q1(1)}`, [zid]);
+  const cur = await db.get(
+    `SELECT * FROM provision_zeitraeume WHERE kreis=${q1(1)} AND von <= ${q1(2)} ORDER BY von DESC LIMIT 1`,
+    [kreis, heute()]);
+  return cur || db.get(`SELECT * FROM provision_zeitraeume WHERE kreis=${q1(1)} ORDER BY von DESC LIMIT 1`, [kreis]);
+}
+
+/** Buchungen + Summe + perTyp eines Mitarbeiters in einem Zeitraum. */
+async function detailFor(employeeId, z) {
+  const buchungen = await db.all(
+    `SELECT id, deal_id, rolle, typ, satz, bemessungsgrundlage, betrag, kalendermonat, gewonnen_datum, beschreibung, eingefroren, created_at
+       FROM provision_buchungen WHERE employee_id=${q1(1)} AND zeitraum_id=${q1(2)} ORDER BY created_at, id`,
+    [employeeId, z.id]);
+  const perTyp = {}; let summe = 0;
+  for (const b of buchungen) {
+    const be = Number(b.betrag) || 0;
+    summe += be; perTyp[b.typ] = round2((Number(perTyp[b.typ]) || 0) + be); b.betrag = be;
+  }
+  return { summe: round2(summe), perTyp, buchungen };
+}
+
 module.exports = {
   provisionSync, syncBsOpenerFix, materialisiereNachtraege, reconcileAll, dekoppleBraunschweig,
   backfillLaufend, projektionLaufend, abschliesseZeitraum, staffelStatus, atCloserOhneVl,
   closerMonatsAe, bonnMonatsAe, periodFor, labelFor, labelForKreis, kalendermonatFor,
   configFor, getOrCreateZeitraum, kreisFor, goLiveDatum, staffelSatz,
+  resolveZeitraum, detailFor,
 };

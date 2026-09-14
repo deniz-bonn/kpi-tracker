@@ -123,7 +123,12 @@ async function bookAeNK(monat, closerId, companyId, aeDelta, anzDelta) {
 }
 
 // Restrict non-admin to own deals (by closer_id).
-// nk_vertrieb sieht bewusst ALLE NK-Deals (gleiche Ansicht wie Vertriebsleitung).
+//
+// BEWUSSTE ENTSCHEIDUNG (Deniz, 14.09.2026) — nk_vertrieb sieht ALLE NK-Deals, und das bleibt so:
+// Treppchen, Abschlussquoten und Bestenliste leben von der Team-Sichtbarkeit, das ist der halbe
+// Motivationszweck des Bereichs. Das ist KEINE Luecke und soll nicht "gefixt" werden.
+// "Nur eigene Daten" gilt ausschliesslich fuer /api/mein-dashboard — dort strikt erzwungen,
+// inklusive Provisions- und Incentive-Daten, weil die persoenlich sind.
 function ownFilter(req) {
   const user = req.user;
   if (user.role === 'bk_vertrieb' && user.employee_id) {
@@ -157,9 +162,15 @@ router.get('/', wrap(async (req, res) => {
     params.push(gewonnen_bis);
   }
   if (status)        { conditions.push(`d.status = ${p()}`);        params.push(status); }
-  if (closer_id)     { conditions.push(`d.closer_id = ${p()}`);     params.push(closer_id); }
-  if (opener_id)     { conditions.push(`d.opener_id = ${p()}`);     params.push(opener_id); }
-  if (setter_id)     { conditions.push(`d.setter_id = ${p()}`);     params.push(setter_id); }
+  // Personenfilter werden untereinander mit ODER verknuepft, nach aussen mit UND. Grund: ein
+  // Hybrid haengt an seinen Deals mal als Opener, mal als Setter — mit UND kaeme fuer
+  // ?opener_id=X&setter_id=X nur die Schnittmenge zurueck (Deals, wo er BEIDES ist), nicht seine
+  // Deals. Ein einzelner Filter verhaelt sich unveraendert.
+  const personen = [];
+  if (closer_id) { personen.push(`d.closer_id = ${p()}`); params.push(closer_id); }
+  if (opener_id) { personen.push(`d.opener_id = ${p()}`); params.push(opener_id); }
+  if (setter_id) { personen.push(`d.setter_id = ${p()}`); params.push(setter_id); }
+  if (personen.length) conditions.push(`(${personen.join(' OR ')})`);
   // Kein aktiv_ab-Filter hier: Deal-LISTEN zeigen auch noch-nicht-aktive Companies (Kontrolle);
   // die Auswertungen/Stats blenden sie über aktiv_ab aus (Frontend-Stats + kpis/auswertung).
 

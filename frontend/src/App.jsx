@@ -1,6 +1,8 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import MeinDashboard from './pages/MeinDashboard';
+import Startseite from './components/Startseite';
 import Layout from './components/Layout';
 import Celebration from './components/Celebration';
 import Login from './pages/Login';
@@ -28,7 +30,7 @@ const ROLES = {
 
 // Inner component so useAuth() works (AuthProvider wraps it)
 function AppRoutes() {
-  const { canSeeKpiBeta, canSeeBestenliste, canSeeProvisionen, canSeeProvisionenAdmin, canSeeShowRates } = useAuth();
+  const { canSeeKpiBeta, canSeeBestenliste, canSeeProvisionen, canSeeProvisionenAdmin, canSeeShowRates, canSeeMeinDashboard } = useAuth();
 
   return (
     <Routes>
@@ -42,7 +44,9 @@ function AppRoutes() {
           <Layout />
         </ProtectedRoute>
       }>
-        <Route index element={<Navigate to="/dashboard" replace />} />
+        {/* Startseite haengt an der Rolle: NK-Vertriebler landen auf "Mein Dashboard",
+            alle anderen unveraendert auf dem Dashboard. */}
+        <Route index element={<Startseite />} />
         <Route path="dashboard"       element={<Dashboard />} />
         <Route path="auftragseingang" element={<Navigate to="/dashboard" replace />} />
 
@@ -87,6 +91,12 @@ function AppRoutes() {
             <Bestenliste />
           </ProtectedRoute>
         } />
+        <Route path="mein-dashboard" element={
+          <ProtectedRoute canAccess={canSeeMeinDashboard}>
+            <MeinDashboard />
+          </ProtectedRoute>
+        } />
+        {/* "Meine Provision" bleibt bis zur Umschaltung erreichbar (Beta-Parallellauf). */}
         <Route path="meine-provision" element={
           <ProtectedRoute canAccess={canSeeProvisionen}>
             <MeineProvision />

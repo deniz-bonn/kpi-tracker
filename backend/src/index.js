@@ -49,6 +49,7 @@ app.use('/api/inbound-daily',  require('./routes/inbound_daily'));  // requireAu
 app.use('/api/feature-flags',  require('./routes/feature_flags')); // requireAuth inside
 app.use('/api/bestenliste',    require('./routes/bestenliste'));  // requireAuth + requireFeature inside
 app.use('/api/showrates',      require('./routes/showrates'));    // requireAuth + requireFeature inside
+app.use('/api/mein-dashboard', require('./routes/mein_dashboard'));// requireAuth + requireFeature inside
 app.use('/api/provisionen',    require('./routes/provisionen'));  // requireAuth + requireFeature inside
 app.use('/api/upsale-deals',   require('./routes/upsale_deals'));   // requireAuth inside
 app.use('/api/admin',          require('./routes/admin'));       // requireAuth + requireRole inside
@@ -153,6 +154,18 @@ cron.schedule('30 0 * * *', async () => {
     console.log('[provisionen] Nachträge materialisiert für', new Date().toISOString().slice(0, 10));
   } catch (err) {
     console.error('[provisionen] Nachträge fehlgeschlagen:', err.message);
+  }
+}, { timezone: 'Europe/Berlin' });
+
+// Team-Incentive: faellige Monatswerte einfrieren (taeglich 02:00). Eingefroren wird ab dem 5. des
+// Folgemonats — bis dahin werden Ausgaenge nachgetragen, ein frueherer Freeze wuerde offene Termine
+// als unbewertet festschreiben und die Show-Rate druecken. Idempotent: vorhandene Zeilen bleiben.
+cron.schedule('0 2 * * *', async () => {
+  try {
+    const r = await require('./utils/incentive').freezeFaelligeMonate();
+    if (r.eingefroren.length) console.log('[incentive] eingefroren:', JSON.stringify(r.eingefroren.map(x => `${x.employee_id}/${x.monat}`)));
+  } catch (err) {
+    console.error('[incentive] Einfrieren fehlgeschlagen:', err.message);
   }
 }, { timezone: 'Europe/Berlin' });
 

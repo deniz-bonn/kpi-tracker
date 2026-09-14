@@ -114,6 +114,8 @@ export function AuthProvider({ children }) {
   const canSeeProvisionen = isSuperAdmin || roleHasFeature('provisionen') || userHasFeature('provisionen');
   // Show Rates (Close): out-of-the-box nur Superadmin; weitere via Rolle oder Einzel-Freischaltung.
   const canSeeShowRates = isSuperAdmin || roleHasFeature('show_rates_close') || userHasFeature('show_rates_close');
+  // Mein Dashboard (Beta): out-of-the-box nur Superadmin; weitere via Rolle oder Einzel-Freischaltung.
+  const canSeeMeinDashboard = isSuperAdmin || roleHasFeature('mein_dashboard') || userHasFeature('mein_dashboard');
   // Admin-Sicht der Provisionen (Gesamtübersicht/Abschluss): zusätzlich Rolle Admin/Vertriebsleitung.
   const canSeeProvisionenAdmin = canSeeProvisionen && (isAdmin || isVertriebsleitung);
 
@@ -123,7 +125,7 @@ export function AuthProvider({ children }) {
       isSuperAdmin, isAdmin, isBackoffice, isVertriebsleitung,
       canSeeNK, canSeeBK, canSeeVL, canSeeAdmin, canSeeAll,
       canSeeKpiBeta, canSeeBackup, canSeeBestenliste,
-      canSeeProvisionen, canSeeProvisionenAdmin, canSeeShowRates,
+      canSeeProvisionen, canSeeProvisionenAdmin, canSeeShowRates, canSeeMeinDashboard,
       featureFlags, featureFlagsGeladen, userFeatures, refreshFeatureFlags,
     }}>
       {children}

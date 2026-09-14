@@ -14,6 +14,7 @@ const ALL_NAV = [
   { to: '/kpi-mitarbeiter',     label: 'KPI Mitarbeiter',       icon: '📈', roles: ['admin','superadmin','backoffice','vertriebsleitung','bk_vertrieb','nk_vertrieb'] },
   { to: '/kpi-mitarbeiter-beta',label: 'KPI Mitarbeiter Beta',  icon: '🧪', feature: 'kpi_beta' },
   { to: '/bestenliste',         label: 'Bestenliste',           icon: '🏆', feature: 'bestenliste' },
+  { to: '/mein-dashboard',      label: 'Mein Dashboard',        icon: '🎯', feature: 'mein_dashboard' },
   { to: '/meine-provision',     label: 'Meine Provision',       icon: '💰', feature: 'provisionen' },
   { to: '/provisionen',         label: 'Provisionen',           icon: '🧾', feature: 'provisionen_admin' },
   { to: '/show-rates',          label: 'Show Rates (Close)',   icon: '📞', feature: 'show_rates_close' },
@@ -31,7 +32,8 @@ const ROLE_LABELS = {
 };
 
 export default function Layout() {
-  const { user, logout, canSeeKpiBeta, canSeeBestenliste, canSeeProvisionen, canSeeProvisionenAdmin, canSeeShowRates } = useAuth();
+  const { user, logout, canSeeKpiBeta, canSeeBestenliste, canSeeProvisionen, canSeeProvisionenAdmin,
+          canSeeShowRates, canSeeMeinDashboard } = useAuth();
   const navigate = useNavigate();
   const [company, setCompany]     = useState('');
   const [sidebarOpen, setSidebar] = useState(false);
@@ -43,6 +45,7 @@ export default function Layout() {
     if (n.feature === 'provisionen') return canSeeProvisionen;
     if (n.feature === 'provisionen_admin') return canSeeProvisionenAdmin;
     if (n.feature === 'show_rates_close') return canSeeShowRates;
+    if (n.feature === 'mein_dashboard') return canSeeMeinDashboard;
     return n.roles.includes(user?.role);
   });
   const close = () => setSidebar(false);
