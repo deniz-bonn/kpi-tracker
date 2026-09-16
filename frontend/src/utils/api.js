@@ -181,20 +181,25 @@ export const provisionenApi = {
   backfillDry: (kreis)          => api.get('/provisionen/admin/backfill/projektion', { params: kreis ? { kreis } : {} }).then(r => r.data),
   backfillRun: (kreis)          => api.post('/provisionen/admin/backfill', { kreis }).then(r => r.data),
   abschluss:   (id)             => api.post(`/provisionen/admin/zeitraeume/${id}/abschluss`).then(r => r.data),
-  exportCsv: async (id) => {
-    const token = localStorage.getItem('kpi_token');
-    const res   = await fetch(`/api/provisionen/admin/zeitraeume/${id}/export.csv`, { headers: { Authorization: `Bearer ${token}` } });
-    if (!res.ok) throw new Error('Export fehlgeschlagen');
-    const blob  = await res.blob();
-    const cd    = res.headers.get('Content-Disposition') || '';
-    const m     = cd.match(/filename="([^"]+)"/);
-    const a     = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = m ? m[1] : 'provisionen.csv';
-    document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(a.href);
-  },
+  // Ein Zeitraum (ein Kreis) bzw. ein Monat ueber alle Kalendermonats-Kreise. Gleicher
+  // Download-Pfad, damit der Dateiname immer vom Server kommt.
+  exportCsv:      (id)    => ladeCsv(`/api/provisionen/admin/zeitraeume/${id}/export.csv`),
+  exportMonatCsv: (monat) => ladeCsv(`/api/provisionen/admin/export/monat.csv?monat=${encodeURIComponent(monat)}`),
 };
+
+async function ladeCsv(url) {
+  const token = localStorage.getItem('kpi_token');
+  const res   = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error('Export fehlgeschlagen');
+  const blob  = await res.blob();
+  const cd    = res.headers.get('Content-Disposition') || '';
+  const m     = cd.match(/filename="([^"]+)"/);
+  const a     = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = m ? m[1] : 'provisionen.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(a.href);
+}
 
 export const auditApi = {
   list: (params) => api.get('/audit', { params }).then(r => r.data),

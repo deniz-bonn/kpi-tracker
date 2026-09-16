@@ -1,4 +1,5 @@
 import { useState, useEffect, Fragment } from 'react';
+import { KREISE } from '../utils/kreise';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { companiesApi, targetsApi, adminApi, auditApi, employeesApi, featureFlagsApi, backupApi, exchangeRatesApi, monthlyTargetsStandortApi, provisionenApi } from '../utils/api';
 import { currentMonat } from '../utils/format';
@@ -178,12 +179,9 @@ function AccessControlSection() {
 }
 
 // ── Provisions-Sätze (superadmin only) — perioden-gültig, nie rückwirkend ──
-const PROV_KREISE = [{ key: 'bonn', label: 'Bonn' }, { key: 'braunschweig', label: 'Braunschweig' }, { key: 'oesterreich', label: 'Österreich' }];
-const KREIS_HINT = {
-  bonn: 'Bonn: klassische %-Sätze + Team-Staffel (Zyklus 21.–20.).',
-  braunschweig: 'Braunschweig (Kalendermonat): Opener = 125 € Fixbetrag je Sales Call (strukturell, nicht hier editierbar). Setter/Closer/Pauschale wie unten.',
-  oesterreich: 'Österreich (Kalendermonat): Opener/Setter über Staffeltabelle (strukturell). Editierbar hier: Closer 7 % (Auto-VL) = „Closer hoch", 5 % (ohne) = „Closer Basis".',
-};
+// Kreis-Liste und Hinweistexte kommen aus der zentralen Registry (utils/kreise.js).
+const PROV_KREISE = KREISE.map((k) => ({ key: k.key, label: k.label }));
+const KREIS_HINT = Object.fromEntries(KREISE.map((k) => [k.key, k.hint]));
 function ProvisionConfigSection() {
   const qc = useQueryClient();
   const [kreis, setKreis] = useState('bonn');
@@ -192,18 +190,24 @@ function ProvisionConfigSection() {
   const { data: configs = [], isLoading } = useQuery({ queryKey: ['prov-config'], queryFn: provisionenApi.config });
   const { data: employees = [] } = useQuery({ queryKey: ['employees'], queryFn: () => employeesApi.list() });
 
-  const cfgOf = (k) => configs.find(c => c.kreis === k) || configs.find(c => (c.kreis || 'bonn') === 'bonn') || configs[0];
-  const toForm = (c) => ({
-    gueltig_ab: '',
-    opener_satz: c.opener_satz, setter_satz: c.setter_satz, opener_setter_pauschal: c.opener_setter_pauschal,
-    closer_basis: c.closer_basis, closer_schwelle: c.closer_schwelle, closer_hoch: c.closer_hoch,
-    team_empfaenger_id: c.team_empfaenger_id || '', team_s1_bis: c.team_s1_bis, team_s1: c.team_s1,
-    team_s2_bis: c.team_s2_bis, team_s2: c.team_s2, team_s3: c.team_s3,
-  });
+  // Kein Bonn-Rueckfall mehr: fand sich fuer einen Kreis keine Config, zeigte das Formular
+  // stillschweigend die BONNER Saetze unter fremder Ueberschrift — und speicherte sie zurueck.
+  const cfgOf = (k) => configs.find(c => (c.kreis || 'bonn') === k) || null;
+  // Der BK-Kreis hat zwei Prozentsaetze und keine Rollen-/Staffel-Felder; die NK-Kreise umgekehrt.
+  const istBk = (k) => k === 'bestandskunden';
+  const toForm = (c, k) => (istBk(k)
+    ? { gueltig_ab: '', upsell_satz: c?.upsell_satz ?? 3, auto_vl_satz: c?.auto_vl_satz ?? 2 }
+    : {
+        gueltig_ab: '',
+        opener_satz: c?.opener_satz, setter_satz: c?.setter_satz, opener_setter_pauschal: c?.opener_setter_pauschal,
+        closer_basis: c?.closer_basis, closer_schwelle: c?.closer_schwelle, closer_hoch: c?.closer_hoch,
+        team_empfaenger_id: c?.team_empfaenger_id || '', team_s1_bis: c?.team_s1_bis, team_s1: c?.team_s1,
+        team_s2_bis: c?.team_s2_bis, team_s2: c?.team_s2, team_s3: c?.team_s3,
+      });
 
   useEffect(() => {
     if (form || !configs.length) return;
-    setForm(toForm(cfgOf('bonn')));
+    setForm(toForm(cfgOf('bonn'), 'bonn'));
   }, [configs, form]);
 
   const saveMut = useMutation({
@@ -214,7 +218,7 @@ function ProvisionConfigSection() {
   if (isLoading || !form) return <div className="text-sm text-gray-400 py-4">Lade…</div>;
   const inpCls = "w-full bg-white border border-gray-300 text-gray-700 text-sm rounded px-2 py-1.5";
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-  const pickKreis = (k) => { setKreis(k); const c = cfgOf(k); if (c) setForm(toForm(c)); };
+  const pickKreis = (k) => { setKreis(k); setForm(toForm(cfgOf(k), k)); };
   const bonnBs = employees.filter(e => ['Bonn', 'Braunschweig'].includes(e.standort));
   const numField = (k, label, step = '0.1') => (
     <label className="block"><span className="text-xs text-gray-500">{label}</span>
@@ -235,22 +239,27 @@ function ProvisionConfigSection() {
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <label className="block"><span className="text-xs text-gray-500">Gültig ab</span>
           <input type="date" value={form.gueltig_ab} onChange={e => set('gueltig_ab', e.target.value)} className={inpCls} /></label>
-        {numField('opener_satz', 'Opener %')}
-        {numField('setter_satz', 'Setter %')}
-        {numField('opener_setter_pauschal', 'Opener+Setter Pauschale %')}
-        {numField('closer_basis', 'Closer Basis %')}
-        {numField('closer_schwelle', 'Closer Schwelle €', '1000')}
-        {numField('closer_hoch', 'Closer hoch % (ab Schwelle)')}
-        <label className="block"><span className="text-xs text-gray-500">Team-Empfänger</span>
-          <select value={form.team_empfaenger_id} onChange={e => set('team_empfaenger_id', e.target.value)} className={inpCls}>
-            <option value="">—</option>
-            {bonnBs.map(e => <option key={e.id} value={e.id}>{e.name} ({e.standort})</option>)}
-          </select></label>
-        {numField('team_s1_bis', 'Team Stufe 1 bis €', '1000')}
-        {numField('team_s1', 'Team % ≤ Stufe 1')}
-        {numField('team_s2_bis', 'Team Stufe 2 bis €', '1000')}
-        {numField('team_s2', 'Team % Stufe 2')}
-        {numField('team_s3', 'Team % > Stufe 2')}
+        {istBk(kreis) ? (<>
+          {numField('upsell_satz', 'Upsell % (gewonnener BK-Deal)')}
+          {numField('auto_vl_satz', 'Verlängerung % (gewonnene VL)')}
+        </>) : (<>
+          {numField('opener_satz', 'Opener %')}
+          {numField('setter_satz', 'Setter %')}
+          {numField('opener_setter_pauschal', 'Opener+Setter Pauschale %')}
+          {numField('closer_basis', 'Closer Basis %')}
+          {numField('closer_schwelle', 'Closer Schwelle €', '1000')}
+          {numField('closer_hoch', 'Closer hoch % (ab Schwelle)')}
+          <label className="block"><span className="text-xs text-gray-500">Team-Empfänger</span>
+            <select value={form.team_empfaenger_id} onChange={e => set('team_empfaenger_id', e.target.value)} className={inpCls}>
+              <option value="">—</option>
+              {bonnBs.map(e => <option key={e.id} value={e.id}>{e.name} ({e.standort})</option>)}
+            </select></label>
+          {numField('team_s1_bis', 'Team Stufe 1 bis €', '1000')}
+          {numField('team_s1', 'Team % ≤ Stufe 1')}
+          {numField('team_s2_bis', 'Team Stufe 2 bis €', '1000')}
+          {numField('team_s2', 'Team % Stufe 2')}
+          {numField('team_s3', 'Team % > Stufe 2')}
+        </>)}
       </div>
       <div className="flex items-center gap-3">
         <button onClick={() => saveMut.mutate(form)} disabled={!canSave || saveMut.isPending}
@@ -269,11 +278,25 @@ function ProvisionConfigSection() {
             </tr></thead>
             <tbody>
               {configs.map(c => {
-                const kl = (PROV_KREISE.find(k => k.key === (c.kreis || 'bonn')) || {}).label || c.kreis;
+                const k = c.kreis || 'bonn';
+                const kl = (PROV_KREISE.find(x => x.key === k) || {}).label || k;
+                // Der BK-Kreis hat keine Rollen-Sätze — seine NK-Spalten stehen per Migration auf 0.
+                // Die Historie würde sonst "0 %" zeigen, als wäre nichts hinterlegt. Statt der
+                // leeren Rollen-Spalten seine beiden echten Sätze über die Zeile hinweg anzeigen.
+                if (istBk(k)) return (
+                  <tr key={`${k}:${c.gueltig_ab}`} className="border-b border-gray-50 last:border-0">
+                    <td className="px-4 py-2 font-medium">{kl}</td>
+                    <td className="px-3 py-2">{c.gueltig_ab}</td>
+                    <td className="px-3 py-2 text-gray-600" colSpan={6}>
+                      Upsell <b>{c.upsell_satz ?? '—'} %</b> · Verlängerung <b>{c.auto_vl_satz ?? '—'} %</b>
+                      <span className="text-gray-400"> · keine Rollen-Sätze, keine Staffel</span>
+                    </td>
+                  </tr>
+                );
                 const openerTxt = c.opener_modus === 'fix' ? `${Number(c.opener_fix || 0)} € fix` : c.opener_modus === 'staffel' ? 'Staffel' : `${c.opener_satz}%`;
                 const setterTxt = c.setter_modus === 'staffel' ? 'Staffel' : `${c.setter_satz}%`;
                 return (
-                  <tr key={`${c.kreis || 'bonn'}:${c.gueltig_ab}`} className="border-b border-gray-50 last:border-0">
+                  <tr key={`${k}:${c.gueltig_ab}`} className="border-b border-gray-50 last:border-0">
                     <td className="px-4 py-2 font-medium">{kl}</td>
                     <td className="px-3 py-2">{c.gueltig_ab}</td>
                     <td className="px-3 py-2">{openerTxt}</td><td className="px-3 py-2">{setterTxt}</td>

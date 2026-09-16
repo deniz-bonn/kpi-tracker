@@ -6,8 +6,16 @@
 // Der Kreis JEDES Beteiligten (nach dessen Standort) bestimmt Satz UND Zeitraum -> ein Deal kann
 // Positionen in mehrere Kreise streuen. Liest deals_nk/employees, schreibt NUR in provision_*.
 // Der Aufruf im NK-Write-Hook laeuft in try/catch: ein Fehler hier darf das Deal-Speichern nie brechen.
+//
+// Der vierte Kreis 'bestandskunden' (Upsell 3 % / Verlaengerung 2 %) liegt BEWUSST in einem
+// eigenen Modul (utils/provisionenBk.js): er hat eine andere Deal-Quelle (deals_bk/deals_vl),
+// eine andere Achse (gewonnen_monat statt gewonnen_datum) und kennt weder Rollen noch Staffeln.
+// Ihn hier einzuweben haette jede NK-Funktion um einen Sonderzweig erweitert. Geteilt werden nur
+// die Ledger-Primitive (insertBuchung, getOrCreateZeitraum, periodFor, configFor, goLiveDatum),
+// damit es genau EIN Kontoauszug-Format und EINE Zeitraum-Mechanik gibt.
 const db = require('../db');
 const { toYmd } = require('./gewonnen');
+const { kreisFor, NK_KREISE } = require('./kreise');
 
 const pg = () => db.dialect === 'postgres';
 const round2 = n => Math.round((Number(n) || 0) * 100) / 100;
@@ -18,15 +26,10 @@ const ymExpr = col => pg() ? `to_char(${col}, 'YYYY-MM')` : `substr(${col}, 1, 7
 // YYYY-MM-DD als TEXT (deals_nk-Datumsspalten sind DATE in PG) -> sichere Textvergleiche statt DATE>=TEXT.
 const ymdExpr = col => pg() ? `to_char(${col}, 'YYYY-MM-DD')` : col;
 
-// standort (employees) -> kreis-Schluessel. Schweiz/null sind NICHT im Modul.
-function kreisFor(standort) {
-  if (standort === 'Bonn') return 'bonn';
-  if (standort === 'Braunschweig') return 'braunschweig';
-  if (standort === 'Österreich') return 'oesterreich';
-  return null;
-}
-const KALENDERMONAT_KREISE = new Set(['braunschweig', 'oesterreich']);
-const MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+// kreisFor(standort) kommt aus utils/kreise.js — der einen Wahrheit ueber Abrechnungskreise.
+// (Frueher stand die Zuordnung hier als drei if-Zeilen, dazu eine ungenutzte Konstante
+// KALENDERMONAT_KREISE, die aussah wie die Registry, aber nirgends gelesen wurde.)
+const MONATE =['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 
 // ── Perioden ──────────────────────────────────────────────────────────────────
 // Bonn: 21.-20. (der 20. voll drin). Braunschweig/Oesterreich: voller Kalendermonat.
@@ -92,9 +95,11 @@ async function staffelSatz(kreis, rolle, monatsAe, gueltigBis) {
   for (const r of rows) if (monatsAe >= Number(r.ab_betrag)) s = Number(r.satz);
   return s;
 }
+// deal_quelle ('nk'|'bk'|'vl') ist Pflichtbestandteil JEDER Buchung: deal_id allein ist seit dem
+// BK-Kreis nicht mehr eindeutig. Default 'nk', damit alle bestehenden NK-Aufrufer unveraendert bleiben.
 async function insertBuchung(b) {
-  const cols = 'zeitraum_id,employee_id,deal_id,rolle,typ,satz,bemessungsgrundlage,betrag,kalendermonat,gewonnen_datum,beschreibung,idem_key';
-  const vals = [b.zeitraum_id, b.employee_id, b.deal_id ?? null, b.rolle, b.typ, b.satz, round2(b.bemessungsgrundlage),
+  const cols = 'zeitraum_id,employee_id,deal_id,deal_quelle,rolle,typ,satz,bemessungsgrundlage,betrag,kalendermonat,gewonnen_datum,beschreibung,idem_key';
+  const vals = [b.zeitraum_id, b.employee_id, b.deal_id ?? null, b.deal_quelle || 'nk', b.rolle, b.typ, b.satz, round2(b.bemessungsgrundlage),
     round2(b.betrag), b.kalendermonat, b.gewonnen_datum ?? null, b.beschreibung ?? null, b.idem_key];
   if (pg()) {
     await db.run(`INSERT INTO provision_buchungen (${cols}) VALUES (${vals.map((_, i) => `$${i + 1}`).join(',')}) ON CONFLICT (idem_key) DO NOTHING`, vals);
@@ -190,7 +195,7 @@ async function provisionSync(deal, prev, stichtag) {
       const soll = new Map();                                 // Soll je (Empfaenger,Rolle) laut aktuellem Zustand
       for (const p of await positionenFor(deal, gd)) soll.set(`${p.emp}|${p.rolle}`, { satz: p.satz, besch: p.besch, kreis: p.kreis, betrag: round2(ae * p.satz / 100) });
       const ist = new Map(), istKreis = new Map();            // Ist = bereits gebuchte Basis+Korrekturen
-      for (const r of await db.all(`SELECT b.employee_id, b.rolle, b.zeitraum_id, z.kreis, COALESCE(SUM(b.betrag),0) b FROM provision_buchungen b JOIN provision_zeitraeume z ON z.id=b.zeitraum_id WHERE b.deal_id=${q1(1)} AND b.typ IN ('deal_gewonnen','team_provision','korrektur') GROUP BY b.employee_id, b.rolle, b.zeitraum_id, z.kreis`, [deal.id])) {
+      for (const r of await db.all(`SELECT b.employee_id, b.rolle, b.zeitraum_id, z.kreis, COALESCE(SUM(b.betrag),0) b FROM provision_buchungen b JOIN provision_zeitraeume z ON z.id=b.zeitraum_id WHERE b.deal_id=${q1(1)} AND b.deal_quelle='nk' AND b.typ IN ('deal_gewonnen','team_provision','korrektur') GROUP BY b.employee_id, b.rolle, b.zeitraum_id, z.kreis`, [deal.id])) {
         const k = `${r.employee_id}|${r.rolle}`;
         ist.set(k, round2((ist.get(k) || 0) + Number(r.b))); istKreis.set(k, r.kreis);
       }
@@ -224,7 +229,7 @@ async function syncBsOpenerFix(deal, today) {
   const inScope = !!cfgBs && dd >= await goLiveDatum('braunschweig');
   const curOpener = (statusOk && oIsBs && oId !== deal.setter_id && inScope) ? oId : null;
   // Ist je Empfaenger (Fix minus Fix-Storno).
-  const rows = await db.all(`SELECT employee_id, COALESCE(SUM(betrag),0) net FROM provision_buchungen WHERE deal_id=${q1(1)} AND rolle='opener' AND typ IN ('opener_fix','opener_fix_storno') GROUP BY employee_id`, [dealId]);
+  const rows = await db.all(`SELECT employee_id, COALESCE(SUM(betrag),0) net FROM provision_buchungen WHERE deal_id=${q1(1)} AND deal_quelle='nk' AND rolle='opener' AND typ IN ('opener_fix','opener_fix_storno') GROUP BY employee_id`, [dealId]);
   const net = new Map(rows.map(r => [r.employee_id, round2(Number(r.net))]));
   const fix = cfgBs ? Number(cfgBs.opener_fix) || 125 : 125;
   const km = dd ? kalendermonatFor(dd) : today.slice(0, 7);
@@ -253,7 +258,7 @@ async function syncBsOpenerFix(deal, today) {
 async function storniereDeal(dealId, prev, today) {
   const orig = await db.all(
     `SELECT b.employee_id, b.rolle, z.kreis, COALESCE(SUM(b.betrag),0) b FROM provision_buchungen b JOIN provision_zeitraeume z ON z.id=b.zeitraum_id
-      WHERE b.deal_id=${q1(1)} AND b.typ IN ('deal_gewonnen','team_provision','korrektur','staffel_upgrade','staffel_nachtrag','team_upgrade','team_nachtrag','at_opener_staffel','at_opener_nachtrag','at_setter_staffel','at_setter_nachtrag')
+      WHERE b.deal_id=${q1(1)} AND b.deal_quelle='nk' AND b.typ IN ('deal_gewonnen','team_provision','korrektur','staffel_upgrade','staffel_nachtrag','team_upgrade','team_nachtrag','at_opener_staffel','at_opener_nachtrag','at_setter_staffel','at_setter_nachtrag')
       GROUP BY b.employee_id, b.rolle, z.kreis`, [dealId]);
   for (const r of orig) {
     const sum = round2(Number(r.b)); if (sum === 0) continue;
@@ -278,7 +283,7 @@ async function bonnMonatsAe(km) {
 async function storniereAltAggregat(empId, rolle, km, typen, zielId) {
   const liste = typen.map(t => `'${t}'`).join(',');
   const row = await db.get(
-    `SELECT COALESCE(SUM(betrag),0) b FROM provision_buchungen WHERE deal_id IS NULL AND employee_id=${q1(1)} AND rolle=${q1(2)} AND kalendermonat=${q1(3)} AND typ IN (${liste})`,
+    `SELECT COALESCE(SUM(betrag),0) b FROM provision_buchungen WHERE deal_id IS NULL AND deal_quelle='nk' AND employee_id=${q1(1)} AND rolle=${q1(2)} AND kalendermonat=${q1(3)} AND typ IN (${liste})`,
     [empId, rolle, km]);
   const b = round2(Number(row?.b) || 0);
   if (b === 0) return;
@@ -307,7 +312,7 @@ async function aktualisiereCloserStaffel(closerId, km, stichtag) {
     const gd = toYmd(d.gewonnen_datum); if (!gd) continue;
     const ae = Number(d.ae_wert) || 0, want = round2(ae * extra / 100);
     const have = round2(Number((await db.get(
-      `SELECT COALESCE(SUM(betrag),0) b FROM provision_buchungen WHERE deal_id=${q1(1)} AND employee_id=${q1(2)} AND rolle='closer' AND typ IN ('staffel_upgrade','staffel_nachtrag')`,
+      `SELECT COALESCE(SUM(betrag),0) b FROM provision_buchungen WHERE deal_id=${q1(1)} AND deal_quelle='nk' AND employee_id=${q1(2)} AND rolle='closer' AND typ IN ('staffel_upgrade','staffel_nachtrag')`,
       [d.id, closerId])).b));
     const diff = round2(want - have); if (diff === 0) continue;
     const offen = (await periodeStatus(gd, kreis)) === 'offen';
@@ -338,7 +343,7 @@ async function aktualisiereTeamStaffel(km, stichtag) {
     const gd = toYmd(d.gewonnen_datum); if (!gd) continue;
     const ae = Number(d.ae_wert) || 0, want = round2(ae * extra / 100);
     const have = round2(Number((await db.get(
-      `SELECT COALESCE(SUM(betrag),0) b FROM provision_buchungen WHERE deal_id=${q1(1)} AND employee_id=${q1(2)} AND rolle='team' AND typ IN ('team_upgrade','team_nachtrag')`,
+      `SELECT COALESCE(SUM(betrag),0) b FROM provision_buchungen WHERE deal_id=${q1(1)} AND deal_quelle='nk' AND employee_id=${q1(2)} AND rolle='team' AND typ IN ('team_upgrade','team_nachtrag')`,
       [d.id, empf])).b));
     const diff = round2(want - have); if (diff === 0) continue;
     const offen = (await periodeStatus(gd, 'bonn')) === 'offen';
@@ -373,7 +378,7 @@ async function aktualisiereStaffelAt(empId, rolle, km, stichtag) {
     const gd = toYmd(d.gewonnen_datum); if (!gd || gd < goLive) continue;
     const ae = Number(d.ae_wert) || 0, want = round2(ae * satz / 100);
     const have = round2(Number((await db.get(
-      `SELECT COALESCE(SUM(betrag),0) b FROM provision_buchungen WHERE deal_id=${q1(1)} AND employee_id=${q1(2)} AND rolle=${q1(3)} AND typ IN ('${typOffen}','${typZu}')`,
+      `SELECT COALESCE(SUM(betrag),0) b FROM provision_buchungen WHERE deal_id=${q1(1)} AND deal_quelle='nk' AND employee_id=${q1(2)} AND rolle=${q1(3)} AND typ IN ('${typOffen}','${typZu}')`,
       [d.id, empId, rolle])).b));
     const diff = round2(want - have); if (diff === 0) continue;
     const offen = (await periodeStatus(gd, 'oesterreich')) === 'offen';
@@ -542,7 +547,7 @@ async function materialisiereNachtraege(stichtag, kreisFilter = null) {
 // Read-only-Projektion (kein Insert), STRIKT auf den gewaehlten Kreis gescoped (Dry-Run).
 // Enthaelt Basis-Positionen (nach Beteiligten-Kreis gefiltert) + BS-Opener-Fix (125 EUR) + AT-Staffeln.
 async function projektionLaufend(kreis, stichtag) {
-  const k = ['bonn', 'braunschweig', 'oesterreich'].includes(kreis) ? kreis : null;
+  const k = NK_KREISE.includes(kreis) ? kreis : null;   // 'bestandskunden' laeuft ueber utils/provisionenBk.js
   const goLive = k ? await goLiveDatum(k) : ((await db.get(`SELECT MIN(gueltig_ab) g FROM provision_config`))?.g || '9999-12-31');
   const deals = await db.all(`SELECT * FROM deals_nk WHERE status='Gewonnen' AND ${ymdExpr('gewonnen_datum')} >= ${q1(1)}`, [goLive]);
   const perRolle = {}; let totalBase = 0; const inScope = new Set();
@@ -604,7 +609,7 @@ async function backfillKreis(kreis, stichtag) {
 
 // Backfill-Button: mit kreis strikt gescoped (backfillKreis), ohne kreis global (reconcileAll = Startup).
 async function backfillLaufend(kreis, stichtag) {
-  const k = ['bonn', 'braunschweig', 'oesterreich'].includes(kreis) ? kreis : null;
+  const k = NK_KREISE.includes(kreis) ? kreis : null;   // 'bestandskunden' laeuft ueber utils/provisionenBk.js
   const r = k ? await backfillKreis(k, stichtag) : await reconcileAll(stichtag);
   const rows = await db.all(`SELECT typ, COUNT(*) n, COALESCE(SUM(betrag),0) summe FROM provision_buchungen GROUP BY typ ORDER BY typ`);
   return { ...r, kreis: k || 'alle', buchungen: rows };
@@ -664,4 +669,8 @@ module.exports = {
   closerMonatsAe, bonnMonatsAe, periodFor, labelFor, labelForKreis, kalendermonatFor,
   configFor, getOrCreateZeitraum, kreisFor, goLiveDatum, staffelSatz,
   resolveZeitraum, detailFor,
+  // Ledger-Primitive, geteilt mit utils/provisionenBk.js. Bewusst exportiert statt dort
+  // nachgebaut: es soll genau EINE Stelle geben, die in provision_buchungen schreibt, und
+  // genau EINE, die Zeitraeume anlegt — sonst driften Kontoauszug und Abschluss auseinander.
+  insertBuchung, offenerZeitraumAm, round2,
 };

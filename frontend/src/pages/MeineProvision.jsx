@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { provisionenApi } from '../utils/api';
 import { formatEuro } from '../utils/format';
+import { kreisZyklus } from '../utils/kreise';
 import Kontoauszug, { TYP_LABEL, TYP_COLOR } from '../components/Kontoauszug';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -55,9 +56,7 @@ export default function MeineProvision() {
   const perTyp = data?.perTyp || {};
   const meKreis = data?.kreis;                                   // eigener Abrechnungskreis
   const zeitraeumeF = zeitraeume.filter((z) => !meKreis || z.kreis === meKreis);
-  const zyklusText = meKreis === 'bonn'
-    ? 'Abrechnungszeitraum jeweils 21. des Vormonats bis 20. des Monats.'
-    : 'Abrechnungszeitraum: voller Kalendermonat (1. bis Monatsende).';
+  const zyklusText = kreisZyklus(meKreis);
 
   const auswahl = sicht?.fremdsicht_erlaubt ? (
     <div className="flex items-center gap-2">

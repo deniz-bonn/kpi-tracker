@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { meinDashboardApi } from '../utils/api';
 import { formatEuro } from '../utils/format';
+import { kreisLabel } from '../utils/kreise';
 import Kontoauszug from '../components/Kontoauszug';
 import InfoPopover from '../components/InfoPopover';
 
@@ -180,7 +181,7 @@ function MitarbeiterSicht({ data, zeitraumId, setZeitraumId }) {
           <div className="text-[11px] uppercase tracking-wide text-gray-400">
             {z?.status === 'abgeschlossen' ? 'Provision (abgeschlossener Zeitraum)' : 'Provision im laufenden Zeitraum'}
             {z && <span className="ml-2 bg-gray-600 text-gray-200 rounded-full px-2 py-0.5 text-[11px]">
-              {employee.kreis === 'bonn' ? 'Bonn' : employee.kreis === 'braunschweig' ? 'Braunschweig' : 'Österreich'}
+              {kreisLabel(employee.kreis)}
               {' · '}{z.label || `${z.von}–${z.bis}`}
             </span>}
           </div>

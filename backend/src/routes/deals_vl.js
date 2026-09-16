@@ -6,6 +6,11 @@ const { logAudit }   = require('../utils/audit');
 const { pruefeDatumsaenderung } = require('../utils/dealGuards');
 const { enrichDealsEur } = require('../utils/currency');
 const { resolveGewonnenFelder } = require('../utils/gewonnen');
+// Provisions-Hook des Abrechnungskreises "Bestandskundenvertrieb" (Verlaengerung 2 % an den KAM).
+// Wie in deals_nk.js laeuft jeder Aufruf in try/catch: ein Fehler in der Provisionsrechnung
+// darf das Speichern des Deals niemals brechen.
+const { provisionSyncBk } = require('../utils/provisionenBk');
+const { kamRollenSql } = require('../utils/rollen');
 
 router.use(requireAuth);
 
@@ -153,10 +158,16 @@ router.post('/import-csv', wrap(async (req, res) => {
   if (!Array.isArray(rows) || rows.length === 0) return res.status(400).json({ error: 'Keine Daten' });
   if (!company_id) return res.status(400).json({ error: 'company_id fehlt' });
 
-  // Build lowercase KAM name → id map
-  const kamRows = db.dialect === 'postgres'
-    ? await db.all("SELECT id, name FROM employees WHERE rolle='KAM'")
-    : db.all("SELECT id, name FROM employees WHERE rolle='KAM'");
+  // KAM-Name -> id. Rollen-Liste ZENTRAL aus utils/rollen.js (KAM_ROLLEN), nicht als Literal:
+  // vorher stand hier rolle='KAM', wodurch Closer-KAM, Account Manager und Multi allesamt
+  // kam_id=NULL bekamen. Solange kam_id nur Zuordnung war, blieb das unbemerkt — seit dem
+  // BK-Provisionskreis ist ein Deal ohne kam_id entgangene Provision, weil es keinen
+  // Empfaenger gibt. Die Zuordnung MUSS deshalb dieselbe Rollen-Menge treffen wie das Formular.
+  // Bewusst OHNE aktiv-Filter: vorher gab es keinen, und ein deaktivierter Mitarbeiter mit
+  // historischen Vertraegen soll seine importierten Zeilen weiterhin zugeordnet bekommen.
+  // Geaendert wird hier nur die ROLLEN-Menge, nichts sonst.
+  const kamSql = `SELECT id, name FROM employees WHERE rolle IN (${kamRollenSql()})`;
+  const kamRows = db.dialect === 'postgres' ? await db.all(kamSql) : db.all(kamSql);
   const kamMap = {};
   for (const k of kamRows) kamMap[k.name.trim().toLowerCase()] = k.id;
 
@@ -240,6 +251,7 @@ router.post('/', wrap(async (req, res) => {
   }
 
   try { await syncAeGesamtVL(row, null); } catch (e) { console.error('[sync-vl] POST:', e.message); }
+  try { await provisionSyncBk(row, 'vl'); } catch (e) { console.error('[prov-vl] POST:', e.message); }
   await logAudit({ user: req.user, action: 'create', entityType: 'deal_vl', entityId: row.id, newData: row });
   res.status(201).json(row);
 }));
@@ -254,7 +266,17 @@ router.put('/:id', wrap(async (req, res) => {
   const datumFehler = pruefeDatumsaenderung(req, existing, ['admin', 'superadmin', 'bk_vertrieb', 'backoffice', 'vertriebsleitung']);
   if (datumFehler) return res.status(403).json({ error: datumFehler });
 
-  const { gewonnen_datum, gewonnen_monat } = resolveGewonnenFelder(req.body, existing);
+  // ZWINGEND VOR resolveGewonnenFelder: die Ableitung prueft body.status. Fehlt der Status im
+  // Teil-Body, liefe sie in den "nicht gewonnen"-Zweig und setzte gewonnen_datum/-monat auf NULL.
+  // Die Feld-Erhaltung weiter unten greift dafuer NICHT — diese beiden Felder kommen nicht aus
+  // `existing`, sondern aus dem Rueckgabewert hier. Seit am VL-PUT ein Provisions-Hook haengt,
+  // waere die Folge nicht nur ein entwerteter Deal, sondern eine stornierte Provision.
+  // (Gleiches Muster wie in deals_bk.js und wie angebot_erstellt in deals_nk.js.)
+  const gwBody = { ...req.body };
+  if (gwBody.status === undefined && existing) gwBody.status = existing.status;
+  if (gwBody.gewonnen_datum === undefined && existing) gwBody.gewonnen_datum = existing.gewonnen_datum;
+
+  const { gewonnen_datum, gewonnen_monat } = resolveGewonnenFelder(gwBody, existing);
   const fields = ['datum','monat','company_id','kam_id','kunde','dienstleistung','angebotswert',
     'ae_wert','laufzeit_monate','status','wie_vielt_verlaengerung','kommentar',
     'abgerechnet','kundennummer','gewonnen_datum','gewonnen_monat',
@@ -285,7 +307,7 @@ router.put('/:id', wrap(async (req, res) => {
     if (f === 'gewonnen_monat') return gewonnen_monat;
     if (f === 'abgerechnet') {
       if (req.body[f] === undefined) return existing?.abgerechnet ?? null;
-      return req.body[f] ?? (req.body.status === 'Gewonnen' ? 'Nein' : null);
+      return req.body[f] ?? (gwBody.status === 'Gewonnen' ? 'Nein' : null);   // gemergter Status
     }
     if (f === 'upsale_angesprochen' || f === 'upsale_angenommen') {
       if (req.body[f] === undefined) return Number(existing?.[f]) || 0;
@@ -323,6 +345,9 @@ router.put('/:id', wrap(async (req, res) => {
   }
 
   try { await syncAeGesamtVL(row, existing); } catch (e) { console.error('[sync-vl] PUT:', e.message); }
+  // State-based: provisionSyncBk rechnet das Soll des NEUEN Zustands und bucht die Differenz.
+  // Damit sind Gewinn, Storno, ae_wert-Aenderung und KAM-Wechsel mit einem Aufruf abgedeckt.
+  try { await provisionSyncBk(row, 'vl'); } catch (e) { console.error('[prov-vl] PUT:', e.message); }
   await logAudit({ user: req.user, action: 'update', entityType: 'deal_vl', entityId: Number(req.params.id), oldData: existing, newData: row });
   res.json(row);
 }));
@@ -377,6 +402,8 @@ router.delete('/:id', wrap(async (req, res) => {
 
   if (existing?.status === 'Gewonnen') {
     try { await syncAeGesamtVL({ ...existing, status: 'Gelöscht' }, existing); } catch (e) { console.error('[sync-vl] DELETE:', e.message); }
+    // Storno VOR dem DELETE: die Engine liest den Deal nicht mehr, wenn die Zeile weg ist.
+    try { await provisionSyncBk({ ...existing, status: 'Gelöscht' }, 'vl'); } catch (e) { console.error('[prov-vl] DELETE:', e.message); }
   }
   const p = db.dialect === 'postgres' ? '$1' : '?';
   await db.run(`DELETE FROM deals_vl WHERE id=${p}`, [req.params.id]);
