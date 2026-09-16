@@ -151,7 +151,8 @@ export default function Provisionen() {
   const [zid, setZid] = useState('');
   const [detailEmp, setDetailEmp] = useState(null);
   const [exportErr, setExportErr] = useState('');
-  const [gruppe, setGruppe] = useState('');   // Rollen-Gruppen-Filter (BK-Kreis)
+  const [gruppe, setGruppe] = useState('');     // Rollen-Gruppen-Filter (BK-Kreis)
+  const [standort, setStandort] = useState(''); // Standort-Filter
 
   const { data: zeitraeume = [] } = useQuery({ queryKey: ['prov-zeitraeume', kreis], queryFn: () => provisionenApi.zeitraeume(kreis) });
   const { data, isLoading } = useQuery({
@@ -163,16 +164,23 @@ export default function Provisionen() {
   const zSel = zid || data?.zeitraum?.id || '';
   const istBk = kreis === BK;
   const alleZeilen = data?.zeilen || [];
-  // Rein clientseitiger Filter — die Summe oben bleibt bewusst die des GANZEN Zeitraums,
-  // damit der Filter nicht versehentlich als Teil-Abrechnung gelesen wird.
-  const zeilen = gruppe ? alleZeilen.filter((r) => r.gruppe === gruppe) : alleZeilen;
+  // Standort-Auswahl aus den TATSAECHLICH vorhandenen Zeilen, nicht aus einer festen Liste:
+  // im BK-Kreis stehen Bonn/Braunschweig/Österreich nebeneinander, in den NK-Kreisen gibt es
+  // in aller Regel nur einen. So entstehen keine Filterknöpfe, hinter denen nichts liegt —
+  // und ein spaeter hinzukommender Standort taucht von selbst auf.
+  const standorte = [...new Set(alleZeilen.map((r) => r.standort).filter(Boolean))].sort();
+  // Beide Filter wirken zusammen (UND) und rein clientseitig.
+  const zeilen = alleZeilen.filter((r) =>
+    (!gruppe || r.gruppe === gruppe) && (!standort || r.standort === standort));
+  const gefiltert = !!(gruppe || standort);
+  const summeGefiltert = Math.round(zeilen.reduce((a, r) => a + Number(r.summe || 0), 0) * 100) / 100;
   const staffel = data?.staffel || {};
   const closerMap = Object.fromEntries((staffel.closers || []).map((c) => [c.employee_id, c]));
   const atOpenerMap = Object.fromEntries((staffel.atOpener || []).map((c) => [c.employee_id, c]));
   const atSetterMap = Object.fromEntries((staffel.atSetter || []).map((c) => [c.employee_id, c]));
   const gesamt = data?.gesamt ?? Math.round(zeilen.reduce((a, r) => a + Number(r.summe || 0), 0) * 100) / 100;
   const kreisMeta = KREISE.find((k) => k.key === kreis) || KREISE[0];
-  const changeKreis = (k) => { setKreis(k); setZid(''); setGruppe(''); };
+  const changeKreis = (k) => { setKreis(k); setZid(''); setGruppe(''); setStandort(''); };
 
   const abschlussMut = useMutation({
     mutationFn: () => provisionenApi.abschluss(zSel),
@@ -206,18 +214,38 @@ export default function Provisionen() {
           ))}
         </div>
         <p className="text-xs text-gray-400">{kreisMeta.zyklus}</p>
-        {istBk && (
-          <div className="flex items-center gap-2 pt-1">
-            <span className="text-[11px] text-gray-500">Rollen-Gruppe</span>
-            <div className="inline-flex rounded-lg bg-gray-100 p-1 gap-1">
-              {GRUPPEN.map((g) => (
-                <button key={g.key} onClick={() => setGruppe(g.key)}
-                  className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${gruppe === g.key ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>{g.label}</button>
-              ))}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1">
+          {istBk && (
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-gray-500">Rollen-Gruppe</span>
+              <div className="inline-flex rounded-lg bg-gray-100 p-1 gap-1">
+                {GRUPPEN.map((g) => (
+                  <button key={g.key} onClick={() => setGruppe(g.key)}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${gruppe === g.key ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>{g.label}</button>
+                ))}
+              </div>
             </div>
-            {gruppe && <span className="text-[11px] text-gray-400">Filter wirkt nur auf die Liste — die Gesamtsumme bleibt die des Zeitraums.</span>}
-          </div>
-        )}
+          )}
+          {standorte.length > 1 && (
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-gray-500">Standort</span>
+              <div className="inline-flex rounded-lg bg-gray-100 p-1 gap-1">
+                <button onClick={() => setStandort('')}
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${!standort ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Alle</button>
+                {standorte.map((st) => (
+                  <button key={st} onClick={() => setStandort(st)}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${standort === st ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>{st}</button>
+                ))}
+              </div>
+            </div>
+          )}
+          {gefiltert && (
+            <button onClick={() => { setGruppe(''); setStandort(''); }}
+              className="text-[11px] font-semibold text-gray-500 underline underline-offset-2 hover:text-gray-700">
+              Filter zurücksetzen
+            </button>
+          )}
+        </div>
       </div>
 
       {isSuperAdmin && data?.zeitraum && (
@@ -249,7 +277,20 @@ export default function Provisionen() {
       {isSuperAdmin && <BackfillPanel kreis={kreis} kreisLabel={kreisMeta.label} onDone={() => { qc.invalidateQueries({ queryKey: ['prov-overview'] }); qc.invalidateQueries({ queryKey: ['prov-zeitraeume'] }); }} />}
 
       <div className="rounded-2xl bg-gradient-to-br from-gray-800 to-gray-900 text-white p-5 shadow-sm flex items-baseline justify-between">
-        <div className="text-xs font-medium uppercase tracking-wide text-gray-300">Gesamt · {kreisMeta.label}{data?.zeitraum ? ` · ${data.zeitraum.label}` : ''}</div>
+        <div className="text-xs font-medium uppercase tracking-wide text-gray-300">
+          Gesamt · {kreisMeta.label}{data?.zeitraum ? ` · ${data.zeitraum.label}` : ''}
+          {/* Nach Standort zu filtern beantwortet erst dann eine Frage ("was kostet
+              Braunschweig diesen Monat?"), wenn man die gefilterte Summe auch sieht.
+              Die grosse Zahl bleibt bewusst die des GANZEN Zeitraums — sonst liest
+              sich ein aktiver Filter wie eine Teil-Abrechnung. */}
+          {gefiltert && (
+            <span className="ml-2 inline-block rounded-full bg-white/10 px-2 py-0.5 text-[11px] normal-case tracking-normal text-gray-200">
+              Auswahl {[standort, gruppe === 'kam' ? 'KAM' : gruppe === 'am' ? 'AM' : null].filter(Boolean).join(' · ')}
+              {': '}<b>{formatEuro(summeGefiltert)}</b>
+              <span className="text-gray-400"> ({zeilen.length} von {alleZeilen.length})</span>
+            </span>
+          )}
+        </div>
         <div className="text-3xl font-bold">{formatEuro(gesamt)}</div>
       </div>
 
@@ -258,7 +299,11 @@ export default function Provisionen() {
         {isLoading && !data ? (
           <div className="p-8 text-center text-sm text-gray-400">Lädt…</div>
         ) : zeilen.length === 0 ? (
-          <div className="p-8 text-center text-sm text-gray-400">Keine Einträge in diesem Zeitraum.{isSuperAdmin ? ' Ggf. oben den Backfill ausführen.' : ''}</div>
+          <div className="p-8 text-center text-sm text-gray-400">
+            {gefiltert && alleZeilen.length > 0
+              ? 'Keine Einträge für diese Filterauswahl.'
+              : <>Keine Einträge in diesem Zeitraum.{isSuperAdmin ? ' Ggf. oben den Backfill ausführen.' : ''}</>}
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
