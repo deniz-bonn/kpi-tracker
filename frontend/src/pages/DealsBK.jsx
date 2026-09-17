@@ -1,18 +1,20 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { dealsApi, employeesApi } from '../utils/api';
+import { dealsApi, employeesApi, wmApi } from '../utils/api';
 import StatusBadge from '../components/StatusBadge';
 import DealModal from '../components/DealModal';
+import InfoPopover from '../components/InfoPopover';
 import { formatEuro, formatMoney, companyCurrency, isDealCompanyActive, isAeCounted, currentMonat, periodLabel, periodFileSuffix } from '../utils/format';
 import { celebrateWin, shouldCelebrate } from '../components/Celebration';
 
 // AE-Euro-Betrag fuer Umsatz-Summen, 0 wenn der AE (noch) nicht getrackt wird (ae_ab_monat-Gate).
 const aeEur = d => isAeCounted(d) ? (Number(d.ae_wert_eur ?? d.ae_wert) || 0) : 0;
 import { useAuth } from '../context/AuthContext';
+import { bkDealFields, STATUS_OPTS, DIENSTLEISTUNGEN_BK, AUTO_VL_OPTS, ABGERECHNET_OPTS } from '../utils/bkDealFields';
+import { trichter, fmtQuote } from '../utils/wmConstants';
 import { ROLLE_GRUPPE_LABEL, gruppeVonEmp, KAM_ROLLEN, PERSONEN_GRUPPEN } from '../utils/rollen';
 
-const STATUS_OPTS = ['Offen', 'Gewonnen', 'Verloren'];
 const STANDORTE   = ['Bonn / Braunschweig', 'Österreich', 'Schweiz'];
 const matchStandort = (kamStandort, filter) => {
   if (!filter) return true;
@@ -20,9 +22,6 @@ const matchStandort = (kamStandort, filter) => {
   return kamStandort === filter;
 };
 
-const DIENSTLEISTUNGEN_BK = ['RaaS Kontingente','RaaS Kleinkunde Laufzeit','Kontingent (Alt)','Karriereseite','Karriereseite Wartung','Social-Media','Glaubenssätze','Media-Day','Website','Sonstiges'];
-const AUTO_VL_OPTS = ['Ja', 'Nein'];
-const ABGERECHNET_OPTS = ['Nein', 'Ja', 'On Hold'];
 
 // Rollen-Gruppen (KAM/AM) kommen zentral aus utils/rollen.js — gleiche Definition wie im VL-Bereich.
 
@@ -90,6 +89,22 @@ export default function DealsBK() {
   const { data: deals = [] } = useQuery({
     queryKey: ['deals-bk', params], queryFn: () => dealsApi.bk.list(params),
   });
+  // Willkommensmeetings fuer die Zusatzspalte. Achtung: die WM-Kohorte haengt am MEETING-Monat,
+  // die BK-Zahlen derselben Zeile am ANGEBOTSMONAT — deshalb steht die Definition am Spaltenkopf.
+  const { data: wmAlle = [] } = useQuery({
+    queryKey: ['wm', 'bk-spalte', viewMode, monat, vonMonat, bisMonat],
+    queryFn: () => wmApi.list(viewMode === 'monat' ? { monat }
+      : viewMode === 'zeitraum' ? { von: vonMonat, bis: bisMonat } : {}),
+  });
+  const wmProPerson = useMemo(() => {
+    const m = new Map();
+    for (const w of wmAlle) {
+      if (!m.has(w.gefuehrt_von)) m.set(w.gefuehrt_von, []);
+      m.get(w.gefuehrt_von).push(w);
+    }
+    return Object.fromEntries([...m.entries()].map(([id, l]) => [id, trichter(l)]));
+  }, [wmAlle]);
+
   const { data: employees = [] } = useQuery({
     queryKey: ['employees'], queryFn: () => employeesApi.list(),
   });
@@ -142,37 +157,11 @@ export default function DealsBK() {
   // Erfassungswährung nach aktiver Company (CHF bei Risem, sonst €)
   const curSym = companyCurrency(companies, company) === 'CHF' ? 'CHF' : '€';
 
-  const fields = [
-    // Datum nachträglich ändern: nur Admin/Superadmin. Ändert NICHT den Berichtsmonat
-    // (Feld "monat") und nicht die AE-Buchung (die hängt an gewonnen_monat).
-    { name: 'datum',          label: 'Datum',             type: 'date',   required: true, readOnly: modal?.mode === 'edit' && !isAdmin },
-    { name: 'monat',          label: 'Monat (YYYY-MM)',                   required: true },
-    { name: 'company_id',     label: 'Company',           type: 'select', options: compOpts, required: true },
-    { name: 'kunde',          label: 'Kunde',                             required: true },
-    { name: 'kundennummer',   label: 'HubSpot ID' },
-    { name: 'dienstleistung', label: 'Dienstleistung',    type: 'select', options: DIENSTLEISTUNGEN_BK, required: f => f.status === 'Gewonnen' },
-    ...(canSeeAll ? [{ name: 'kam_id', label: 'KAM', type: 'select', options: kamOptions }] : []),
-    { name: 'angebotswert',   label: `Angebotswert (${curSym})`,  type: 'number', required: true },
-    { name: 'ae_wert',        label: `AE-Wert (${curSym})`,       type: 'number', required: f => f.status === 'Gewonnen' },
-    { name: 'laufzeit_monate',label: 'Laufzeit (Monate)', type: 'number', required: f => f.status === 'Gewonnen' },
-    { name: 'termin_mit_daniel', label: 'Termin mit Daniel?', type: 'select', options: ['Ja', 'Nein'], required: true },
-    { name: 'automatische_verlaengerung', label: 'Automatische Verlängerung', type: 'select', options: AUTO_VL_OPTS, required: true },
-    { name: 'status',         label: 'Status',            type: 'select', options: STATUS_OPTS, required: true },
-    {
-      name:     'gewonnen_datum',
-      label:    'Annahmedatum',
-      type:     'date',
-      hint:     'Datum, an dem der Kunde den Deal angenommen hat',
-      show:     f => f.status === 'Gewonnen',
-      required: f => f.status === 'Gewonnen',
-      autoFill: (form, changedKey) =>
-        changedKey === 'status' && form.status === 'Gewonnen' && !form.gewonnen_datum
-          ? new Date().toISOString().slice(0, 10)
-          : undefined,
-    },
-    { name: 'abgerechnet',    label: 'Abgerechnet',       type: 'select', options: ABGERECHNET_OPTS },
-    { name: 'kommentar',      label: 'Kommentar',         type: 'textarea' },
-  ];
+  // Die Felddefinition liegt zentral in utils/bkDealFields.js — der Bereich
+  // "Willkommensmeetings" oeffnet dasselbe Formular. Eine Kopie hier wuerde genau die
+  // Doppelpflege erzeugen, die dort ausgeschlossen werden soll.
+  const fields = bkDealFields({ compOpts, kamOptions, curSym, canSeeAll, isAdmin,
+    isEdit: modal?.mode === 'edit' });
 
   const handleSave = (form) => {
     const data = { ...form, monat: form.monat || monat, company_id: form.company_id || company || null };
@@ -282,7 +271,7 @@ export default function DealsBK() {
   const exportFiltered = () => {
     const cols = [
       ['datum', d => d.datum], ['monat', d => d.monat], ['company', d => d.company_name], ['kunde', d => d.kunde],
-      ['angebotsnummer', d => d.angebotsnummer], ['dienstleistung', d => d.dienstleistung], ['kam', d => d.kam_name],
+      ['angebotsnummer', d => d.angebotsnummer], ['dienstleistung', d => d.dienstleistung], ['kam', d => d.kam_name], ['herkunft', d => d.herkunft || ''],
       ['angebotswert', d => d.angebotswert], ['ae_wert', d => d.ae_wert], ['laufzeit_monate', d => d.laufzeit_monate],
       ['automatische_verlaengerung', d => d.automatische_verlaengerung], ['status', d => d.status], ['abgerechnet', d => d.abgerechnet],
       ['gewonnen_monat', d => d.gewonnen_monat], ['gewonnen_datum', d => (d.gewonnen_datum ? String(d.gewonnen_datum).slice(0, 10) : '')],
@@ -458,11 +447,21 @@ export default function DealsBK() {
                     <th className="px-3 py-2 text-right">Abgerechnet</th>
                     <th className="px-3 py-2 text-right">Termine m. Daniel</th>
                     <th className="px-3 py-2 text-right">Gewonnen m. Daniel</th>
+                    <th className="px-3 py-2 text-right bg-cyan-50 text-cyan-800 whitespace-nowrap">
+                      WM (n · Angebotsquote)
+                      <InfoPopover title="Willkommensmeetings">
+                        <p className="mb-1"><b>n</b> = geführte Willkommensmeetings, <b>Quote</b> = Meeting → Angebot.</p>
+                        <p>Nicht zu verwechseln mit den beiden Quoten links: „Quote" ist Angebot → Gewonnen,
+                          „Quote (€)" die Annahmequote des Angebotswerts.</p>
+                        <p className="mt-1">Zeitachse: diese Spalte zählt nach <b>Meeting-Monat</b>,
+                          die übrigen Spalten der Zeile nach <b>Angebotsmonat</b>.</p>
+                      </InfoPopover>
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {kamKpis.length === 0
-                    ? <tr><td colSpan={12} className="px-3 py-4 text-center text-gray-400">Keine Daten</td></tr>
+                    ? <tr><td colSpan={13} className="px-3 py-4 text-center text-gray-400">Keine Daten</td></tr>
                     : kamKpis.map(k => {
                         const q = parseFloat(k.kpis.quote_angebote);
                         return (
@@ -485,6 +484,12 @@ export default function DealsBK() {
                             <td className="px-3 py-2 text-right text-gray-500 whitespace-nowrap">
                               {k.kpis.daniel_gewonnen}
                               {k.kpis.daniel_termine > 0 && <span className="text-gray-400 ml-1">({k.kpis.daniel_quote}%)</span>}
+                            </td>
+                            <td className="px-3 py-2 text-right whitespace-nowrap bg-cyan-50/60">
+                              {wmProPerson[k.id]
+                                ? <><b className="text-cyan-800">{wmProPerson[k.id].meetings}</b>
+                                    <span className="text-cyan-700 ml-1">· {fmtQuote(wmProPerson[k.id].quoteAngebot)}</span></>
+                                : <span className="text-gray-300">—</span>}
                             </td>
                           </tr>
                         );
@@ -561,14 +566,14 @@ export default function DealsBK() {
         <table className="w-full text-sm">
           <thead className="bg-[#2d2e30] text-gray-300 text-xs uppercase">
             <tr>
-              {['Datum','Kunde','KAM','Dienstleistung','Angebotswert','AE-Wert','Laufzeit','Status','Daniel','Auto-VL','Abgerechnet','Notiz',''].map(h => (
+              {['Datum','Kunde','KAM','Herkunft','Dienstleistung','Angebotswert','AE-Wert','Laufzeit','Status','Daniel','Auto-VL','Abgerechnet','Notiz',''].map(h => (
                 <th key={h} className="px-3 py-2 text-left font-medium">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {listDeals.length === 0 ? (
-              <tr><td colSpan={13} className="text-center py-8 text-gray-400">Keine Deals gefunden</td></tr>
+              <tr><td colSpan={14} className="text-center py-8 text-gray-400">Keine Deals gefunden</td></tr>
             ) : listDeals.map(d => (
               <tr key={d.id} className="hover:bg-gray-50">
                 <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{d.datum?.slice(0,10)}</td>
@@ -576,6 +581,16 @@ export default function DealsBK() {
                 <td className="px-3 py-2 text-gray-600 text-xs whitespace-nowrap">
                   {d.kam_name || '—'}
                   {d.kam_standort && <span className="ml-1 text-gray-400">({d.kam_standort})</span>}
+                </td>
+                {/* Herkunft: NULL = wie bisher entstanden. Nur WM-Deals tragen eine Marke. */}
+                <td className="px-3 py-2 whitespace-nowrap">
+                  {d.herkunft === 'willkommensmeeting'
+                    ? <Link to="/willkommensmeetings"
+                        className="inline-block rounded-full bg-cyan-50 text-cyan-700 px-2 py-0.5 text-[11px] font-semibold hover:bg-cyan-100"
+                        title="Aus einem Willkommensmeeting entstanden — zum Bereich springen">
+                        Willkommensmeeting ↗
+                      </Link>
+                    : <span className="text-gray-300 text-xs">—</span>}
                 </td>
                 <td className="px-3 py-2 text-gray-600">{d.dienstleistung || '—'}</td>
                 <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{d.angebotswert ? formatMoney(d.angebotswert, d.currency) : '—'}</td>

@@ -10,6 +10,7 @@ import SetPassword from './pages/SetPassword';
 import Dashboard from './pages/Dashboard';
 import DealsNK from './pages/DealsNK';
 import DealsBK from './pages/DealsBK';
+import Willkommensmeetings from './pages/Willkommensmeetings';
 import DealsVL from './pages/DealsVL';
 import Kuendigungen from './pages/Kuendigungen';
 import Employees from './pages/Employees';
@@ -59,6 +60,11 @@ function AppRoutes() {
         <Route path="bestandskunden" element={
           <ProtectedRoute allowedRoles={ROLES.bkAndAbove}>
             <DealsBK />
+          </ProtectedRoute>
+        } />
+        <Route path="willkommensmeetings" element={
+          <ProtectedRoute allowedRoles={ROLES.bkAndAbove}>
+            <Willkommensmeetings />
           </ProtectedRoute>
         } />
         <Route path="verlaengerungen" element={

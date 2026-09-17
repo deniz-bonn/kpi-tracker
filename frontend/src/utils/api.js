@@ -33,6 +33,16 @@ export const employeesApi = {
   update: (id, data) => api.patch(`/employees/${id}`, data).then(r => r.data),
 };
 
+// Willkommensmeetings. Der verknuepfte Deal wird NICHT hierueber bearbeitet — dafuer gibt es
+// dealsApi.bk. "Zwei Tueren, ein Deal": dieselbe Route, derselbe Datensatz.
+export const wmApi = {
+  list:   (params) => api.get('/willkommensmeetings', { params: params || {} }).then(r => r.data),
+  get:    (id)     => api.get(`/willkommensmeetings/${id}`).then(r => r.data),
+  create: (data)   => api.post('/willkommensmeetings', data).then(r => r.data),
+  update: (id, d)  => api.put(`/willkommensmeetings/${id}`, d).then(r => r.data),
+  delete: (id)     => api.delete(`/willkommensmeetings/${id}`),
+};
+
 export const dealsApi = {
   nk: {
     list: (params) => api.get('/deals/nk', { params }).then(r => r.data),

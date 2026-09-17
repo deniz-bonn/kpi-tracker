@@ -18,6 +18,9 @@ const TABLES = [
   'deals_nk',
   'deals_bk',
   'deals_vl',
+  // Willkommensmeetings: zeigt per deal_bk_id auf deals_bk, muss also NACH den Deals stehen
+  // (Restore fuegt vorwaerts ein, loescht rueckwaerts).
+  'willkommensmeetings',
   'upsale_deals',
   'activity_logs',
   // Provisions-Ledger (append-only) — muss mitgesichert werden. Reihenfolge: Stammdaten vor Buchungen

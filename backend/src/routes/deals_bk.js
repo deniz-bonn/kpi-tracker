@@ -87,38 +87,62 @@ router.get('/:id', wrap(async (req, res) => {
   res.json(await enrichDealsEur(row));
 }));
 
-router.post('/', wrap(async (req, res) => {
-  const body = { ...req.body };
-  if (['bk_vertrieb'].includes(req.user.role) && req.user.employee_id) {
-    body.kam_id = req.user.employee_id;
+// Schreibbare Spalten eines BK-Deals. EINE Liste fuer POST und fuer den WM-Bereich —
+// sonst driftet die Feld-Paritaet zwischen "manuell in BK angelegt" und "aus einem
+// Willkommensmeeting entstanden" auseinander, und genau das soll ausgeschlossen sein.
+const BK_FELDER = ['datum','monat','company_id','kam_id','kunde','angebotsnummer','dienstleistung',
+  'angebotswert','laufzeit_monate','status','ae_wert','kommentar',
+  'automatische_verlaengerung','abgerechnet','kundennummer','gewonnen_datum','gewonnen_monat',
+  'termin_mit_daniel','herkunft'];
+
+/**
+ * Legt EINEN BK-Deal an — der einzige Schreibpfad, inklusive aller Folgewirkungen.
+ *
+ * Bewusst als Funktion und nicht nur als Route-Handler: Der Bereich "Willkommensmeetings" legt
+ * seinen Deal ueber DIESE Funktion an, nicht per eigenem INSERT. Grund: Die Hooks haengen an der
+ * Route, nicht an der Tabelle — es gibt keinen DB-Trigger auf deals_bk. Ein Direkt-INSERT
+ * verloere AE-Snapshot, Provisionsbuchung und Audit-Eintrag dauerhaft, und die Felder koennten
+ * still auseinanderlaufen.
+ *
+ * KAM-REGEL: Die eigene employee_id wird nur eingesetzt, wenn KEINE kam_id mitkommt
+ * ("nur wenn leer", Muster aus deals_nk.js:191). Frueher ueberschrieb die Route sie fuer die
+ * Rolle bk_vertrieb bedingungslos — damit waere ein Deal, den jemand fuer einen Kollegen erfasst,
+ * samt AE und 3 % Provision beim Erfasser gelandet. Fuer den normalen BK-Anlageweg aendert sich
+ * nichts: dort zeigt das Formular das KAM-Feld fuer bk_vertrieb gar nicht erst an (canSeeAll),
+ * es kommt also weiterhin leer an und wird wie bisher gefuellt.
+ */
+async function erstelleBkDeal(body, user) {
+  const b = { ...body };
+  if (!b.kam_id && ['bk_vertrieb'].includes(user?.role) && user?.employee_id) {
+    b.kam_id = user.employee_id;
   }
 
-  const { gewonnen_datum, gewonnen_monat } = resolveGewonnenFelder(body);
-  const fields = ['datum','monat','company_id','kam_id','kunde','angebotsnummer','dienstleistung',
-    'angebotswert','laufzeit_monate','status','ae_wert','kommentar',
-    'automatische_verlaengerung','abgerechnet','kundennummer','gewonnen_datum','gewonnen_monat',
-    'termin_mit_daniel'];
-  const values = fields.map(f => {
+  const { gewonnen_datum, gewonnen_monat } = resolveGewonnenFelder(b);
+  const values = BK_FELDER.map(f => {
     if (f === 'gewonnen_datum') return gewonnen_datum;
     if (f === 'gewonnen_monat') return gewonnen_monat;
-    if (f === 'abgerechnet') return body[f] ?? (body.status === 'Gewonnen' ? 'Nein' : null);
-    return body[f] ?? null;
+    if (f === 'abgerechnet') return b[f] ?? (b.status === 'Gewonnen' ? 'Nein' : null);
+    return b[f] ?? null;
   });
 
   let row;
   if (db.dialect === 'postgres') {
-    const ph = fields.map((_,i) => `$${i+1}`).join(',');
-    row = await db.get(`INSERT INTO deals_bk (${fields.join(',')}) VALUES (${ph}) RETURNING *`, values);
+    const ph = BK_FELDER.map((_, i) => `$${i + 1}`).join(',');
+    row = await db.get(`INSERT INTO deals_bk (${BK_FELDER.join(',')}) VALUES (${ph}) RETURNING *`, values);
   } else {
-    const ph = fields.map(() => '?').join(',');
-    const result = db.run(`INSERT INTO deals_bk (${fields.join(',')}) VALUES (${ph})`, values);
-    row = { id: result.lastInsertRowid, ...body, gewonnen_datum, gewonnen_monat };
+    const ph = BK_FELDER.map(() => '?').join(',');
+    const result = db.run(`INSERT INTO deals_bk (${BK_FELDER.join(',')}) VALUES (${ph})`, values);
+    row = { id: result.lastInsertRowid, ...b, gewonnen_datum, gewonnen_monat };
   }
 
-  try { await syncAeGesamtBK(row, null); } catch (e) { console.error('[sync-bk] POST:', e.message); }
-  try { await provisionSyncBk(row, 'bk'); } catch (e) { console.error('[prov-bk] POST:', e.message); }
-  await logAudit({ user: req.user, action: 'create', entityType: 'deal_bk', entityId: row.id, newData: row });
-  res.status(201).json(row);
+  try { await syncAeGesamtBK(row, null); } catch (e) { console.error('[sync-bk] create:', e.message); }
+  try { await provisionSyncBk(row, 'bk'); } catch (e) { console.error('[prov-bk] create:', e.message); }
+  await logAudit({ user, action: 'create', entityType: 'deal_bk', entityId: row.id, newData: row });
+  return row;
+}
+
+router.post('/', wrap(async (req, res) => {
+  res.status(201).json(await erstelleBkDeal(req.body, req.user));
 }));
 
 router.put('/:id', wrap(async (req, res) => {
@@ -149,10 +173,9 @@ router.put('/:id', wrap(async (req, res) => {
   if (body.gewonnen_datum === undefined && existing) body.gewonnen_datum = existing.gewonnen_datum;
 
   const { gewonnen_datum, gewonnen_monat } = resolveGewonnenFelder(body, existing);
-  const fields = ['datum','monat','company_id','kam_id','kunde','angebotsnummer','dienstleistung',
-    'angebotswert','laufzeit_monate','status','ae_wert','kommentar',
-    'automatische_verlaengerung','abgerechnet','kundennummer','gewonnen_datum','gewonnen_monat',
-    'termin_mit_daniel'];
+  const fields = BK_FELDER;   // dieselbe Liste wie beim Anlegen — inkl. herkunft, das sonst
+                              // bei jedem Speichern still verloren ginge (die Route verwirft
+                              // jedes Feld ausserhalb dieser Liste kommentarlos).
   const values = fields.map(f => {
     if (f === 'gewonnen_datum') return gewonnen_datum;
     if (f === 'gewonnen_monat') return gewonnen_monat;
@@ -198,6 +221,15 @@ router.delete('/:id', wrap(async (req, res) => {
     try { await provisionSyncBk({ ...existing, status: 'Gelöscht' }, 'bk'); } catch (e) { console.error('[prov-bk] DELETE:', e.message); }
   }
   const p = db.dialect === 'postgres' ? '$1' : '?';
+  // Haengt an diesem Deal ein Willkommensmeeting, bleibt das Meeting bestehen (es hat ja
+  // stattgefunden) — aber es muss sich merken, DASS hier einmal ein Angebot hing. Ohne dieses
+  // Flag waere nach dem Loeschen nicht mehr unterscheidbar, ob nie eines platziert wurde
+  // (zaehlt gegen die Quote) oder ob es nachtraeglich entfernt wurde. Die Verknuepfung selbst
+  // raeumt der Fremdschluessel per ON DELETE SET NULL ab.
+  // Reihenfolge zwingend: VOR dem DELETE, danach ist deal_bk_id bereits NULL.
+  try {
+    await db.run(`UPDATE willkommensmeetings SET deal_entfernt = 1 WHERE deal_bk_id = ${p}`, [req.params.id]);
+  } catch (e) { console.error('[wm] DELETE-Markierung:', e.message); }
   await db.run(`DELETE FROM deals_bk WHERE id=${p}`, [req.params.id]);
   await logAudit({ user: req.user, action: 'delete', entityType: 'deal_bk', entityId: Number(req.params.id), oldData: existing });
   res.status(204).end();
@@ -205,3 +237,6 @@ router.delete('/:id', wrap(async (req, res) => {
 
 module.exports = router;
 module.exports.syncAeGesamtBK = syncAeGesamtBK; // für Regressionstests
+// Der Bereich "Willkommensmeetings" legt seine Deals hierueber an — nicht per eigenem INSERT.
+module.exports.erstelleBkDeal = erstelleBkDeal;
+module.exports.BK_FELDER = BK_FELDER;

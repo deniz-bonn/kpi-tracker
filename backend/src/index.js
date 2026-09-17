@@ -38,6 +38,7 @@ app.use('/api/companies',      requireAuth, require('./routes/companies'));
 app.use('/api/employees',      requireAuth, require('./routes/employees'));
 app.use('/api/deals/nk',       require('./routes/deals_nk'));   // requireAuth inside
 app.use('/api/deals/bk',       require('./routes/deals_bk'));   // requireAuth inside
+app.use('/api/willkommensmeetings', require('./routes/willkommensmeetings')); // requireAuth inside
 app.use('/api/deals/vl',       require('./routes/deals_vl'));   // requireAuth inside
 app.use('/api/targets',        requireAuth, require('./routes/targets'));
 app.use('/api/kpis',           requireAuth, require('./routes/kpis'));

@@ -8,6 +8,7 @@ const ALL_NAV = [
   { to: '/dashboard',           label: 'Dashboard',            icon: '📊', roles: ['admin','superadmin','nk_vertrieb','bk_vertrieb','backoffice','vertriebsleitung'] },
   { to: '/neukunden',           label: 'Neukunden NK',          icon: '🟢', roles: ['admin','superadmin','nk_vertrieb','bk_vertrieb','backoffice','vertriebsleitung'] },
   { to: '/bestandskunden',      label: 'Bestandskunden BK',     icon: '🔵', roles: ['admin','superadmin','bk_vertrieb','backoffice','vertriebsleitung'] },
+  { to: '/willkommensmeetings', label: 'Willkommensmeetings',   icon: '🤝', roles: ['admin','superadmin','bk_vertrieb','backoffice','vertriebsleitung'] },
   { to: '/verlaengerungen',     label: 'Verlängerungen VL',     icon: '🔄', roles: ['admin','superadmin','bk_vertrieb','backoffice','vertriebsleitung'] },
   { to: '/kuendigungen',        label: 'Kündigungen',            icon: '⚠️',  roles: ['admin','superadmin','bk_vertrieb','backoffice','vertriebsleitung'] },
   { to: '/auswertung',          label: 'KPI Auswertung',        icon: '📋', roles: ['admin','superadmin','backoffice','vertriebsleitung'] },
