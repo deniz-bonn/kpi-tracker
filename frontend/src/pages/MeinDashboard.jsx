@@ -124,7 +124,12 @@ function Reise({ name, untertitel, farbe, ziel, ist, srIst, srZiel, srNichtMessb
 // Bekommt die Daten als Prop. Genau diese Komponente rendert auch "Sehen als …" — es gibt
 // KEINE Admin-Variante der Sektionen. Saehe ein Mitarbeiter etwas Falsches, sieht der
 // Kontrollierende exakt dasselbe Falsche.
-function MitarbeiterSicht({ data, zeitraumId, setZeitraumId }) {
+const MONATSNAMEN = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const monatLabel = (m) => (/^\d{4}-\d{2}$/.test(String(m || ''))
+  ? `${MONATSNAMEN[Number(String(m).slice(5, 7)) - 1]} ${String(m).slice(0, 4)}`
+  : '—');
+
+function MitarbeiterSicht({ data, zeitraumId, setZeitraumId, monat, setMonat }) {
   const [auf, setAuf] = useState(null);          // welche Deal-Kachel ist aufgeklappt
   const [auszug, setAuszug] = useState(null);    // welcher Zeitraum zeigt seinen Kontoauszug
 
@@ -235,12 +240,22 @@ function MitarbeiterSicht({ data, zeitraumId, setZeitraumId }) {
         </div>
       </div>
 
-      {/* 2 Meine Deals */}
-      <div className={sec}>Meine Deals</div>
+      {/* 2 Meine Deals — Achse ist der KALENDERMONAT (siehe Kommentar in mein_dashboard.js) */}
+      <div className="flex flex-wrap items-baseline justify-between gap-2 mt-6 mb-2">
+        <div className="text-sm font-bold text-gray-900">
+          Meine Deals <span className="font-medium text-gray-500">· {monatLabel(deals.monat)}</span>
+        </div>
+        {deals.monate?.length > 1 && (
+          <select value={deals.monat} onChange={(e) => setMonat(e.target.value)}
+            className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-semibold text-gray-700">
+            {deals.monate.map((m) => <option key={m} value={m}>{monatLabel(m)}</option>)}
+          </select>
+        )}
+      </div>
       <div className="flex gap-3 flex-wrap">
-        {[['gewonnen', 'Gewonnen', 'text-green-700', 'realisierter AE'],
+        {[['gewonnen', 'Gewonnen', 'text-green-700', 'realisierter AE · Abschlussmonat'],
           ['offen', 'Offen', 'text-amber-600', 'Angebotswert · gesamter offener Bestand'],
-          ['verloren', 'Verloren', 'text-red-600', 'Angebotswert']].map(([k, label, farbe, unter]) => (
+          ['verloren', 'Verloren', 'text-red-600', 'Angebotswert · Angebotsmonat']].map(([k, label, farbe, unter]) => (
           <Kachel key={k} label={label} wert={deals[k].n} farbe={farbe}
                   unter={`${formatEuro(deals[k].volumen)} ${unter}`}
                   onClick={() => setAuf(auf === k ? null : k)} offen={auf === k} />
@@ -629,12 +644,13 @@ function TeamUeberblick({ onPerson }) {
 // ── Seite ────────────────────────────────────────────────────────────────────
 export default function MeinDashboard() {
   const [zeitraumId, setZeitraumId] = useState(null);
+  const [monat, setMonat] = useState(null);       // null = laufender Kalendermonat (Server entscheidet)
   const [ansicht, setAnsicht] = useState(null);   // null = eigene Sicht · 'team' · employee_id
 
   const alsId = (ansicht && ansicht !== 'team') ? ansicht : null;
   const { data, isLoading, error } = useQuery({
-    queryKey: ['mein-dashboard', zeitraumId, alsId],
-    queryFn: () => meinDashboardApi.load(zeitraumId, alsId),
+    queryKey: ['mein-dashboard', zeitraumId, alsId, monat],
+    queryFn: () => meinDashboardApi.load(zeitraumId, alsId, monat),
   });
 
   const sicht = data?.sicht;
@@ -720,7 +736,8 @@ export default function MeinDashboard() {
           {auswahl}
         </div>
       )}
-      <MitarbeiterSicht data={data} zeitraumId={zeitraumId} setZeitraumId={setZeitraumId} />
+      <MitarbeiterSicht data={data} zeitraumId={zeitraumId} setZeitraumId={setZeitraumId}
+                        monat={monat} setMonat={setMonat} />
     </div>
   );
 }

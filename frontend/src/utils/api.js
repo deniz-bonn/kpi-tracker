@@ -147,8 +147,9 @@ export const showRatesApi = {
 // Mein Dashboard — EIN gebuendelter Call statt acht Einzelabfragen.
 export const meinDashboardApi = {
   // `als` wirkt serverseitig nur fuer Berechtigte; fuer alle anderen wird der Parameter ignoriert.
-  load:        (zeitraumId, als) => api.get('/mein-dashboard', { params: {
+  load:        (zeitraumId, als, monat) => api.get('/mein-dashboard', { params: {
                    ...(zeitraumId ? { zeitraum_id: zeitraumId } : {}),
+                   ...(monat ? { monat } : {}),
                    ...(als ? { als } : {}) } }).then(r => r.data),
   team:        (standort)   => api.get('/mein-dashboard/team', { params: standort ? { standort } : {} }).then(r => r.data),
   ziele:       ()           => api.get('/mein-dashboard/incentive/ziele').then(r => r.data),

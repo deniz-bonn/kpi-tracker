@@ -81,7 +81,10 @@ const VOLLER_SCOPE   = 'kontrolle_alle_mitarbeiter';
  * `ss` (staffelStatus) kann durchgereicht werden, damit der Team-Ueberblick es nicht je Person neu
  * berechnet; das Ergebnis ist identisch, nur die Abfrage faellt einmal statt n-mal an.
  */
-async function dashboardFuer(empId, { zeitraumId = null, ss = null } = {}) {
+const AKT_MONAT = () => heute().slice(0, 7);
+const MONAT_RE = /^\d{4}-\d{2}$/;
+
+async function dashboardFuer(empId, { zeitraumId = null, monat = null, ss = null } = {}) {
   const emp = await db.get(
     `SELECT id, name, rolle, standort FROM employees WHERE id=${P(1)}`, [empId]);
   if (!emp) return null;
@@ -101,17 +104,44 @@ async function dashboardFuer(empId, { zeitraumId = null, ss = null } = {}) {
   const st = ss || await staffelStatus(heute().slice(0, 7));
   const staffel = st.closers.find(c => c.employee_id === empId) || null;
 
-  // ── 2) Eigene Deals ──
+  // ── 2) Eigene Deals — Achse: KALENDERMONAT ──
+  //
+  // Frueher lief hier ein Datums-Vergleich gegen den PROVISIONS-Zeitraum:
+  //     const tag = String(d.gewonnen_datum || d.datum || '').slice(0, 10);
+  //     return tag >= String(z.von).slice(0, 10) && tag <= String(z.bis).slice(0, 10);
+  // Das hatte ZWEI Fehler auf einmal, und beide sind mit der Monats-Achse strukturell weg:
+  //
+  // (a) TYPFEHLER, nur unter Postgres sichtbar: gewonnen_datum/datum sind DATE-Spalten und
+  //     kommen aus node-pg als JS-Date zurueck. String(Date).slice(0,10) ergibt "Thu Aug 06",
+  //     verglichen wurde gegen "2026-09-20" — als Zeichenkette liegt jedes Wochentagskuerzel
+  //     ueber der Ziffer 2, die Bedingung war fuer JEDEN Deal falsch. Ergebnis in Produktion:
+  //     "Gewonnen" und "Verloren" standen bei ALLEN Mitarbeitern auf 0, waehrend "Offen"
+  //     stimmte — denn das laeuft bewusst nicht durch den Filter. Unter SQLite (Text-Spalten)
+  //     rechnete derselbe Code richtig, deshalb fiel es lokal nie auf.
+  //     gewonnen_monat/monat sind CHAR(7)-TEXT in beiden Dialekten — hier gibt es keinen Typ,
+  //     der sich unterwegs verwandeln kann.
+  //
+  // (b) FALSCHE ACHSE: der Provisions-Zeitraum laeuft fuer Bonn vom 21. bis zum 20. und zog
+  //     damit die letzten zehn Tage des Vormonats mit herein. Auswertung, Bestenliste, KPI
+  //     Mitarbeiter und die Ziele zaehlen alle den Kalendermonat — die Zahlen konnten also
+  //     gar nicht zusammenpassen. Die Provisionskachel oben behaelt ihren Abrechnungszeitraum
+  //     (dort ist er richtig und steht auch dran); die Deal-Kacheln folgen jetzt dem Monat.
+  //
+  // Achsen je Kachel, bewusst unterschiedlich:
+  //   gewonnen -> gewonnen_monat (Abschlussmonat, realisierter AE)
+  //   verloren -> monat          (Angebotsmonat) — verlorene Deals haben KEIN gewonnen_monat
+  //                              (0 von 513 im Bestand), ueber diese Achse waere die Kachel
+  //                              dauerhaft leer geblieben.
+  //   offen    -> voller Bestand, ungefiltert (der Forecast rechnet damit)
+  const mon = MONAT_RE.test(String(monat || '')) ? String(monat) : AKT_MONAT();
   const alle = await meineDeals(empId);
-  const imZeitraum = (d) => {
-    if (!z) return true;
-    const tag = String(d.gewonnen_datum || d.datum || '').slice(0, 10);
-    return tag >= String(z.von).slice(0, 10) && tag <= String(z.bis).slice(0, 10);
-  };
-  const scope   = alle.filter(imZeitraum);
-  const gewonnen = scope.filter(d => d.status === 'Gewonnen');
+  const gewonnen = alle.filter(d => d.status === 'Gewonnen' && d.gewonnen_monat === mon);
   const offen    = alle.filter(d => OFFEN.includes(d.status));   // offen: immer der volle Bestand
-  const verloren = scope.filter(d => d.status === 'Verloren');
+  const verloren = alle.filter(d => d.status === 'Verloren' && d.monat === mon);
+  // Monate mit eigener Aktivitaet, fuer den Umschalter (neueste zuerst).
+  const monate = [...new Set(alle.map(d => d.gewonnen_monat || d.monat).filter(m => MONAT_RE.test(String(m))))]
+    .sort().reverse();
+  if (!monate.includes(mon)) monate.unshift(mon);
   const vol = (arr, feld) => r2(arr.reduce((s, d) => s + (Number(d[feld]) || 0), 0));
   const mapDeal = (d) => ({ id: d.id, kunde: d.kunde, datum: d.datum, status: d.status,
     gewonnen_monat: d.gewonnen_monat, rollen: rollenAn(d, empId),
@@ -122,6 +152,8 @@ async function dashboardFuer(empId, { zeitraumId = null, ss = null } = {}) {
     offen:    { n: offen.length,    volumen: vol(offen, 'angebotswert_eur'), liste: offen.map(mapDeal) },
     verloren: { n: verloren.length, volumen: vol(verloren, 'angebotswert_eur'), liste: verloren.map(mapDeal) },
     ae_je_abschluss: gewonnen.length ? r2(vol(gewonnen, 'ae_eur') / gewonnen.length) : null,
+    monat: mon,          // auf welchen Monat sich gewonnen/verloren beziehen
+    monate,              // Auswahl fuer den Umschalter
   };
 
   // ── 3) Provisions-Forecast ──
@@ -228,7 +260,7 @@ router.get('/', wrap(async (req, res) => {
         : 'Kein Mitarbeiter mit diesem Account verknüpft.' });
   }
 
-  const daten = await dashboardFuer(empId, { zeitraumId: req.query.zeitraum_id });
+  const daten = await dashboardFuer(empId, { zeitraumId: req.query.zeitraum_id, monat: req.query.monat });
   if (!daten) return res.json({ employee: null, sicht, hinweis: 'Mitarbeiter nicht gefunden.' });
 
   // Leise protokollieren, wer wessen Sicht geoeffnet hat.
