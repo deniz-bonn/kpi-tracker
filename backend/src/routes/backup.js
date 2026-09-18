@@ -28,6 +28,25 @@ const TABLES = [
   'provision_zeitraeume',
   'provision_config',
   'provision_buchungen',
+  // ── Close-Spiegel und die daraus abgeleiteten Termine ──────────────────────
+  // Bisher gar nicht gesichert. Bei Verlust der Datenbank waere die komplette Show-Rate-Historie
+  // weg und nur ueber einen vollen Close-Neuabgleich rekonstruierbar — der die Vergangenheit aber
+  // nur so weit zurueckholt, wie Close selbst sie vorhaelt, und die manuelle Mitarbeiter-Zuordnung
+  // in close_user_map gar nicht. Reihenfolge: Rohdaten vor der Ableitung; alle vier haengen
+  // hoechstens an employees, das weit oben steht.
+  'close_status_events',
+  'close_opportunities',
+  'close_user_map',
+  'termine',
+  // Protokoll der Sync-Laeufe — belegt, WANN welcher Stand gezogen wurde. Ohne das laesst sich
+  // eine spaetere Abweichung nicht mehr einem Lauf zuordnen.
+  'close_sync_runs',
+  // ── Incentive: Ziele und eingefrorene Monatswerte ──────────────────────────
+  // Die Monats-Freezes sind bewusst unveraenderliche Zeugen (incentive.js friert am 5. des
+  // Folgemonats ein). Genau deshalb duerfen sie nicht nur in der laufenden DB liegen: an ihnen
+  // haengt eine Reise-Entscheidung, und ein neu gerechneter Wert waere kein Freeze mehr.
+  'incentive_ziele',
+  'incentive_monatswerte',
   // Aenderungshistorie — inzwischen Beweismittel (Monatsdifferenzen, Mitarbeiter-Dubletten,
   // Provisions-Rueckfragen). Ein Restore ohne sie waere ein Informationsverlust, der erst im
   // Ernstfall auffaellt. Bewusst als LETZTE Tabelle: sie referenziert nur users.
