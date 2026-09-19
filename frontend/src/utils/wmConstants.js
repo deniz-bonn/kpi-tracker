@@ -7,9 +7,18 @@
 // Leerzeichen) und "Kontingenterweiterung" (115). Das Feld ist ausserdem verschmutzt:
 // "Kontingente " steht neben "Kontingente" und "Kontingentvertrag". Die Haupt-KPI daraus
 // abzuleiten waere ab Tag eins unzuverlaessig — deshalb eine eigene, kurze, gepflegte Liste.
-export const ANGEBOTS_TYPEN = ['Dauer-RaaS', 'Jahresvertrag', 'Sonstiges'];
+// Reihenfolge ist Absicht: erst die beiden Jahres-Typen (die Haupt-KPI), dann die kleineren
+// Einzelprodukte, "Sonstiges" als Auffangwert zuletzt.
+export const ANGEBOTS_TYPEN = ['Dauer-RaaS', 'Jahresvertrag',
+  'Kontingent', 'Karriereseite', 'Media-Day', 'Social Media', 'Sonstiges'];
 
 // Die Typen, die als "Jahres-Angebot" zaehlen — die eigentliche Haupt-KPI.
+//
+// Kontingent, Karriereseite, Media-Day und Social Media gehoeren AUSDRUECKLICH NICHT dazu: das
+// sind Einzelprodukte ohne Jahresbindung. Sie im Zaehler mitzufuehren wuerde die Quote
+// "Meeting -> Jahres-Angebot" aufblaehen und damit genau die Kennzahl entwerten, wegen der es
+// den Bereich gibt. Sie zaehlen als platziertes Angebot (quoteAngebot) und beim Abschluss mit.
+//
 // 'Jahresbetreuung' ist der ALTE Name von 'Dauer-RaaS' und bleibt hier stehen: Migration 113
 // traegt den Bestand um, aber der Wert steht als Text in den Daten. Faellt eine Zeile durch
 // (aelteres Backup, Restore, Import), zaehlt sie weiter mit, statt still aus der KPI zu fallen.
