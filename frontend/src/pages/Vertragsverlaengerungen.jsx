@@ -19,6 +19,10 @@ const STANDORTE = ['Bonn', 'Braunschweig', 'Österreich', 'Schweiz'];
 const GRUPPEN = [['', 'Alle Rollen'], ['kam', ROLLE_GRUPPE_LABEL.kam], ['am', ROLLE_GRUPPE_LABEL.am]];
 
 const pct = (v) => (v == null ? '—' : `${String(v).replace('.', ',')} %`);
+// Identisch zu DealsVL.jsx: bg-white und text-gray-700 MUESSEN explizit gesetzt sein. Ohne sie
+// erben die Steuerelemente die Farben des Umfelds und stehen praktisch weiss auf weiss — im
+// ersten Wurf dieser Seite waren die Filter dadurch nicht lesbar.
+const sel = 'bg-white border border-gray-300 text-gray-700 text-sm rounded px-2 py-1.5';
 const card = 'bg-white rounded-lg border border-gray-200 overflow-hidden';
 const head = 'px-3 py-2 bg-gray-800';
 
@@ -80,15 +84,13 @@ export default function Vertragsverlaengerungen() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <input type="month" value={monat} onChange={e => setMonat(e.target.value)}
-          className="px-2 py-1.5 border border-gray-300 rounded text-sm" />
-        <select value={standort} onChange={e => setStandort(e.target.value)}
-          className="px-2 py-1.5 border border-gray-300 rounded text-sm">
+        <input type="month" value={monat} onChange={e => setMonat(e.target.value)} className={sel} />
+        <select value={standort} onChange={e => setStandort(e.target.value)} className={sel}>
           <option value="">Alle Standorte</option>
           {STANDORTE.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
-        <select value={gruppe} onChange={e => setGruppe(e.target.value)}
-          className="px-2 py-1.5 border border-gray-300 rounded text-sm">
+        <select value={gruppe} onChange={e => setGruppe(e.target.value)} className={sel}
+          title="Rolle des zugeordneten Account Managers">
           {GRUPPEN.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
       </div>
