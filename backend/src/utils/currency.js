@@ -44,9 +44,13 @@ async function enrichDealsEur(rows, fieldMap) {
     r.currency = cur;
     for (const [src, dest] of Object.entries(map)) {
       // realisierte Werte mit gewonnen_monat umrechnen, sonst mit Angebotsmonat.
-      // dauervertrag_ae_wert entsteht bei/nach dem Gewinn -> ebenfalls Gewinnmonat.
-      const monat = (src === 'ae_wert' || src === 'angenommenes_volumen' || src === 'dauervertrag_ae_wert')
-        ? (r.gewonnen_monat || r.monat) : r.monat;
+      // umstellung_ae_wert gehoert dem VERKNUEPFTEN Dauer-RaaS-Deal (deals_bk) und bringt dessen
+      // eigene Achse mit — mit der Achse des Verlaengerungs-Deals umgerechnet stuenden Kursmonat
+      // und Ereignismonat auseinander.
+      const monat = src === 'umstellung_ae_wert'
+        ? (r.umstellung_gewonnen_monat || r.umstellung_monat || r.gewonnen_monat || r.monat)
+        : (src === 'ae_wert' || src === 'angenommenes_volumen')
+          ? (r.gewonnen_monat || r.monat) : r.monat;
       r[dest] = r[src] == null ? null : toEur(r[src], cur, monat, rates);
     }
   }

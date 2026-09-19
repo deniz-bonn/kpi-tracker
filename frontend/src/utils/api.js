@@ -33,6 +33,12 @@ export const employeesApi = {
   update: (id, data) => api.patch(`/employees/${id}`, data).then(r => r.data),
 };
 
+// Vertragsverlaengerungen (Dauer-RaaS). BEWUSST NUR LESEND: die Umstellung wird ueber
+// dealsApi.vl.update() erfasst — dieselbe Route wie im VL-Bereich ("zwei Tueren, ein Deal").
+export const vertragsverlaengerungenApi = {
+  list: (params) => api.get('/vertragsverlaengerungen', { params: params || {} }).then(r => r.data),
+};
+
 // Willkommensmeetings. Der verknuepfte Deal wird NICHT hierueber bearbeitet — dafuer gibt es
 // dealsApi.bk. "Zwei Tueren, ein Deal": dieselbe Route, derselbe Datensatz.
 export const wmApi = {

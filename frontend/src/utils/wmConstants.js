@@ -7,10 +7,13 @@
 // Leerzeichen) und "Kontingenterweiterung" (115). Das Feld ist ausserdem verschmutzt:
 // "Kontingente " steht neben "Kontingente" und "Kontingentvertrag". Die Haupt-KPI daraus
 // abzuleiten waere ab Tag eins unzuverlaessig — deshalb eine eigene, kurze, gepflegte Liste.
-export const ANGEBOTS_TYPEN = ['Jahresbetreuung', 'Jahresvertrag', 'Sonstiges'];
+export const ANGEBOTS_TYPEN = ['Dauer-RaaS', 'Jahresvertrag', 'Sonstiges'];
 
-// Die beiden Typen, die als "Jahres-Angebot" zaehlen — die eigentliche Haupt-KPI.
-export const JAHRES_TYPEN = ['Jahresbetreuung', 'Jahresvertrag'];
+// Die Typen, die als "Jahres-Angebot" zaehlen — die eigentliche Haupt-KPI.
+// 'Jahresbetreuung' ist der ALTE Name von 'Dauer-RaaS' und bleibt hier stehen: Migration 113
+// traegt den Bestand um, aber der Wert steht als Text in den Daten. Faellt eine Zeile durch
+// (aelteres Backup, Restore, Import), zaehlt sie weiter mit, statt still aus der KPI zu fallen.
+export const JAHRES_TYPEN = ['Dauer-RaaS', 'Jahresvertrag', 'Jahresbetreuung'];
 export const istJahresTyp = (typ) => JAHRES_TYPEN.includes(typ);
 
 // ── Uebergangs-Ehrlichkeit ───────────────────────────────────────────────────

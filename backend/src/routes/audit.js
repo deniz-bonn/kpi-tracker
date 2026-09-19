@@ -61,6 +61,37 @@ router.post('/:id/undo', requireRole('admin'), wrap(async (req, res) => {
     ? await db.get(`SELECT * FROM ${table} WHERE id=$1`, [logEntry.entity_id])
     : db.get(`SELECT * FROM ${table} WHERE id=?`, [logEntry.entity_id]);
 
+  // ── Sperre fuer geldwirksame Felder ────────────────────────────────────────
+  // Dieses Undo ist ein ZWEITER Schreibpfad auf die Deal-Tabellen: es baut aus old_data ein rohes
+  // UPDATE und ruft WEDER den AE-Snapshot (syncAeGesamt*) NOCH die Provisions-Engine
+  // (provisionSyncBk) NOCH resolveGewonnenFelder auf. Bei rein beschreibenden Feldern
+  // (Ansprechpartner, Kommentar, Telefon) ist das harmlos und weiterhin erlaubt.
+  //
+  // Bei den Feldern unten ist es das nicht: ein hier zurueckgedrehter Statuswechsel oder
+  // KAM-Wechsel veraendert AE-Summen und Provisionsanspruch, ohne dass eine einzige Buchung
+  // entsteht. Ledger und Deal-Bestand liefen auseinander, und zwar lautlos — genau die Art
+  // Abweichung, die man Monate spaeter nicht mehr herleiten kann.
+  //
+  // Solche Aenderungen gehoeren ueber die regulaere Route, die ihre Hooks mitbringt. Deshalb
+  // hier bewusst eine Sperre mit Hinweis statt eines stillen Teil-Undos: ein Undo, das die
+  // Haelfte macht, waere schlimmer als keines.
+  const GELDWIRKSAM = ['status', 'ae_wert', 'gewonnen_datum', 'gewonnen_monat', 'kam_id',
+    'closer_id', 'company_id', 'angebotswert', 'dauervertrag_datum', 'dauervertrag_umgestellt',
+    'umstellung_deal_bk_id'];
+  if (currentData) {
+    const gleich = (a, b) => String(a ?? '') === String(b ?? '');
+    const betroffen = GELDWIRKSAM.filter(f =>
+      Object.prototype.hasOwnProperty.call(oldData, f) && !gleich(oldData[f], currentData[f]));
+    if (betroffen.length) {
+      return res.status(409).json({
+        error: `Rückgängig machen nicht möglich: ${betroffen.join(', ')} ist geldwirksam. `
+             + 'Diese Änderung würde AE-Summen und Provisionen verschieben, ohne dass eine Buchung entsteht. '
+             + 'Bitte über den regulären Bearbeiten-Dialog zurücksetzen — dort laufen die Hooks mit.',
+        felder: betroffen,
+      });
+    }
+  }
+
   // Build update from old_data (exclude system fields)
   const skip = ['id','created_at','updated_at','company_name','kam_name','kam_standort',
                  'closer_name','opener_name','setter_name'];

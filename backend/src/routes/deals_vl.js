@@ -11,38 +11,164 @@ const { resolveGewonnenFelder } = require('../utils/gewonnen');
 // darf das Speichern des Deals niemals brechen.
 const { provisionSyncBk } = require('../utils/provisionenBk');
 const { kamRollenSql } = require('../utils/rollen');
+// Der Dauer-RaaS-Umsatz einer Umstellung ist ein REGULAERER BK-Deal und wird ueber DIESE
+// Funktionen angelegt bzw. entfernt, nicht per eigenem INSERT/DELETE: die Hooks (AE-Snapshot,
+// BK-Provision, Audit) haengen an der Route, nicht an der Tabelle — es gibt keinen DB-Trigger
+// auf deals_bk. Dasselbe Muster wie im Bereich Willkommensmeetings.
+const { erstelleBkDeal, loescheBkDeal } = require('./deals_bk');
 
 router.use(requireAuth);
 
-// EUR-Anreicherung: zusaetzlich den Umstellungs-AE (Dauervertrag) umrechnen, damit die separate
-// Summe bei CHF-Companies (Risem) nicht Waehrungen mischt. Fliesst in KEINE bestehende Summe.
+// EUR-Anreicherung. Der Dauer-RaaS-Betrag wird MITGELESEN, nicht mitgespeichert: er steht im
+// verknuepften BK-Deal (umstellung_ae_wert aus dem JOIN unten) und wird hier nur zusaetzlich in
+// EUR ausgewiesen, damit eine Anzeige bei CHF-Companies (Risem) keine Waehrungen mischt.
+// Er flieszt in KEINE VL-Summe — sein Platz ist der Bestandskunden-Umsatz.
 const VL_EUR_MAP = {
   angebotswert: 'angebotswert_eur',
   ae_wert: 'ae_wert_eur',
-  dauervertrag_ae_wert: 'dauervertrag_ae_wert_eur',
+  umstellung_ae_wert: 'umstellung_ae_wert_eur',
 };
 
-// Dauervertrag-Felder normalisieren: ohne Haken gibt es weder Betrag noch Datum. Serverseitig
-// erzwungen, damit auch ueber die API keine verwaisten Werte entstehen koennen.
-// `existing` ist optional (beim Anlegen gibt es keinen Vorzustand): kommt der Haken im Body,
-// aber ein Unterfeld fehlt, bleibt der bestehende Wert stehen statt auf NULL zu fallen.
-// Ohne Haken werden beide Felder weiterhin hart geleert — das ist die Regel, nicht der Sonderfall.
-function normDauervertrag(body, existing) {
-  const an    = Number(body.dauervertrag_umgestellt) || 0;
-  const wert  = body.dauervertrag_ae_wert !== undefined ? body.dauervertrag_ae_wert : (existing?.dauervertrag_ae_wert ?? null);
-  const datum = body.dauervertrag_datum   !== undefined ? body.dauervertrag_datum   : (existing?.dauervertrag_datum   ?? null);
+// ─────────────────────────────────────────────────────────────────────────────
+// UMSTELLUNG AUF DAUER-RaaS — der dritte Ausgang einer Verlaengerung
+//
+// Ein Vertrag, der statt der Verlaengerung auf den Dauer-Recruiting-Service umgestellt wird, ist
+// KEINE Verlaengerung: weder gewonnen noch gekuendigt. Er traegt deshalb den eigenen Status
+// 'Umgestellt' (Migration 113) und nicht mehr, wie im Provisorium aus Migration 102, einen Haken
+// AN einem gewonnenen Deal.
+//
+// REFERENZ STATT KOPIE: Der Umsatz lebt in einem regulaeren deals_bk-Deal mit
+// herkunft='vl_umstellung'. Damit ergibt sich alles Weitere von selbst:
+//   * Der AE flieszt als Bestandskunden-Umsatz in Monatsuebersicht und Auswertung.
+//   * Die 3 % kommen aus dem BESTEHENDEN Upsell-Buchungstyp des BK-Kreises — kein neuer Satz,
+//     keine neue Config-Spalte, kein neuer Export-Typ.
+//   * Die 2 % Verlaengerungsprovision entfallen OHNE Sondercode: der VL-Deal ist nicht mehr
+//     'Gewonnen', positionBk() lehnt ihn ab, und provisionSyncBk bucht zustandsbasiert die
+//     Differenz. Kein Doppelbezug, in beide Richtungen.
+//
+// dauervertrag_ae_wert wird bewusst NICHT mehr gefuellt: der Betrag steht ausschliesslich im
+// verknuepften BK-Deal. Zwei Spalten fuer dasselbe Geld waeren Doppelzaehlung — genau der Fehler,
+// den dieser Umbau beseitigt. Die Spalte bleibt nur, weil ein DROP COLUMN in SQLite einen
+// weiteren Tabellen-Neuaufbau kostete; im Bestand traegt sie ohnehin keinen einzigen Wert.
+// ─────────────────────────────────────────────────────────────────────────────
+const UMSTELLUNG_HERKUNFT = 'vl_umstellung';
+
+// Status und Flag koennen nicht mehr auseinanderlaufen: das Flag wird AUS dem Status abgeleitet.
+// (Frueher liess DealsVL.jsx den Haken absichtlich stehen, wenn der Status spaeter wechselte —
+// damit gab es zwei Wahrheiten fuer denselben Ausgang.)
+function normUmstellung(zielStatus, body, existing) {
+  const an = zielStatus === 'Umgestellt' ? 1 : 0;
+  const datum = body.dauervertrag_datum !== undefined
+    ? body.dauervertrag_datum
+    : (existing?.dauervertrag_datum ?? null);
   return {
     dauervertrag_umgestellt: an,
-    dauervertrag_ae_wert: an ? (wert  ?? null) : null,
-    dauervertrag_datum:   an ? (datum ?? null) : null,
+    dauervertrag_ae_wert: null,
+    dauervertrag_datum: an ? (datum ?? null) : null,
   };
 }
 
+/**
+ * Angaben zum Dauer-RaaS-Deal pruefen.
+ *
+ * kam_id ist PFLICHT: auswertung.js und kpis.js joinen deals_bk per INNER JOIN auf employees.
+ * Ein Deal ohne kam_id verschwindet damit lautlos aus JEDER BK-Auswertung — und haette obendrein
+ * keinen Provisionsempfaenger. Der Betrag muss > 0 sein, sonst entstuende eine Umstellung ohne
+ * Umsatz und eine 0-Euro-Provisionsposition.
+ */
+function pruefeUmstellung(u, vl) {
+  if (!u || typeof u !== 'object') return 'Angaben zum Dauer-RaaS-Deal fehlen';
+  if (!(u.kam_id ?? vl?.kam_id)) return 'KAM fehlt — ohne KAM fiele der Dauer-RaaS-Deal aus jeder Auswertung';
+  if (!(u.company_id ?? vl?.company_id)) return 'Company fehlt';
+  if (!(Number(u.ae_wert) > 0)) return 'Dauer-RaaS-Betrag fehlt oder ist 0';
+  return null;
+}
+
+// Der BK-Deal leitet sich weitgehend aus dem Verlaengerungs-Deal ab — die Erfassung soll zwei
+// Klicks sein, nicht ein zweites Formular. Angegeben werden muss nur der Betrag.
+function bkBodyAus(vl, u, datum, vlId) {
+  const betrag = Number(u.ae_wert);
+  const status = u.status || 'Gewonnen';
+  return {
+    datum,
+    monat: String(datum).slice(0, 7),
+    company_id: u.company_id ?? vl.company_id,
+    kam_id: u.kam_id ?? vl.kam_id,
+    kunde: u.kunde ?? vl.kunde,
+    angebotsnummer: u.angebotsnummer ?? null,
+    dienstleistung: u.dienstleistung || 'Dauer-RaaS',
+    angebotswert: u.angebotswert != null ? Number(u.angebotswert) : betrag,
+    laufzeit_monate: u.laufzeit_monate != null ? Number(u.laufzeit_monate) : 12,
+    status,
+    ae_wert: betrag,
+    gewonnen_datum: status === 'Gewonnen' ? datum : null,
+    kundennummer: u.kundennummer ?? vl.kundennummer ?? null,
+    kommentar: u.kommentar ?? `Umstellung der Verlängerung${vlId ? ` #${vlId}` : ''} auf Dauer-RaaS`,
+    herkunft: UMSTELLUNG_HERKUNFT,
+  };
+}
+
+/**
+ * Haelt Status und verknuepften Dauer-RaaS-Deal konsistent. Liefert die zu schreibende
+ * umstellung_deal_bk_id — und im Fehlerfall einen 400er, nie einen halben Zustand.
+ *
+ * Drei Wege in die Umstellung:
+ *   * `umstellung: { ae_wert, ... }`  -> neuer BK-Deal wird angelegt
+ *   * `umstellung_deal_bk_id: 123`    -> ein bereits bestehender Deal wird verknuepft
+ *   * nichts davon, aber schon verknuepft -> bleibt wie es ist
+ *
+ * Und einer wieder heraus: faellt der Status von 'Umgestellt' zurueck, muss der Umsatz mit. Ein
+ * stehengebliebener Deal hiesse 3 % fuer einen Vorgang, den es nicht mehr gibt. Geloescht wird
+ * aber NUR, was diese Route selbst angelegt hat (herkunft-Marke) — ein vorher schon vorhandener,
+ * bloss verknuepfter Deal wird ausschliesslich geloest.
+ */
+async function synchronisiereUmstellung({ zielStatus, body, existing, vlFelder, vlId, user }) {
+  const p1 = db.dialect === 'postgres' ? '$1' : '?';
+  const p2 = db.dialect === 'postgres' ? '$2' : '?';
+  const vorher = existing?.umstellung_deal_bk_id ?? null;
+
+  if (zielStatus !== 'Umgestellt') {
+    if (!vorher) return { id: null, neuerDeal: null };
+    const d = await db.get(`SELECT * FROM deals_bk WHERE id=${p1}`, [vorher]);
+    if (d && d.herkunft === UMSTELLUNG_HERKUNFT) {
+      await loescheBkDeal(vorher, user);       // inkl. Storno und AE-Rueckbuchung
+    }
+    return { id: null, neuerDeal: null };
+  }
+
+  // Ausdrueckliche Verknuepfung eines bestehenden Deals
+  if (body.umstellung_deal_bk_id != null) {
+    const nr = Number(body.umstellung_deal_bk_id);
+    const da = await db.get(`SELECT id FROM deals_bk WHERE id=${p1}`, [nr]);
+    if (!da) { const e = new Error('Dauer-RaaS-Deal nicht gefunden'); e.statusCode = 400; throw e; }
+    const schon = await db.get(
+      `SELECT id FROM deals_vl WHERE umstellung_deal_bk_id=${p1} AND id <> ${p2}`, [nr, vlId ?? -1]);
+    if (schon) { const e = new Error(`Dieser Deal hängt bereits an der Verlängerung #${schon.id}`); e.statusCode = 400; throw e; }
+    return { id: nr, neuerDeal: null };
+  }
+
+  if (vorher) return { id: vorher, neuerDeal: null };   // schon verknuepft, nichts zu tun
+
+  const u = body.umstellung;
+  const fehler = pruefeUmstellung(u, vlFelder);
+  if (fehler) { const e = new Error(fehler); e.statusCode = 400; throw e; }
+  const datum = String(vlFelder.dauervertrag_datum || '').slice(0, 10);
+  const neuerDeal = await erstelleBkDeal(bkBodyAus(vlFelder, u, datum, vlId), user);
+  return { id: neuerDeal.id, neuerDeal };
+}
+
+// Der Stand des Dauer-RaaS-Deals wird IMMER live mitgelesen, nie kopiert — dasselbe Prinzip wie
+// bei den Willkommensmeetings. Faellt der Deal weg, liefert der LEFT JOIN NULL und die Oberflaeche
+// kann eine Umstellung ohne Umsatz als das anzeigen, was sie ist.
 const BASE_SELECT = `
-  SELECT d.*, c.name as company_name, c.currency, c.aktiv_ab, c.ae_ab_monat, k.name as kam_name, k.standort as kam_standort
+  SELECT d.*, c.name as company_name, c.currency, c.aktiv_ab, c.ae_ab_monat, k.name as kam_name, k.standort as kam_standort,
+         u.ae_wert AS umstellung_ae_wert, u.status AS umstellung_status, u.monat AS umstellung_monat,
+         u.gewonnen_monat AS umstellung_gewonnen_monat, u.kunde AS umstellung_kunde,
+         u.dienstleistung AS umstellung_dienstleistung, u.herkunft AS umstellung_herkunft
   FROM deals_vl d
   LEFT JOIN companies c ON c.id = d.company_id
   LEFT JOIN employees k ON k.id = d.kam_id
+  LEFT JOIN deals_bk u ON u.id = d.umstellung_deal_bk_id
 `;
 
 // Zustandsbasiert wie NK: Beitrag = ae_wert wenn Gewonnen, sonst 0 — im jeweiligen gewonnen_monat.
@@ -214,7 +340,11 @@ router.post('/', wrap(async (req, res) => {
     body.kam_id = req.user.employee_id;
   }
 
-  const { gewonnen_datum, gewonnen_monat } = resolveGewonnenFelder(body);
+  // Reihenfolge: erst die Umstellungs-Felder normalisieren, dann die Ereignisachse ableiten —
+  // resolveGewonnenFelder liest bei Status 'Umgestellt' dauervertrag_datum.
+  const zielStatus = body.status || 'Offen';
+  const dv = normUmstellung(zielStatus, body, null);
+  const { gewonnen_datum, gewonnen_monat } = resolveGewonnenFelder({ ...body, ...dv });
   const fields = ['datum','monat','company_id','kam_id','kunde','dienstleistung','angebotswert',
     'ae_wert','laufzeit_monate','status','wie_vielt_verlaengerung','kommentar',
     'abgerechnet','kundennummer','gewonnen_datum','gewonnen_monat',
@@ -222,11 +352,18 @@ router.post('/', wrap(async (req, res) => {
     'upsale_angesprochen','upsale_summe','upsale_angenommen','upsale_angenommen_summe',
     'weitergeben_an_vertrieb','terminiert','neuer_ap_intern',
     'dauervertrag_umgestellt','dauervertrag_ae_wert','dauervertrag_datum',
+    'umstellung_deal_bk_id',
     'vertragsnummer','vertragsbeginn','ende_laufzeit','ende_kuendigungsfrist'];
-  const dv = normDauervertrag(body);
+  // Dauer-RaaS-Deal anlegen bzw. verknuepfen, BEVOR die Verlaengerung geschrieben wird: ein
+  // Deal ohne seinen Umsatz waere ein gueltiger, aber falscher Zustand; ein Umsatz ohne Deal
+  // eine unsichtbare Leiche. Scheitert das Schreiben, wird der eben angelegte Deal entfernt
+  // (gleiches Muster wie bei den Willkommensmeetings).
+  const ums = await synchronisiereUmstellung({
+    zielStatus, body, existing: null, vlFelder: { ...body, ...dv }, vlId: null, user: req.user });
   const values = fields.map(f => {
     if (f === 'gewonnen_datum') return gewonnen_datum;
     if (f === 'gewonnen_monat') return gewonnen_monat;
+    if (f === 'umstellung_deal_bk_id') return ums.id;
     if (f === 'abgerechnet') return body[f] ?? (body.status === 'Gewonnen' ? 'Nein' : null);
     if (f === 'upsale_angesprochen' || f === 'upsale_angenommen') return Number(body[f]) || 0;
     if (f === 'terminiert') return Number(body[f]) || 0;
@@ -241,13 +378,24 @@ router.post('/', wrap(async (req, res) => {
   });
 
   let row;
-  if (db.dialect === 'postgres') {
-    const ph = fields.map((_,i) => `$${i+1}`).join(',');
-    row = await db.get(`INSERT INTO deals_vl (${fields.join(',')}) VALUES (${ph}) RETURNING *`, values);
-  } else {
-    const ph = fields.map(() => '?').join(',');
-    const result = db.run(`INSERT INTO deals_vl (${fields.join(',')}) VALUES (${ph})`, values);
-    row = { id: result.lastInsertRowid, ...body, gewonnen_datum, gewonnen_monat };
+  try {
+    if (db.dialect === 'postgres') {
+      const ph = fields.map((_,i) => `$${i+1}`).join(',');
+      row = await db.get(`INSERT INTO deals_vl (${fields.join(',')}) VALUES (${ph}) RETURNING *`, values);
+    } else {
+      const ph = fields.map(() => '?').join(',');
+      const result = db.run(`INSERT INTO deals_vl (${fields.join(',')}) VALUES (${ph})`, values);
+      // ...dv/ums NACH dem Body spreaden: sonst gewaenne der rohe Body gegen die normalisierten
+      // Werte und der Hook saehe einen anderen Stand als die Datenbank.
+      row = { id: result.lastInsertRowid, ...body, ...dv, umstellung_deal_bk_id: ums.id,
+        gewonnen_datum, gewonnen_monat };
+    }
+  } catch (e) {
+    if (ums.neuerDeal) {
+      try { await loescheBkDeal(ums.neuerDeal.id, req.user); }
+      catch (e2) { console.error('[vl] Rueckbau Dauer-RaaS-Deal:', e2.message); }
+    }
+    throw e;
   }
 
   try { await syncAeGesamtVL(row, null); } catch (e) { console.error('[sync-vl] POST:', e.message); }
@@ -276,7 +424,12 @@ router.put('/:id', wrap(async (req, res) => {
   if (gwBody.status === undefined && existing) gwBody.status = existing.status;
   if (gwBody.gewonnen_datum === undefined && existing) gwBody.gewonnen_datum = existing.gewonnen_datum;
 
-  const { gewonnen_datum, gewonnen_monat } = resolveGewonnenFelder(gwBody, existing);
+  // Umstellungs-Felder aus dem GEMERGTEN Status ableiten (nicht mehr aus einem Haken im Body):
+  // Status und Flag koennen dadurch nicht auseinanderlaufen. Muss vor resolveGewonnenFelder
+  // stehen, das bei 'Umgestellt' dauervertrag_datum liest.
+  const zielStatus = gwBody.status;
+  const dv = normUmstellung(zielStatus, req.body, existing);
+  const { gewonnen_datum, gewonnen_monat } = resolveGewonnenFelder({ ...gwBody, ...dv }, existing);
   const fields = ['datum','monat','company_id','kam_id','kunde','dienstleistung','angebotswert',
     'ae_wert','laufzeit_monate','status','wie_vielt_verlaengerung','kommentar',
     'abgerechnet','kundennummer','gewonnen_datum','gewonnen_monat',
@@ -284,6 +437,7 @@ router.put('/:id', wrap(async (req, res) => {
     'upsale_angesprochen','upsale_summe','upsale_angenommen','upsale_angenommen_summe',
     'weitergeben_an_vertrieb','terminiert','neuer_ap_intern',
     'dauervertrag_umgestellt','dauervertrag_ae_wert','dauervertrag_datum',
+    'umstellung_deal_bk_id',
     'vertragsnummer','vertragsbeginn','ende_laufzeit','ende_kuendigungsfrist'];
   // TEIL-UPDATES: Fehlt ein Feld im Body, bleibt der bestehende Wert stehen (siehe unten in
   // `values`). Frueher fiel jedes nicht mitgeschickte Feld auf NULL — das loeschte bei einem
@@ -294,17 +448,15 @@ router.put('/:id', wrap(async (req, res) => {
   // Ueber die UI war beides nicht erreichbar (das VL-Formular schickt `initial`, also die volle
   // Deal-Zeile; die Kuendigungen-Seite nutzt PATCH) — der Schutz gilt API-Skripten und kuenftigen
   // Aufrufern. Ein EXPLIZITES null im Body loescht weiterhin: PUT bleibt PUT.
-  // Dauervertrag: nur anfassen, wenn der Haken im Body mitkommt, sonst bestehenden Zustand
-  // erhalten.
-  const dvImBody = req.body.dauervertrag_umgestellt !== undefined;
-  const dv = dvImBody ? normDauervertrag(req.body, existing) : {
-    dauervertrag_umgestellt: Number(existing?.dauervertrag_umgestellt) || 0,
-    dauervertrag_ae_wert:    existing?.dauervertrag_ae_wert ?? null,
-    dauervertrag_datum:      existing?.dauervertrag_datum ?? null,
-  };
+  // Dauer-RaaS-Deal anlegen, verknuepfen oder — bei Ruecknahme der Umstellung — wieder entfernen.
+  // Wirft 400, wenn Angaben fehlen; dann ist noch nichts geschrieben.
+  const ums = await synchronisiereUmstellung({
+    zielStatus, body: req.body, existing,
+    vlFelder: { ...existing, ...req.body, ...dv }, vlId: Number(req.params.id), user: req.user });
   const values = fields.map(f => {
     if (f === 'gewonnen_datum') return gewonnen_datum;
     if (f === 'gewonnen_monat') return gewonnen_monat;
+    if (f === 'umstellung_deal_bk_id') return ums.id;
     if (f === 'abgerechnet') {
       if (req.body[f] === undefined) return existing?.abgerechnet ?? null;
       return req.body[f] ?? (gwBody.status === 'Gewonnen' ? 'Nein' : null);   // gemergter Status
@@ -332,16 +484,24 @@ router.put('/:id', wrap(async (req, res) => {
   });
 
   let row;
-  if (db.dialect === 'postgres') {
-    const set = fields.map((f,i) => `${f}=$${i+1}`).join(',');
-    row = await db.get(
-      `UPDATE deals_vl SET ${set}, updated_at=NOW() WHERE id=$${fields.length+1} RETURNING *`,
-      [...values, req.params.id]
-    );
-  } else {
-    const set = fields.map(f => `${f}=?`).join(',');
-    db.run(`UPDATE deals_vl SET ${set}, updated_at=datetime('now') WHERE id=?`, [...values, req.params.id]);
-    row = db.get(BASE_SELECT + ' WHERE d.id=?', [req.params.id]);
+  try {
+    if (db.dialect === 'postgres') {
+      const set = fields.map((f,i) => `${f}=$${i+1}`).join(',');
+      row = await db.get(
+        `UPDATE deals_vl SET ${set}, updated_at=NOW() WHERE id=$${fields.length+1} RETURNING *`,
+        [...values, req.params.id]
+      );
+    } else {
+      const set = fields.map(f => `${f}=?`).join(',');
+      db.run(`UPDATE deals_vl SET ${set}, updated_at=datetime('now') WHERE id=?`, [...values, req.params.id]);
+      row = db.get(BASE_SELECT + ' WHERE d.id=?', [req.params.id]);
+    }
+  } catch (e) {
+    if (ums.neuerDeal) {
+      try { await loescheBkDeal(ums.neuerDeal.id, req.user); }
+      catch (e2) { console.error('[vl] Rueckbau Dauer-RaaS-Deal:', e2.message); }
+    }
+    throw e;
   }
 
   try { await syncAeGesamtVL(row, existing); } catch (e) { console.error('[sync-vl] PUT:', e.message); }

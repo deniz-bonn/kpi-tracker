@@ -40,6 +40,9 @@ app.use('/api/deals/nk',       require('./routes/deals_nk'));   // requireAuth i
 app.use('/api/deals/bk',       require('./routes/deals_bk'));   // requireAuth inside
 app.use('/api/willkommensmeetings', require('./routes/willkommensmeetings')); // requireAuth inside
 app.use('/api/deals/vl',       require('./routes/deals_vl'));   // requireAuth inside
+// Vertragsverlaengerungen: Auswertungsflaeche fuer die Umstellung auf Dauer-RaaS.
+// Bewusst LESEND — geschrieben wird ueber /api/deals/vl, dieselbe Route wie im VL-Bereich.
+app.use('/api/vertragsverlaengerungen', require('./routes/vertragsverlaengerungen')); // requireAuth inside
 app.use('/api/targets',        requireAuth, require('./routes/targets'));
 app.use('/api/kpis',           requireAuth, require('./routes/kpis'));
 app.use('/api/auswertung',     requireAuth, require('./routes/auswertung'));

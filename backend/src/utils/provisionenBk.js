@@ -94,11 +94,16 @@ async function positionBk(deal, quelle, { goLive, cfg } = {}) {
   if (!satz) return { ok: false, grund: 'satz_null' };
 
   const ae = Number(deal.ae_wert) || 0;
+  // Ein BK-Deal, der aus der Umstellung einer Verlaengerung auf Dauer-RaaS entstanden ist, wird
+  // bewusst als GANZ NORMALER Upsell gebucht: gleicher Typ, gleicher Satz, gleicher Export.
+  // Nur die Beschreibung sagt, woher er kommt — sonst stuende im Kontoauszug "Upsell" fuer einen
+  // Vorgang, den der Empfaenger als Umstellung kennt.
+  const label = deal.herkunft === 'vl_umstellung' ? 'Dauer-RaaS-Umstellung' : Q.label;
   return {
     ok: true, emp: e.emp, quelle, gm, von, bis, satz, ae,
     typ: Q.typ,
     betrag: round2(ae * satz / 100),
-    besch: `${Q.label} (${fmtPct(satz)}) · ${deal.kunde || ''}`.trim(),
+    besch: `${label} (${fmtPct(satz)}) · ${deal.kunde || ''}`.trim(),
   };
 }
 

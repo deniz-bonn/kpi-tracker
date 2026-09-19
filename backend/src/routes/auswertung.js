@@ -39,22 +39,36 @@ function calcKpis(rows) {
   };
 }
 
+// 'umgestellt' ist der dritte VL-Ausgang (Dauer-RaaS, Migration 113): der Vertrag wurde nicht
+// verlaengert, sondern auf die Jahresbetreuung gehoben. Er zaehlt als ENTSCHIEDEN und beim
+// Bestandserhalt positiv, aber NICHT als gewonnene Verlaengerung — und er traegt keinen VL-AE,
+// weil sein Umsatz im verknuepften Bestandskunden-Deal steht.
+//
+// 'offen' wird deshalb EXPLIZIT gezaehlt statt als Rest (total - gewonnen - verloren). Die alte
+// NOT-Logik haette den umgestellten Deal still als offene Verlaengerung ausgewiesen.
+// Bei NK/BK ist umgestellt konstant 0 — dort aendert sich dadurch keine Zahl.
 function calcKpisBK(rows) {
   if (!rows.length) return null;
   const r = rows[0];
   const total = Number(r.total) || 0;
   const gewonnen = Number(r.gewonnen) || 0;
   const verloren = Number(r.verloren) || 0;
+  const umgestellt = Number(r.umgestellt) || 0;
   const ae_summe = Number(r.ae_summe) || 0;
   const angebotswert_gesamt = Number(r.angebotswert_gesamt) || 0;
   const wert_offen = Number(r.wert_offen) || 0;
+  const entschieden = gewonnen + verloren + umgestellt;
 
   return {
-    total, gewonnen, verloren,
-    offen: total - gewonnen - verloren,
+    total, gewonnen, verloren, umgestellt,
+    offen: total - entschieden,
     ae_summe, angebotswert_gesamt, wert_offen,
+    // Nenner bleibt total (alle Angebote) — der umgestellte Deal verschwindet nicht aus der
+    // Grundgesamtheit, er ist nur kein gewonnenes Angebot.
     quote_angebote: total > 0 ? Math.round((gewonnen / total) * 100 * 10) / 10 : 0,
     quote_wert: angebotswert_gesamt > 0 ? Math.round((ae_summe / angebotswert_gesamt) * 100 * 10) / 10 : 0,
+    // Bestandserhalt: gehaltene Kunden (verlaengert ODER hochgestuft) an allen entschiedenen.
+    quote_erhalt: entschieden > 0 ? Math.round(((gewonnen + umgestellt) / entschieden) * 100 * 10) / 10 : 0,
   };
 }
 
@@ -91,9 +105,13 @@ function buildBKQuery(table, filters) {
       COUNT(*) as total,
       SUM(CASE WHEN d.status='Gewonnen' THEN 1 ELSE 0 END) as gewonnen,
       SUM(CASE WHEN d.status='Verloren' THEN 1 ELSE 0 END) as verloren,
+      SUM(CASE WHEN d.status='Umgestellt' THEN 1 ELSE 0 END) as umgestellt,
       SUM(CASE WHEN d.status='Gewonnen' THEN ${AE_EUR} ELSE 0 END) as ae_summe,
       SUM(${AGW_EUR}) as angebotswert_gesamt,
-      SUM(CASE WHEN d.status NOT IN ('Gewonnen','Verloren') THEN ${AGW_EUR} ELSE 0 END) as wert_offen
+      -- 'Offen' explizit statt NOT IN: sonst zaehlte der dritte VL-Ausgang 'Umgestellt' als offene
+      -- Pipeline, obwohl er entschieden ist. deals_bk kennt nur Offen/Gewonnen/Verloren, dort ist
+      -- die Umstellung dieser Bedingung wertgleich.
+      SUM(CASE WHEN d.status='Offen' THEN ${AGW_EUR} ELSE 0 END) as wert_offen
     FROM ${table} d
     LEFT JOIN employees e ON e.id = d.kam_id
     LEFT JOIN companies c ON c.id = d.company_id
@@ -174,9 +192,13 @@ router.get('/bk', wrap(async (req, res) => {
       COUNT(*) as total,
       SUM(CASE WHEN d.status='Gewonnen' THEN 1 ELSE 0 END) as gewonnen,
       SUM(CASE WHEN d.status='Verloren' THEN 1 ELSE 0 END) as verloren,
+      SUM(CASE WHEN d.status='Umgestellt' THEN 1 ELSE 0 END) as umgestellt,
       SUM(CASE WHEN d.status='Gewonnen' THEN ${AE_EUR} ELSE 0 END) as ae_summe,
       SUM(${AGW_EUR}) as angebotswert_gesamt,
-      SUM(CASE WHEN d.status NOT IN ('Gewonnen','Verloren') THEN ${AGW_EUR} ELSE 0 END) as wert_offen
+      -- 'Offen' explizit statt NOT IN: sonst zaehlte der dritte VL-Ausgang 'Umgestellt' als offene
+      -- Pipeline, obwohl er entschieden ist. deals_bk kennt nur Offen/Gewonnen/Verloren, dort ist
+      -- die Umstellung dieser Bedingung wertgleich.
+      SUM(CASE WHEN d.status='Offen' THEN ${AGW_EUR} ELSE 0 END) as wert_offen
     FROM deals_bk d
     JOIN employees e ON e.id = d.kam_id
     LEFT JOIN companies c ON c.id = d.company_id
@@ -212,9 +234,13 @@ router.get('/vl', wrap(async (req, res) => {
       COUNT(*) as total,
       SUM(CASE WHEN d.status='Gewonnen' THEN 1 ELSE 0 END) as gewonnen,
       SUM(CASE WHEN d.status='Verloren' THEN 1 ELSE 0 END) as verloren,
+      SUM(CASE WHEN d.status='Umgestellt' THEN 1 ELSE 0 END) as umgestellt,
       SUM(CASE WHEN d.status='Gewonnen' THEN ${AE_EUR} ELSE 0 END) as ae_summe,
       SUM(${AGW_EUR}) as angebotswert_gesamt,
-      SUM(CASE WHEN d.status NOT IN ('Gewonnen','Verloren') THEN ${AGW_EUR} ELSE 0 END) as wert_offen
+      -- 'Offen' explizit statt NOT IN: sonst zaehlte der dritte VL-Ausgang 'Umgestellt' als offene
+      -- Pipeline, obwohl er entschieden ist. deals_bk kennt nur Offen/Gewonnen/Verloren, dort ist
+      -- die Umstellung dieser Bedingung wertgleich.
+      SUM(CASE WHEN d.status='Offen' THEN ${AGW_EUR} ELSE 0 END) as wert_offen
     FROM deals_vl d
     JOIN employees e ON e.id = d.kam_id
     LEFT JOIN companies c ON c.id = d.company_id

@@ -10,6 +10,7 @@ const ALL_NAV = [
   { to: '/bestandskunden',      label: 'Bestandskunden BK',     icon: '🔵', roles: ['admin','superadmin','bk_vertrieb','backoffice','vertriebsleitung'] },
   { to: '/willkommensmeetings', label: 'Willkommensmeetings',   icon: '🤝', roles: ['admin','superadmin','bk_vertrieb','backoffice','vertriebsleitung'] },
   { to: '/verlaengerungen',     label: 'Verlängerungen VL',     icon: '🔄', roles: ['admin','superadmin','bk_vertrieb','backoffice','vertriebsleitung'] },
+  { to: '/vertragsverlaengerungen', label: 'Vertragsverlängerungen', icon: '♻️', roles: ['admin','superadmin','bk_vertrieb','backoffice','vertriebsleitung'] },
   { to: '/kuendigungen',        label: 'Kündigungen',            icon: '⚠️',  roles: ['admin','superadmin','bk_vertrieb','backoffice','vertriebsleitung'] },
   { to: '/auswertung',          label: 'KPI Auswertung',        icon: '📋', roles: ['admin','superadmin','backoffice','vertriebsleitung'] },
   { to: '/kpi-mitarbeiter',     label: 'KPI Mitarbeiter',       icon: '📈', roles: ['admin','superadmin','backoffice','vertriebsleitung','bk_vertrieb','nk_vertrieb'] },

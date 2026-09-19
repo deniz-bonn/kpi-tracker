@@ -11,6 +11,7 @@ import Dashboard from './pages/Dashboard';
 import DealsNK from './pages/DealsNK';
 import DealsBK from './pages/DealsBK';
 import Willkommensmeetings from './pages/Willkommensmeetings';
+import Vertragsverlaengerungen from './pages/Vertragsverlaengerungen';
 import DealsVL from './pages/DealsVL';
 import Kuendigungen from './pages/Kuendigungen';
 import Employees from './pages/Employees';
@@ -70,6 +71,11 @@ function AppRoutes() {
         <Route path="verlaengerungen" element={
           <ProtectedRoute allowedRoles={ROLES.bkAndAbove}>
             <DealsVL />
+          </ProtectedRoute>
+        } />
+        <Route path="vertragsverlaengerungen" element={
+          <ProtectedRoute allowedRoles={ROLES.bkAndAbove}>
+            <Vertragsverlaengerungen />
           </ProtectedRoute>
         } />
         <Route path="kuendigungen" element={

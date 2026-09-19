@@ -48,7 +48,20 @@ const BK_KREISE    = KREIS_KEYS.filter(k => KREISE[k].quelle === 'bk');
 const KALENDERMONAT_KREISE = KREIS_KEYS.filter(k => KREISE[k].zyklus === 'kalendermonat');
 
 /** standort (employees) -> Kreis-Schluessel. NUR die NK-Standort-Dimension.
- *  Schweiz/null sind bewusst nicht im Modul; 'bestandskunden' hat keinen Standort. */
+ *  Schweiz/null sind bewusst nicht im Modul; 'bestandskunden' hat keinen Standort.
+ *
+ *  BEWUSSTER ZUSTAND, KEIN FEHLER: Weil hier ausschliesslich die NK-Kreise durchsucht werden,
+ *  kann 'bestandskunden' nie herauskommen. Die Mitarbeiter-Sichten, die ihren Zeitraum ueber
+ *  diese Funktion aufloesen (routes/provisionen.js "/me", routes/mein_dashboard.js), zeigen einem
+ *  KAM seine BK-Provision deshalb NICHT — gemessen am 19.09.2026: 35 Buchungen ueber 7.783,50 EUR
+ *  in der Datenbank, 0,00 EUR in "Meine Provision". Sichtbar ist sie nur in der Admin-Uebersicht
+ *  mit Kreis-Umschalter.
+ *
+ *  Das ist so gewollt: Die Bestandskundenvertriebler sollen ihre Provision derzeit nicht im System
+ *  sehen. Die Freischaltung ist eine eigene, spaetere Entscheidung — bitte nicht "nebenbei"
+ *  reparieren und nicht als Bug melden. Wer sie oeffnet, muss zusaetzlich die Rolle bk_vertrieb
+ *  fuer das Feature 'provisionen' freischalten (heute 403) und die Zeitraum-Auswahl im Frontend
+ *  anpassen (MeineProvision.jsx filtert auf den eigenen Kreis). */
 function kreisFor(standort) {
   const t = NK_KREISE.find(k => KREISE[k].standort === standort);
   return t || null;

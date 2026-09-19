@@ -23,7 +23,22 @@ function toYmd(v) {
 // Leitet { gewonnen_datum, gewonnen_monat } ab.
 // Effektives Datum = Body-Datum, sonst DB-Bestand (existing) — beides normalisiert.
 // Status Gewonnen ohne effektives Datum ist nicht speicherbar -> wirft 400.
+// Status Umgestellt (nur VL, Dauer-RaaS) leitet aus dauervertrag_datum ab -> siehe unten.
 function resolveGewonnenFelder(body, existing = null) {
+  // VL-Sonderfall "Umgestellt" (Dauer-RaaS): der Deal ist NICHT gewonnen, braucht aber trotzdem
+  // eine Monatsachse — sonst verliert er sie hier (der Zweig unten nullt beide Felder) und ist in
+  // keiner Monatssicht mehr auffindbar. gewonnen_monat ist die generische Ereignisachse, nicht
+  // "der Monat des Gewinns": fuer die Umstellung ist das Ereignis der Umstellungstag.
+  // AE zieht der Deal dadurch NICHT — jede AE-Summe filtert zusaetzlich auf status='Gewonnen'.
+  if (body.status === 'Umgestellt') {
+    const dd = toYmd(body.dauervertrag_datum) || toYmd(existing && existing.dauervertrag_datum);
+    if (!dd) {
+      const err = new Error('Status "Umgestellt" erfordert ein Umstellungsdatum (dauervertrag_datum).');
+      err.statusCode = 400;
+      throw err;
+    }
+    return { gewonnen_datum: dd, gewonnen_monat: dd.slice(0, 7) };
+  }
   if (body.status === 'Gewonnen') {
     const gd = toYmd(body.gewonnen_datum) || toYmd(existing && existing.gewonnen_datum);
     if (!gd) {

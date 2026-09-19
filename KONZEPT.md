@@ -190,7 +190,57 @@ Test-Auslösung: `POST /api/admin/test-daily-report` (Admin/VL).
 
 ---
 
-## 11. Show Rates (Close)
+## 11. Vertragsverlängerungen (Dauer-RaaS)
+
+Bereich `/vertragsverlaengerungen`, angelagert an VL. Gemessen wird, wie viele der **anstehenden
+automatischen Verlängerungen** proaktiv auf den Dauer-Recruiting-Service (**Dauer-RaaS**,
+12 Monate Jahresbetreuung) gehoben werden, statt sich regulär zu verlängern.
+
+**Der dritte Ausgang.** `deals_vl.status` kennt seit Migration 113 den Wert `Umgestellt`. Ein
+umgestellter Vertrag ist **weder gewonnen noch gekündigt** — die Umstellung ist eine Alternative
+ZUR Verlängerung, kein Zusatz-Haken AN einer. Das löst das Provisorium aus Migration 102 ab
+(Dauervertrag-Checkbox an gewonnenen Deals), das nie produktiv genutzt wurde.
+
+| Kennzahl | Rechnung |
+|---|---|
+| **Umstellungsquote** | `Umgestellt ÷ Anstehende` (Kohorte = `deals_vl.monat`) |
+| **Churn** | `Kündigungen ÷ (Gewonnen + Umgestellt + Verloren)` |
+| **Bestandserhalt** | `(Gewonnen + Umgestellt) ÷ entschieden` |
+
+Für Churn und Bestandserhalt zählt eine Umstellung **wie eine Verlängerung**: Der Kunde ist da,
+nur höherwertig. Für den **VL-AE zählt sie nicht** — ihr Wert lebt im verknüpften
+Bestandskunden-Deal. Beides zu zählen wäre dasselbe Geld in zwei Spalten. `offen` wird überall
+explizit gezählt, nie als Rest `total − gewonnen − verloren`; die alte NOT-Logik hätte jede
+Umstellung still als offene Verlängerung oder (in `DealsVL.jsx`) zu 100 % als Churn ausgewiesen.
+
+**Referenz statt Kopie, zwei Türen, ein Deal.** Der Umsatz der Umstellung ist ein regulärer
+`deals_bk`-Deal mit `herkunft='vl_umstellung'`, angelegt über `erstelleBkDeal()`; `deals_vl`
+hält nur den Zeiger (`umstellung_deal_bk_id`). Daraus folgt alles Weitere von selbst:
+
+- Der AE fließt als **Bestandskunden-Umsatz** in Monatsübersicht und Auswertung.
+- Die **3 %** kommen aus dem bestehenden **Upsell-Buchungstyp** des BK-Kreises — kein neuer Satz,
+  keine neue Config-Spalte, kein neuer Export-Typ.
+- Die **2 % Verlängerungsprovision entfallen ohne Sondercode**: der Deal ist nicht mehr
+  `Gewonnen`, `positionBk()` lehnt ihn ab, und `provisionSyncBk` bucht zustandsbasiert den Storno.
+  Kein Doppelbezug, in beide Richtungen.
+- Wird die Umstellung zurückgenommen, wird der dafür angelegte BK-Deal gelöscht (nur der mit
+  `herkunft='vl_umstellung'`) und seine 3 % storniert; die 2 % kommen zurück.
+
+Erfasst wird ausschließlich über `PUT /api/deals/vl/:id` — der neue Bereich ist **lesend**. Damit
+kann es die zwei Türen gar nicht auseinanderlaufen lassen. Pflicht beim Umstellen sind
+Umstellungsdatum, KAM und ein Betrag > 0; fehlt eines, kommt ein 400 statt einer stillen
+0-€-Position. `gewonnen_monat` trägt bei `Umgestellt` den **Ereignismonat** aus
+`dauervertrag_datum` — ohne ihn verlöre der Deal jede Monatsachse (`gewonnen.js` nullt sie sonst).
+
+**Bewusst NICHT geändert:** Ein BK-Vertriebler sieht seine Provision aus diesem Kreis nicht —
+weder in „Meine Provision" noch in „Mein Dashboard". `kreisFor()` durchsucht nur die NK-Kreise,
+und die Rolle `bk_vertrieb` ist für das Feature `provisionen` nicht freigeschaltet. Das ist ein
+gewollter Zustand, kein Bug (Kommentar an `utils/kreise.js`). Sichtbar ist die Provision in der
+Admin-Übersicht mit Kreis-Umschalter. Die Freischaltung ist eine eigene, spätere Entscheidung.
+
+---
+
+## 12. Show Rates (Close)
 
 Bereich `/show-rates` (Feature-Flag `show_rates_close`). Datenquelle ist **nicht** das KPI-Board,
 sondern die Statushistorie aus Close — read-only gespiegelt nach `close_status_events` /
@@ -244,7 +294,7 @@ es ab, sind es Daten; weicht nur die Quote ab, war es der Code.
 
 ---
 
-## 12. Konventionen & bekannte Fallstricke
+## 13. Konventionen & bekannte Fallstricke
 
 1. **Migrationen immer doppelt** anlegen (`.pg.sql` für Railway-Postgres, `.sql` für SQLite lokal); Postgres-Booleans brauchen `TRUE/FALSE`, SQLite `1/0`. Läuft statementweise über den Pool → keine TEMP-Tabellen.
 2. **Keine doppelten Mitarbeiter anlegen** — führt zu doppelten Zeilen in Auswertungen und fehlgeleiteten AE-Buchungen (Migration 071/072 hat Altfälle bereinigt).
@@ -258,6 +308,11 @@ es ab, sind es Daten; weicht nur die Quote ab, war es der Code.
    ergänzte Spalte (so geschehen mit `status_id`, Migration 101) bleibt für den Altbestand
    dauerhaft leer. Wer die Historie heilen will, braucht den Knopf **„⟳ Voll-Backfill"**
    (`POST /api/showrates/sync` mit `since=2026-06-01`). Reiner GET-Lauf gegen Close, Dauer ~2 min.
-9. **Close-Zugriff ist ausschließlich lesend.** `utils/closeClient.js` ist die einzige Zugriffs-
+9. **Audit-Undo greift nicht an geldwirksame Felder.** `POST /api/audit/:id/undo` schreibt roh in
+   die Deal-Tabellen — ohne AE-Snapshot, ohne Provisions-Hook, ohne `resolveGewonnenFelder`. Für
+   `status`, `ae_wert`, `gewonnen_*`, `kam_id`, `company_id`, `angebotswert` und die
+   Umstellungs-Felder antwortet die Route deshalb mit 409 und verweist auf den regulären
+   Bearbeiten-Dialog. Ein Undo, das die Hälfte macht, wäre schlimmer als keines.
+10. **Close-Zugriff ist ausschließlich lesend.** `utils/closeClient.js` ist die einzige Zugriffs-
    schicht; kein POST/PUT/DELETE gegen Close, auch nicht zum Testen. `CLOSE_API_KEY` gehört
    niemals in Code, Logs oder Ausgaben.

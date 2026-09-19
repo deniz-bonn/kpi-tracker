@@ -209,6 +209,37 @@ router.put('/:id', wrap(async (req, res) => {
   res.json(row);
 }));
 
+/**
+ * Deal loeschen — inklusive Storno, AE-Rueckbuchung und Aufraeumen der Verknuepfungen.
+ *
+ * Als Funktion und nicht nur als Route, weil der Bereich "Vertragsverlaengerungen" sie braucht:
+ * Wird eine Umstellung auf Dauer-RaaS zurueckgenommen, muss der dafuer angelegte BK-Deal mitsamt
+ * seiner 3 % verschwinden. Ein eigener DELETE dort wuerde Storno und AE-Rueckbuchung verlieren.
+ */
+async function loescheBkDeal(id, user) {
+  const p = db.dialect === 'postgres' ? '$1' : '?';
+  const existing = await db.get(`SELECT * FROM deals_bk WHERE id=${p}`, [id]);
+  if (!existing) return null;
+
+  if (existing.status === 'Gewonnen') {
+    try { await syncAeGesamtBK({ ...existing, status: 'Gelöscht' }, existing); } catch (e) { console.error('[sync-bk] DELETE:', e.message); }
+    try { await provisionSyncBk({ ...existing, status: 'Gelöscht' }, 'bk'); } catch (e) { console.error('[prov-bk] DELETE:', e.message); }
+  }
+  try {
+    await db.run(`UPDATE willkommensmeetings SET deal_entfernt = 1 WHERE deal_bk_id = ${p}`, [id]);
+  } catch (e) { console.error('[wm] DELETE-Markierung:', e.message); }
+  // Die Verknuepfung im VL-Deal ausdruecklich loesen statt auf ON DELETE SET NULL zu vertrauen:
+  // unter Postgres greift der Fremdschluessel, unter SQLite nur bei eingeschaltetem PRAGMA — und
+  // ein verwaister Zeiger waere eine Umstellung, deren Umsatz nicht mehr auffindbar ist.
+  try {
+    await db.run(`UPDATE deals_vl SET umstellung_deal_bk_id = NULL WHERE umstellung_deal_bk_id = ${p}`, [id]);
+  } catch (e) { console.error('[vl] Umstellungs-Verknuepfung loesen:', e.message); }
+
+  await db.run(`DELETE FROM deals_bk WHERE id=${p}`, [id]);
+  await logAudit({ user, action: 'delete', entityType: 'deal_bk', entityId: Number(id), oldData: existing });
+  return existing;
+}
+
 router.delete('/:id', wrap(async (req, res) => {
   const existing = db.dialect === 'postgres'
     ? await db.get('SELECT * FROM deals_bk WHERE id=$1', [req.params.id])
@@ -224,12 +255,14 @@ router.delete('/:id', wrap(async (req, res) => {
   // Haengt an diesem Deal ein Willkommensmeeting, bleibt das Meeting bestehen (es hat ja
   // stattgefunden) — aber es muss sich merken, DASS hier einmal ein Angebot hing. Ohne dieses
   // Flag waere nach dem Loeschen nicht mehr unterscheidbar, ob nie eines platziert wurde
-  // (zaehlt gegen die Quote) oder ob es nachtraeglich entfernt wurde. Die Verknuepfung selbst
-  // raeumt der Fremdschluessel per ON DELETE SET NULL ab.
+  // (zaehlt gegen die Quote) oder ob es nachtraeglich entfernt wurde.
   // Reihenfolge zwingend: VOR dem DELETE, danach ist deal_bk_id bereits NULL.
   try {
     await db.run(`UPDATE willkommensmeetings SET deal_entfernt = 1 WHERE deal_bk_id = ${p}`, [req.params.id]);
   } catch (e) { console.error('[wm] DELETE-Markierung:', e.message); }
+  try {
+    await db.run(`UPDATE deals_vl SET umstellung_deal_bk_id = NULL WHERE umstellung_deal_bk_id = ${p}`, [req.params.id]);
+  } catch (e) { console.error('[vl] Umstellungs-Verknuepfung loesen:', e.message); }
   await db.run(`DELETE FROM deals_bk WHERE id=${p}`, [req.params.id]);
   await logAudit({ user: req.user, action: 'delete', entityType: 'deal_bk', entityId: Number(req.params.id), oldData: existing });
   res.status(204).end();
@@ -239,4 +272,7 @@ module.exports = router;
 module.exports.syncAeGesamtBK = syncAeGesamtBK; // für Regressionstests
 // Der Bereich "Willkommensmeetings" legt seine Deals hierueber an — nicht per eigenem INSERT.
 module.exports.erstelleBkDeal = erstelleBkDeal;
+// Der Bereich "Vertragsverlaengerungen" nimmt Umstellungen zurueck und muss dabei den dafuer
+// angelegten Dauer-RaaS-Deal mitsamt Storno und AE-Rueckbuchung entfernen.
+module.exports.loescheBkDeal = loescheBkDeal;
 module.exports.BK_FELDER = BK_FELDER;

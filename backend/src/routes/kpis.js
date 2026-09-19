@@ -37,6 +37,9 @@ router.get('/overview', wrap(async (req, res) => {
       db.all(`SELECT COUNT(*) as total,
         SUM(CASE WHEN status='Gewonnen' THEN 1 ELSE 0 END) as gewonnen,
         SUM(CASE WHEN status='Verloren' THEN 1 ELSE 0 END) as verloren,
+        -- Dritter VL-Ausgang (Dauer-RaaS). Ohne eigenen Eimer waere total != g+v+o und der
+        -- Deal verschwaende in der Anzeige spurlos. Bei NK/BK konstant 0.
+        SUM(CASE WHEN status='Umgestellt' THEN 1 ELSE 0 END) as umgestellt,
         SUM(CASE WHEN status='Offen' THEN 1 ELSE 0 END) as offen
         FROM ${table} d${whereClause(f.conds)}`, f.params),
       db.get(`SELECT SUM(${AE_EUR}) as ae_summe FROM ${table} d
@@ -46,12 +49,16 @@ router.get('/overview', wrap(async (req, res) => {
     const r = counts[0] || {};
     const total = Number(r.total) || 0;
     const gewonnen = Number(r.gewonnen) || 0;
+    const umgestellt = Number(r.umgestellt) || 0;
+    const verloren = Number(r.verloren) || 0;
+    const entschieden = gewonnen + verloren + umgestellt;
     return {
-      total, gewonnen,
-      verloren: Number(r.verloren) || 0,
+      total, gewonnen, verloren, umgestellt,
       offen: Number(r.offen) || 0,
       ae_summe: Number(ae?.ae_summe) || 0,
       quote: total > 0 ? Math.round((gewonnen / total) * 100) : 0,
+      // Bestandserhalt: eine Umstellung haelt den Kunden, sie verliert ihn nicht.
+      quote_erhalt: entschieden > 0 ? Math.round(((gewonnen + umgestellt) / entschieden) * 100) : 0,
     };
   };
 
@@ -108,6 +115,7 @@ router.get('/monthly', wrap(async (req, res) => {
       db.all(`SELECT monat, COUNT(*) as total,
         SUM(CASE WHEN status='Gewonnen' THEN 1 ELSE 0 END) as gewonnen,
         SUM(CASE WHEN status='Verloren' THEN 1 ELSE 0 END) as verloren,
+        SUM(CASE WHEN status='Umgestellt' THEN 1 ELSE 0 END) as umgestellt,
         SUM(CASE WHEN status='Offen' THEN 1 ELSE 0 END) as offen
         FROM ${table} d${whereClause(f.conds)}
         GROUP BY monat ORDER BY monat`, f.params),
@@ -118,13 +126,17 @@ router.get('/monthly', wrap(async (req, res) => {
         GROUP BY d.gewonnen_monat ORDER BY d.gewonnen_monat`, aeF.params),
     ]);
 
-    return rows.map(r => ({
-      ...r,
-      total: Number(r.total), gewonnen: Number(r.gewonnen),
-      verloren: Number(r.verloren), offen: Number(r.offen),
-      ae_summe: Number(aeRows.find(a => a.monat === r.monat)?.ae_summe) || 0,
-      quote: Number(r.total) > 0 ? Math.round((Number(r.gewonnen) / Number(r.total)) * 100) : 0,
-    }));
+    return rows.map(r => {
+      const g = Number(r.gewonnen), v = Number(r.verloren), u = Number(r.umgestellt) || 0;
+      const entschieden = g + v + u;
+      return {
+        ...r,
+        total: Number(r.total), gewonnen: g, verloren: v, umgestellt: u, offen: Number(r.offen),
+        ae_summe: Number(aeRows.find(a => a.monat === r.monat)?.ae_summe) || 0,
+        quote: Number(r.total) > 0 ? Math.round((g / Number(r.total)) * 100) : 0,
+        quote_erhalt: entschieden > 0 ? Math.round(((g + u) / entschieden) * 100) : 0,
+      };
+    });
   };
 
   const [nk, bk, vl] = await Promise.all([
@@ -153,13 +165,18 @@ router.get('/employees', wrap(async (req, res) => {
     return { conds, params };
   };
 
-  const addQuote = rows => rows.map(r => ({
-    ...r,
-    total: Number(r.total), gewonnen: Number(r.gewonnen),
-    verloren: Number(r.verloren), offen: Number(r.offen),
-    ae_summe: Number(r.ae_summe) || 0,
-    quote: Number(r.total) > 0 ? Math.round((Number(r.gewonnen) / Number(r.total)) * 100) : 0,
-  }));
+  const addQuote = rows => rows.map(r => {
+    const g = Number(r.gewonnen), v = Number(r.verloren), u = Number(r.umgestellt) || 0;
+    const entschieden = g + v + u;
+    return {
+      ...r,
+      total: Number(r.total), gewonnen: g, verloren: v, umgestellt: u, offen: Number(r.offen),
+      ae_summe: Number(r.ae_summe) || 0,
+      quote: Number(r.total) > 0 ? Math.round((g / Number(r.total)) * 100) : 0,
+      // Nur bei VL von 'quote' verschieden — sonst ist umgestellt 0 und entschieden = g+v.
+      quote_erhalt: entschieden > 0 ? Math.round(((g + u) / entschieden) * 100) : 0,
+    };
+  });
 
   const nkCloserF = buildFilter('d');
   const nkOpenerF = buildFilter('d');
@@ -216,6 +233,7 @@ router.get('/employees', wrap(async (req, res) => {
       COUNT(*) as total,
       SUM(CASE WHEN d.status='Gewonnen' THEN 1 ELSE 0 END) as gewonnen,
       SUM(CASE WHEN d.status='Verloren' THEN 1 ELSE 0 END) as verloren,
+      SUM(CASE WHEN d.status='Umgestellt' THEN 1 ELSE 0 END) as umgestellt,
       SUM(CASE WHEN d.status='Offen' THEN 1 ELSE 0 END) as offen,
       SUM(CASE WHEN d.status='Gewonnen' THEN ${AE_EUR} ELSE 0 END) as ae_summe
       FROM deals_vl d JOIN employees e ON e.id=d.kam_id LEFT JOIN companies c ON c.id=d.company_id

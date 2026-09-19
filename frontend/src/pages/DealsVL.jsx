@@ -15,53 +15,69 @@ import InfoPopover from '../components/InfoPopover';
 import { SICHT_KOHORTE_VL } from '../utils/aeSichten';
 import { ROLLE_GRUPPE_LABEL, gruppeVonEmp, KAM_ROLLEN, PERSONEN_GRUPPEN } from '../utils/rollen';
 
-const STATUS_OPTS = ['Offen', 'Gewonnen', 'Verloren'];
+// 'Umgestellt' ist der dritte Ausgang (Dauer-RaaS, Migration 113): der Vertrag wurde nicht
+// verlängert, sondern auf die Jahresbetreuung gehoben — weder gewonnen noch gekündigt.
+const STATUS_OPTS = ['Offen', 'Gewonnen', 'Verloren', 'Umgestellt'];
+const UMGESTELLT = 'Umgestellt';
 const STANDORTE   = ['Bonn', 'Braunschweig', 'Österreich', 'Schweiz'];
 
 const DIENSTLEISTUNGEN_VL = ['RaaS Kontingente','RaaS Kleinkunde Laufzeit','Kontingent (Alt)','Karriereseite','Karriereseite Wartung','Social-Media','Glaubenssätze','Media-Day','Website','Sonstiges'];
 const ABGERECHNET_OPTS = ['Nein', 'Ja', 'On Hold'];
 
-// ── Kennzeichnung "Verlängerung auf Dauervertrag umgestellt" ─────────────────
-// ALLE Anzeigetexte zentral: Die Begriffs-Transkription aus der Sprachnachricht ist unsicher
-// ("Dauerras" — vermutlich Dauervertrag/Dauerrechnung). Arbeitsbegriff ist "Dauervertrag";
-// nach Rückfrage bei Thorsten genügt es, hier zu korrigieren — keine Suchaktion nötig.
-// WICHTIG: dauervertrag_ae_wert fließt in KEINE bestehende Summe (VL-AE, ae_gesamt, Ziele,
-// Provisionen) — er wird ausschließlich separat ausgewiesen.
+// ── Umstellung auf Dauer-RaaS ───────────────────────────────────────────────
+// ALLE Anzeigetexte zentral. Der Hausbegriff ist "Dauer-RaaS" (so steht er auch in den
+// Kommentaren der Deals, z. B. BK #13146 "Dauer-RaaS inkl. KS").
+//
+// Die Umstellung ist seit Migration 113 ein STATUS, kein Haken mehr: Ein umgestellter Vertrag
+// ist keine Verlängerung. Sein Umsatz lebt in einem verknüpften Bestandskunden-Deal und zählt
+// dort — nicht im VL-AE. Beides zu zählen wäre dasselbe Geld in zwei Spalten.
 const DV = {
-  begriff:      'Dauervertrag',
-  checkbox:     'Auf Dauervertrag umgestellt',
-  checkboxText: 'Ja, auf Dauervertrag umgestellt',
-  aeLabel:      'Neuer AE (Dauervertrag)',
+  begriff:      'Dauer-RaaS',
+  aeLabel:      'Neuer AE (Dauer-RaaS)',
   datumLabel:   'Umstellungsdatum',
-  badge:        'Dauervertrag',
-  filterAlle:   'Dauervertrag: Alle',
+  badge:        'Dauer-RaaS',
+  filterAlle:   'Dauer-RaaS: Alle',
   filterNur:    'Nur umgestellte',
   filterOhne:   'Ohne Umstellung',
-  chip:         'Auf Dauervertrag umgestellt',
-  spalte:       'Dauerverträge',
-  hinweis:      'Zählt separat — fließt nicht in den VL-AE, ins Dashboard oder in Provisionen.',
-  bestaetigung: 'Haken entfernen? Neuer AE und Umstellungsdatum werden dabei geleert.',
+  chip:         'Auf Dauer-RaaS umgestellt',
+  spalte:       'Dauer-RaaS',
+  hinweis:      'Zählt nicht als Verlängerung und nicht im VL-AE — der Umsatz liegt im verknüpften '
+              + 'Bestandskunden-Deal und wird dort als Upsell (3 %) provisioniert. Für Churn und '
+              + 'Bestandserhalt zählt die Umstellung wie eine Verlängerung: Der Kunde bleibt.',
+  bestaetigung: 'Umstellung zurücknehmen? Der dafür angelegte Dauer-RaaS-Deal wird gelöscht '
+              + 'und seine 3 %-Provision storniert.',
 };
-const istDv = (d) => Number(d?.dauervertrag_umgestellt) === 1;
-// EUR-Wert der Umstellung (Backend liefert dauervertrag_ae_wert_eur fuer CHF-Companies mit).
-const dvAe  = (d) => Number(d?.dauervertrag_ae_wert_eur ?? d?.dauervertrag_ae_wert) || 0;
+const istDv = (d) => d?.status === UMGESTELLT;
+// Der Betrag kommt LIVE aus dem verknüpften Bestandskunden-Deal, er wird nie kopiert.
+const dvAe  = (d) => Number(d?.umstellung_ae_wert_eur ?? d?.umstellung_ae_wert) || 0;
 
 // ── KPIs aus einem Deal-Array berechnen ──────────────────────────────────────
 function calcKpis(deals) {
   const gew  = deals.filter(d => d.status === 'Gewonnen');
   const verl = deals.filter(d => d.status === 'Verloren');
+  const ums  = deals.filter(istDv);
   const n    = deals.length;
+  // Churn rechnet auf den ENTSCHIEDENEN Fällen, und eine Umstellung zählt dabei wie eine
+  // Verlängerung: Der Kunde ist da, nur höherwertig.
+  //   Churn = Kündigungen / (Gewonnen + Umgestellt + Verloren)
+  // Die frühere Formel (n - gewonnen)/n war reine NOT-Logik: sie hätte jede Umstellung zu
+  // 100 % als Churn gezählt — das genaue Gegenteil dessen, was sie ist. Und sie zählte offene
+  // Verlängerungen mit, obwohl die noch gar nicht entschieden sind.
+  const entschieden = gew.length + verl.length + ums.length;
   return {
     total:            n,
     gewonnen:         gew.length,
     verloren:         verl.length,
+    umgestellt:       ums.length,
+    entschieden,
     moeglicher_ae:    deals.reduce((s, d) => s + (Number(d.angebotswert_eur ?? d.angebotswert) || 0), 0),
     ae_summe:         gew.reduce((s, d)   => s + aeEur(d), 0),
     verlorener_ae:    verl.reduce((s, d)  => s + (Number(d.ae_wert_eur ?? d.ae_wert) || Number(d.angebotswert_eur ?? d.angebotswert) || 0), 0),
-    churn_rate:       n > 0 ? ((n - gew.length) / n) * 100 : 0,
+    churn_rate:       entschieden > 0 ? (verl.length / entschieden) * 100 : 0,
+    erhalt_rate:      entschieden > 0 ? ((gew.length + ums.length) / entschieden) * 100 : 0,
     // Separat ausgewiesen — bewusst NICHT in ae_summe/moeglicher_ae/verlorener_ae eingerechnet.
-    dv_n:             deals.filter(istDv).length,
-    dv_ae:            deals.filter(istDv).reduce((s, d) => s + dvAe(d), 0),
+    dv_n:             ums.length,
+    dv_ae:            ums.reduce((s, d) => s + dvAe(d), 0),
     abgerechnet_ja:   gew.filter(d => d.abgerechnet === 'Ja').length,
     abgerechnet_quote: gew.length > 0 ? (gew.filter(d => d.abgerechnet === 'Ja').length / gew.length * 100).toFixed(1) : '0.0',
   };
@@ -203,31 +219,27 @@ export default function DealsVL() {
           ? ((form.ende_kuendigungsfrist || '').slice(0, 10) || new Date().toISOString().slice(0, 10))
           : undefined,
     },
-    // Dauervertrag-Umstellung: nur bei Gewonnen anlegbar (eine verlorene Verlängerung kann nicht
-    // umgestellt sein). Bereits markierte Deals bleiben sichtbar, auch wenn der Status später
-    // wechselt — sonst entstünde unsichtbar verwaiste Daten, die niemand mehr korrigieren kann.
-    {
-      name: 'dauervertrag_umgestellt', label: DV.checkbox, type: 'checkbox',
-      checkboxText: DV.checkboxText, hint: DV.hinweis,
-      show: f => f.status === 'Gewonnen' || Number(f.dauervertrag_umgestellt) === 1,
-      // Rückfrage, bevor Betrag und Datum geleert werden.
-      onBeforeChange: (v, f) => (!v && (f.dauervertrag_ae_wert || f.dauervertrag_datum))
-        ? window.confirm(DV.bestaetigung) : true,
-    },
-    {
-      name: 'dauervertrag_ae_wert', label: `${DV.aeLabel} (${curSym})`, type: 'number',
-      show:     f => Number(f.dauervertrag_umgestellt) === 1,
-      required: f => Number(f.dauervertrag_umgestellt) === 1,
-      autoFill: (f, changed) => changed === 'dauervertrag_umgestellt' && Number(f.dauervertrag_umgestellt) !== 1 ? '' : undefined,
-    },
+    // ── Umstellung auf Dauer-RaaS ─────────────────────────────────────────────
+    // Keine Checkbox mehr: Der Ausgang IST der Status. Ein Haken daneben wäre eine zweite
+    // Wahrheit für denselben Sachverhalt — genau das, was dieser Umbau beseitigt.
     {
       name: 'dauervertrag_datum', label: DV.datumLabel, type: 'date',
-      show: f => Number(f.dauervertrag_umgestellt) === 1,
-      // Beim Setzen mit heute vorbelegen (editierbar), beim Entfernen leeren.
-      autoFill: (f, changed) => changed !== 'dauervertrag_umgestellt' ? undefined
-        : (Number(f.dauervertrag_umgestellt) === 1
-            ? (f.dauervertrag_datum || new Date().toISOString().slice(0, 10))
-            : ''),
+      hint: DV.hinweis,
+      show:     f => f.status === UMGESTELLT,
+      required: f => f.status === UMGESTELLT,
+      // Beim Wechsel auf "Umgestellt" mit heute vorbelegen (editierbar).
+      autoFill: (f, changed) => changed !== 'status' ? undefined
+        : (f.status === UMGESTELLT ? (f.dauervertrag_datum || new Date().toISOString().slice(0, 10)) : ''),
+    },
+    {
+      // Der Betrag wird nur beim ANLEGEN der Umstellung hier erfasst. Danach lebt er im
+      // verknüpften Bestandskunden-Deal und wird dort geändert — sonst gäbe es zwei Orte für
+      // denselben Betrag und einer von beiden wäre irgendwann falsch.
+      name: 'umstellung_ae_wert', label: `${DV.aeLabel} (${curSym})`, type: 'number',
+      hint: 'Legt einen Bestandskunden-Deal an (12 Monate, Upsell 3 % an den Account Manager).',
+      show:     f => f.status === UMGESTELLT && !f.umstellung_deal_bk_id,
+      required: f => f.status === UMGESTELLT && !f.umstellung_deal_bk_id,
+      autoFill: (f, changed) => changed === 'status' && f.status !== UMGESTELLT ? '' : undefined,
     },
     { name: 'weitergeben_an_vertrieb', label: 'Weitergeben an Vertrieb?', type: 'select', options: ['Ja', 'Nein'], show: f => f.status === 'Verloren', required: f => f.status === 'Verloren', hint: 'Ja = Kunde erscheint im Kündigungen-Tab als Up-Sale Potenzial' },
     { name: 'gekuendigt_am',         label: 'Gekündigt am',            type: 'date',   show: f => f.status === 'Verloren', required: f => f.status === 'Verloren' },
@@ -241,6 +253,14 @@ export default function DealsVL() {
 
   const handleSave = (form) => {
     const data = { ...form, monat: form.monat || monat, company_id: form.company_id || company || null };
+    // Der Betrag der Umstellung ist kein Feld des Verlängerungs-Deals, sondern der Bauplan für
+    // den Bestandskunden-Deal, den die Route daraus anlegt.
+    if (data.umstellung_ae_wert !== undefined) {
+      if (data.status === UMGESTELLT && !data.umstellung_deal_bk_id && data.umstellung_ae_wert !== '') {
+        data.umstellung = { ae_wert: Number(data.umstellung_ae_wert) };
+      }
+      delete data.umstellung_ae_wert;
+    }
     if (modal.mode === 'create') createMut.mutate(data);
     else updateMut.mutate({ id: modal.data.id, data, prevStatus: modal.data.status });
   };
@@ -313,7 +333,9 @@ export default function DealsVL() {
     return Object.entries(m)
       .map(([nr, ds]) => {
         const k = calcKpis(ds);
-        return { nr: Number(nr), ...k, offen: k.total - k.gewonnen - k.verloren };
+        // 'offen' explizit zählen, nicht als Rest: sonst erschiene jede Umstellung hier als
+        // noch offene Verlängerung, obwohl sie entschieden ist.
+        return { nr: Number(nr), ...k, offen: ds.filter(d => d.status === 'Offen').length };
       })
       .sort((a, b) => (a.nr || 999) - (b.nr || 999));
   }, [filtered]);
@@ -330,15 +352,18 @@ export default function DealsVL() {
     const build = g => {
       const ds = basis.filter(d => gruppeVonDeal(d) === g);
       const k = calcKpis(ds);
-      const entschieden = k.gewonnen + k.verloren;
+      // Eine Umstellung ist ein ENTSCHIEDENER Ausgang — sie gehört in den Nenner. Ohne sie
+      // stiege die Quote einer Gruppe künstlich, nur weil sie Verträge hochgestuft hat.
+      const entschieden = k.entschieden;
       // "Aktive Gruppenmitglieder" = Personen mit mindestens einem VL-Deal im Scope. Bewusst NICHT
       // zusaetzlich auf employees.aktiv gefiltert: sonst zaehlte der AE eines deaktivierten
       // Mitarbeiters mit, sein Kopf aber nicht -> verzerrter Pro-Kopf-Wert.
       const koepfe = new Set(ds.filter(d => d.kam_id).map(d => String(d.kam_id))).size;
       return {
-        total: k.total, gewonnen: k.gewonnen, verloren: k.verloren,
-        offen: k.total - k.gewonnen - k.verloren,
+        total: k.total, gewonnen: k.gewonnen, verloren: k.verloren, umgestellt: k.umgestellt,
+        offen: ds.filter(d => d.status === 'Offen').length,
         quote: entschieden > 0 ? (k.gewonnen / entschieden * 100) : null,   // n/d wenn nichts entschieden
+        erhalt: entschieden > 0 ? ((k.gewonnen + k.umgestellt) / entschieden * 100) : null,
         ae: k.ae_summe, personen: koepfe,
         aePerKopf: koepfe > 0 ? k.ae_summe / koepfe : null,
       };
@@ -367,9 +392,10 @@ export default function DealsVL() {
       ['dienstleistung', d => d.dienstleistung], ['kam', d => d.kam_name],
       ['angebotswert', d => d.angebotswert], ['ae_wert', d => d.ae_wert], ['laufzeit_monate', d => d.laufzeit_monate],
       ['wie_vielt_verlaengerung', d => d.wie_vielt_verlaengerung], ['status', d => d.status], ['abgerechnet', d => d.abgerechnet],
-      ['dauervertrag_umgestellt', d => (istDv(d) ? 'Ja' : 'Nein')],
-      ['dauervertrag_ae_wert', d => d.dauervertrag_ae_wert],
-      ['dauervertrag_datum', d => (d.dauervertrag_datum ? String(d.dauervertrag_datum).slice(0, 10) : '')],
+      ['umgestellt_dauer_raas', d => (istDv(d) ? 'Ja' : 'Nein')],
+      ['dauer_raas_ae', d => d.umstellung_ae_wert],
+      ['dauer_raas_deal_bk_id', d => d.umstellung_deal_bk_id],
+      ['umstellungsdatum', d => (d.dauervertrag_datum ? String(d.dauervertrag_datum).slice(0, 10) : '')],
       ['gewonnen_monat', d => d.gewonnen_monat], ['gewonnen_datum', d => (d.gewonnen_datum ? String(d.gewonnen_datum).slice(0, 10) : '')],
       ['kommentar', d => d.kommentar],
     ];
@@ -391,7 +417,7 @@ export default function DealsVL() {
         <div>
           <h1 className="text-xl font-bold text-gray-800">Verlängerungen (VL)</h1>
           <p className="text-xs text-gray-500 mt-0.5">
-            {periodLabel(zeitMode, monat, vonMonat, bisMonat)} · {filtered.length} anstehend · {gesamtKpis.gewonnen} realisiert · {gesamtKpis.verloren} Kündigungen · Churn-Rate: {gesamtKpis.churn_rate.toFixed(2)}%
+            {periodLabel(zeitMode, monat, vonMonat, bisMonat)} · {filtered.length} anstehend · {gesamtKpis.gewonnen} realisiert{gesamtKpis.umgestellt > 0 ? ` · ${gesamtKpis.umgestellt} auf ${DV.begriff} umgestellt` : ''} · {gesamtKpis.verloren} Kündigungen · Churn-Rate: {gesamtKpis.churn_rate.toFixed(2)}%
           </p>
           {filterSummary && <p className="text-xs font-medium text-blue-600 mt-0.5">Filter: {filterSummary}</p>}
           {gesamtKpis.dv_n > 0 && (
@@ -583,7 +609,7 @@ export default function DealsVL() {
             )}
             {showChurn && (
             <p className="px-3 py-1.5 text-[10px] text-gray-400 bg-indigo-50/50 border-t border-indigo-100">
-              Churn-Rate = (Möglich − Realisiert) / Möglich — gerechnet nach <b>Anzahl</b> der Verlängerungen, nicht nach Euro · offene Verlängerungen zählen noch als nicht realisiert · „Realisierter AE" ist der Euro-Wert der realisierten Verlängerungen und geht nicht in die Churn-Rate ein
+              Churn-Rate = Kündigungen / (Realisiert + Umgestellt + Kündigungen) — gerechnet nach <b>Anzahl</b> der Verlängerungen, nicht nach Euro · <b>offene</b> Verlängerungen zählen nicht mit, sie sind noch nicht entschieden · eine Umstellung auf {DV.begriff} zählt wie eine Verlängerung: der Kunde bleibt, nur höherwertig · „Realisierter AE" ist der Euro-Wert der realisierten Verlängerungen und geht nicht in die Churn-Rate ein
             </p>
             )}
           </div>
@@ -727,7 +753,7 @@ export default function DealsVL() {
                   {d.kunde}
                   {istDv(d) && (
                     <span className="ml-1.5 align-middle text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded px-1.5 py-0.5"
-                          title={`${DV.checkbox}${d.dauervertrag_datum ? ` am ${String(d.dauervertrag_datum).slice(0, 10)}` : ''} · ${DV.aeLabel}: ${formatEuro(dvAe(d))}`}>
+                          title={`${DV.chip}${d.dauervertrag_datum ? ` am ${String(d.dauervertrag_datum).slice(0, 10)}` : ''} · ${DV.aeLabel}: ${formatEuro(dvAe(d))}${d.umstellung_deal_bk_id ? ` · BK-Deal #${d.umstellung_deal_bk_id}` : ''}`}>
                       {DV.badge}
                     </span>
                   )}
