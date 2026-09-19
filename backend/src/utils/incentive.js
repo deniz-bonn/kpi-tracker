@@ -81,13 +81,19 @@ async function srLive(employeeId, art, monate) {
     `SELECT monat,
             COUNT(*) gelegt,
             SUM(CASE WHEN status IN ('stattgefunden','nicht_stattgefunden') THEN 1 ELSE 0 END) bewertet,
+            -- 'verschoben' ist quotenNEUTRAL, aber ein GEPFLEGTER Ausgang: er zaehlt ins
+            -- Abdeckungs-Gate, nicht in den Quotennenner. Deshalb eine eigene Spalte statt
+            -- ihn zu bewertet zu addieren — dort waere er im Nenner von statt/bewertet
+            -- gelandet und haette die Show-Rate verfaelscht.
+            SUM(CASE WHEN status = 'verschoben' THEN 1 ELSE 0 END) verschoben,
             SUM(CASE WHEN status = 'stattgefunden' THEN 1 ELSE 0 END) statt
        FROM termine
       WHERE employee_id = ${P(1)} AND art = ${P(2)} AND monat IN (${ph})
       GROUP BY monat`,
     [employeeId, art, ...monate]);
   return Object.fromEntries(rows.map(r => [String(r.monat).trim(),
-    { gelegt: Number(r.gelegt) || 0, bewertet: Number(r.bewertet) || 0, statt: Number(r.statt) || 0 }]));
+    { gelegt: Number(r.gelegt) || 0, bewertet: Number(r.bewertet) || 0,
+      verschoben: Number(r.verschoben) || 0, statt: Number(r.statt) || 0 }]));
 }
 
 // ── Einfrieren ───────────────────────────────────────────────────────────────
@@ -110,19 +116,22 @@ async function freezeFaelligeMonate({ userId = null, nurMonat = null, neu = fals
       if (da && !neu) { uebersprungen++; continue; }
       const ae = (await aeLive(z.employee_id, z.messbasis, [monat]))[monat] || 0;
       const sr = (await srLive(z.employee_id, z.showrate_art, [monat]))[monat]
-        || { gelegt: 0, bewertet: 0, statt: 0 };
+        || { gelegt: 0, bewertet: 0, verschoben: 0, statt: 0 };
+      // Platzhalter-Reihenfolge: Postgres bindet nach NUMMER, SQLite nach POSITION. Die Nummern
+      // muessen deshalb in der Reihenfolge ihres Auftretens im SQL stehen und die Parameterliste
+      // genau dieser Reihenfolge folgen — sonst schreibt SQLite lautlos in die falsche Spalte.
       if (da) {
         await db.run(
           `UPDATE incentive_monatswerte SET messbasis=${P(1)}, showrate_art=${P(2)}, ae=${P(3)},
-             sr_gelegt=${P(4)}, sr_bewertet=${P(5)}, sr_statt=${P(6)},
-             eingefroren_am=${pg() ? 'NOW()' : "datetime('now')"}, eingefroren_von=${P(7)} WHERE id=${P(8)}`,
-          [z.messbasis, z.showrate_art, ae, sr.gelegt, sr.bewertet, sr.statt, userId, da.id]);
+             sr_gelegt=${P(4)}, sr_bewertet=${P(5)}, sr_statt=${P(6)}, sr_verschoben=${P(7)},
+             eingefroren_am=${pg() ? 'NOW()' : "datetime('now')"}, eingefroren_von=${P(8)} WHERE id=${P(9)}`,
+          [z.messbasis, z.showrate_art, ae, sr.gelegt, sr.bewertet, sr.statt, sr.verschoben || 0, userId, da.id]);
       } else {
         await db.run(
           `INSERT INTO incentive_monatswerte
-             (employee_id, monat, messbasis, showrate_art, ae, sr_gelegt, sr_bewertet, sr_statt, eingefroren_von)
-           VALUES (${P(1)},${P(2)},${P(3)},${P(4)},${P(5)},${P(6)},${P(7)},${P(8)},${P(9)})`,
-          [z.employee_id, monat, z.messbasis, z.showrate_art, ae, sr.gelegt, sr.bewertet, sr.statt, userId]);
+             (employee_id, monat, messbasis, showrate_art, ae, sr_gelegt, sr_bewertet, sr_statt, sr_verschoben, eingefroren_von)
+           VALUES (${P(1)},${P(2)},${P(3)},${P(4)},${P(5)},${P(6)},${P(7)},${P(8)},${P(9)},${P(10)})`,
+          [z.employee_id, monat, z.messbasis, z.showrate_art, ae, sr.gelegt, sr.bewertet, sr.statt, sr.verschoben || 0, userId]);
       }
       out.push({ employee_id: z.employee_id, monat, ae, ...sr, neu: !da });
     }
@@ -148,15 +157,20 @@ async function fortschrittFuer(ziel, { stichtag = heute() } = {}) {
   const details = monate.map(m => {
     const f = fz[m];
     const ae = f ? r2(f.ae) : (liveAe[m] || 0);
-    const sr = f ? { gelegt: f.sr_gelegt, bewertet: f.sr_bewertet, statt: f.sr_statt }
-                 : (liveSr[m] || { gelegt: 0, bewertet: 0, statt: 0 });
+    const sr = f ? { gelegt: f.sr_gelegt, bewertet: f.sr_bewertet, statt: f.sr_statt,
+                     verschoben: Number(f.sr_verschoben) || 0 }
+                 : (liveSr[m] || { gelegt: 0, bewertet: 0, verschoben: 0, statt: 0 });
     // Messbar heisst: ueberhaupt Termine gelegt UND das Belastbarkeits-Gate bestanden.
     // Ein Monat ohne gelegte Termine zaehlt nicht als 0 %, sondern faellt aus dem Mittel.
-    const abdeckung = sr.gelegt > 0 ? (sr.bewertet / sr.gelegt) * 100 : 0;
+    // Gate auf den GEPFLEGTEN Ausgaengen (inkl. verschoben), Mindestbasis dagegen auf den
+    // bewerteten — fuer eine Quote braucht es echte Ausgaenge, ein verschobener liefert keinen.
+    const gepflegt = sr.bewertet + (sr.verschoben || 0);
+    const abdeckung = sr.gelegt > 0 ? (gepflegt / sr.gelegt) * 100 : 0;
     const messbar = sr.gelegt > 0 && sr.bewertet >= MIN_BASIS && abdeckung >= MIN_BEWERTET;
     return {
       monat: m, ae, eingefroren: !!f, eingefroren_am: f ? f.eingefroren_am : null,
       sr_gelegt: sr.gelegt, sr_bewertet: sr.bewertet, sr_statt: sr.statt,
+      sr_verschoben: sr.verschoben || 0,
       sr_abdeckung: Math.round(abdeckung),
       sr_rate: sr.bewertet > 0 ? Number((sr.statt / sr.bewertet * 100).toFixed(1)) : null,
       sr_messbar: messbar,

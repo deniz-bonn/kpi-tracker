@@ -64,9 +64,19 @@ const GELEGT = { [S.QC_TERMINIERT]: 'setting', [S.SC_TERMINIERT]: 'closing' };
 
 // Ausgang: der erste dieser Status NACH dem Legen entscheidet.
 const NEGATIV = {
-  setting: new Set([S.QC_ABGESAGT, S.QC_NOSHOW, S.QC_VERSCHOBEN]),
+  setting: new Set([S.QC_ABGESAGT, S.QC_NOSHOW]),
   closing: new Set([S.SC_ABGESAGT, S.SC_NOSHOW, S.ALT_CLOSING_NOSHOW]),
 };
+// VERSCHOBEN ist quotenNEUTRAL — weder positiv noch negativ.
+//
+// Fachliche Festlegung (19.09.2026): Ein verschobener Termin hat nicht stattgefunden, aber er ist
+// auch nicht geplatzt. Ihn wie einen No-Show zu werten (so war es bis hierher: QC_VERSCHOBEN stand
+// in NEGATIV) bestraft genau das Verhalten, das man sehen will — naemlich dass jemand die
+// Verschiebung ueberhaupt pflegt.
+//
+// Abgrenzung, bewusst unveraendert: No-Show und Abgesagt bleiben NEGATIV. Sie sind geplatzt, und
+// sie bleiben es auch, wenn danach neu terminiert wird — der neue Termin zaehlt separat.
+const VERSCHOBEN = new Set([S.QC_VERSCHOBEN]);
 // Beweist, dass der Termin stattgefunden hat (der Prozess ist weitergelaufen).
 // Fuers Setting zaehlt jeder SC-Status mit: dass ueberhaupt ein Sales Call angesetzt oder
 // bewertet wurde, setzt das stattgefundene QC voraus.
@@ -227,13 +237,34 @@ async function deriveTermine({ log = () => {} } = {}) {
   const merkeUnbekannt = (sid, label) => { if (sid && !BEKANNT.has(sid)) unbekannt[sid] = label || sid; };
 
   // Ausgang bestimmen: erster wertender Status in der Restliste.
+  //
+  // VERSCHOBEN ist dabei der einzige Status, der die Suche NICHT beendet — er wird gemerkt und
+  // die Suche laeuft weiter. Das deckt die zwei Faelle ab, die fachlich verschieden sind:
+  //
+  //   (a) Verschoben -> NEU TERMINIERT -> stattgefunden
+  //       Hier bricht die Suche an der Neu-Terminierung HART ab und Termin 1 endet mit dem
+  //       Ausgang 'verschoben' (quotenneutral). Ohne diesen Abbruch liefe Termin 1 weiter und
+  //       faende denselben stattgefundenen Call wie Termin 2 — derselbe Call waere zweimal
+  //       gutgeschrieben. Die Neu-Terminierung eroeffnet ihren eigenen Termin (Schleife (b)
+  //       weiter unten), und DORT zaehlt der Ausgang.
+  //
+  //   (b) Verschoben -> direkt positiver Folgestatus (ohne erneutes "terminiert")
+  //       Der Call hat real stattgefunden, nur ohne neue Terminierung. Die Suche laeuft weiter
+  //       und schreibt den positiven Ausgang Termin 1 gut — ein stattgefundener Termin darf
+  //       nicht verloren gehen.
+  //
+  // Bleibt nach dem Verschoben nichts Wertendes mehr, endet der Termin mit 'verschoben'.
   const ausgangVon = (art, rest) => {
+    let verschoben = null;
     for (const e of rest) {
+      if (VERSCHOBEN.has(e.new_status_id)) { verschoben = e; continue; }
+      // Fall (a): die Neu-Terminierung DERSELBEN Art beendet den verschobenen Termin.
+      if (verschoben && GELEGT[e.new_status_id] === art) return { status: 'verschoben', e: verschoben };
       if (NEGATIV[art].has(e.new_status_id)) return { status: 'nicht_stattgefunden', e };
       if (POSITIV[art].has(e.new_status_id)) return { status: 'stattgefunden', e };
       if (UNKLAR.has(e.new_status_id))       return { status: 'unklar', e };
     }
-    return { status: 'offen', e: null };
+    return verschoben ? { status: 'verschoben', e: verschoben } : { status: 'offen', e: null };
   };
 
   const runTs = new Date().toISOString();

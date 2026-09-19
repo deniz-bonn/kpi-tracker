@@ -3,6 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { showRatesApi } from '../utils/api';
 import { currentMonat } from '../utils/format';
 
+// Startmarke der Close-Ableitung. Spiegelt CLOSE_BACKFILL_AB in utils/closeSync.js — frueher
+// liegende Ereignisse leitet der Sync ohnehin nicht zu Terminen ab.
+const BACKFILL_AB = '2026-06-01';
+
 // Zeitstempel-Anzeige. Postgres liefert ISO mit Zone, SQLite 'YYYY-MM-DD HH:MM:SS' in UTC —
 // letzteres parst der Browser als lokale Zeit, deshalb das Z ergaenzen, bevor daraus ein Date wird.
 function alsDatum(v) {
@@ -16,8 +20,10 @@ const uhrzeit  = (v) => alsDatum(v)?.toLocaleTimeString('de-DE', { hour: '2-digi
 const zeitpunkt = (v) => alsDatum(v)?.toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }) ?? '—';
 
 // Show Rates (Close) — Opener/Setter. Datenbasis ist die lokal gespiegelte Close-Status-Historie
-// (siehe docs/close-discovery.md Rev. 2). Quote = stattgefunden / (stattgefunden + nicht stattgefunden);
+// (siehe docs/close-discovery.md Rev. 4). Quote = stattgefunden / (stattgefunden + nicht stattgefunden);
 // offene Termine (Ausgang nicht nachgetragen) bleiben bewusst draussen und stehen im Qualitaets-Block.
+// 'verschoben' ist quotenNEUTRAL, zaehlt aber als GEPFLEGTER Ausgang ins Belastbarkeits-Gate —
+// Quote und Gate rechnen deshalb auf verschiedenen Mengen (basis vs. gepflegt).
 
 const ART = [['setting', 'Settings (Opener)'], ['closing', 'Closings / Sales Calls (Setter)']];
 const rateColor = (r) => r == null ? 'text-gray-400' : r >= 80 ? 'text-green-600' : r >= 60 ? 'text-amber-600' : 'text-red-600';
@@ -28,8 +34,9 @@ function RateZelle({ z }) {
   if (!z.belastbar) {
     return (
       <span className="inline-flex items-center gap-1 text-[11px] text-gray-500" title={
-        `Nicht belastbar: ${z.basis} von ${z.gelegt} Terminen haben einen nachgetragenen Ausgang` +
-        (z.bewertetQuote != null ? ` (${z.bewertetQuote} %)` : '')}>
+        `Nicht belastbar: ${z.gepflegt ?? z.basis} von ${z.gelegt} Terminen haben einen gepflegten Ausgang` +
+        (z.verschoben ? ` (davon ${z.verschoben} verschoben — quotenneutral)` : '') +
+        (z.bewertetQuote != null ? ` = ${z.bewertetQuote} %` : '')}>
         <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />Datenbasis unzureichend
       </span>
     );
@@ -171,6 +178,29 @@ export default function ShowRates() {
             className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm rounded">
             {laeuft ? 'Synchronisiere…' : syncMut.isPending ? 'Starte…' : '↻ Sync'}
           </button>
+          {/* VOLL-BACKFILL — bewusst ein EIGENER Knopf.
+              Der normale Sync laeuft inkrementell: er holt nur Events ab dem juengsten bereits
+              gespiegelten Zeitpunkt. Alte Zeilen fasst er nie wieder an — was genau dann zum
+              Problem wird, wenn eine Spalte nachtraeglich dazukam (so geschehen mit status_id,
+              Migration 101: 8.021 Events trugen sie nicht, und ihre Termine blieben dauerhaft
+              'offen'). Erst ein Lauf mit `since` zieht sie per ON CONFLICT DO UPDATE nach.
+              Deshalb nicht als Vorauswahl am Haupt-Button: ~2 Minuten Laufzeit und ein voller
+              Close-Durchlauf sind nichts, was man versehentlich ausloest. */}
+          <button
+            onClick={() => {
+              if (window.confirm(
+                `Voll-Backfill ab ${BACKFILL_AB} starten?\n\n` +
+                'Liest die gesamte Close-Historie ab diesem Datum neu ein und zieht dabei ' +
+                'fehlende Status-IDs nach. Dauert rund zwei Minuten. Der normale Sync holt ' +
+                'nur neue Ereignisse und repariert solche Lücken NICHT.')) {
+                syncMut.mutate(BACKFILL_AB);
+              }
+            }}
+            disabled={syncMut.isPending || laeuft}
+            title={`Volle Close-Historie ab ${BACKFILL_AB} neu einlesen — repariert fehlende Status-IDs`}
+            className="px-3 py-1.5 border border-blue-300 text-blue-700 hover:bg-blue-50 disabled:opacity-50 text-sm rounded">
+            ⟳ Voll-Backfill
+          </button>
         </div>
       </div>
 
@@ -218,14 +248,15 @@ export default function ShowRates() {
                       <th className="px-3 py-2 text-right">gelegt</th>
                       <th className="px-3 py-2 text-right">stattgefunden</th>
                       <th className="px-3 py-2 text-right">No-Show / abgesagt</th>
+                      <th className="px-3 py-2 text-right" title="Quotenneutral: zaehlt als gepflegter Ausgang, aber nicht in die Quote">verschoben</th>
                       <th className="px-3 py-2 text-right">offen</th>
                       <th className="px-3 py-2 text-right">Show Rate</th>
-                      <th className="px-3 py-2 text-right">bewertet</th>
+                      <th className="px-3 py-2 text-right">gepflegt</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {monate.length === 0
-                      ? <tr><td colSpan={7} className="px-3 py-6 text-center text-gray-400">Noch keine Daten — bitte Sync ausführen.</td></tr>
+                      ? <tr><td colSpan={8} className="px-3 py-6 text-center text-gray-400">Noch keine Daten — bitte Sync ausführen.</td></tr>
                       : monate.map(m => {
                           const z = m[art];
                           return (
@@ -234,11 +265,16 @@ export default function ShowRates() {
                               <td className="px-3 py-1.5 text-right text-gray-600">{z.gelegt}</td>
                               <td className="px-3 py-1.5 text-right text-green-700 font-medium">{z.stattgefunden}</td>
                               <td className="px-3 py-1.5 text-right text-red-600">{z.nicht_stattgefunden}</td>
+                              <td className="px-3 py-1.5 text-right text-gray-500">{z.verschoben || 0}</td>
                               <td className="px-3 py-1.5 text-right text-amber-600">{z.offen}</td>
                               <td className="px-3 py-1.5 text-right"><RateZelle z={z} /></td>
-                              <td className="px-3 py-1.5 text-right text-gray-400">
+                              {/* Der Bruch MUSS auf 'gepflegt' stehen, nicht auf 'basis': das Gate
+                                  zaehlt verschobene Termine mit, die Quote nicht. Mit 'basis' wuerde
+                                  die Prozentzahl danebenstehend nicht mehr aufgehen. */}
+                              <td className="px-3 py-1.5 text-right text-gray-400"
+                                  title={z.verschoben ? `${z.basis} bewertet + ${z.verschoben} verschoben` : undefined}>
                                 {z.bewertetQuote != null ? `${z.bewertetQuote} %` : '—'}
-                                <span className="text-gray-300"> ({z.basis}/{z.gelegt})</span>
+                                <span className="text-gray-300"> ({z.gepflegt ?? z.basis}/{z.gelegt})</span>
                               </td>
                             </tr>
                           );
@@ -332,6 +368,47 @@ export default function ShowRates() {
       {/* ── Datenqualität ── */}
       {tab === 'qualitaet' && qual && (
         <div className="space-y-3">
+          {/* Rueck-Terminierungen nach No-Show/Abgesagt.
+              Kein Pranger: einen geplatzten Termin neu zu legen ist richtig. Sichtbar sein soll
+              die HAEUFUNG — bevor jemand im November eine Reise an einer Show-Rate festmacht. */}
+          {(qual.rueckTerminierungen || []).length > 0 && (
+            <div className={card}>
+              <div className={head}>
+                <span className="text-xs font-bold text-white uppercase tracking-wide">
+                  Rück-Terminierungen nach No-Show / Abgesagt
+                </span>
+              </div>
+              <div className="px-3 py-2 text-xs text-gray-500 border-b border-gray-100">
+                Ein geplatzter Termin, der neu gelegt wird, ist normal — der negative Termin bleibt
+                bestehen, der neue zählt separat. Auffällig ist ein hoher <b>Anteil</b>, nicht die
+                absolute Zahl.
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead><tr className="bg-gray-50 border-b border-gray-100 text-gray-500 font-medium">
+                    <th className="px-3 py-2 text-left">Person</th>
+                    <th className="px-3 py-2 text-left">Art</th>
+                    <th className="px-3 py-2 text-right">Rück-Term.</th>
+                    <th className="px-3 py-2 text-right">von negativen</th>
+                    <th className="px-3 py-2 text-right">Anteil</th>
+                  </tr></thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {qual.rueckTerminierungen.map((r, i) => (
+                      <tr key={i} className="hover:bg-gray-50">
+                        <td className="px-3 py-2 text-gray-700">{r.name}</td>
+                        <td className="px-3 py-2 text-gray-500">{r.art === 'setting' ? 'Setting' : 'Closing'}</td>
+                        <td className="px-3 py-2 text-right font-medium text-gray-900">{r.rueck}</td>
+                        <td className="px-3 py-2 text-right text-gray-500">{r.negativ}</td>
+                        <td className={`px-3 py-2 text-right font-medium ${r.anteil >= 30 ? 'text-amber-700' : 'text-gray-600'}`}>
+                          {r.anteil != null ? `${String(r.anteil).replace('.', ',')} %` : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
           {/* Sync-Historie: beantwortet "laeuft der naechtliche Lauf?" und "wer hat manuell
               ausgeloest?" ohne Railway-Logs. Cron- und Hand-Laeufe stehen in derselben Liste. */}
           <div className={card}>

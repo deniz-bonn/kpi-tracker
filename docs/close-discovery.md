@@ -163,8 +163,64 @@ Juni und August (41–48 %) → unterdrückt.
 gespiegelt, der Ausgang sähe fälschlich „offen" aus). Unbekannte `status_id` erscheinen im
 Datenqualitäts-Panel, damit künftige Pipeline-Änderungen auffallen statt still zu brechen.
 
-**Offen (an die Vertriebsleitung, Feedback v3):** Wertung von `QC Verschoben`, Bedeutung von
-`QC=SC Ausstehend`, sowie ob die Felder `Setter`/`Closer` gepflegt werden (aktuell 4 bzw. 2 von 20).
+**Offen (an die Vertriebsleitung, Feedback v3):** ~~Wertung von `QC Verschoben`~~ (entschieden,
+siehe Rev. 4), Bedeutung von `QC=SC Ausstehend`, sowie ob die Felder `Setter`/`Closer` gepflegt
+werden (aktuell 4 bzw. 2 von 20).
+
+---
+
+## 12. Revision 4 — Verschoben-Semantik & der unvollständige Event-Spiegel (19.09.)
+
+**(a) Der Fund: 8.021 Events ohne `status_id`.** Die Juni-/Juli-Show-Rates waren nicht „kaputt",
+sie waren **unmessbar**. Migration 101 hatte die ID-Spalten nachträglich ergänzt, Commit `15fa3e2`
+die Ableitung von Labels auf IDs umgestellt — aber der Sync läuft **inkrementell** (`date_created__gte`)
+und hat die Altzeilen nie wieder angefasst. Ergebnis: alle Events vor dem 24.08. ohne ID, Juni- und
+Juli-Termine zu 100 % aus `herkunft: 'anlage'`, Ausgang dauerhaft „offen".
+
+Eine Reparatur über Labels trägt nicht: von 940 ID-losen Opportunity-Events ließen sich nur 97 über
+eine Label→ID-Brücke heilen; die übrigen 843 tragen Namen, die es in Close nicht mehr gibt.
+Der tragfähige Weg ist der **volle Sync-Backfill ab 01.06.** — der Upsert zieht per
+`ON CONFLICT DO UPDATE` die IDs für bereits gespiegelte Zeilen nach, er muss sie nur einmal
+erneut sehen. Reiner GET-Lauf, gemessen 103–118 s:
+
+| | vorher | nachher |
+|---|--:|--:|
+| Events ohne `status_id` | 8.021 | 6 |
+| `termine` | 1.151 | 2.068 |
+| davon aus Statuswechsel | 34 | 429 |
+
+**Lehre (gilt über Close hinaus):** Ein unvollständiger Event-Spiegel erzeugt *scheinbar* kaputte
+Referenzen. Bei Referenz-Abweichungen zuerst die Spiegel-Vollständigkeit prüfen (Events ohne
+`status_id` zählen), dann an der Referenz zweifeln. Die Juli-Referenz kam nach dem Backfill bei den
+Closings auf die Nachkommastelle zurück (76,2 %).
+
+**Bedienung:** Der Knopf „↻ Sync" löst nur den **Inkrement**-Lauf aus und hätte die Lücke nicht
+geschlossen. Dafür gibt es „⟳ Voll-Backfill" (mit Rückfrage), der `since=2026-06-01` mitgibt.
+
+**(b) `QC Verschoben` ist jetzt quotenneutral** (vorher: wie ein No-Show gewertet). Fachlich ist
+ein verschobener Termin weder stattgefunden noch geplatzt. Drei Fälle, in `ausgangVon()` umgesetzt:
+
+1. verschoben → **neu terminiert** → stattgefunden: Termin 1 endet mit `verschoben`; die
+   Ausgangssuche endet **hart** an der Neu-Terminierung, sonst fände Termin 1 denselben Call wie
+   Termin 2 und derselbe Call wäre zweimal gutgeschrieben. Termin 2 zählt positiv.
+2. verschoben → **direkt positiver Folgestatus**: zählt Termin 1 gut — der Call hat stattgefunden,
+   nur ohne neue Terminierung.
+3. verschoben ohne Wertendes danach: Termin endet mit `verschoben`, nicht mit `offen`.
+
+Fürs **50-%-Gate** zählt `verschoben` als **gepflegter** Ausgang (`gepflegt = basis + verschoben`),
+für die **Quote** nicht (`basis = stattgefunden + nicht_stattgefunden`). Damit ist das Gate
+semantik-invariant: weicht es ab, sind es Daten; weicht nur die Quote ab, war es der Code.
+
+Wirkung im Bestand: im gesamten Zeitraum existiert **genau ein** `verschoben` (September, Setting)
+— Settings September 79,8 % → 80,2 % (+0,4 pp), Gate unverändert 65,4 %. Alle anderen Monate
+unverändert. `Lost`/`Blacklist` bleiben `unklar`: bei 27 von 2.068 Terminen gibt es keinen einzigen
+Fall mit positivem Zwischenstatus, ein Rückschluss aufs Stattfinden ist also nicht gedeckt.
+
+**(c) Neu im Qualitäts-Panel: Rück-Terminierungen nach No-Show/Abgesagt je Person.** Gezählt wird
+über die Opportunity — ein negativer Termin, auf den bei derselben Opportunity und derselben Art
+ein später gelegter Termin folgt. 72 Ketten von 294 negativen Terminen. Kein Pranger: neu legen ist
+richtig. Sichtbar werden soll die *Häufung*, bevor jemand eine Entscheidung an einer Show-Rate
+festmacht.
 
 ---
 *Methodik: read-only Läufe gegen die Close-API (Rev. 3 zusätzlich: Umbenennungs-Karte alt→neu per status_id, Anlage-vs-Wechsel-Analyse, Prototyp gegen echtes Postgres) (Erstbefund 25.08., Re-Check 31.08. inkl. Feld-/Auswahllisten, Status-Historie 01.06.–31.08. mit 1.033 Opportunity- und 8.744 Lead-Statuswechseln, Overlap-Analyse, Prototyp-Berechnung) sowie Auswertung eines Loom-Screencasts der Vertriebsleitung (32 Frames + Transkript). Kein Schreibzugriff.*

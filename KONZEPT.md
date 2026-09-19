@@ -190,7 +190,61 @@ Test-Auslösung: `POST /api/admin/test-daily-report` (Admin/VL).
 
 ---
 
-## 11. Konventionen & bekannte Fallstricke
+## 11. Show Rates (Close)
+
+Bereich `/show-rates` (Feature-Flag `show_rates_close`). Datenquelle ist **nicht** das KPI-Board,
+sondern die Statushistorie aus Close — read-only gespiegelt nach `close_status_events` /
+`close_opportunities` und in `termine` abgeleitet (`utils/closeSync.js`). Das Mapping läuft über
+die stabile `status_id`, **nie** über Labels: Close löst Labels dynamisch auf, eine Umbenennung
+würde die Historie sonst lautlos umschreiben.
+
+**Quote und Gate rechnen bewusst auf verschiedenen Mengen:**
+
+| | Formel |
+|---|---|
+| **Show-Rate** | `stattgefunden / (stattgefunden + nicht_stattgefunden)` |
+| **Belastbarkeits-Gate** | `(stattgefunden + nicht_stattgefunden + verschoben) / gelegt` ≥ 50 % **und** ≥ 10 bewertbare Termine |
+
+`verschoben` ist **quotenneutral, aber ein gepflegter Ausgang**: Wer eine Verschiebung
+dokumentiert, hat seine Arbeit getan und darf den Monat nicht unter die 50-%-Schwelle drücken.
+`offen` (Ausgang nicht nachgetragen) und `unklar` (direkt auf Lost/Blacklist — kein Rückschluss
+aufs Stattfinden) zählen in **keiner** der beiden Mengen; ihre Zahl steht im Datenqualitäts-Panel.
+
+**Verschoben-Semantik** (drei Fälle, so und nicht anders):
+
+| Kette | Ergebnis |
+|---|---|
+| verschoben → **neu terminiert** → stattgefunden | Termin 1 endet mit Ausgang `verschoben` (quotenneutral), Termin 2 zählt positiv. Die Ausgangssuche von Termin 1 endet **hart** an der Neu-Terminierung — sonst würde derselbe Call zweimal gutgeschrieben. |
+| verschoben → **direkt positiver Folgestatus** (ohne erneutes „terminiert") | Der Ausgang zählt Termin 1 gut. Der Call hat real stattgefunden, nur ohne neue Terminierung. |
+| No-Show / Abgesagt → neu terminiert | Termin 1 bleibt **negativ**. Ein geplatzter Termin bleibt geplatzt. |
+
+Im Qualitäts-Panel steht dazu der Zähler **Rück-Terminierungen nach No-Show/Abgesagt je Person** —
+kein Pranger, sondern Sichtbarkeit: Neu legen ist richtig, auffällig ist erst eine Häufung.
+
+**Juli-Referenz 75,1 % (Settings) / 76,2 % (Closings):** Referenz gültig; zwischen Status-ID-Umbau
+(`15fa3e2`) und Sync-Backfill vom 19.09. vorübergehend nicht reproduzierbar. *Lehre: Ein
+unvollständiger Event-Spiegel erzeugt scheinbar kaputte Referenzen — bei Referenz-Abweichungen
+zuerst die Spiegel-Vollständigkeit prüfen (Events ohne `status_id` zählen), dann an der Referenz
+zweifeln.* Die verbleibende Settings-Differenz von 1,0 pp (76,1 % gemessen gegen 75,1 % Referenz)
+ist **bekannte Toleranz**, nicht weiter verfolgt; plausibel sind die 357 Events, die nach dem
+Referenz-Backup dazugekommen sind, oder ein Grenzfall in der Anlage-Ableitung.
+
+**Regressionsanker** (Stand 19.09. nach Voll-Backfill, Quote / Gate):
+
+| Monat | Settings | Closings |
+|---|--:|--:|
+| Juni | 64,1 % / 41,9 % ✗ | 75,0 % / 39,2 % ✗ |
+| Juli | 76,1 % / 59,9 % ✓ | 76,2 % / 59,7 % ✓ |
+| August | 84,0 % / 92,7 % ✓ | 77,7 % / 71,6 % ✓ |
+| September | 80,2 % / 65,4 % ✓ | 83,2 % / 79,6 % ✓ |
+
+✗ = Gate unter 50 %, Quote wird nicht ausgewiesen. Die Anker bewegen sich, sobald jemand einen
+Ausgang nachträgt — der Spiegel ist live. Deshalb gilt: **Das Gate ist semantik-invariant.** Weicht
+es ab, sind es Daten; weicht nur die Quote ab, war es der Code.
+
+---
+
+## 12. Konventionen & bekannte Fallstricke
 
 1. **Migrationen immer doppelt** anlegen (`.pg.sql` für Railway-Postgres, `.sql` für SQLite lokal); Postgres-Booleans brauchen `TRUE/FALSE`, SQLite `1/0`. Läuft statementweise über den Pool → keine TEMP-Tabellen.
 2. **Keine doppelten Mitarbeiter anlegen** — führt zu doppelten Zeilen in Auswertungen und fehlgeleiteten AE-Buchungen (Migration 071/072 hat Altfälle bereinigt).
@@ -199,3 +253,11 @@ Test-Auslösung: `POST /api/admin/test-daily-report` (Admin/VL).
 5. Durchstellungsquote **immer** `beratung_vereinbart / settings_stattgefunden`.
 6. `wie_vielt_verlaengerung` sollte bei allen VL-Deals gepflegt sein (sonst Zeile „Ohne Angabe" in der Churn-Tabelle); ungültige Werte (< 1) werden ignoriert.
 7. E-Mail-Empfänger über Env `REPORT_EMAIL` (kommagetrennt); Versand via `RESEND_API_KEY` oder SMTP-Variablen.
+8. **Close-Sync: „↻ Sync" läuft inkrementell**, nicht über die Historie. Der Inkrement-Lauf setzt
+   am jüngsten gespiegelten Event an und fasst ältere Zeilen nie wieder an — eine nachträglich
+   ergänzte Spalte (so geschehen mit `status_id`, Migration 101) bleibt für den Altbestand
+   dauerhaft leer. Wer die Historie heilen will, braucht den Knopf **„⟳ Voll-Backfill"**
+   (`POST /api/showrates/sync` mit `since=2026-06-01`). Reiner GET-Lauf gegen Close, Dauer ~2 min.
+9. **Close-Zugriff ist ausschließlich lesend.** `utils/closeClient.js` ist die einzige Zugriffs-
+   schicht; kein POST/PUT/DELETE gegen Close, auch nicht zum Testen. `CLOSE_API_KEY` gehört
+   niemals in Code, Logs oder Ausgaben.

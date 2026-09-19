@@ -3,9 +3,18 @@
 //
 // Kernregel der Quote: Nur Termine mit eindeutigem Ausgang zaehlen.
 //   Show-Rate = stattgefunden / (stattgefunden + nicht_stattgefunden)
-// 'offen' (Ausgang noch nicht nachgetragen) und 'unklar' (direkt auf Lost/Blacklist) bleiben
-// bewusst DRAUSSEN — sie wuerden die Quote sonst kuenstlich druecken. Ihre Zahl steht im
-// Datenqualitaets-Panel, damit die Luecke sichtbar ist statt die Quote zu verfaelschen.
+// 'offen' (Ausgang noch nicht nachgetragen), 'unklar' (direkt auf Lost/Blacklist) und
+// 'verschoben' bleiben bewusst DRAUSSEN — sie wuerden die Quote sonst kuenstlich druecken.
+// Ihre Zahl steht im Datenqualitaets-Panel, damit die Luecke sichtbar ist statt die Quote
+// zu verfaelschen.
+//
+// QUOTE UND GATE RECHNEN AUF VERSCHIEDENEN MENGEN — das ist Absicht, kein Versehen:
+//   Quote = stattgefunden / (stattgefunden + nicht_stattgefunden)
+//   Gate  = (stattgefunden + nicht_stattgefunden + VERSCHOBEN) / gelegt
+// 'verschoben' ist quotenneutral, aber ein GEPFLEGTER Ausgang. Wer eine Verschiebung
+// dokumentiert, hat seine Arbeit getan und darf den Monat nicht unter die 50-%-Schwelle
+// druecken. 'offen' und 'unklar' zaehlen dagegen in keiner der beiden Mengen: dort fehlt die
+// Pflege bzw. der Rueckschluss.
 const router = require('express').Router();
 const db = require('../db');
 const wrap = require('../middleware/asyncHandler');
@@ -32,7 +41,8 @@ const MIN_BEWERTET = 50;     // Prozent der gelegten Termine mit Ausgang
 const MIN_BASIS    = 10;     // und mindestens 10 bewertbare Termine im Monat
 
 const quote = (ja, nein) => (ja + nein) > 0 ? Number((ja / (ja + nein) * 100).toFixed(1)) : null;
-const leer = () => ({ gelegt: 0, stattgefunden: 0, nicht_stattgefunden: 0, offen: 0, unklar: 0, basis: 0, rate: null });
+const leer = () => ({ gelegt: 0, stattgefunden: 0, nicht_stattgefunden: 0, offen: 0, unklar: 0,
+  verschoben: 0, basis: 0, gepflegt: 0, rate: null });
 function fasse(rows) {
   const out = {};
   for (const r of rows) {
@@ -44,7 +54,8 @@ function fasse(rows) {
   }
   for (const m of Object.values(out)) for (const art of ['setting', 'closing']) {
     const z = m[art];
-    z.basis = z.stattgefunden + z.nicht_stattgefunden;
+    z.basis = z.stattgefunden + z.nicht_stattgefunden;          // Nenner der QUOTE
+    z.gepflegt = z.basis + z.verschoben;                        // Nenner des GATES
     z.rate = quote(z.stattgefunden, z.nicht_stattgefunden);
   }
   return Object.values(out).sort((a, b) => a.monat.localeCompare(b.monat));
@@ -76,7 +87,8 @@ router.get('/overview', wrap(async (req, res) => {
   const abdIdx = Object.fromEntries(abd.map(a => [`${a.monat}|${a.art}`, a]));
   for (const m of monate) for (const art of ['setting', 'closing']) {
     const z = m[art];
-    z.bewertetQuote = z.gelegt > 0 ? Number((z.basis / z.gelegt * 100).toFixed(1)) : null;
+    // Gate auf `gepflegt`, nicht auf `basis` — siehe Kopfkommentar: 'verschoben' ist gepflegt.
+    z.bewertetQuote = z.gelegt > 0 ? Number((z.gepflegt / z.gelegt * 100).toFixed(1)) : null;
     z.belastbar = !!(z.basis >= MIN_BASIS && z.bewertetQuote !== null && z.bewertetQuote >= MIN_BEWERTET);
   }
   const letzterSync = await db.get(`SELECT MAX(synced_at) s FROM close_status_events`);
@@ -149,6 +161,30 @@ router.get('/qualitaet', wrap(async (req, res) => {
   const unbekannteStatus = gesehen.filter(r => !BEKANNT.has(r.id))
     .map(r => ({ status_id: r.id, label: r.label, n: Number(r.n) }));
   const herkunft = await db.all(`SELECT herkunft, art, COUNT(*) n FROM termine GROUP BY herkunft, art`);
+
+  // ── Rueck-Terminierungen nach No-Show/Abgesagt ─────────────────────────────
+  // Kein Pranger, sondern Sichtbarkeit: Ein geplatzter Termin, der neu gelegt wird, ist normal
+  // und richtig. Auffaellig wird erst eine HAEUFUNG bei einer Person — und die soll man sehen,
+  // bevor im November jemand eine Reise an einer Show-Rate festmacht.
+  //
+  // Gezaehlt wird ueber die Opportunity: ein negativer Termin, auf den bei derselben Opportunity
+  // und derselben Art ein SPAETER gelegter Termin folgt. Der Bezug laeuft ueber gelegt_am,
+  // nicht ueber die Event-Reihenfolge — die steht in termine nicht zur Verfuegung.
+  const rueckTerminierungen = await db.all(
+    `SELECT COALESCE(e.name, t.gelegt_von_name, '∅ unbekannt') name, t.art,
+            COUNT(*) rueck,
+            (SELECT COUNT(*) FROM termine x
+              WHERE x.status = 'nicht_stattgefunden' AND x.art = t.art
+                AND COALESCE(x.employee_id, -1) = COALESCE(t.employee_id, -1)) negativ
+       FROM termine t
+       LEFT JOIN employees e ON e.id = t.employee_id
+      WHERE t.status = 'nicht_stattgefunden'
+        AND EXISTS (SELECT 1 FROM termine n
+                     WHERE n.close_opportunity_id = t.close_opportunity_id
+                       AND n.art = t.art AND n.gelegt_am > t.gelegt_am)
+      GROUP BY 1, 2, t.employee_id
+      ORDER BY 3 DESC`);
+
   res.json({
     offenJePerson,
     offenGesamt: offenAlt.length,
@@ -158,6 +194,10 @@ router.get('/qualitaet', wrap(async (req, res) => {
     abdeckung: await abdeckung(),
     unbekannteStatus,
     herkunft,
+    rueckTerminierungen: rueckTerminierungen.map(r => ({
+      name: r.name, art: r.art, rueck: Number(r.rueck), negativ: Number(r.negativ),
+      anteil: Number(r.negativ) > 0 ? Number((Number(r.rueck) / Number(r.negativ) * 100).toFixed(1)) : null,
+    })),
   });
 }));
 
