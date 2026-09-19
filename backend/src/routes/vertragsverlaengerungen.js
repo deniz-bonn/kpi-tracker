@@ -3,6 +3,7 @@ const db     = require('../db');
 const wrap   = require('../middleware/asyncHandler');
 const { requireAuth } = require('../middleware/auth');
 const { gruppeVonEmp } = require('../utils/rollen');
+const { standortInSql } = require('../utils/standorte');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Vertragsverlaengerungen — Arbeits- und Auswertungsflaeche fuer die Umstellung auf Dauer-RaaS.
@@ -54,7 +55,19 @@ function zeitraum(req) {
     if (von && MONAT_RE.test(von)) { cond.push(`d.monat >= ${p()}`); params.push(von); }
     if (bis && MONAT_RE.test(bis)) { cond.push(`d.monat <= ${p()}`); params.push(bis); }
   }
-  if (req.query.standort) { cond.push(`k.standort = ${p()}`); params.push(req.query.standort); }
+  // Standort-Gruppe ('de' = Bonn+Braunschweig, 'at', 'ch'). Massgeblich ist der Standort des
+  // KAM, nicht die Company — dieselbe Aufloesung wie im VL-Bereich.
+  //
+  // Ein Deal OHNE kam_id (oder mit einem KAM ohne Standort) faellt bei jedem konkreten Filter
+  // heraus: k.standort ist dann NULL und IN (...) liefert NULL, also nicht wahr. Das ist
+  // gewollt und deckt sich mit der VL-Seite; unter "Alle Standorte" bleibt er sichtbar.
+  if (req.query.standort) {
+    const sql = standortInSql(req.query.standort, 'k.standort');
+    // Kein stiller Fallback auf "ungefiltert": ein Tippfehler im Parameter wuerde sonst die
+    // ganze Kohorte ausweisen und wie ein gefiltertes Ergebnis aussehen.
+    if (!sql) return { fehler: `Unbekannte Standort-Gruppe: ${req.query.standort}` };
+    cond.push(sql);
+  }
   return { where: cond.length ? ' WHERE ' + cond.join(' AND ') : '', params };
 }
 
@@ -91,7 +104,8 @@ function quoten(r) {
 // GET /api/vertragsverlaengerungen?monat=|von=&bis=&standort=
 // Trichter + Personen-Tabelle + die Kohorte selbst.
 router.get('/', wrap(async (req, res) => {
-  const { where, params } = zeitraum(req);
+  const { where, params, fehler } = zeitraum(req);
+  if (fehler) return res.status(400).json({ error: fehler });
   const JOINS = `
     FROM deals_vl d
     LEFT JOIN employees k ON k.id = d.kam_id

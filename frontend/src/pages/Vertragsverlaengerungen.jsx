@@ -5,6 +5,7 @@ import { formatEuro, currentMonat } from '../utils/format';
 import StatusBadge from '../components/StatusBadge';
 import DealModal from '../components/DealModal';
 import { ROLLE_GRUPPE_LABEL } from '../utils/rollen';
+import { STANDORT_GRUPPEN, standortGruppeLabel } from '../utils/standorte';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Vertragsverlängerungen — wie viele anstehende Verlängerungen heben wir auf Dauer-RaaS?
@@ -15,7 +16,6 @@ import { ROLLE_GRUPPE_LABEL } from '../utils/rollen';
 // im VL-Bereich gespeichert würde.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const STANDORTE = ['Bonn', 'Braunschweig', 'Österreich', 'Schweiz'];
 const GRUPPEN = [['', 'Alle Rollen'], ['kam', ROLLE_GRUPPE_LABEL.kam], ['am', ROLLE_GRUPPE_LABEL.am]];
 
 const pct = (v) => (v == null ? '—' : `${String(v).replace('.', ',')} %`);
@@ -24,6 +24,7 @@ const pct = (v) => (v == null ? '—' : `${String(v).replace('.', ',')} %`);
 // ersten Wurf dieser Seite waren die Filter dadurch nicht lesbar.
 const sel = 'bg-white border border-gray-300 text-gray-700 text-sm rounded px-2 py-1.5';
 const card = 'bg-white rounded-lg border border-gray-200 overflow-hidden';
+const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
 const head = 'px-3 py-2 bg-gray-800';
 
 function Kachel({ label, wert, sub, ton = 'gray' }) {
@@ -59,6 +60,33 @@ export default function Vertragsverlaengerungen() {
     () => (data?.personen || []).filter(p => !gruppe || p.gruppe === gruppe),
     [data, gruppe]);
 
+  // Der Export folgt dem SICHTBAREN Scope: dieselbe Kohorte, die die Kacheln zählen. Ein Export,
+  // der mehr enthält als die Anzeige darüber, ist die stillste Art, jemanden in die Irre zu führen.
+  const exportCsv = () => {
+    const cols = [
+      ['monat', d => d.monat], ['kunde', d => d.kunde], ['status', d => d.status],
+      ['account_manager', d => d.kam_name || ''], ['standort', d => d.kam_standort || ''],
+      ['ae_verlaengerung', d => d.ae_wert ?? ''],
+      ['ae_dauer_raas_eur', d => d.umstellung_ae_wert_eur ?? d.umstellung_ae_wert ?? ''],
+      ['dauer_raas_deal_bk_id', d => d.umstellung_deal_bk_id ?? ''],
+      ['umstellungsdatum', d => (d.dauervertrag_datum ? String(d.dauervertrag_datum).slice(0, 10) : '')],
+      ['wie_vielt_verlaengerung', d => d.wie_vielt_verlaengerung ?? ''],
+    ];
+    const zeilen = [cols.map(c => c[0]).join(';'),
+      ...(data?.kohorte || []).map(d => cols.map(c => esc(c[1](d))).join(';'))];
+    const url = URL.createObjectURL(new Blob(['\uFEFF' + zeilen.join('\n')], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `vertragsverlaengerungen_${monat}${standort ? `_${standort}` : ''}${gruppe ? `_${gruppe}` : ''}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const aktiveFilter = [
+    standort && `Standort: ${standortGruppeLabel(standort)}`,
+    gruppe && `Rolle: ${ROLLE_GRUPPE_LABEL[gruppe]}`,
+  ].filter(Boolean);
+
   // Erfassung läuft über die VL-Route — kein eigener Schreibpfad in diesem Bereich.
   const speichern = async (form) => {
     const ae = Number(form.umstellung_ae_wert);
@@ -85,14 +113,25 @@ export default function Vertragsverlaengerungen() {
 
       <div className="flex flex-wrap items-center gap-2">
         <input type="month" value={monat} onChange={e => setMonat(e.target.value)} className={sel} />
-        <select value={standort} onChange={e => setStandort(e.target.value)} className={sel}>
+        <select value={standort} onChange={e => setStandort(e.target.value)} className={sel}
+          title="Standort des zugeordneten Account Managers — nicht der Company">
           <option value="">Alle Standorte</option>
-          {STANDORTE.map(s => <option key={s} value={s}>{s}</option>)}
+          {STANDORT_GRUPPEN.map(g => <option key={g.key} value={g.key}>{g.label}</option>)}
         </select>
         <select value={gruppe} onChange={e => setGruppe(e.target.value)} className={sel}
           title="Rolle des zugeordneten Account Managers">
           {GRUPPEN.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
+        {aktiveFilter.length > 0 && (
+          // Zusammenfassung und Zurücksetzen als EINE Einheit, damit der Knopf beim Umbruch nicht
+          // allein in die nächste Zeile rutscht und wie ein eigenes Bedienelement aussieht.
+          <span className="inline-flex items-center gap-2 whitespace-nowrap">
+            <span className="text-xs text-gray-500">{aktiveFilter.join(' · ')}</span>
+            <button onClick={() => { setStandort(''); setGruppe(''); }}
+              className="text-xs text-indigo-600 hover:text-indigo-500 underline">Zurücksetzen</button>
+          </span>
+        )}
+        <button onClick={exportCsv} className={`${sel} font-semibold ml-auto`}>⬇ CSV</button>
       </div>
 
       {isLoading && <div className="text-sm text-gray-400">Lädt…</div>}

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { wmApi, dealsApi, employeesApi } from '../utils/api';
@@ -7,6 +7,7 @@ import InfoPopover from '../components/InfoPopover';
 import { formatEuro, companyCurrency, currentMonat } from '../utils/format';
 import { useAuth } from '../context/AuthContext';
 import { KAM_ROLLEN, gruppeVonEmp, ROLLE_GRUPPE_LABEL, PERSONEN_GRUPPEN } from '../utils/rollen';
+import { STANDORT_GRUPPEN, standortGruppeLabel, passtZuStandortGruppe } from '../utils/standorte';
 import { bkDealFields } from '../utils/bkDealFields';
 import { ANGEBOTS_TYPEN, trichter, fmtQuote, vorErfassung, ERFASSUNG_HINWEIS } from '../utils/wmConstants';
 
@@ -50,6 +51,7 @@ export default function Willkommensmeetings() {
   const [bis, setBis]       = useState(currentMonat());
   const [filterPerson, setFilterPerson] = useState('');
   const [filterGruppe, setFilterGruppe] = useState('');
+  const [filterStandort, setFilterStandort] = useState('');   // '' | 'de' | 'at' | 'ch'
   const [modal, setModal]   = useState(null);                // Meeting-Maske
   const [dealModal, setDealModal] = useState(null);          // BK-Deal-Maske (dasselbe Formular)
 
@@ -67,10 +69,15 @@ export default function Willkommensmeetings() {
   const compOpts   = useMemo(() => companies.map(c => ({ value: c.id, label: c.name })), [companies]);
   const curSym     = companyCurrency(companies, company) === 'CHF' ? 'CHF' : '€';
 
+  // Standort des MEETING-FÜHRERS, nicht der Company: der Server liefert ihn als `standort`
+  // (employees.standort über gefuehrt_von), Rückfall auf die Mitarbeiterliste. Ein Mitarbeiter
+  // ohne Standort fällt bei jedem konkreten Filter heraus und bleibt nur unter "Alle Standorte"
+  // sichtbar — dieselbe Regel wie im VL-Bereich, bewusst ohne eigenen Sammel-Status.
   const gefiltert = useMemo(() => meetings.filter(m =>
     (!filterPerson || String(m.gefuehrt_von) === String(filterPerson)) &&
-    (!filterGruppe || gruppeVonEmp(empById[m.gefuehrt_von]) === filterGruppe)
-  ), [meetings, filterPerson, filterGruppe, empById]);
+    (!filterGruppe || gruppeVonEmp(empById[m.gefuehrt_von]) === filterGruppe) &&
+    passtZuStandortGruppe(m.standort ?? empById[m.gefuehrt_von]?.standort, filterStandort)
+  ), [meetings, filterPerson, filterGruppe, filterStandort, empById]);
 
   const t = useMemo(() => trichter(gefiltert), [gefiltert]);
 
@@ -86,6 +93,27 @@ export default function Willkommensmeetings() {
       gruppe: gruppeVonEmp(empById[id]), ...trichter(liste),
     })).sort((a, b) => b.meetings - a.meetings);
   }, [gefiltert, empById]);
+
+  // Das Personen-Dropdown zeigt nur, wer im gewählten Standort-Scope überhaupt in Frage kommt.
+  // Sonst könnte man eine Person wählen, die es im Scope nicht gibt, und bekäme eine leere Seite
+  // ohne erkennbaren Grund.
+  const personenImScope = useMemo(
+    () => employees.filter(e => KAM_ROLLEN.includes(e.rolle) && passtZuStandortGruppe(e.standort, filterStandort)),
+    [employees, filterStandort]);
+
+  // Auto-Reset: fällt die gewählte Person aus dem Scope, wird die Auswahl gelöst statt still
+  // eine leere Menge zu zeigen.
+  useEffect(() => {
+    if (filterPerson && !personenImScope.some(e => String(e.id) === String(filterPerson))) {
+      setFilterPerson('');
+    }
+  }, [personenImScope, filterPerson]);
+
+  const aktiveFilter = [
+    filterStandort && `Standort: ${standortGruppeLabel(filterStandort)}`,
+    filterGruppe && `Rolle: ${ROLLE_GRUPPE_LABEL[filterGruppe]}`,
+    filterPerson && `Person: ${empById[filterPerson]?.name || `#${filterPerson}`}`,
+  ].filter(Boolean);
 
   const zeigeHinweis = zeitmodus === 'monat' ? vorErfassung(monat)
     : zeitmodus === 'zeitraum' ? vorErfassung(von) : true;
@@ -176,6 +204,7 @@ export default function Willkommensmeetings() {
       ['gefuehrt_von', m => m.gefuehrt_von_name], ['angebot', m => (m.deal_bk_id ? 'ja' : 'nein')],
       ['angebots_typ', m => m.angebots_typ || ''], ['deal_status', m => m.deal_status || ''],
       ['ae_eur', m => (m.deal_status === 'Gewonnen' ? (m.deal_ae_wert_eur ?? m.deal_ae_wert ?? '') : '')],
+      ['standort', m => m.standort || ''],
       ['aufzeichnung', m => m.aufzeichnung_url || ''], ['monat', m => m.monat]];
     const esc = v => { const s = String(v ?? ''); return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
     const zeilen = [cols.map(c => c[0]).join(';'),
@@ -183,7 +212,8 @@ export default function Willkommensmeetings() {
     const blob = new Blob(['﻿' + zeilen.join('\r\n')], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `willkommensmeetings_${zeitmodus === 'monat' ? monat : zeitmodus === 'zeitraum' ? `${von}_${bis}` : 'alle'}.csv`;
+    const scope = (filterStandort ? `_${filterStandort}` : '') + (filterGruppe ? `_${filterGruppe}` : '');
+    a.download = `willkommensmeetings_${zeitmodus === 'monat' ? monat : zeitmodus === 'zeitraum' ? `${von}_${bis}` : 'alle'}${scope}.csv`;
     document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
   };
 
@@ -220,15 +250,29 @@ export default function Willkommensmeetings() {
           <option value="kam">{ROLLE_GRUPPE_LABEL.kam}</option>
           <option value="am">{ROLLE_GRUPPE_LABEL.am}</option>
         </select>
+        <select value={filterStandort} onChange={e => setFilterStandort(e.target.value)} className={ctl}
+          title="Standort des Meeting-Führers — nicht der Company">
+          <option value="">Alle Standorte</option>
+          {STANDORT_GRUPPEN.map(g => <option key={g.key} value={g.key}>{g.label}</option>)}
+        </select>
         <select value={filterPerson} onChange={e => setFilterPerson(e.target.value)} className={ctl}>
           <option value="">Alle Personen</option>
           {PERSONEN_GRUPPEN.map(([g, label]) => {
-            const leute = employees.filter(e => KAM_ROLLEN.includes(e.rolle) && gruppeVonEmp(e) === g);
+            const leute = personenImScope.filter(e => gruppeVonEmp(e) === g);
             return leute.length ? <optgroup key={label} label={label}>
               {leute.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
             </optgroup> : null;
           })}
         </select>
+        {aktiveFilter.length > 0 && (
+          // Zusammenfassung und Zurücksetzen als EINE Einheit, damit der Knopf beim Umbruch nicht
+          // allein in die nächste Zeile rutscht und wie ein eigenes Bedienelement aussieht.
+          <span className="inline-flex items-center gap-2 whitespace-nowrap">
+            <span className="text-xs text-gray-500">{aktiveFilter.join(' · ')}</span>
+            <button onClick={() => { setFilterStandort(''); setFilterGruppe(''); setFilterPerson(''); }}
+              className="text-xs text-indigo-600 hover:text-indigo-500 underline">Zurücksetzen</button>
+          </span>
+        )}
         <button onClick={exportCsv} className={`${ctl} font-semibold ml-auto`}>⬇ CSV</button>
       </div>
 
