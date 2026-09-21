@@ -1,6 +1,13 @@
 import { useState } from 'react';
 
-export default function DealModal({ title, fields, initial = {}, onSave, onClose }) {
+/**
+ * @param fehler  Fehlertext vom Aufrufer (z. B. abgelehnter Speicherversuch). Wird als Banner
+ *                ueber den Feldern gezeigt und der Dialog bleibt offen — ohne das quittierte
+ *                ein fehlgeschlagener Speicherversuch mit stillem Nichtstun.
+ * @param busy    Speichern laeuft: Knopf sperren, damit kein zweiter Deal durch Doppelklick
+ *                entsteht.
+ */
+export default function DealModal({ title, fields, initial = {}, onSave, onClose, fehler = null, busy = false }) {
   const [form, setForm]     = useState(initial);
   const [errors, setErrors] = useState({});
 
@@ -28,18 +35,27 @@ export default function DealModal({ title, fields, initial = {}, onSave, onClose
   const isVisible  = (f) => typeof f.show === 'function' ? f.show(form) : true;
   const isRequired = (f) => typeof f.required === 'function' ? f.required(form) : !!f.required;
 
+  const [fehlendeFelder, setFehlendeFelder] = useState([]);
+
   const handleSave = () => {
     const errs = {};
+    const fehlen = [];
     fields.forEach(f => {
       if (!isVisible(f)) return; // skip hidden fields
       if (isRequired(f) && !form[f.name] && form[f.name] !== 0) {
         errs[f.name] = true;
+        fehlen.push(f.label);
       }
     });
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
+      // Die roten Rahmen allein reichen nicht: bei einem langen Formular steht das fehlende Feld
+      // oft unterhalb des sichtbaren Bereichs, und der Klick auf Speichern sieht aus, als taete
+      // er nichts. Deshalb zusaetzlich eine Liste oben, wo der Knopf-Klick hinsieht.
+      setFehlendeFelder(fehlen);
       return;
     }
+    setFehlendeFelder([]);
     onSave(form);
   };
 
@@ -54,6 +70,16 @@ export default function DealModal({ title, fields, initial = {}, onSave, onClose
         </div>
 
         <div className="px-5 py-4 space-y-3 max-h-[75vh] overflow-y-auto">
+          {fehler && (
+            <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-800">
+              <b>Nicht gespeichert.</b> {fehler}
+            </div>
+          )}
+          {fehlendeFelder.length > 0 && (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              <b>Nicht gespeichert.</b> Bitte ausfüllen: {fehlendeFelder.join(' · ')}
+            </div>
+          )}
           {visibleFields.map(f => {
             const req    = isRequired(f);
             const hasErr = errors[f.name];
@@ -114,8 +140,9 @@ export default function DealModal({ title, fields, initial = {}, onSave, onClose
 
         <div className="flex justify-end gap-2 px-5 py-4 border-t border-gray-200">
           <button onClick={onClose} className="px-4 py-1.5 text-sm text-gray-500 hover:text-gray-800">Abbrechen</button>
-          <button onClick={handleSave} className="px-4 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded">
-            Speichern
+          <button onClick={handleSave} disabled={busy}
+            className="px-4 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded">
+            {busy ? 'Speichert…' : 'Speichern'}
           </button>
         </div>
       </div>

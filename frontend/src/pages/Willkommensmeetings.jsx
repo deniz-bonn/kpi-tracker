@@ -53,6 +53,8 @@ export default function Willkommensmeetings() {
   const [filterGruppe, setFilterGruppe] = useState('');
   const [filterStandort, setFilterStandort] = useState('');   // '' | 'de' | 'at' | 'ch'
   const [modal, setModal]   = useState(null);                // Meeting-Maske
+  const [speicherFehler, setSpeicherFehler] = useState(null);
+  const [speichert, setSpeichert] = useState(false);
   const [dealModal, setDealModal] = useState(null);          // BK-Deal-Maske (dasselbe Formular)
 
   const params = zeitmodus === 'monat' ? { monat }
@@ -122,8 +124,11 @@ export default function Willkommensmeetings() {
     qc.invalidateQueries({ queryKey: ['wm'] });
     qc.invalidateQueries({ queryKey: ['deals-bk'] });   // die BK-Seite zeigt denselben Deal
   };
-  const createMut = useMutation({ mutationFn: wmApi.create, onSuccess: () => { invalidate(); setModal(null); } });
-  const updateMut = useMutation({ mutationFn: ({ id, data }) => wmApi.update(id, data), onSuccess: () => { invalidate(); setModal(null); } });
+  // Diese beiden schliessen den Dialog NICHT selbst: speichereMeeting kann nach dem Meeting noch
+  // den verknuepften Deal aktualisieren. Wuerde hier schon geschlossen, waere der Dialog weg,
+  // bevor der zweite Schritt fehlschlagen kann — und der Fehler haette keinen Ort mehr.
+  const createMut = useMutation({ mutationFn: wmApi.create, onSuccess: invalidate });
+  const updateMut = useMutation({ mutationFn: ({ id, data }) => wmApi.update(id, data), onSuccess: invalidate });
   const deleteMut = useMutation({ mutationFn: wmApi.delete, onSuccess: invalidate });
   // Der Deal geht an die BK-Route — dieselbe wie im Bestandskunden-Bereich.
   const dealMut   = useMutation({
@@ -142,6 +147,18 @@ export default function Willkommensmeetings() {
         required: typeof f.required === 'function'
           ? (form) => form.hat_angebot === 'Ja' && f.required(entpacke(form))
           : (form) => form.hat_angebot === 'Ja' && !!f.required,
+        // autoFill MUSS genauso entpackt werden wie show/required — sonst bekommt der
+        // urspruengliche Ausdruck 'a_status' statt 'status' und feuert nie.
+        //
+        // Das war der stillste der drei Fehler: Beim Wechsel auf Status "Gewonnen" blieb das
+        // Annahmedatum leer, obwohl es sich haette vorbelegen sollen. Es ist Pflichtfeld, stand
+        // aber unterhalb des sichtbaren Bereichs — der Dialog brach das Speichern ab, markierte
+        // ein Feld rot, das niemand sah, und es passierte scheinbar nichts. Genau die Meldung
+        // aus dem BK-Team.
+        ...(typeof f.autoFill === 'function' ? { autoFill: (form, changedKey) =>
+          f.autoFill(entpacke(form), String(changedKey).startsWith('a_') ? String(changedKey).slice(2) : changedKey) } : {}),
+        ...(typeof f.onBeforeChange === 'function' ? { onBeforeChange: (wert, form) =>
+          f.onBeforeChange(wert, entpacke(form)) } : {}),
       }));
     return [
       { name: 'datum', label: 'Datum des Meetings', type: 'date', required: true,
@@ -166,31 +183,89 @@ export default function Willkommensmeetings() {
     return o;
   }
 
-  const speichereMeeting = (form) => {
-    const basis = {
-      datum: form.datum, kunde: form.kunde, gefuehrt_von: Number(form.gefuehrt_von),
-      monat: String(form.datum || '').slice(0, 7),
-      angebots_typ: form.hat_angebot === 'Ja' ? form.angebots_typ : null,
-      aufzeichnung_url: form.aufzeichnung_url || null, notiz: form.notiz || null,
-    };
-    if (form.hat_angebot === 'Ja' && modal.mode === 'create') {
-      const a = entpacke(Object.fromEntries(Object.entries(form).filter(([k]) => k.startsWith('a_'))));
-      basis.angebot = { ...a, kunde: a.kunde || form.kunde, monat: a.monat || basis.monat,
-        company_id: a.company_id || company || null };
+  /**
+   * Speichern — fuer BEIDE Modi derselbe Weg zum Angebot.
+   *
+   * Frueher haengte der Angebots-Teil an `modal.mode === 'create'`: beim BEARBEITEN wurde er
+   * kommentarlos weggelassen. Wer ein Angebot nachreichen wollte, fuellte das Formular aus,
+   * drueckte Speichern — und es passierte nichts. Die Meeting-Route konnte das die ganze Zeit
+   * (PUT legt den Deal ueber erstelleBkDeal an, sobald `angebot` mitkommt); es kam nur nie an.
+   *
+   * Drei Faelle, alle ueber die regulaeren Routen:
+   *   Anlegen mit Angebot        -> POST /willkommensmeetings mit `angebot`  (Deal entsteht dort)
+   *   Bearbeiten, noch kein Deal -> PUT  /willkommensmeetings mit `angebot`  (Deal entsteht dort)
+   *   Bearbeiten, Deal vorhanden -> PUT  /deals/bk/:id                       (Deal wird geaendert)
+   * Der dritte Fall legt ausdruecklich KEINEN zweiten Deal an — "zwei Tueren, ein Deal" gilt
+   * auch fuer dieses Formular.
+   */
+  const speichereMeeting = async (form) => {
+    setSpeicherFehler(null);
+    setSpeichert(true);
+    try {
+      const basis = {
+        datum: form.datum, kunde: form.kunde, gefuehrt_von: Number(form.gefuehrt_von),
+        monat: String(form.datum || '').slice(0, 7),
+        angebots_typ: form.hat_angebot === 'Ja' ? form.angebots_typ : null,
+        aufzeichnung_url: form.aufzeichnung_url || null, notiz: form.notiz || null,
+      };
+      const hatAngebot = form.hat_angebot === 'Ja';
+      const dealId = modal.mode === 'edit' ? modal.data.deal_bk_id : null;
+      const angebot = hatAngebot
+        ? (() => {
+            const a = entpacke(Object.fromEntries(Object.entries(form).filter(([k]) => k.startsWith('a_'))));
+            return { ...a, kunde: a.kunde || form.kunde, monat: a.monat || basis.monat,
+              company_id: a.company_id || company || null };
+          })()
+        : null;
+
+      // Neues Angebot — beim Anlegen wie beim Nachreichen derselbe Schluessel im Body.
+      if (angebot && !dealId) basis.angebot = angebot;
+
+      if (modal.mode === 'create') await createMut.mutateAsync(basis);
+      else await updateMut.mutateAsync({ id: modal.data.id, data: basis });
+
+      // Bestehender Deal: ueber die BK-Route aendern, nicht neu anlegen.
+      if (angebot && dealId) await dealMut.mutateAsync({ id: dealId, data: angebot });
+
+      setModal(null);
+    } catch (e) {
+      // Sichtbar machen statt still scheitern: der Dialog bleibt offen und zeigt den Grund.
+      setSpeicherFehler(e?.response?.data?.error || e?.message || 'Unbekannter Fehler beim Speichern.');
+    } finally {
+      setSpeichert(false);
     }
-    if (modal.mode === 'create') createMut.mutate(basis);
-    else updateMut.mutate({ id: modal.data.id, data: basis });
   };
 
-  const oeffneMeeting = (m) => setModal(m
-    ? { mode: 'edit', data: m, initial: {
-        datum: String(m.datum || '').slice(0, 10), kunde: m.kunde, gefuehrt_von: m.gefuehrt_von,
-        aufzeichnung_url: m.aufzeichnung_url || '', notiz: m.notiz || '',
-        hat_angebot: m.deal_bk_id ? 'Ja' : 'Nein', angebots_typ: m.angebots_typ || '' } }
-    : { mode: 'create', initial: {
+  const oeffneMeeting = async (m) => {
+    setSpeicherFehler(null);
+    if (!m) {
+      setModal({ mode: 'create', initial: {
         datum: new Date().toISOString().slice(0, 10), hat_angebot: 'Nein',
         gefuehrt_von: (!canSeeAll && user?.employee_id) ? user.employee_id : '',
         a_status: 'Offen', a_monat: currentMonat(), a_company_id: company || '' } });
+      return;
+    }
+    // Haengt ein Deal am Meeting, werden SEINE Werte in den Angebots-Teil geladen — aus derselben
+    // Quelle, aus der auch die Liste liest. Vorher blieben die Felder leer: das Formular sah aus,
+    // als waere nichts erfasst, und ein Speichern haette die Werte ueberschrieben.
+    let dealFelder = {};
+    if (m.deal_bk_id) {
+      try {
+        const d = await dealsApi.bk.get(m.deal_bk_id);
+        dealFelder = Object.fromEntries(Object.entries(d).map(([k, v]) => [`a_${k}`,
+          (k === 'datum' || k === 'gewonnen_datum') && v ? String(v).slice(0, 10) : (v ?? '')]));
+      } catch (e) {
+        // Der Deal ist nicht ladbar (geloescht, Rechte): Meeting trotzdem bearbeitbar machen,
+        // aber sagen warum die Felder leer sind — nicht kommentarlos leer lassen.
+        setSpeicherFehler('Das verknüpfte Angebot konnte nicht geladen werden — die Angebots-Felder bleiben leer.');
+      }
+    }
+    setModal({ mode: 'edit', data: m, initial: {
+      datum: String(m.datum || '').slice(0, 10), kunde: m.kunde, gefuehrt_von: m.gefuehrt_von,
+      aufzeichnung_url: m.aufzeichnung_url || '', notiz: m.notiz || '',
+      hat_angebot: m.deal_bk_id ? 'Ja' : 'Nein', angebots_typ: m.angebots_typ || '',
+      ...dealFelder } });
+  };
 
   // Klick auf das Angebot oeffnet das REGULAERE BK-Formular mit dem echten Deal.
   const oeffneDeal = async (m) => {
@@ -399,7 +474,9 @@ export default function Willkommensmeetings() {
           fields={meetingFelder}
           initial={modal.initial}
           onSave={speichereMeeting}
-          onClose={() => setModal(null)}
+          onClose={() => { setModal(null); setSpeicherFehler(null); }}
+          fehler={speicherFehler}
+          busy={speichert}
         />
       )}
 
