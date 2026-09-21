@@ -55,6 +55,7 @@ export default function Willkommensmeetings() {
   const [modal, setModal]   = useState(null);                // Meeting-Maske
   const [speicherFehler, setSpeicherFehler] = useState(null);
   const [speichert, setSpeichert] = useState(false);
+  const [dealFehler, setDealFehler] = useState(null);
   const [dealModal, setDealModal] = useState(null);          // BK-Deal-Maske (dasselbe Formular)
 
   const params = zeitmodus === 'monat' ? { monat }
@@ -131,9 +132,12 @@ export default function Willkommensmeetings() {
   const updateMut = useMutation({ mutationFn: ({ id, data }) => wmApi.update(id, data), onSuccess: invalidate });
   const deleteMut = useMutation({ mutationFn: wmApi.delete, onSuccess: invalidate });
   // Der Deal geht an die BK-Route — dieselbe wie im Bestandskunden-Bereich.
+  // Der Deal geht an die BK-Route. onError ist Pflicht, nicht Kosmetik: ohne ihn bleibt ein
+  // abgelehntes Speichern voellig stumm — der Dialog stuende offen und niemand wuesste warum.
   const dealMut   = useMutation({
     mutationFn: ({ id, data }) => dealsApi.bk.update(id, data),
-    onSuccess: () => { invalidate(); setDealModal(null); },
+    onSuccess: () => { invalidate(); setDealModal(null); setDealFehler(null); },
+    onError: (e) => setDealFehler(e?.response?.data?.error || e?.message || 'Unbekannter Fehler beim Speichern.'),
   });
 
   // ── Meeting-Maske ──────────────────────────────────────────────────────────
@@ -269,6 +273,7 @@ export default function Willkommensmeetings() {
 
   // Klick auf das Angebot oeffnet das REGULAERE BK-Formular mit dem echten Deal.
   const oeffneDeal = async (m) => {
+    setDealFehler(null);
     const d = await dealsApi.bk.get(m.deal_bk_id);
     setDealModal({ deal: d, initial: { ...d, datum: String(d.datum || '').slice(0, 10),
       gewonnen_datum: d.gewonnen_datum ? String(d.gewonnen_datum).slice(0, 10) : '' } });
@@ -487,8 +492,10 @@ export default function Willkommensmeetings() {
           title={`Angebot bearbeiten — ${dealModal.deal.kunde}`}
           fields={bkDealFields({ compOpts, kamOptions, curSym, canSeeAll, isAdmin, isEdit: true, kamPflicht: true })}
           initial={dealModal.initial}
-          onSave={(form) => dealMut.mutate({ id: dealModal.deal.id, data: form })}
-          onClose={() => setDealModal(null)}
+          onSave={(form) => { setDealFehler(null); dealMut.mutate({ id: dealModal.deal.id, data: form }); }}
+          onClose={() => { setDealModal(null); setDealFehler(null); }}
+          fehler={dealFehler}
+          busy={dealMut.isPending}
         />
       )}
     </div>

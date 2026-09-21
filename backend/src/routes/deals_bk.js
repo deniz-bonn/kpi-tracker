@@ -2,6 +2,7 @@ const router = require('express').Router();
 const db     = require('../db');
 const wrap   = require('../middleware/asyncHandler');
 const { requireAuth } = require('../middleware/auth');
+const { normalisiereLeereFelder } = require('../utils/leereFelder');
 const { logAudit }   = require('../utils/audit');
 const { pruefeDatumsaenderung } = require('../utils/dealGuards');
 const { enrichDealsEur } = require('../utils/currency');
@@ -12,7 +13,9 @@ const { resolveGewonnenFelder } = require('../utils/gewonnen');
 const { provisionSyncBk } = require('../utils/provisionenBk');
 
 router.use(requireAuth);
-
+// Geleerte Zahlen-/Datumsfelder kommen als '' an; Postgres lehnt das ab (500).
+// Siehe utils/leereFelder.js — die Oberflaeche filtert bereits, das hier gilt API und Import.
+router.use(normalisiereLeereFelder);
 const BASE_SELECT = `
   SELECT d.*, c.name as company_name, c.currency, c.aktiv_ab, c.ae_ab_monat, k.name as kam_name, k.standort as kam_standort
   FROM deals_bk d

@@ -2,6 +2,7 @@ const router = require('express').Router();
 const db     = require('../db');
 const wrap   = require('../middleware/asyncHandler');
 const { requireAuth } = require('../middleware/auth');
+const { normalisiereLeereFelder } = require('../utils/leereFelder');
 const { logAudit }   = require('../utils/audit');
 const { pruefeDatumsaenderung } = require('../utils/dealGuards');
 const { enrichDealsEur } = require('../utils/currency');
@@ -18,7 +19,9 @@ const { kamRollenSql } = require('../utils/rollen');
 const { erstelleBkDeal, loescheBkDeal } = require('./deals_bk');
 
 router.use(requireAuth);
-
+// Geleerte Zahlen-/Datumsfelder kommen als '' an; Postgres lehnt das ab (500).
+// Siehe utils/leereFelder.js — die Oberflaeche filtert bereits, das hier gilt API und Import.
+router.use(normalisiereLeereFelder);
 // EUR-Anreicherung. Der Dauer-RaaS-Betrag wird MITGELESEN, nicht mitgespeichert: er steht im
 // verknuepften BK-Deal (umstellung_ae_wert aus dem JOIN unten) und wird hier nur zusaetzlich in
 // EUR ausgewiesen, damit eine Anzeige bei CHF-Companies (Risem) keine Waehrungen mischt.

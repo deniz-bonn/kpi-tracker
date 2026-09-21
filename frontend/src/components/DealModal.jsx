@@ -56,7 +56,16 @@ export default function DealModal({ title, fields, initial = {}, onSave, onClose
       return;
     }
     setFehlendeFelder([]);
-    onSave(form);
+    // Geleerte Zahlen- und Datumsfelder als null schicken, nicht als leeren String.
+    //
+    // Ein geleertes Eingabefeld liefert im Browser '' — Postgres lehnt das fuer NUMERIC, INTEGER
+    // und DATE ab und die Route antwortet mit 500. Unter SQLite faellt es nicht auf, der Fehler
+    // trat also nur in Produktion auf: einen Betrag ueberschreiben ging, ihn LEEREN nicht.
+    const bereinigt = { ...form };
+    for (const f of fields) {
+      if ((f.type === 'number' || f.type === 'date') && bereinigt[f.name] === '') bereinigt[f.name] = null;
+    }
+    onSave(bereinigt);
   };
 
   const visibleFields = fields.filter(isVisible);
