@@ -9,8 +9,12 @@
 // erwartet die Definition ohnehin von aussen.
 
 export const STATUS_OPTS       = ['Offen', 'Gewonnen', 'Verloren'];
+// 'Dauer-RaaS' stand hier bisher NICHT, obwohl die Umstellung genau diesen Wert als Default
+// schreibt. Folge: Wer einen umgestellten Deal im BK-Formular oeffnete, sah ein leeres
+// Pflichtfeld und konnte nicht speichern — bei zwei Deals in Produktion nachweisbar.
 export const DIENSTLEISTUNGEN_BK = ['RaaS Kontingente', 'RaaS Kleinkunde Laufzeit', 'Kontingent (Alt)',
-  'Karriereseite', 'Karriereseite Wartung', 'Social-Media', 'Glaubenssätze', 'Media-Day', 'Website', 'Sonstiges'];
+  'Dauer-RaaS', 'Karriereseite', 'Karriereseite Wartung', 'Social-Media', 'Glaubenssätze',
+  'Media-Day', 'Website', 'Sonstiges'];
 export const AUTO_VL_OPTS      = ['Ja', 'Nein'];
 export const ABGERECHNET_OPTS  = ['Nein', 'Ja', 'On Hold'];
 

@@ -582,13 +582,21 @@ export default function DealsBK() {
                   {d.kam_name || '—'}
                   {d.kam_standort && <span className="ml-1 text-gray-400">({d.kam_standort})</span>}
                 </td>
-                {/* Herkunft: NULL = wie bisher entstanden. Nur WM-Deals tragen eine Marke. */}
+                {/* Herkunft: NULL = wie bisher entstanden. Deals aus anderen Bereichen tragen eine
+                    Marke — sonst rätselt im BK-Bereich jemand über ein Angebot, das dort niemand
+                    angelegt hat. Über dieselbe Marke bleibt die Pipeline jederzeit herausrechenbar. */}
                 <td className="px-3 py-2 whitespace-nowrap">
                   {d.herkunft === 'willkommensmeeting'
                     ? <Link to="/willkommensmeetings"
                         className="inline-block rounded-full bg-cyan-50 text-cyan-700 px-2 py-0.5 text-[11px] font-semibold hover:bg-cyan-100"
                         title="Aus einem Willkommensmeeting entstanden — zum Bereich springen">
                         Willkommensmeeting ↗
+                      </Link>
+                    : d.herkunft === 'vl_umstellung'
+                    ? <Link to="/vertragsverlaengerungen"
+                        className="inline-block rounded-full bg-indigo-50 text-indigo-700 px-2 py-0.5 text-[11px] font-semibold hover:bg-indigo-100"
+                        title="Aus der Umstellung einer Verlängerung auf Dauer-RaaS entstanden — zum Bereich springen">
+                        Dauer-RaaS ↗
                       </Link>
                     : <span className="text-gray-300 text-xs">—</span>}
                 </td>

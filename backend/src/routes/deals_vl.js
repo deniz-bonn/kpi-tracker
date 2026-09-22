@@ -6,7 +6,7 @@ const { normalisiereLeereFelder } = require('../utils/leereFelder');
 const { logAudit }   = require('../utils/audit');
 const { pruefeDatumsaenderung } = require('../utils/dealGuards');
 const { enrichDealsEur } = require('../utils/currency');
-const { resolveGewonnenFelder } = require('../utils/gewonnen');
+const { resolveGewonnenFelder, toYmd } = require('../utils/gewonnen');
 // Provisions-Hook des Abrechnungskreises "Bestandskundenvertrieb" (Verlaengerung 2 % an den KAM).
 // Wie in deals_nk.js laeuft jeder Aufruf in try/catch: ein Fehler in der Provisionsrechnung
 // darf das Speichern des Deals niemals brechen.
@@ -76,63 +76,114 @@ function normUmstellung(zielStatus, body, existing) {
  *
  * kam_id ist PFLICHT: auswertung.js und kpis.js joinen deals_bk per INNER JOIN auf employees.
  * Ein Deal ohne kam_id verschwindet damit lautlos aus JEDER BK-Auswertung — und haette obendrein
- * keinen Provisionsempfaenger. Der Betrag muss > 0 sein, sonst entstuende eine Umstellung ohne
- * Umsatz und eine 0-Euro-Provisionsposition.
+ * keinen Provisionsempfaenger.
+ *
+ * Der Betrag ist STATUSABHAENGIG: Ein ANGEBOT (Status 'Offen') hat einen Angebotswert, aber noch
+ * keinen realisierten AE — genau wie jeder andere offene BK-Deal auch (bkDealFields verlangt
+ * ae_wert erst bei 'Gewonnen'). Wuerde hier pauschal ae_wert > 0 gefordert, waere die Vorstufe
+ * gar nicht erfassbar.
  */
 function pruefeUmstellung(u, vl) {
   if (!u || typeof u !== 'object') return 'Angaben zum Dauer-RaaS-Deal fehlen';
   if (!(u.kam_id ?? vl?.kam_id)) return 'KAM fehlt — ohne KAM fiele der Dauer-RaaS-Deal aus jeder Auswertung';
   if (!(u.company_id ?? vl?.company_id)) return 'Company fehlt';
-  if (!(Number(u.ae_wert) > 0)) return 'Dauer-RaaS-Betrag fehlt oder ist 0';
+  const status = u.status || 'Gewonnen';
+  // Es muss ein Betrag da sein — WELCHER, haengt von der Stufe ab:
+  //   Angebot (Offen):     der Angebotswert. Einen realisierten AE gibt es noch nicht.
+  //   Umstellung (Gewonnen): der AE. Fehlt der Angebotswert, faellt bkBodyAus auf den AE zurueck,
+  //                        so wie es der bisherige Zwei-Klick-Weg immer getan hat.
+  if (status === 'Gewonnen') {
+    if (!(Number(u.ae_wert) > 0)) return 'Dauer-RaaS-Betrag fehlt oder ist 0';
+  } else if (!(Number(u.angebotswert) > 0)) {
+    return 'Angebotswert fehlt oder ist 0';
+  }
   return null;
 }
 
-// Der BK-Deal leitet sich weitgehend aus dem Verlaengerungs-Deal ab — die Erfassung soll zwei
-// Klicks sein, nicht ein zweites Formular. Angegeben werden muss nur der Betrag.
+// Felder, die das VOLLE BK-Formular mitbringt und die unveraendert durchgereicht werden.
+// Frueher pickte diese Funktion elf Werte und warf termin_mit_daniel, automatische_verlaengerung
+// und abgerechnet stillschweigend weg — also ausgerechnet die Felder, wegen denen der Vertrieb
+// das volle Formular wollte. Sie stehen jetzt in einer Liste, damit das nicht wieder passiert.
+const UMSTELLUNG_UEBERNEHMEN = ['angebotsnummer', 'dienstleistung', 'laufzeit_monate',
+  'termin_mit_daniel', 'automatische_verlaengerung', 'abgerechnet', 'kommentar', 'kundennummer'];
+
+/**
+ * Der BK-Deal aus dem Formular. Was der Erfasser angibt, gewinnt; alles andere leitet sich aus
+ * dem Verlaengerungs-Deal ab, damit die Erfassung kurz bleibt.
+ *
+ * Der STATUS entscheidet ueber die Trichterstufe:
+ *   'Offen'    -> Umstellung wurde ANGEBOTEN, der Verlaengerungs-Deal laeuft normal weiter
+ *   'Gewonnen' -> Direkt-Umstellung (bisheriger Weg)
+ */
 function bkBodyAus(vl, u, datum, vlId) {
-  const betrag = Number(u.ae_wert);
   const status = u.status || 'Gewonnen';
-  return {
+  const betrag = u.ae_wert != null && u.ae_wert !== '' ? Number(u.ae_wert) : null;
+  const angebot = u.angebotswert != null ? Number(u.angebotswert) : betrag;
+  const body = {
     datum,
-    monat: String(datum).slice(0, 7),
+    monat: u.monat || String(datum).slice(0, 7),
     company_id: u.company_id ?? vl.company_id,
     kam_id: u.kam_id ?? vl.kam_id,
     kunde: u.kunde ?? vl.kunde,
-    angebotsnummer: u.angebotsnummer ?? null,
-    dienstleistung: u.dienstleistung || 'Dauer-RaaS',
-    angebotswert: u.angebotswert != null ? Number(u.angebotswert) : betrag,
-    laufzeit_monate: u.laufzeit_monate != null ? Number(u.laufzeit_monate) : 12,
+    angebotswert: angebot,
     status,
-    ae_wert: betrag,
-    gewonnen_datum: status === 'Gewonnen' ? datum : null,
-    kundennummer: u.kundennummer ?? vl.kundennummer ?? null,
-    kommentar: u.kommentar ?? `Umstellung der Verlängerung${vlId ? ` #${vlId}` : ''} auf Dauer-RaaS`,
+    // Ein Angebot traegt noch keinen realisierten AE — der kommt erst mit der Annahme.
+    ae_wert: status === 'Gewonnen' ? betrag : (betrag ?? null),
+    gewonnen_datum: status === 'Gewonnen' ? (toYmd(u.gewonnen_datum) || datum) : null,
     herkunft: UMSTELLUNG_HERKUNFT,
   };
+  for (const f of UMSTELLUNG_UEBERNEHMEN) if (u[f] !== undefined) body[f] = u[f];
+  if (body.dienstleistung == null || body.dienstleistung === '') body.dienstleistung = 'Dauer-RaaS';
+  if (body.laufzeit_monate == null || body.laufzeit_monate === '') body.laufzeit_monate = 12;
+  if (body.kundennummer == null) body.kundennummer = vl.kundennummer ?? null;
+  if (body.kommentar == null || body.kommentar === '') {
+    body.kommentar = `${status === 'Gewonnen' ? 'Umstellung' : 'Umstellungs-Angebot'} der Verlängerung${vlId ? ` #${vlId}` : ''} auf Dauer-RaaS`;
+  }
+  return body;
 }
 
 /**
  * Haelt Status und verknuepften Dauer-RaaS-Deal konsistent. Liefert die zu schreibende
  * umstellung_deal_bk_id — und im Fehlerfall einen 400er, nie einen halben Zustand.
  *
- * Drei Wege in die Umstellung:
- *   * `umstellung: { ae_wert, ... }`  -> neuer BK-Deal wird angelegt
+ * DER TRICHTER STECKT IM STATUS DES VERKNUEPFTEN DEALS, nicht in einer eigenen Spalte:
+ *
+ *   VL-Status      verknuepfter BK-Deal   Bedeutung
+ *   ------------   --------------------   ------------------------------------------------
+ *   != Umgestellt  kein Zeiger            nichts angeboten
+ *   != Umgestellt  Offen                  ANGEBOT LAEUFT      (Vorstufe)
+ *   != Umgestellt  Verloren               Angebot abgelehnt   (bleibt als Trichter-Punkt)
+ *   Umgestellt     Gewonnen               umgestellt
+ *
+ * Wege hinein:
+ *   * `umstellung: { ...voller BK-Deal-Koerper }` -> neuer BK-Deal (Status aus dem Formular:
+ *     'Offen' = Angebot, 'Gewonnen' = Direkt-Umstellung)
  *   * `umstellung_deal_bk_id: 123`    -> ein bereits bestehender Deal wird verknuepft
  *   * nichts davon, aber schon verknuepft -> bleibt wie es ist
  *
- * Und einer wieder heraus: faellt der Status von 'Umgestellt' zurueck, muss der Umsatz mit. Ein
- * stehengebliebener Deal hiesse 3 % fuer einen Vorgang, den es nicht mehr gibt. Geloescht wird
- * aber NUR, was diese Route selbst angelegt hat (herkunft-Marke) — ein vorher schon vorhandener,
- * bloss verknuepfter Deal wird ausschliesslich geloest.
+ * Und einer wieder heraus: nimmt jemand eine ABGESCHLOSSENE Umstellung zurueck, muss der Umsatz
+ * mit — ein stehengebliebener gewonnener Deal hiesse 3 % fuer einen Vorgang, den es nicht mehr
+ * gibt. Geloescht wird aber NUR, was diese Route selbst angelegt hat (herkunft-Marke); ein bloss
+ * verknuepfter Fremd-Deal wird ausschliesslich geloest.
+ *
+ * WICHTIG — die Grenze dieses Loeschzweigs: Er darf NUR greifen, wenn der verknuepfte Deal
+ * 'Gewonnen' ist. Frueher loeschte er bei JEDEM Zielstatus != 'Umgestellt', und genau das ist
+ * der Ruhezustand eines laufenden Angebots (VL bleibt 'Offen', Zeiger gesetzt). Da das
+ * VL-Formular bei jedem Speichern die volle Zeile schickt, haette jede beliebige Aenderung am
+ * Verlaengerungs-Deal das laufende Angebot samt Provision vernichtet — lautlos.
  */
 async function synchronisiereUmstellung({ zielStatus, body, existing, vlFelder, vlId, user }) {
   const p1 = db.dialect === 'postgres' ? '$1' : '?';
   const p2 = db.dialect === 'postgres' ? '$2' : '?';
   const vorher = existing?.umstellung_deal_bk_id ?? null;
+  const willUmgestellt = zielStatus === 'Umgestellt';
 
-  if (zielStatus !== 'Umgestellt') {
-    if (!vorher) return { id: null, neuerDeal: null };
+  // ── Ruecknahme einer ABGESCHLOSSENEN Umstellung ──
+  // Nur hier wird geloescht. Ein laufendes oder abgelehntes Angebot bleibt bestehen — es ist
+  // Trichter-Datenbestand, kein Ueberrest.
+  if (!willUmgestellt && vorher) {
     const d = await db.get(`SELECT * FROM deals_bk WHERE id=${p1}`, [vorher]);
+    if (d && d.status !== 'Gewonnen') return { id: vorher, neuerDeal: null };
     if (d && d.herkunft === UMSTELLUNG_HERKUNFT) {
       await loescheBkDeal(vorher, user);       // inkl. Storno und AE-Rueckbuchung
     }
@@ -142,8 +193,15 @@ async function synchronisiereUmstellung({ zielStatus, body, existing, vlFelder, 
   // Ausdrueckliche Verknuepfung eines bestehenden Deals
   if (body.umstellung_deal_bk_id != null) {
     const nr = Number(body.umstellung_deal_bk_id);
-    const da = await db.get(`SELECT id FROM deals_bk WHERE id=${p1}`, [nr]);
+    const da = await db.get(`SELECT id, herkunft FROM deals_bk WHERE id=${p1}`, [nr]);
     if (!da) { const e = new Error('Dauer-RaaS-Deal nicht gefunden'); e.statusCode = 400; throw e; }
+    // herkunft ist EINWERTIG. Einen Deal, der bereits aus einem anderen Vorgang stammt, hier
+    // anzuhaengen hiesse zwei Urspruenge fuer einen Datensatz — genau die Doppeldeutigkeit, die
+    // "Referenz statt Kopie" vermeiden soll. Deshalb laut ablehnen statt still ueberschreiben.
+    if (da.herkunft && da.herkunft !== UMSTELLUNG_HERKUNFT) {
+      const e = new Error(`Dieser Deal stammt bereits aus einem anderen Vorgang (${da.herkunft}) und kann nicht zusätzlich als Umstellung verknüpft werden.`);
+      e.statusCode = 400; throw e;
+    }
     const schon = await db.get(
       `SELECT id FROM deals_vl WHERE umstellung_deal_bk_id=${p1} AND id <> ${p2}`, [nr, vlId ?? -1]);
     if (schon) { const e = new Error(`Dieser Deal hängt bereits an der Verlängerung #${schon.id}`); e.statusCode = 400; throw e; }
@@ -152,13 +210,51 @@ async function synchronisiereUmstellung({ zielStatus, body, existing, vlFelder, 
 
   if (vorher) return { id: vorher, neuerDeal: null };   // schon verknuepft, nichts zu tun
 
+  // ── Neu anlegen — fuer BEIDE Stufen ──
+  // Der Status IM ANGEBOTS-KOERPER entscheidet, welche Stufe entsteht:
+  //   'Offen'    -> Umstellung wurde angeboten, der Verlaengerungs-Deal laeuft normal weiter
+  //   'Gewonnen' -> Direkt-Umstellung, der Verlaengerungs-Deal wechselt im selben Zug
+  // Deshalb steht dieser Zweig NICHT mehr hinter der Statuspruefung des VL-Deals: ein Angebot
+  // entsteht ja gerade, waehrend die Verlaengerung offen bleibt.
   const u = body.umstellung;
+  if (!u) {
+    // Gewoehnliches Speichern des Verlaengerungs-Deals, ohne dass eine Umstellung im Spiel ist.
+    if (!willUmgestellt) return { id: null, neuerDeal: null };
+    const e = new Error('Angaben zum Dauer-RaaS-Deal fehlen'); e.statusCode = 400; throw e;
+  }
   const fehler = pruefeUmstellung(u, vlFelder);
   if (fehler) { const e = new Error(fehler); e.statusCode = 400; throw e; }
-  const datum = String(vlFelder.dauervertrag_datum || '').slice(0, 10);
-  const neuerDeal = await erstelleBkDeal(bkBodyAus(vlFelder, u, datum, vlId), user);
+  // Ein Angebot darf den Verlaengerungs-Deal nicht heben; das tut erst die Annahme.
+  const koerper = bkBodyAus(vlFelder, u, angebotsDatum(u, vlFelder), vlId);
+  if (willUmgestellt && koerper.status !== 'Gewonnen') {
+    const e = new Error('Eine abgeschlossene Umstellung braucht einen gewonnenen Dauer-RaaS-Deal.');
+    e.statusCode = 400; throw e;
+  }
+  const neuerDeal = await erstelleBkDeal(koerper, user);
   return { id: neuerDeal.id, neuerDeal };
 }
+
+/**
+ * Anlagedatum des Dauer-RaaS-Deals. Das VOLLE Formular bringt sein eigenes Datum mit; fehlt es,
+ * gilt der Umstellungstag, sonst heute.
+ *
+ * Frueher kam das Datum ausschliesslich aus dauervertrag_datum. In der Vorstufe ist dieses Feld
+ * aber null (der VL-Deal ist ja noch nicht umgestellt) -> datum='' und monat='' -> unter
+ * Postgres ein 500er auf DATE NOT NULL, unter SQLite klaglos eine leere Zeichenkette. Ein Fehler,
+ * der lokal unsichtbar und erst auf Railway sichtbar gewesen waere.
+ */
+function angebotsDatum(u, vlFelder) {
+  const kandidaten = [u?.datum, vlFelder?.dauervertrag_datum, heuteYmd()];
+  for (const k of kandidaten) {
+    const t = toYmd(k);
+    if (t) return t;
+  }
+  return heuteYmd();
+}
+const heuteYmd = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
 // Der Stand des Dauer-RaaS-Deals wird IMMER live mitgelesen, nie kopiert — dasselbe Prinzip wie
 // bei den Willkommensmeetings. Faellt der Deal weg, liefert der LEFT JOIN NULL und die Oberflaeche
@@ -569,6 +665,17 @@ router.delete('/:id', wrap(async (req, res) => {
     try { await provisionSyncBk({ ...existing, status: 'Gelöscht' }, 'vl'); } catch (e) { console.error('[prov-vl] DELETE:', e.message); }
   }
   const p = db.dialect === 'postgres' ? '$1' : '?';
+  // Ein verknuepfter Dauer-RaaS-Deal darf nicht als Waise zurueckbleiben: auf ihn zeigt danach
+  // nichts mehr, seine Provision liefe aber weiter. Entfernt wird er ueber den REGULAEREN Weg
+  // (Storno und AE-Rueckbuchung inklusive) und mit derselben Grenze wie bei der Ruecknahme:
+  // nur, was diese Route selbst angelegt hat. Ein bloss verknuepfter Fremd-Deal wird geloest.
+  if (existing?.umstellung_deal_bk_id) {
+    try {
+      const d = await db.get(`SELECT id, herkunft FROM deals_bk WHERE id=${p}`, [existing.umstellung_deal_bk_id]);
+      if (d && d.herkunft === UMSTELLUNG_HERKUNFT) await loescheBkDeal(d.id, req.user);
+      else if (d) await db.run(`UPDATE deals_vl SET umstellung_deal_bk_id=NULL WHERE id=${p}`, [req.params.id]);
+    } catch (e) { console.error('[vl] DELETE, verknuepfter Dauer-RaaS-Deal:', e.message); }
+  }
   await db.run(`DELETE FROM deals_vl WHERE id=${p}`, [req.params.id]);
   await logAudit({ user: req.user, action: 'delete', entityType: 'deal_vl', entityId: Number(req.params.id), oldData: existing });
   res.status(204).end();

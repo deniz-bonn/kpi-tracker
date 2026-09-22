@@ -73,23 +73,46 @@ function zeitraum(req) {
 
 // Trichter der Kohorte. Die vier Ausgaenge sind EXPLIZIT gezaehlt, nie als Rest — ein Rest haette
 // den dritten Ausgang still zu "offen" gemacht.
+// Der Trichter hat zwei Stufen. Die erste steht NICHT im VL-Status, sondern im Status des
+// verknuepften Dauer-RaaS-Deals:
+//
+//   angeboten  = es existiert ein verknuepfter Deal, egal wie er ausgegangen ist.
+//                Eine Direkt-Umstellung zaehlt damit als "angeboten UND angenommen am selben
+//                Tag" — fachlich richtig: sie ist ein erfolgreiches Angebot. Wuerde nur der
+//                Status 'Offen' zaehlen, fiele jedes Angebot aus der Quote, sobald es entschieden
+//                ist, und die Quote saenke ausgerechnet dann, wenn etwas gelingt.
+//   angenommen = der VL-Deal steht auf 'Umgestellt'.
+//
+// Der AE zaehlt weiterhin NUR bei angenommenen Umstellungen. Ein offenes Angebot ist noch kein
+// Umsatz; sein Angebotswert steht in der BK-Pipeline, wo er hingehoert.
 const TRICHTER = `
   COUNT(*) AS anstehend,
+  SUM(CASE WHEN d.umstellung_deal_bk_id IS NOT NULL THEN 1 ELSE 0 END) AS angeboten,
+  SUM(CASE WHEN u.status='Offen' THEN 1 ELSE 0 END) AS angebot_offen,
+  SUM(CASE WHEN u.status='Verloren' THEN 1 ELSE 0 END) AS angebot_abgelehnt,
   SUM(CASE WHEN d.status='Umgestellt' THEN 1 ELSE 0 END) AS umgestellt,
   SUM(CASE WHEN d.status='Gewonnen'   THEN 1 ELSE 0 END) AS verlaengert,
   SUM(CASE WHEN d.status='Verloren'   THEN 1 ELSE 0 END) AS gekuendigt,
   SUM(CASE WHEN d.status='Offen'      THEN 1 ELSE 0 END) AS offen,
-  SUM(CASE WHEN d.status='Umgestellt' THEN ${UMS_EUR} ELSE 0 END) AS dauer_raas_ae
+  SUM(CASE WHEN d.status='Umgestellt' THEN ${UMS_EUR} ELSE 0 END) AS dauer_raas_ae,
+  SUM(CASE WHEN u.status='Offen' THEN COALESCE(u.angebotswert,0) ELSE 0 END) AS angebot_volumen
 `;
 
 function quoten(r) {
   const anstehend = n(r.anstehend), umgestellt = n(r.umgestellt);
   const verlaengert = n(r.verlaengert), gekuendigt = n(r.gekuendigt);
+  const angeboten = n(r.angeboten);
   const entschieden = umgestellt + verlaengert + gekuendigt;
   return {
-    anstehend, umgestellt, verlaengert, gekuendigt, offen: n(r.offen),
+    anstehend, angeboten, umgestellt, verlaengert, gekuendigt, offen: n(r.offen),
+    angebot_offen: n(r.angebot_offen), angebot_abgelehnt: n(r.angebot_abgelehnt),
     entschieden,
     dauer_raas_ae: Math.round(n(r.dauer_raas_ae) * 100) / 100,
+    angebot_volumen: Math.round(n(r.angebot_volumen) * 100) / 100,
+    // Stufe 1: wie oft haben wir die Umstellung ueberhaupt angeboten?
+    angebotsquote: anstehend > 0 ? r1((angeboten / anstehend) * 100) : null,
+    // Stufe 2: und wie oft wurde sie angenommen? Nenner sind die Angebote, nicht die Kohorte.
+    annahmequote: angeboten > 0 ? r1((umgestellt / angeboten) * 100) : null,
     // Umstellungsquote auf der ganzen Kohorte — das ist die Frage des Bereichs:
     // wie viele der anstehenden Verlaengerungen haben wir gehoben?
     umstellungsquote: anstehend > 0 ? r1((umgestellt / anstehend) * 100) : null,
@@ -124,9 +147,14 @@ router.get('/', wrap(async (req, res) => {
 
   const liste = await db.all(
     `SELECT d.id, d.monat, d.kunde, d.status, d.ae_wert, d.kam_id, d.dauervertrag_datum,
+            -- company_id und kundennummer braucht das Umstellungs-Formular zur Vorbelegung;
+            -- ohne sie stuende die Company dort leer und waere ein Pflichtfeld zum Raten.
+            d.company_id, d.kundennummer,
             d.umstellung_deal_bk_id, d.wie_vielt_verlaengerung, d.ende_kuendigungsfrist,
             k.name AS kam_name, k.standort AS kam_standort,
             u.status AS umstellung_status, u.ae_wert AS umstellung_ae_wert,
+            u.angebotswert AS umstellung_angebotswert, u.dienstleistung AS umstellung_dienstleistung,
+            u.laufzeit_monate AS umstellung_laufzeit, u.automatische_verlaengerung AS umstellung_auto_vl,
             u.monat AS umstellung_monat, u.herkunft AS umstellung_herkunft,
             ${UMS_EUR} AS umstellung_ae_wert_eur
        ${JOINS}${where}

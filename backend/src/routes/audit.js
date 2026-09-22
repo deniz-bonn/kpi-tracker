@@ -75,9 +75,11 @@ router.post('/:id/undo', requireRole('admin'), wrap(async (req, res) => {
   // Solche Aenderungen gehoeren ueber die regulaere Route, die ihre Hooks mitbringt. Deshalb
   // hier bewusst eine Sperre mit Hinweis statt eines stillen Teil-Undos: ein Undo, das die
   // Haelfte macht, waere schlimmer als keines.
+  // 'herkunft' steht bewusst mit drin: sie ist der Ausloeser der Umstellungs-Automatik. Ein Undo,
+  // das sie zuruecksetzt, entkoppelte einen Dauer-RaaS-Deal lautlos von seiner Verlaengerung.
   const GELDWIRKSAM = ['status', 'ae_wert', 'gewonnen_datum', 'gewonnen_monat', 'kam_id',
     'closer_id', 'company_id', 'angebotswert', 'dauervertrag_datum', 'dauervertrag_umgestellt',
-    'umstellung_deal_bk_id'];
+    'umstellung_deal_bk_id', 'herkunft'];
   if (currentData) {
     const gleich = (a, b) => String(a ?? '') === String(b ?? '');
     const betroffen = GELDWIRKSAM.filter(f =>

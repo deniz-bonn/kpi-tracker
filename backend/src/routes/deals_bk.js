@@ -208,9 +208,75 @@ router.put('/:id', wrap(async (req, res) => {
   // State-based: provisionSyncBk rechnet das Soll des NEUEN Zustands und bucht die Differenz.
   // Damit sind Gewinn, Storno, ae_wert-Aenderung und KAM-Wechsel mit einem Aufruf abgedeckt.
   try { await provisionSyncBk(row, 'bk'); } catch (e) { console.error('[prov-bk] PUT:', e.message); }
+  // Umstellungs-Angebot angenommen oder zurueckgenommen -> Verlaengerungs-Deal nachfuehren.
+  const flip = await fuehreUmstellungNach(existing, row, req.user);
   await logAudit({ user: req.user, action: 'update', entityType: 'deal_bk', entityId: Number(req.params.id), oldData: existing, newData: row });
-  res.json(row);
+  res.json(flip ? { ...row, umstellung_vl: flip } : row);
 }));
+
+// ── Automatik BK -> VL ───────────────────────────────────────────────────────
+//
+// Ein Umstellungs-Angebot (BK-Deal mit herkunft='vl_umstellung', Status 'Offen') wird angenommen:
+// der verknuepfte Verlaengerungs-Deal wechselt auf 'Umgestellt'. Wird die Annahme zurueckgenommen,
+// geht er auf 'Offen' zurueck.
+//
+// WARUM HIER UND NICHT IN erstelleBkDeal(): Jene Funktion laeuft im VL-POST/PUT VOR dem
+// deals_vl-UPDATE. Ein dort geschriebener VL-Zustand wuerde von den bereits berechneten `values`
+// kommentarlos ueberschrieben, und syncAeGesamtVL liefe zweimal mit unterschiedlichem `prev`.
+//
+// WARUM DIREKT SCHREIBEN UND NICHT UEBER DIE VL-ROUTE: Die VL-Route ruft ihrerseits
+// synchronisiereUmstellung, das wieder auf deals_bk zugreift — ein Zyklus. Wir schreiben deshalb
+// gezielt und rufen die VL-Hooks selbst, GENAU EINMAL. Damit kann keine Schleife entstehen, statt
+// sich auf einen Early Return zu verlassen, den ein spaeterer Umbau entfernen koennte.
+//
+// syncAeGesamtVL ist delta-basiert und NICHT idempotent: `prev` muss der Stand unmittelbar vor
+// dem Schreiben sein, und der Aufruf darf sich nicht wiederholen. provisionSyncBk ist dagegen
+// zustandsbasiert und vertraegt Wiederholung.
+async function fuehreUmstellungNach(prev, row, user) {
+  if (!row || row.herkunft !== 'vl_umstellung') return null;
+  const wurdeGewonnen = prev?.status !== 'Gewonnen' && row.status === 'Gewonnen';
+  const nichtMehrGewonnen = prev?.status === 'Gewonnen' && row.status !== 'Gewonnen';
+  if (!wurdeGewonnen && !nichtMehrGewonnen) return null;
+
+  const p = db.dialect === 'postgres' ? (i) => `$${i}` : () => '?';
+  try {
+    const vl = await db.get(`SELECT * FROM deals_vl WHERE umstellung_deal_bk_id=${p(1)}`, [row.id]);
+    if (!vl) return null;
+
+    // Lazy require: deals_vl laedt beim Start deals_bk (erstelleBkDeal). Ein Require auf
+    // Modulebene waere ein Zyklus — index.js laedt deals_bk zuerst, deals_vl waere dann noch
+    // ein leeres Objekt. Zur Aufrufzeit sind beide Module fertig geladen.
+    const { syncAeGesamtVL } = require('./deals_vl');
+    const { toYmd } = require('../utils/gewonnen');
+
+    const zielStatus = wurdeGewonnen ? 'Umgestellt' : 'Offen';
+    // Reihenfolge zwingend: erst das Datum, dann der Status. resolveGewonnenFelder leitet die
+    // Ereignisachse bei 'Umgestellt' aus dauervertrag_datum ab und wirft ohne es einen 400er.
+    const datum = wurdeGewonnen ? (toYmd(row.gewonnen_datum) || toYmd(row.datum)) : null;
+    const monat = datum ? datum.slice(0, 7) : null;
+
+    const felder = ['status', 'dauervertrag_umgestellt', 'dauervertrag_datum', 'gewonnen_datum', 'gewonnen_monat'];
+    const werte = [zielStatus, wurdeGewonnen ? 1 : 0, datum, datum, monat];
+    const set = felder.map((f, i) => `${f}=${p(i + 1)}`).join(',');
+    const stamp = db.dialect === 'postgres' ? 'NOW()' : `datetime('now')`;
+    await db.run(`UPDATE deals_vl SET ${set}, updated_at=${stamp} WHERE id=${p(felder.length + 1)}`,
+      [...werte, vl.id]);
+    const neu = await db.get(`SELECT * FROM deals_vl WHERE id=${p(1)}`, [vl.id]);
+
+    // Die VL-Hooks genau einmal, mit dem Stand UNMITTELBAR davor als prev.
+    try { await syncAeGesamtVL(neu, vl); } catch (e) { console.error('[sync-vl] flip:', e.message); }
+    try { await provisionSyncBk(neu, 'vl'); } catch (e) { console.error('[prov-vl] flip:', e.message); }
+    await logAudit({ user, action: 'update', entityType: 'deal_vl', entityId: vl.id,
+      oldData: vl, newData: neu });
+    return { id: vl.id, von: vl.status, nach: zielStatus };
+  } catch (e) {
+    // Fehlschlag darf das Speichern des BK-Deals nicht brechen — aber er darf auch nicht
+    // verschwinden: sonst stuende ein gewonnenes Angebot neben einer Verlaengerung, die noch
+    // laeuft, und beide wuerden gezaehlt.
+    console.error('[umstellung] Nachfuehrung des VL-Deals fehlgeschlagen:', e.message);
+    return null;
+  }
+}
 
 /**
  * Deal loeschen — inklusive Storno, AE-Rueckbuchung und Aufraeumen der Verknuepfungen.
