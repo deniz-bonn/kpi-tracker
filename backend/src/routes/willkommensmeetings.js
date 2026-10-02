@@ -2,7 +2,6 @@ const router = require('express').Router();
 const db     = require('../db');
 const wrap   = require('../middleware/asyncHandler');
 const { requireAuth } = require('../middleware/auth');
-const { normalisiereLeereFelder } = require('../utils/leereFelder');
 const { logAudit }   = require('../utils/audit');
 // Der Deal wird ueber DIESE Funktion angelegt, nicht per eigenem INSERT: die Hooks (AE-Snapshot,
 // BK-Provision, Audit) haengen an der Route, nicht an der Tabelle — es gibt keinen DB-Trigger auf
@@ -25,9 +24,6 @@ const { loadRates, toEur } = require('../utils/currency');
 // ─────────────────────────────────────────────────────────────────────────────
 
 router.use(requireAuth);
-// Geleerte Zahlen-/Datumsfelder kommen als '' an; Postgres lehnt das ab (500).
-// Siehe utils/leereFelder.js — die Oberflaeche filtert bereits, das hier gilt API und Import.
-router.use(normalisiereLeereFelder);
 const P  = db.dialect === 'postgres';
 const ph = i => (P ? `$${i}` : '?');
 

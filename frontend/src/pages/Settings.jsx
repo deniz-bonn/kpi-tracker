@@ -354,7 +354,14 @@ export default function Settings() {
   const { data: targets   = [] } = useQuery({ queryKey: ['targets'],   queryFn: () => targetsApi.list({}) });
 
   const createCompany = useMutation({ mutationFn: companiesApi.create, onSuccess: () => { qc.invalidateQueries({queryKey:['companies']}); setCompanyForm({name:'',standort:''}); } });
-  const upsertTarget  = useMutation({ mutationFn: targetsApi.upsert,   onSuccess: () => { qc.invalidateQueries({queryKey:['targets']}); } });
+  // Rueckmeldung ist Pflicht, nicht Zierde: Ohne onError quittierte dieses Formular einen
+  // abgelehnten Speicherversuch mit vollkommenem Stillstand — gemeldet als "da passiert nichts".
+  const [zielMsg, setZielMsg] = useState(null);
+  const upsertTarget  = useMutation({
+    mutationFn: targetsApi.upsert,
+    onSuccess: () => { qc.invalidateQueries({queryKey:['targets']}); setZielMsg({ ok: 'Ziel gespeichert.' }); },
+    onError: (err) => setZielMsg({ err: err?.response?.data?.error || err?.message || 'Speichern fehlgeschlagen.' }),
+  });
 
   const { data: stZiele = [] } = useQuery({
     queryKey: ['monthly-targets-standort-all'],
@@ -835,7 +842,7 @@ export default function Settings() {
 
         <section className="rounded-xl border border-gray-200 bg-white p-5">
           <h2 className="text-sm font-semibold text-gray-700 mb-4">Monatsziele setzen</h2>
-          <form onSubmit={e => { e.preventDefault(); upsertTarget.mutate(targetForm); }} className="space-y-3">
+          <form onSubmit={e => { e.preventDefault(); setZielMsg(null); upsertTarget.mutate(targetForm); }} className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-gray-600 mb-1 block">Company</label>
@@ -861,7 +868,14 @@ export default function Settings() {
                 <input type="number" value={targetForm.vl_ziel} onChange={e => setTargetForm(f=>({...f,vl_ziel:e.target.value}))} className={inp} />
               </div>
             </div>
-            <button type="submit" className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded">Ziel speichern</button>
+            <div className="flex items-center gap-3">
+              <button type="submit" disabled={upsertTarget.isPending}
+                className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm rounded">
+                {upsertTarget.isPending ? 'Speichert…' : 'Ziel speichern'}
+              </button>
+              {zielMsg?.ok  && <span className="text-xs text-green-700">{zielMsg.ok}</span>}
+              {zielMsg?.err && <span className="text-xs text-red-600">{zielMsg.err}</span>}
+            </div>
           </form>
           {targets.length > 0 && (
             <div className="mt-4 space-y-2">

@@ -10,6 +10,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Geleerte Eingabefelder kommen als '' an; Postgres lehnt das fuer Zahl-, Ganzzahl- und
+// Datumsspalten mit 500 ab, SQLite schluckt es. EINMAL global statt Route fuer Route —
+// die route-weise Variante hatte die Deal-Formulare versorgt und die Ziel-Formulare nicht.
+app.use(require('./utils/leereFelder').normalisiereLeereFelder);
 // ── Public routes (no auth) ──────────────────────────────────────────────────
 app.use('/api/auth', require('./routes/auth'));
 
