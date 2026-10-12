@@ -298,7 +298,13 @@ es ab, sind es Daten; weicht nur die Quote ab, war es der Code.
 
 1. **Migrationen immer doppelt** anlegen (`.pg.sql` für Railway-Postgres, `.sql` für SQLite lokal); Postgres-Booleans brauchen `TRUE/FALSE`, SQLite `1/0`. Läuft statementweise über den Pool → keine TEMP-Tabellen.
 2. **Keine doppelten Mitarbeiter anlegen** — führt zu doppelten Zeilen in Auswertungen und fehlgeleiteten AE-Buchungen (Migration 071/072 hat Altfälle bereinigt).
-3. `datum` kommt aus Postgres als ISO-Timestamp → im Frontend immer auf `YYYY-MM-DD` normalisieren (`String(d).slice(0,10)`), bevor verglichen wird.
+3. **DATE-Spalten kommen als `'YYYY-MM-DD'`-String** (seit 12.10.2026: `pg.types.setTypeParser(1082)` in
+   `db/index.js`, prozessweit). Vorher lieferte node-pg ein JS-Date in der *lokalen* Prozesszeit, `res.json`
+   daraus einen ISO-Zeitstempel — bei TZ=UTC `…T00:00:00.000Z` (Tag stimmt), bei Europe/Berlin der
+   Vortag `…T22:00:00.000Z`. Jeder `slice(0,10)` im Frontend hing damit an der Container-Zeitzone.
+   Die Normalisierung `String(d).slice(0,10)` bleibt harmlos und darf stehen; TIMESTAMPTZ
+   (`created_at`, `updated_at`, …) ist unverändert ein Zeitstempel. Wer eine neue Verbindung außerhalb
+   von `db/index.js` aufbaut (eigenes `require('pg')`), bekommt den Parser nicht automatisch.
 4. Monatsziele 276/740 sind **fix** — nicht „reparieren" auf Arbeitstage-Basis.
 5. Durchstellungsquote **immer** `beratung_vereinbart / settings_stattgefunden`.
 6. `wie_vielt_verlaengerung` sollte bei allen VL-Deals gepflegt sein (sonst Zeile „Ohne Angabe" in der Churn-Tabelle); ungültige Werte (< 1) werden ignoriert.

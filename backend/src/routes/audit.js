@@ -3,6 +3,7 @@ const db     = require('../db');
 const wrap   = require('../middleware/asyncHandler');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { logAudit } = require('../utils/audit');
+const { toYmd }    = require('../utils/gewonnen');
 
 // All audit routes require auth; undo requires admin or backoffice
 router.use(requireAuth);
@@ -81,9 +82,15 @@ router.post('/:id/undo', requireRole('admin'), wrap(async (req, res) => {
     'closer_id', 'company_id', 'angebotswert', 'dauervertrag_datum', 'dauervertrag_umgestellt',
     'umstellung_deal_bk_id', 'herkunft'];
   if (currentData) {
-    const gleich = (a, b) => String(a ?? '') === String(b ?? '');
+    // Datumsfelder formneutral vergleichen: Eintraege von vor dem 12.10.2026 tragen gewonnen_datum
+    // als ISO-Zeitstempel ('2026-08-06T00:00:00.000Z', so hat res.json das damalige JS-Date
+    // serialisiert), die aktuelle Zeile liefert seit dem DATE-Typparser 'YYYY-MM-DD'. Ein reiner
+    // String-Vergleich hielte jeden Alt-Eintrag fuer geldwirksam veraendert und sperrte ihn mit 409.
+    const DATUMSFELDER = new Set(['gewonnen_datum', 'dauervertrag_datum']);
+    const norm   = (f, v) => (DATUMSFELDER.has(f) ? (toYmd(v) ?? '') : String(v ?? ''));
+    const gleich = (f, a, b) => norm(f, a) === norm(f, b);
     const betroffen = GELDWIRKSAM.filter(f =>
-      Object.prototype.hasOwnProperty.call(oldData, f) && !gleich(oldData[f], currentData[f]));
+      Object.prototype.hasOwnProperty.call(oldData, f) && !gleich(f, oldData[f], currentData[f]));
     if (betroffen.length) {
       return res.status(409).json({
         error: `Rückgängig machen nicht möglich: ${betroffen.join(', ')} ist geldwirksam. `

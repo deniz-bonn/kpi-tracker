@@ -4,10 +4,10 @@
 // Request-Body übernommen oder auf NULL gesetzt werden, solange der Status Gewonnen ist,
 // sondern immer deterministisch aus dem effektiven gewonnen_datum abgeleitet werden.
 //
-// Robust gegen die Postgres-Falle: DATE-Spalten kommen aus node-pg als JS-Date-Objekt
-// zurück (kein Typparser gesetzt). Ein Date hat kein .slice — das alte gd.slice(0,7) warf
-// deshalb bei Folge-Edits, bei denen der Body kein gewonnen_datum mitschickt. toYmd
-// normalisiert String ('YYYY-MM-DD'), ISO-String und JS-Date einheitlich auf 'YYYY-MM-DD'.
+// toYmd normalisiert String ('YYYY-MM-DD'), ISO-String und JS-Date einheitlich auf 'YYYY-MM-DD'.
+// Seit 12.10.2026 liefert db/index.js DATE-Spalten prozessweit als 'YYYY-MM-DD'-String
+// (setTypeParser 1082); der Date-Zweig bleibt fuer Bodies, Alt-Audit-Eintraege und Backups
+// in ISO-Form sowie fuer Verbindungen ohne den Parser (Standalone-Skripte).
 
 function toYmd(v) {
   if (v == null || v === '') return null;

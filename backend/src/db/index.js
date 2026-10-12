@@ -7,7 +7,17 @@ const dialect = usePostgres ? 'postgres' : 'sqlite';
 let db;
 
 if (usePostgres) {
-  const { Pool } = require('pg');
+  const pg = require('pg');
+  // DATE-Spalten (OID 1082) als 'YYYY-MM-DD'-String liefern, nicht als JS-Date.
+  // node-pg baut aus einem DATE sonst new Date(y, m-1, d) in der LOKALEN Zeit des Prozesses;
+  // res.json macht daraus einen ISO-Zeitstempel. Bei TZ=UTC lautet der '…T00:00:00.000Z' und
+  // slice(0,10) trifft den Tag — bei Europe/Berlin stuende '…T22:00:00.000Z' des VORTAGES, und
+  // jeder Tagesvergleich im Frontend waere um eins verschoben (die DATE-Falle aus Migration 102).
+  // Ein String ist dialektgleich mit SQLite (dort TEXT 'YYYY-MM-DD'), zeitzonenfrei und exakt
+  // das, was input[type=date] und jeder '<=' -Vergleich brauchen. TIMESTAMPTZ bleibt unberuehrt.
+  // Gilt prozessweit fuer jeden Pool dieses pg-Moduls — migrate.js laedt dieselbe Datei.
+  pg.types.setTypeParser(1082, v => v);
+  const { Pool } = pg;
   // DATABASE_URL (Railway) takes priority over individual PGHOST/PGPORT/... vars
   const poolConfig = process.env.DATABASE_URL
     ? { connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }
