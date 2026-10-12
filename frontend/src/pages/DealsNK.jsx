@@ -9,7 +9,8 @@ import { computeMedals, medalRowClass, medalBarClass, MedalBadge, MiniPodium } f
 import { celebrateWin, shouldCelebrate } from '../components/Celebration';
 import { useAuth } from '../context/AuthContext';
 import { KEIN_ANGEBOT_GRUENDE, GRUND_LABEL, INFO_TEXTE, hatAngebot, istKeinAngebot,
-         rollenStats, zeitraumVorTracking, KEIN_ANGEBOT_HINWEIS } from '../utils/nkConstants';
+         rollenStats, klassischeKpis, callStats, dealFilterPred, zeitraumVorTracking, KEIN_ANGEBOT_HINWEIS } from '../utils/nkConstants';
+import NkMonatsvergleich from '../components/NkMonatsvergleich';
 import InfoPopover from '../components/InfoPopover';
 
 // AE-Euro-Betrag eines Deals fuer Umsatz-Summen, 0 wenn der AE (noch) nicht getrackt wird
@@ -155,53 +156,30 @@ export default function DealsNK() {
 
   // Gefilterte Deals — listDeals treibt die Deal-LISTE (zeigt auch noch-nicht-aktive
   // Companies wie Risem zur Kontrolle); filtered = nur aktive Companies, treibt alle Stats/KPIs.
-  const listDeals = useMemo(() => deals.filter(d =>
-    (!filterQuelle   || d.quelle          === filterQuelle) &&
-    (!filterCloser   || String(d.closer_id) === filterCloser) &&
-    (!filterOpener   || String(d.opener_id) === filterOpener) &&
-    (!filterSetter   || String(d.setter_id) === filterSetter) &&
-    (!filterStatus   || d.status           === filterStatus) &&
-    (!filterStandort || d.closer_standort  === filterStandort) &&
+  // Zeilen-Praedikat der Filterleiste (nkConstants.dealFilterPred) — geteilt mit dem Monatsvergleich,
+  // der bewusst OHNE Status-Filter laeuft (sonst macht „Gewonnen" jede Quote zu 100 %).
+  const filterPred = useMemo(() => dealFilterPred({ quelle: filterQuelle, closer: filterCloser, opener: filterOpener,
+    setter: filterSetter, status: filterStatus, standort: filterStandort }),
+    [filterQuelle, filterCloser, filterOpener, filterSetter, filterStatus, filterStandort]);
+  const vergleichPred = useMemo(() => dealFilterPred({ quelle: filterQuelle, closer: filterCloser, opener: filterOpener,
+    setter: filterSetter, standort: filterStandort }),
+    [filterQuelle, filterCloser, filterOpener, filterSetter, filterStandort]);
+  const listDeals = useMemo(() => deals.filter(d => filterPred(d) &&
     (zeitMode !== 'zeitraum' || ((d.monat || '').trim() >= vonMonat && (d.monat || '').trim() <= bisMonat))
-  ), [deals, filterQuelle, filterCloser, filterOpener, filterSetter, filterStatus, filterStandort, zeitMode, vonMonat, bisMonat]);
+  ), [deals, filterPred, zeitMode, vonMonat, bisMonat]);
+  // Monatsvergleich: Basismonat folgt der Seite (Monat / Zeitraum-Ende / Kalendermonat), Stichtag = heutiger Tag.
+  const heuteTag       = new Date().getDate();
+  const vergleichMonat = zeitMode === 'monat' ? monat : zeitMode === 'zeitraum' ? bisMonat : currentMonat();
+  const canSeeTargets  = ['superadmin', 'admin', 'vertriebsleitung'].includes(user?.role);   // wie Ziel/Differenz im Dashboard
   const filtered = useMemo(() => listDeals.filter(isDealCompanyActive), [listDeals]);
   // calls = ALLE Closing Calls (inkl. ohne Angebot) -> bereinigte Rate & Angebotsquote.
   // angebote = nur Deals MIT Angebot -> alle KLASSISCHEN Quoten/Tabellen (Kein-Angebot-Deals ändern sie NICHT).
   const calls    = filtered;
   const angebote = useMemo(() => filtered.filter(hatAngebot), [filtered]);
 
-  // Klassische KPIs — angebotsbasiert
-  const kpis = useMemo(() => {
-    const gew = angebote.filter(d => d.status === 'Gewonnen');
-    const ae  = gew.reduce((s, d) => s + aeEur(d), 0);
-    const agw = angebote.reduce((s, d) => s + (Number(d.angebotswert_eur ?? d.angebotswert) || 0), 0);
-    const n   = angebote.length;
-    const autoJ = gew.filter(d => d.automatische_verlaengerung === 'Ja').length;
-    const abgJ  = gew.filter(d => d.abgerechnet === 'Ja').length;
-    return {
-      total:                  n,
-      gewonnen:               gew.length,
-      verloren:               angebote.filter(d => d.status === 'Verloren').length,
-      in_verhandlung:         angebote.filter(d => d.status === 'In Verhandlung').length,
-      in_closing2:            angebote.filter(d => d.status === 'In Closing Call 2').length,
-      ae_summe:               ae,
-      angebotswert_gesamt:    agw,
-      wert_offen:             angebote.filter(d => !['Gewonnen','Verloren'].includes(d.status))
-                                .reduce((s, d) => s + (Number(d.angebotswert_eur ?? d.angebotswert) || 0), 0),
-      gewonnen_cc:            gew.filter(d => d.quelle === 'Cold Calling').length,
-      gewonnen_mail:          gew.filter(d => d.quelle === 'Mail').length,
-      gewonnen_fax:           gew.filter(d => d.quelle === 'Fax').length,
-      quote_angebote:         n > 0 ? (gew.length / n * 100).toFixed(2) : '0.00',
-      quote_wert:             agw > 0 ? (ae / agw * 100).toFixed(2) : '0.00',
-      quote_mit_av:           gew.length > 0
-                                ? (gew.filter(d => Number(d.ae_wert) > 0).length / gew.length * 100).toFixed(2)
-                                : '0.00',
-      auto_verlaengerung:       autoJ,
-      auto_verlaengerung_quote: gew.length > 0 ? (autoJ / gew.length * 100).toFixed(1) : '0.0',
-      abgerechnet_ja:           abgJ,
-      abgerechnet_quote:        gew.length > 0 ? (abgJ / gew.length * 100).toFixed(1) : '0.0',
-    };
-  }, [angebote]);
+  // Klassische KPIs — angebotsbasiert. Rechnung lebt in nkConstants.js (klassischeKpis), damit
+  // der Monatsvergleich dieselbe Funktion je Monatsstand aufrufen kann.
+  const kpis = useMemo(() => klassischeKpis(angebote, aeEur), [angebote]);
 
   // Standort-Statistiken (nur wenn alle Standorte sichtbar) — angebotsbasiert
   const standortStats = useMemo(() => STANDORTE.map(standort => {
@@ -232,20 +210,8 @@ export default function DealsNK() {
   const closerStats = useMemo(() => rollenStats(calls, 'closer', aeEur), [calls]);
 
   // ── Angebotsquote & bereinigte Closing Rate (Basis: ALLE Closing Calls) ──
-  const angebotStats = useMemo(() => {
-    const callsN = calls.length;
-    const mitN   = calls.filter(hatAngebot).length;
-    const gewN   = calls.filter(d => d.status === 'Gewonnen').length;   // Gewonnene sind stets mit Angebot
-    const gruende = {};
-    calls.filter(istKeinAngebot).forEach(d => { const g = d.kein_angebot_grund || 'unbekannt'; gruende[g] = (gruende[g] || 0) + 1; });
-    return {
-      callsN, mitN, ohneN: callsN - mitN, gewN,
-      angebotsquote:  callsN > 0 ? (mitN / callsN * 100) : 0,
-      rateKlassisch:  mitN   > 0 ? (gewN / mitN   * 100) : 0,   // Gewonnen ÷ Angebote
-      rateBereinigt:  callsN > 0 ? (gewN / callsN * 100) : 0,   // Gewonnen ÷ alle Calls
-      gruende: Object.entries(gruende).sort((a, b) => b[1] - a[1]),
-    };
-  }, [calls]);
+  // Call-basierte Quoten — Rechnung in nkConstants.js (callStats), siehe klassischeKpis.
+  const angebotStats = useMemo(() => callStats(calls), [calls]);
 
   // Pro Closer im Angebots-Block: bewusst mit Basis-Override 'calls' — hier stehen klassische
   // und bereinigte Rate nebeneinander, deshalb muessen die angebotslosen Calls sichtbar sein.
@@ -410,6 +376,10 @@ export default function DealsNK() {
             className="text-xs text-gray-500 hover:text-white ml-1">✕ Zurücksetzen</button>
         )}
       </div>
+
+      {/* Monatsvergleich „Stand Tag X" — reiner Lese-Block, Default zu, unabhaengig von showKpis */}
+      <NkMonatsvergleich company={company} basisMonat={vergleichMonat} tag={heuteTag} aeEur={aeEur}
+        filterPred={vergleichPred} filterStandort={filterStandort} canSeeTargets={canSeeTargets} />
 
       {/* Angebotsquote & bereinigte Closing Rate (Basis: alle Closing Calls) */}
       {showAngebot && (

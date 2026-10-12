@@ -322,3 +322,82 @@ es ab, sind es Daten; weicht nur die Quote ab, war es der Code.
 10. **Close-Zugriff ist ausschließlich lesend.** `utils/closeClient.js` ist die einzige Zugriffs-
    schicht; kein POST/PUT/DELETE gegen Close, auch nicht zum Testen. `CLOSE_API_KEY` gehört
    niemals in Code, Logs oder Ausgaben.
+
+---
+
+## 14. NK-Monatsvergleich „Stand Tag X" (12.10.2026)
+
+**Frage, die der Block beantwortet:** Sind wir on track — und wenn nicht, in welchen Quoten genau?
+Prinzip **gleicher Stichtag**: Heute ist der 12. → der laufende Monat bis einschließlich Tag 12
+gegen Vormonat, Ø 3 und Ø 6 Monate, jeweils bis Tag 12 (`VERGLEICH_DURCHSCHNITTE` in
+`nkConstants.js`). Ein halber Monat gegen volle Monate wäre wertlos. Aufklappbarer Block oben
+auf der NK-Seite (`components/NkMonatsvergleich.jsx`), Default zu, rein lesend.
+
+**Keine neuen Formeln.** Die Gesamt-KPIs der Seite (`klassischeKpis`, `callStats`) wurden
+wortgleich aus `DealsNK.jsx` nach `nkConstants.js` verschoben; Seite und Vergleich rufen
+dieselben Funktionen auf, der Vergleich schneidet nur die **Eingangsliste je Monat**
+(`monatsStand`, `monatsvergleich`). Einzige neue Rechenschritte: Ø Angebotswert
+(Σ Angebotswert ÷ Angebote) und Ø Deal-Größe (Σ AE ÷ Gewonnene).
+
+**Schnittregel (gemessen, nicht vermutet):**
+- *Call-/Angebots-Achse:* Spalte = Berichtsmonat `monat` (wie überall auf der Seite), das
+  Datum entscheidet nur, ob der Deal am Stichtag schon da ist. `monat` ist ein freies
+  Formularfeld — 1,5 % der Deals tragen ein Datum aus einem anderen Monat. Ein Deal mit Datum
+  *vor* dem Berichtsmonat zählt ab Tag 1, einer mit Datum *nach* dem Berichtsmonat erst am
+  Monatsletzten (Datenfehler, 8 Fälle am 12.10.). Am Monatsletzten konvergiert die Regel exakt
+  auf die Monatszahlen der Seite (Jul 424 / Aug 417 / Sep 473); die reine Datumsachse täte das
+  nicht (±1–8 Deals/Monat). `created_at` ist als Achse unbrauchbar (935 Zeilen tragen den
+  Import-Zeitstempel 28.06.); Nacherfassungen landen per `datum` am fachlichen Tag
+  (Steinbauer #16580: `datum` 23.07., `created_at` 06.08.).
+- *Gewonnen-Achse:* `gewonnen_monat` = Spalte, `gewonnen_datum ≤ Stichtag`, NULL-sicher nach
+  dem `gewonnen_bis`-Muster der Route. Trägt Gewonnen, AE realisiert und Ø Deal-Größe.
+- *Stichtag je Vergleichsmonat* = `min(Tag, Monatsletzter)` — am 31. gegen den 30./28.
+- *Quoten:* Zähler „Gewonnen" aus der Gewonnen-Achse, Nenner aus der Call-Achse — dieselbe
+  Definition wie `callStats` (Gewonnen ÷ Angebote, Gewonnen ÷ alle Calls), aber stichtag-fair.
+  Die Kohorten-Quote der Rollentabellen wäre im Vergleich unfair (der laufende Monat hatte
+  noch keine Zeit zu reifen); am Monatsletzten unterscheiden sich beide nur um
+  monatsübergreifend gewonnene Deals (29 von 1.053).
+
+**Filter:** Standort, Personen, Quelle der Seite werden geerbt (`dealFilterPred` ohne Status —
+ein Status-Filter macht jede Quote zu 100 %), dazu `isDealCompanyActive`, `aeEur`
+(`ae_ab_monat`-Gate, CHF→EUR). Gruppen-Scope wie auf der ganzen NK-Seite **nicht** angewendet.
+Daten: ein Call `GET /api/deals/nk` ohne Monat (wie Modus „Alle Monate"), nur solange offen.
+
+**Übergangs-Ehrlichkeit:** Kein-Angebot-Tracking ist am **16.08.2026** live gegangen
+(`KEIN_ANGEBOT_AB_TAG`, Tageskonstante neben der Monatskonstante). Der August-Stand „bis
+Tag 12" liegt davor — 11 von 15 angebotslosen August-Calls bis Tag 12 wurden erst am 23.08.
+nachgepflegt. Betroffen sind nur **Closing Calls, Angebotsquote, Quote alle Calls**: Spalten
+mit Stichtag vor dem Go-live werden markiert (⚠, kein Delta), ihre Durchschnitte laufen nur
+über getrackte Monate und sagen das („Ø aus 1 von 3"). Das Fokus-Badge lässt sie aus — sonst
+gewönne immer die geschönte Alt-Angebotsquote (Jun 100 % → Sep 87 %).
+
+**Fokus-Badge:** KPI mit der stärksten negativen *relativen* Abweichung von Ø 3. **Ø** = Mittel
+der Einzelmonats-Stände (auch für Quoten, nicht gepoolt). **Deltas** zum aktuellen Monat
+absolut + %, Quoten in Prozentpunkten; alle neun KPIs sind „mehr ist besser".
+
+**Ziel-Pacing (K2):** eine Zeile, Soll = Ziel × Tag / Kalendertage (K1: Kalendertage,
+Arbeitstage nur als Fußnote). Zielquelle: bei Standort-Filter `monthly_targets_standort.ziel_ae`
+ohne stillen Rückfall, sonst das NK-Gruppenziel `kpiConstants.auftragseingang.ziel_monat_eur`
+(750.000). `monthly_targets.ziel_gesamt` ist das Gruppenziel NK+BK+VL und scheidet aus;
+`targets.nk_ziel` je Company ist in Produktion leer. Sichtbar wie Ziel/Differenz im Dashboard
+(superadmin/admin/vertriebsleitung). Bewusste, erklärte Unschärfe: ohne Standort-Filter enthält
+das Ist Schweiz, das Gruppenziel nicht — steht als Fußnote in der Zeile.
+
+**Fußnote Nacherfassung:** historische Tag-12-Stände sind heute um bis zu 17 Calls / 6
+Gewonnene vollständiger, als sie am selben Tag live waren; der laufende Monat enthält
+Nacherfassungen noch nicht.
+
+**Bewusst zurückgestellt — Termine aus den Show Rates (Stufe 2).** „Gelegt" wäre billig
+(eine WHERE-Bedingung auf `gelegt_am`), „stattgefunden" ist unfair: es gibt kein Termindatum,
+`ausgang_am` ist ein **Pflegedatum** mit Median 5 Tagen Verzug (p75 17 Tage) — der September
+stand am 12. bei 72,7 % gepflegt, neun Tage später bei 83,9 %. Das Fokus-Badge würde genau
+diese Pflegelücke systematisch als Leistungseinbruch markieren. Dazu: alle Termine sind
+Bonn/fach.digital (Standort-Filter liefert sonst leere Mengen), `/api/showrates/*` liegt hinter
+`show_rates_close` (37 von 46 Nutzern ohne), und ohne Voll-Backfill in Produktion sind Juni und
+Juli unbrauchbar. Wenn überhaupt, später nur „QC/SC gelegt bis Tag X" mit Gate-Kennzeichnung.
+
+**Verifikationsanker (Backup 12.10.2026, Stand Tag 12, alle Companies, Calls/Angebote/Gewonnen/AE):**
+Okt 130/115/55/454.500 € · Sep 228/198/83/727.828 € · Aug 176/161/81/733.328 € ·
+Jul 168/164/73/557.500 € · Jun 164/164/75/457.825 €. JS-Rechnung = SQL direkt =
+Server-Stichtagspfad (`gewonnen_monat` + `gewonnen_bis`), 26/26; Refactor-Regression 132
+Vergleiche + 900 Filterkombinationen ohne Abweichung; Arbeitstage bis Tag 12: Okt 8, Sep 9.
