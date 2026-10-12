@@ -1,15 +1,17 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { dealsApi, monthlyTargetsStandortApi } from '../utils/api';
+import { dealsApi } from '../utils/api';
 import { formatEuro, isDealCompanyActive } from '../utils/format';
-import { monatsvergleich, delta, pacingSoll, arbeitstageBis, VERGLEICH_KPIS, KEIN_ANGEBOT_AB_TAG } from '../utils/nkConstants';
-import KPI_CONST from '../../../shared/kpiConstants.json';
+import { monatsvergleich, delta, arbeitstageBis, VERGLEICH_KPIS, KEIN_ANGEBOT_AB_TAG } from '../utils/nkConstants';
 
 // ── Monatsvergleich „Stand Tag X" ─────────────────────────────────────────────
 // Reiner Lese-Block. Rechnung komplett in nkConstants.js (monatsvergleich), hier nur Darstellung.
 // Daten: dieselbe Deal-Liste wie die Seite im Modus „Alle Monate" (ein Call, ~2 MB), nur geladen,
 // solange der Block offen ist. Filterkette = Seitenfilter ohne Status + isDealCompanyActive + aeEur,
 // damit erbt der Block Standort/Personen/Quelle, aktiv_ab, ae_ab_monat und CHF→EUR per Konstruktion.
+// KEIN Ziel-Pacing (12.10.2026, Deniz): kpiConstants.auftragseingang.ziel_monat_eur (750.000) ist
+// Bonns Ziel, kein Gruppenziel — ein companyuebergreifendes NK-AE-Ziel ist nicht ausgerufen.
+// Die Zeile kommt zurueck, sobald es eines gibt (Quelle dann: dieses Ziel, je Standort monthly_targets_standort).
 
 const MONATE = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
 const fmtMonat     = (ym) => { const [y, m] = ym.split('-'); return `${MONATE[Number(m) - 1]} ${y}`; };
@@ -58,7 +60,7 @@ function Zelle({ kpi, wert, aktuell, markiert, unter }) {
   );
 }
 
-export default function NkMonatsvergleich({ company, basisMonat, tag, aeEur, filterPred, filterStandort, canSeeTargets }) {
+export default function NkMonatsvergleich({ company, basisMonat, tag, aeEur, filterPred }) {
   const [offen, setOffen]     = useState(false);
   const [einzeln, setEinzeln] = useState(false);
 
@@ -67,20 +69,8 @@ export default function NkMonatsvergleich({ company, basisMonat, tag, aeEur, fil
     queryFn:  () => dealsApi.nk.list({ ...(company && { company_id: company }) }),
     enabled:  offen,
   });
-  // Standortziel nur bei Standort-Filter — ohne stillen Rueckfall aufs Gruppenziel (Beta-Muster).
-  const { data: stZiele = [] } = useQuery({
-    queryKey: ['monthly-targets-standort', basisMonat],
-    queryFn:  () => monthlyTargetsStandortApi.list({ monat: basisMonat }),
-    enabled:  offen && canSeeTargets && !!filterStandort,
-  });
-
   const deals = useMemo(() => alleDeals.filter(d => filterPred(d) && isDealCompanyActive(d)), [alleDeals, filterPred]);
   const v = useMemo(() => (offen ? monatsvergleich({ deals, basisMonat, tag, aeEur }) : null), [deals, basisMonat, tag, aeEur, offen]);
-
-  const ziel = !canSeeTargets ? null
-    : filterStandort ? (stZiele.find(z => z.standort === filterStandort)?.ziel_ae ?? null)
-    : KPI_CONST.auftragseingang.ziel_monat_eur;
-  const soll = pacingSoll(ziel, basisMonat, tag);
 
   const kopf = `Monatsvergleich · Stand ${tag}. ${fmtMonatKurz(basisMonat)}`;
   const th = 'px-3 py-2 text-right whitespace-nowrap';
@@ -99,7 +89,6 @@ export default function NkMonatsvergleich({ company, basisMonat, tag, aeEur, fil
         const vormonat = v.vormonate[0];
         const spalten  = einzeln ? v.vormonate : [];
         const irgendwoVorTracking = [v.aktuell, ...v.vormonate].some(s => s.vorTracking);
-        const dlt = delta(v.aktuell.ae, soll);
         return (
           <div>
             <div className="overflow-x-auto">
@@ -141,23 +130,6 @@ export default function NkMonatsvergleich({ company, basisMonat, tag, aeEur, fil
                       </tr>
                     );
                   })}
-                  {canSeeTargets && (
-                    <tr className="bg-amber-50/40">
-                      <td className="px-3 py-1.5 text-gray-700 font-medium sticky left-0 bg-amber-50/40 whitespace-nowrap">Ziel-Pacing (AE)</td>
-                      <td className="px-3 py-1.5 text-right">
-                        {ziel == null ? <span className="text-gray-400">kein Ziel hinterlegt</span> : (
-                          <>
-                            <div className="font-bold text-gray-900">{formatEuro(v.aktuell.ae)} <span className="font-normal text-gray-500">von {formatEuro(soll)} Soll</span></div>
-                            <div className={`text-[10px] whitespace-nowrap ${deltaKlasse(dlt)}`}>{fmtDelta({ art: 'eur' }, dlt)} · Ziel {formatEuro(ziel)}</div>
-                          </>
-                        )}
-                      </td>
-                      <td colSpan={1 + v.durchschnitte.length + spalten.length} className="px-3 py-1.5 text-[10px] text-gray-400">
-                        Soll = Ziel × {tag}/{new Date(Date.UTC(...v.basisMonat.split('-').map(Number), 0)).getUTCDate()} Kalendertage
-                        {filterStandort ? ` · Standortziel ${filterStandort}` : ' · Gruppenziel NK — Ist enthält Schweiz, Ziel nicht'}
-                      </td>
-                    </tr>
-                  )}
                 </tbody>
               </table>
             </div>

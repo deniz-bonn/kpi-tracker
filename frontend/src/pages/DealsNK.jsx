@@ -170,7 +170,6 @@ export default function DealsNK() {
   // Monatsvergleich: Basismonat folgt der Seite (Monat / Zeitraum-Ende / Kalendermonat), Stichtag = heutiger Tag.
   const heuteTag       = new Date().getDate();
   const vergleichMonat = zeitMode === 'monat' ? monat : zeitMode === 'zeitraum' ? bisMonat : currentMonat();
-  const canSeeTargets  = ['superadmin', 'admin', 'vertriebsleitung'].includes(user?.role);   // wie Ziel/Differenz im Dashboard
   const filtered = useMemo(() => listDeals.filter(isDealCompanyActive), [listDeals]);
   // calls = ALLE Closing Calls (inkl. ohne Angebot) -> bereinigte Rate & Angebotsquote.
   // angebote = nur Deals MIT Angebot -> alle KLASSISCHEN Quoten/Tabellen (Kein-Angebot-Deals ändern sie NICHT).
@@ -379,7 +378,7 @@ export default function DealsNK() {
 
       {/* Monatsvergleich „Stand Tag X" — reiner Lese-Block, Default zu, unabhaengig von showKpis */}
       <NkMonatsvergleich company={company} basisMonat={vergleichMonat} tag={heuteTag} aeEur={aeEur}
-        filterPred={vergleichPred} filterStandort={filterStandort} canSeeTargets={canSeeTargets} />
+        filterPred={vergleichPred} />
 
       {/* Angebotsquote & bereinigte Closing Rate (Basis: alle Closing Calls) */}
       {showAngebot && (

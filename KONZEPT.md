@@ -375,13 +375,14 @@ gewönne immer die geschönte Alt-Angebotsquote (Jun 100 % → Sep 87 %).
 der Einzelmonats-Stände (auch für Quoten, nicht gepoolt). **Deltas** zum aktuellen Monat
 absolut + %, Quoten in Prozentpunkten; alle neun KPIs sind „mehr ist besser".
 
-**Ziel-Pacing (K2):** eine Zeile, Soll = Ziel × Tag / Kalendertage (K1: Kalendertage,
-Arbeitstage nur als Fußnote). Zielquelle: bei Standort-Filter `monthly_targets_standort.ziel_ae`
-ohne stillen Rückfall, sonst das NK-Gruppenziel `kpiConstants.auftragseingang.ziel_monat_eur`
-(750.000). `monthly_targets.ziel_gesamt` ist das Gruppenziel NK+BK+VL und scheidet aus;
-`targets.nk_ziel` je Company ist in Produktion leer. Sichtbar wie Ziel/Differenz im Dashboard
-(superadmin/admin/vertriebsleitung). Bewusste, erklärte Unschärfe: ohne Standort-Filter enthält
-das Ist Schweiz, das Gruppenziel nicht — steht als Fußnote in der Zeile.
+**Ziel-Pacing (K2) — gebaut und am selben Tag wieder entfernt.** Die Zeile rechnete Soll =
+Ziel × Tag / Kalendertage gegen `kpiConstants.auftragseingang.ziel_monat_eur` (750.000). Das ist
+laut Deniz **Bonns** Ziel, kein Gruppenziel — ein companyübergreifendes NK-AE-Ziel ist derzeit
+nicht ausgerufen, die Zeile hätte Bonns Vorgabe auf alle Companies umgemünzt. Deshalb weggelassen,
+bis ein Gruppenziel existiert (dann: Gruppenziel ohne Filter, `monthly_targets_standort.ziel_ae`
+bei Standort-Filter ohne stillen Rückfall). Offen aus derselben Diagnose: `KpiMitarbeiterBeta.jsx`
+nutzt dieselbe Konstante ohne Standort-Filter als „Gruppenziel". `monthly_targets.ziel_gesamt` ist
+NK+BK+VL und scheidet für NK aus; `targets.nk_ziel` je Company ist in Produktion leer.
 
 **Fußnote Nacherfassung:** historische Tag-12-Stände sind heute um bis zu 17 Calls / 6
 Gewonnene vollständiger, als sie am selben Tag live waren; der laufende Monat enthält

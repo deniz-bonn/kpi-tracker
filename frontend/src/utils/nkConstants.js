@@ -244,9 +244,6 @@ export const arbeitstageBis = (monat, tag) => {
   for (let t = 1; t <= bis; t++) { const w = new Date(Date.UTC(y, m - 1, t)).getUTCDay(); if (w >= 1 && w <= 5) n++; }
   return n;
 };
-// Ziel-Pacing: Soll-Stand = Ziel × Tag / Kalendertage des Monats (K1: Kalendertage, nicht AT).
-export const pacingSoll = (ziel, monat, tag) =>
-  ziel == null ? null : ziel * Math.min(tag, tageImMonat(monat)) / tageImMonat(monat);
 
 /** Call-/Angebots-Achse bis Stichtag (Regel siehe oben). */
 export function bisStichtag(deals, monat, tag) {
