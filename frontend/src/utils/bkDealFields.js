@@ -8,6 +8,8 @@
 // DealModal selbst bleibt unangetastet: die Komponente kennt kein einziges Deal-Feld und
 // erwartet die Definition ohnehin von aussen.
 
+import { heuteLokal } from './format';
+
 export const STATUS_OPTS       = ['Offen', 'Gewonnen', 'Verloren'];
 // 'Dauer-RaaS' stand hier bisher NICHT, obwohl die Umstellung genau diesen Wert als Default
 // schreibt. Folge: Wer einen umgestellten Deal im BK-Formular oeffnete, sah ein leeres
@@ -61,12 +63,13 @@ export function bkDealFields({ compOpts = [], kamOptions = [], curSym = '€',
       name:     'gewonnen_datum',
       label:    'Annahmedatum',
       type:     'date',
-      hint:     'Datum, an dem der Kunde den Deal angenommen hat',
+      hint:     'Datum, an dem der Kunde den Deal angenommen hat (höchstens heute)',
       show:     f => f.status === 'Gewonnen',
       required: f => f.status === 'Gewonnen',
+      max:      heuteLokal(),   // Zukunftssperre — der Server prueft dasselbe (utils/gewonnen.js)
       autoFill: (form, changedKey) =>
         changedKey === 'status' && form.status === 'Gewonnen' && !form.gewonnen_datum
-          ? new Date().toISOString().slice(0, 10)
+          ? heuteLokal()
           : undefined,
     },
     { name: 'abgerechnet',    label: 'Abgerechnet',       type: 'select', options: ABGERECHNET_OPTS },

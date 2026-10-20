@@ -127,6 +127,13 @@ export default function DealsBK() {
   const updateMut = useMutation({ mutationFn: ({ id, data }) => dealsApi.bk.update(id, data), onSuccess: (row, vars) => { invalidate(); setModal(null); maybeCelebrate(row, vars?.prevStatus); } });
   const deleteMut = useMutation({ mutationFn: dealsApi.bk.delete, onSuccess: invalidate });
 
+  // Serverfehler beim Speichern ANZEIGEN statt still scheitern (z. B. 400 "Gewonnen-Datum liegt in
+  // der Zukunft", 403 Datums-Guard). Ohne das blieb der Dialog bei jeder Ablehnung einfach stehen.
+  const speicherFehler = [createMut.error, updateMut.error].find(Boolean);
+  const fehlerText = speicherFehler
+    ? (speicherFehler.response?.data?.error || speicherFehler.message || 'Speichern fehlgeschlagen.') : null;
+  const modalSchliessen = () => { setModal(null); createMut.reset(); updateMut.reset(); };
+
   const compOpts   = companies.map(c => ({ value: c.id, label: c.name }));
   // Deal-Formular: als KAM waehlbar sind alle BK-verantwortlichen Rollen (inkl. Account Manager/Multi).
   const kamOptions = employees.filter(e => KAM_ROLLEN.includes(e.rolle)).map(e => ({ value: e.id, label: `${e.name} (${e.company_name})` }));
@@ -642,7 +649,8 @@ export default function DealsBK() {
       {modal && (
         <DealModal key={modal.mode === 'create' ? 'new' : modal.data?.id}
           title={modal.mode === 'create' ? 'Neuer BK-Deal' : 'BK-Deal bearbeiten'}
-          fields={fields} initial={modal.data} onSave={handleSave} onClose={() => setModal(null)} />
+          fields={fields} initial={modal.data} onSave={handleSave} onClose={modalSchliessen}
+          fehler={fehlerText} busy={createMut.isPending || updateMut.isPending} />
       )}
     </div>
   );

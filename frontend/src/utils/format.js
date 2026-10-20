@@ -42,6 +42,14 @@ export const monthLabel = (monat) => {
   return new Date(y, m - 1).toLocaleString('de-DE', { month: 'short', year: 'numeric' });
 };
 
+// Heutiges Datum im Browser (lokale Zeit des Nutzers, also Berlin) als 'YYYY-MM-DD'.
+// NICHT toISOString(): das ist der UTC-Tag und zwischen 0 und 2 Uhr nachts noch gestern — als
+// Obergrenze eines Datumsfelds wuerde es dann den heutigen Tag sperren.
+export const heuteLokal = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
 export const currentMonat = () => {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;

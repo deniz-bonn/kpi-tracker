@@ -9,6 +9,8 @@
 // (setTypeParser 1082); der Date-Zweig bleibt fuer Bodies, Alt-Audit-Eintraege und Backups
 // in ISO-Form sowie fuer Verbindungen ohne den Parser (Standalone-Skripte).
 
+const { heuteBerlin, datumDe } = require('./heute');
+
 function toYmd(v) {
   if (v == null || v === '') return null;
   if (v instanceof Date) {
@@ -24,7 +26,20 @@ function toYmd(v) {
 // Effektives Datum = Body-Datum, sonst DB-Bestand (existing) — beides normalisiert.
 // Status Gewonnen ohne effektives Datum ist nicht speicherbar -> wirft 400.
 // Status Umgestellt (nur VL, Dauer-RaaS) leitet aus dauervertrag_datum ab -> siehe unten.
-function resolveGewonnenFelder(body, existing = null) {
+//
+// ZUKUNFTSSPERRE (20.10.2026): Bei Status Gewonnen darf gewonnen_datum nicht nach heute (Berlin)
+// liegen — ein Deal ist an dem Tag gewonnen, an dem er gewonnen WURDE. Anlass: Ein VL-Deal der
+// Oktober-Kohorte trug ein November-Datum (Vorbelegung aus dem Ende der Kuendigungsfrist) und
+// erschien in der Monatsuebersicht als Zukunftsmonat mit 100 % Anteil. Die VL-Regel vom 10.08.
+// ("verstreicht der Tag ohne Kuendigung, gilt sie AN DEM TAG als gewonnen") deckt sich damit:
+// vor Fristende ist eine Verlaengerung nur gewonnen, wenn der Kunde schon zugesagt hat — dann
+// heute. Die Sperre gilt NUR fuer Gewonnen: dauervertrag_datum (Umgestellt), datum, Kuendigungs-
+// und Fristdaten duerfen weiter in der Zukunft liegen.
+// Sie trifft jeden Schreibweg, der hier durchlaeuft (NK/BK/VL POST+PUT, Willkommensmeeting,
+// Anlage des Dauer-RaaS-Deals), und zwar VOR dem Schreiben — ein 400 hinterlaesst nichts Halbes.
+// Ein Bestandsdeal mit Zukunftsdatum wird erst nach der Korrektur wieder speicherbar; das Feld
+// steht im selben Dialog, die Meldung nennt beide Daten.
+function resolveGewonnenFelder(body, existing = null, heute = heuteBerlin()) {
   // VL-Sonderfall "Umgestellt" (Dauer-RaaS): der Deal ist NICHT gewonnen, braucht aber trotzdem
   // eine Monatsachse — sonst verliert er sie hier (der Zweig unten nullt beide Felder) und ist in
   // keiner Monatssicht mehr auffindbar. gewonnen_monat ist die generische Ereignisachse, nicht
@@ -43,6 +58,11 @@ function resolveGewonnenFelder(body, existing = null) {
     const gd = toYmd(body.gewonnen_datum) || toYmd(existing && existing.gewonnen_datum);
     if (!gd) {
       const err = new Error('Status "Gewonnen" erfordert ein gültiges Abschlussdatum (gewonnen_datum).');
+      err.statusCode = 400;
+      throw err;
+    }
+    if (gd > heute) {
+      const err = new Error(`Gewonnen-Datum liegt in der Zukunft (${datumDe(gd)}) — erlaubt ist höchstens heute (${datumDe(heute)}).`);
       err.statusCode = 400;
       throw err;
     }

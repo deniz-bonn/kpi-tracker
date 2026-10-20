@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { kpisApi, monthlyTargetsApi, auswertungApi } from '../utils/api';
@@ -60,7 +60,7 @@ function DealList({ deals, showDienstleistung = false }) {
             )}
             {d.datum && (
               <span className="text-gray-400 text-[10px]">
-                {d.datum.slice(0, 10).split('-').reverse().join('.')}
+                {d.datum.slice(0, 10).split('-').reverse().join('.')}{d.mitarbeiter ? ` · ${d.mitarbeiter}` : ''}
               </span>
             )}
           </div>
@@ -86,7 +86,7 @@ function LocationCol({ title, deals, color, showDienstleistung = false }) {
   );
 }
 
-function MonthSection({ row, isExpanded, onToggle, isCurrent }) {
+function MonthSection({ row, isExpanded, onToggle, isCurrent, isFuture }) {
   const monthIdx = parseInt(row.monat.split('-')[1]) - 1;
   const year = row.monat.split('-')[0];
   const gesamt = row.nk.gesamt + row.bk.gesamt + row.vl.gesamt; // ohne Schweiz (Risem)
@@ -95,19 +95,22 @@ function MonthSection({ row, isExpanded, onToggle, isCurrent }) {
   const bkHas = (row.bk.deutschland.length + row.bk.oesterreich.length + row.bk.schweiz.length) > 0;
   const vlHas = (row.vl.deutschland.length + row.vl.oesterreich.length + row.vl.schweiz.length) > 0;
   const hasData = nkHas || bkHas || vlHas;
+  // Gewonnene Deals in einem Monat NACH dem aktuellen: das Gewinndatum liegt in der Zukunft.
+  const zukunft = isFuture && hasData;
 
   return (
-    <div className={`rounded-xl border overflow-hidden ${isCurrent ? 'border-blue-400' : 'border-gray-200'}`}>
+    <div className={`rounded-xl border overflow-hidden ${isCurrent ? 'border-blue-400' : zukunft ? 'border-amber-400' : 'border-gray-200'}`}>
       <button
         onClick={onToggle}
         className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors ${
-          isCurrent ? 'bg-blue-50 hover:bg-blue-100' : hasData ? 'bg-white hover:bg-gray-50' : 'bg-gray-50'
+          isCurrent ? 'bg-blue-50 hover:bg-blue-100' : zukunft ? 'bg-amber-50 hover:bg-amber-100' : hasData ? 'bg-white hover:bg-gray-50' : 'bg-gray-50'
         }`}
       >
         <div className="flex items-center gap-4 flex-wrap">
           <span className={`text-sm font-bold min-w-[120px] ${isCurrent ? 'text-blue-700' : hasData ? 'text-gray-800' : 'text-gray-400'}`}>
             {MONTH_NAMES_LONG[monthIdx]} {year}
             {isCurrent && <span className="ml-2 text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded">Aktuell</span>}
+            {zukunft && <span className="ml-2 text-[10px] bg-amber-500 text-white px-1.5 py-0.5 rounded" title="Gewonnen-Datum liegt nach heute. Die Deals stehen unten im Auftragseingang (Kunde, KAM, Datum) — bitte im Deal das tatsächliche Datum eintragen.">Zukunftsmonat — Datumsfehler?</span>}
           </span>
           {hasData ? (
             <div className="flex items-center gap-3 text-xs">
@@ -228,6 +231,11 @@ export default function Dashboard() {
     r.nk.bonn.length + r.nk.braunschweig.length + r.nk.oesterreich.length + r.nk.schweiz.length +
     r.bk.deutschland.length + r.bk.oesterreich.length + r.bk.schweiz.length +
     r.vl.deutschland.length + r.vl.oesterreich.length + r.vl.schweiz.length > 0;
+  // Zukunftsmonate mit gewonnenen Deals automatisch aufklappen: dort steht, WELCHER Deal es ist.
+  useEffect(() => {
+    const zukunft = aeRows.filter(r => r.monat > currentMonat && monthHasAnyDeals(r)).map(r => r.monat);
+    if (zukunft.length) setExpanded(prev => new Set([...prev, ...zukunft]));
+  }, [aeRows]); // eslint-disable-line react-hooks/exhaustive-deps
   const expandAll  = () => setExpanded(new Set(aeRows.filter(monthHasAnyDeals).map(r => r.monat)));
   const collapseAll = () => setExpanded(new Set());
 
@@ -314,18 +322,26 @@ export default function Dashboard() {
               const isCurrent = row.monat === currentMonat;
               // Schweiz (Risem) zählt nicht in row.gesamt, soll die Zeile aber nicht ausgrauen
               const hasData = row.gesamt > 0 || row.nk_ch > 0 || row.bk_ch > 0 || row.vl_ch > 0;
+              // Werte in einem Monat NACH dem aktuellen = Gewinndatum in der Zukunft. Kennzeichnen statt
+              // als normale Zeile zeigen; die Anteile (dort typischerweise 100 %) blenden wir aus — sie
+              // waren genau das Signal, das niemand deuten konnte (Meldung Morawitz, Okt. 2026).
+              // Zukunftsmonate OHNE Werte (nur Ziel) bleiben wie bisher ausgegraut.
+              const zukunftMitWerten = row.monat > currentMonat && hasData;
+              const pct = (v) => (zukunftMitWerten ? null : v);
 
               return (
                 <tr
                   key={row.monat}
                   className={`transition-colors ${
-                    isCurrent ? 'bg-blue-50' : hasData ? 'hover:bg-gray-50' : 'opacity-40'
+                    isCurrent ? 'bg-blue-50' : zukunftMitWerten ? 'bg-amber-50' : hasData ? 'hover:bg-gray-50' : 'opacity-40'
                   }`}
+                  title={zukunftMitWerten ? 'Gewonnen-Datum liegt nach heute. Die Deals stehen unten im Auftragseingang (Kunde, KAM, Datum) — bitte im Deal das tatsächliche Datum eintragen.' : undefined}
                 >
                   {/* Monat */}
-                  <td className={`${td} font-semibold sticky left-0 z-10 ${isCurrent ? 'bg-blue-50 text-blue-700' : 'bg-white text-gray-700'}`}>
+                  <td className={`${td} font-semibold sticky left-0 z-10 ${isCurrent ? 'bg-blue-50 text-blue-700' : zukunftMitWerten ? 'bg-amber-50 text-amber-800' : 'bg-white text-gray-700'}`}>
                     {MONTH_NAMES[monthIdx]}-{year.slice(2)}
                     {isCurrent && <span className="ml-1 text-xs bg-blue-600 text-white px-1 py-0.5 rounded text-[10px]">●</span>}
+                    {zukunftMitWerten && <div className="text-[10px] font-medium text-amber-700 whitespace-nowrap">⚠ Zukunftsmonat — Datumsfehler?</div>}
                   </td>
 
                   {/* NK – AE + Anzahl in einer Zelle */}
@@ -339,21 +355,21 @@ export default function Dashboard() {
                       {row.nk_gesamt_anz > 0 && <span className="text-[10px] text-blue-500">{row.nk_gesamt_anz} NK</span>}
                     </div>
                   </td>
-                  <td className={td}><PctCell value={row.nk_anteil} /></td>
+                  <td className={td}><PctCell value={pct(row.nk_anteil)} /></td>
 
                   {/* BK */}
                   <td className={`${td} border-l border-gray-200`}><EuroCell value={row.bk_de} /></td>
                   <td className={td}><EuroCell value={row.bk_at} /></td>
                   <td className={td}><EuroCell value={row.bk_ch} /></td>
                   <td className={`${td} text-green-600 font-medium`}><EuroCell value={row.bk_gesamt} /></td>
-                  <td className={td}><PctCell value={row.bk_anteil} /></td>
+                  <td className={td}><PctCell value={pct(row.bk_anteil)} /></td>
 
                   {/* VL */}
                   <td className={`${td} border-l border-gray-200`}><EuroCell value={row.vl_de} /></td>
                   <td className={td}><EuroCell value={row.vl_at} /></td>
                   <td className={td}><EuroCell value={row.vl_ch} /></td>
                   <td className={`${td} text-purple-600 font-medium`}><EuroCell value={row.vl_gesamt} /></td>
-                  <td className={td}><PctCell value={row.vl_anteil} /></td>
+                  <td className={td}><PctCell value={pct(row.vl_anteil)} /></td>
 
                   {/* Gesamt */}
                   <td className={`${td} border-l border-gray-200`}>
@@ -476,6 +492,7 @@ export default function Dashboard() {
                 isExpanded={expanded.has(row.monat)}
                 onToggle={() => toggle(row.monat)}
                 isCurrent={row.monat === currentMonat}
+                isFuture={row.monat > currentMonat}
               />
             ))}
           </div>

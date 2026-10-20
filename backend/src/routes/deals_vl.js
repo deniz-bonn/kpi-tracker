@@ -6,6 +6,7 @@ const { logAudit }   = require('../utils/audit');
 const { pruefeDatumsaenderung } = require('../utils/dealGuards');
 const { enrichDealsEur } = require('../utils/currency');
 const { resolveGewonnenFelder, toYmd } = require('../utils/gewonnen');
+const { heuteBerlin } = require('../utils/heute');
 // Provisions-Hook des Abrechnungskreises "Bestandskundenvertrieb" (Verlaengerung 2 % an den KAM).
 // Wie in deals_nk.js laeuft jeder Aufruf in try/catch: ein Fehler in der Provisionsrechnung
 // darf das Speichern des Deals niemals brechen.
@@ -125,7 +126,10 @@ function bkBodyAus(vl, u, datum, vlId) {
     status,
     // Ein Angebot traegt noch keinen realisierten AE — der kommt erst mit der Annahme.
     ae_wert: status === 'Gewonnen' ? betrag : (betrag ?? null),
-    gewonnen_datum: status === 'Gewonnen' ? (toYmd(u.gewonnen_datum) || datum) : null,
+    // Gewinndatum = Tag der Zusage, nicht Vertragsbeginn: ohne ausdrueckliche Angabe hoechstens
+    // heute (Berlin). Ein kuenftiges Umstellungsdatum (Vertrag startet spaeter) bleibt erlaubt; ein
+    // Gewonnen-Deal in der Zukunft dagegen nicht (Zukunftssperre in resolveGewonnenFelder).
+    gewonnen_datum: status === 'Gewonnen' ? (toYmd(u.gewonnen_datum) || [datum, heuteBerlin()].sort()[0]) : null,
     herkunft: UMSTELLUNG_HERKUNFT,
   };
   for (const f of UMSTELLUNG_UEBERNEHMEN) if (u[f] !== undefined) body[f] = u[f];
@@ -247,10 +251,8 @@ function angebotsDatum(u, vlFelder) {
   }
   return heuteYmd();
 }
-const heuteYmd = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
+// Berliner Tag, nicht der UTC-Tag des Containers (utils/heute.js).
+const heuteYmd = () => heuteBerlin();
 
 // Der Stand des Dauer-RaaS-Deals wird IMMER live mitgelesen, nie kopiert — dasselbe Prinzip wie
 // bei den Willkommensmeetings. Faellt der Deal weg, liefert der LEFT JOIN NULL und die Oberflaeche

@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dealsApi, employeesApi, exportApi } from '../utils/api';
 import StatusBadge from '../components/StatusBadge';
 import DealModal from '../components/DealModal';
-import { formatEuro, formatMoney, companyCurrency, isDealCompanyActive, aeEurDeal, currentMonat, periodLabel, periodFileSuffix } from '../utils/format';
+import { formatEuro, formatMoney, companyCurrency, isDealCompanyActive, aeEurDeal, currentMonat, heuteLokal, periodLabel, periodFileSuffix } from '../utils/format';
 import { computeMedals, medalRowClass, medalBarClass, MedalBadge, MiniPodium } from '../components/medals';
 import { celebrateWin, shouldCelebrate } from '../components/Celebration';
 import { useAuth } from '../context/AuthContext';
@@ -90,6 +90,13 @@ export default function DealsNK() {
   const updateMut = useMutation({ mutationFn: ({ id, data }) => dealsApi.nk.update(id, data), onSuccess: (row, vars) => { invalidate(); setModal(null); maybeCelebrate(row, vars?.prevStatus); } });
   const deleteMut = useMutation({ mutationFn: dealsApi.nk.delete, onSuccess: invalidate });
 
+  // Serverfehler beim Speichern ANZEIGEN statt still scheitern (z. B. 400 "Gewonnen-Datum liegt in
+  // der Zukunft", 403 Datums-Guard). Ohne das blieb der Dialog bei jeder Ablehnung einfach stehen.
+  const speicherFehler = [createMut.error, updateMut.error].find(Boolean);
+  const fehlerText = speicherFehler
+    ? (speicherFehler.response?.data?.error || speicherFehler.message || 'Speichern fehlgeschlagen.') : null;
+  const modalSchliessen = () => { setModal(null); createMut.reset(); updateMut.reset(); };
+
   const empOptions  = employees.map(e => ({ value: e.id, label: `${e.name} (${e.company_name})` }));
   const compOpts    = companies.map(c => ({ value: c.id, label: c.name }));
   const closerList  = employees.filter(e => ['NKV-Closer', 'Multi', 'Closer-KAM'].includes(e.rolle));
@@ -138,12 +145,13 @@ export default function DealsNK() {
       name:     'gewonnen_datum',
       label:    'Annahmedatum',
       type:     'date',
-      hint:     'Datum, an dem der Kunde den Deal angenommen hat',
+      hint:     'Datum, an dem der Kunde den Deal angenommen hat (höchstens heute)',
       show:     f => f.status === 'Gewonnen' && f.angebot_erstellt !== 'nein',
       required: f => f.status === 'Gewonnen',
+      max:      heuteLokal(),   // Zukunftssperre — der Server prueft dasselbe (utils/gewonnen.js)
       autoFill: (form, changedKey) =>
         changedKey === 'status' && form.status === 'Gewonnen' && !form.gewonnen_datum
-          ? new Date().toISOString().slice(0, 10)
+          ? heuteLokal()
           : undefined,
     },
     { name: 'abgerechnet',    label: 'Abgerechnet',               type: 'select', options: ABGERECHNET_OPTS, show: mitAngebot },
@@ -791,7 +799,8 @@ export default function DealsNK() {
           title={modal.mode === 'create' ? 'Neuer NK-Deal' : 'NK-Deal bearbeiten'}
           fields={fields}
           initial={{ ...(modal.data || {}), angebot_erstellt: istKeinAngebot(modal.data || {}) ? 'nein' : 'ja' }}
-          onSave={handleSave} onClose={() => setModal(null)}
+          onSave={handleSave} onClose={modalSchliessen}
+          fehler={fehlerText} busy={createMut.isPending || updateMut.isPending}
         />
       )}
     </div>

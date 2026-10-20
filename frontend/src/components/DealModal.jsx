@@ -34,17 +34,30 @@ export default function DealModal({ title, fields, initial = {}, onSave, onClose
 
   const isVisible  = (f) => typeof f.show === 'function' ? f.show(form) : true;
   const isRequired = (f) => typeof f.required === 'function' ? f.required(form) : !!f.required;
+  // Obergrenze eines Datumsfelds: f.max als 'YYYY-MM-DD' oder Funktion (form) => 'YYYY-MM-DD'.
+  const maxVon     = (f) => (typeof f.max === 'function' ? f.max(form) : f.max) || null;
 
   const [fehlendeFelder, setFehlendeFelder] = useState([]);
+  const [datumZuSpaet, setDatumZuSpaet]     = useState([]);
 
   const handleSave = () => {
     const errs = {};
     const fehlen = [];
+    const zuSpaet = [];
     fields.forEach(f => {
       if (!isVisible(f)) return; // skip hidden fields
       if (isRequired(f) && !form[f.name] && form[f.name] !== 0) {
         errs[f.name] = true;
         fehlen.push(f.label);
+        return;
+      }
+      // Obergrenze fuer Datumsfelder (z. B. Gewonnen-Datum <= heute). Der Speichern-Knopf ist kein
+      // Formular-Submit, ein max-Attribut allein wuerde also nichts sperren — daher hier pruefen.
+      const max = maxVon(f);
+      const wert = f.type === 'date' ? String(form[f.name] ?? '').slice(0, 10) : '';
+      if (max && wert && wert > max) {
+        errs[f.name] = 'max';
+        zuSpaet.push(`${f.label}: höchstens ${max.slice(8, 10)}.${max.slice(5, 7)}.${max.slice(0, 4)}`);
       }
     });
     if (Object.keys(errs).length > 0) {
@@ -53,9 +66,11 @@ export default function DealModal({ title, fields, initial = {}, onSave, onClose
       // oft unterhalb des sichtbaren Bereichs, und der Klick auf Speichern sieht aus, als taete
       // er nichts. Deshalb zusaetzlich eine Liste oben, wo der Knopf-Klick hinsieht.
       setFehlendeFelder(fehlen);
+      setDatumZuSpaet(zuSpaet);
       return;
     }
     setFehlendeFelder([]);
+    setDatumZuSpaet([]);
     // Geleerte Zahlen- und Datumsfelder als null schicken, nicht als leeren String.
     //
     // Ein geleertes Eingabefeld liefert im Browser '' — Postgres lehnt das fuer NUMERIC, INTEGER
@@ -82,6 +97,11 @@ export default function DealModal({ title, fields, initial = {}, onSave, onClose
           {fehler && (
             <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-800">
               <b>Nicht gespeichert.</b> {fehler}
+            </div>
+          )}
+          {datumZuSpaet.length > 0 && (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              <b>Nicht gespeichert.</b> Datum liegt in der Zukunft — {datumZuSpaet.join(' · ')}
             </div>
           )}
           {fehlendeFelder.length > 0 && (
@@ -136,11 +156,12 @@ export default function DealModal({ title, fields, initial = {}, onSave, onClose
                   <input
                     type={f.type ?? 'text'}
                     value={f.type === 'date' ? (form[f.name] ?? '').slice(0, 10) : (form[f.name] ?? '')}
+                    max={f.type === 'date' ? (maxVon(f) || undefined) : undefined}
                     onChange={e => { set(f.name, e.target.value); setErrors(er => ({ ...er, [f.name]: false })); }}
                     className={base}
                   />
                 )}
-                {hasErr && <p className="text-xs text-red-500 mt-0.5">Pflichtfeld</p>}
+                {hasErr && <p className="text-xs text-red-500 mt-0.5">{hasErr === 'max' ? 'Liegt in der Zukunft' : 'Pflichtfeld'}</p>}
                 {f.hint && <p className="text-xs text-gray-400 mt-0.5">{f.hint}</p>}
               </div>
             );

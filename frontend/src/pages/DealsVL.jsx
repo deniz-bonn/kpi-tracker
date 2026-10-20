@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dealsApi, employeesApi } from '../utils/api';
 import StatusBadge from '../components/StatusBadge';
 import DealModal from '../components/DealModal';
-import { formatEuro, formatMoney, companyCurrency, isDealCompanyActive, isAeCounted, currentMonat, periodLabel, periodFileSuffix } from '../utils/format';
+import { formatEuro, formatMoney, companyCurrency, isDealCompanyActive, isAeCounted, currentMonat, heuteLokal, periodLabel, periodFileSuffix } from '../utils/format';
 import { celebrateWin, shouldCelebrate } from '../components/Celebration';
 
 // AE-Euro-Betrag fuer Umsatz-Summen, 0 wenn der AE (noch) nicht getrackt wird (ae_ab_monat-Gate).
@@ -131,6 +131,13 @@ export default function DealsVL() {
   const createMut = useMutation({ mutationFn: dealsApi.vl.create, onSuccess: (row) => { invalidate(); setModal(null); maybeCelebrate(row, null); } });
   const updateMut = useMutation({ mutationFn: ({ id, data }) => dealsApi.vl.update(id, data), onSuccess: (row, vars) => { invalidate(); setModal(null); maybeCelebrate(row, vars?.prevStatus); } });
   const deleteMut = useMutation({ mutationFn: dealsApi.vl.delete, onSuccess: invalidate });
+
+  // Serverfehler beim Speichern ANZEIGEN statt still scheitern (z. B. 400 "Gewonnen-Datum liegt in
+  // der Zukunft", 403 Datums-Guard). Ohne das blieb der Dialog bei jeder Ablehnung einfach stehen.
+  const speicherFehler = [createMut.error, updateMut.error].find(Boolean);
+  const fehlerText = speicherFehler
+    ? (speicherFehler.response?.data?.error || speicherFehler.message || 'Speichern fehlgeschlagen.') : null;
+  const modalSchliessen = () => { setModal(null); createMut.reset(); updateMut.reset(); };
   const importCsvMut = useMutation({
     mutationFn: (payload) => dealsApi.vl.importCsv(payload),
     onSuccess: (result) => { setImportResult(result); invalidate(); },
@@ -210,14 +217,19 @@ export default function DealsVL() {
       name:     'gewonnen_datum',
       label:    'Realisiert am',
       type:     'date',
-      hint:     'Datum, an dem die Verlängerung realisiert wurde — steuert den AE-Monat',
+      hint:     'Datum, an dem die Verlängerung realisiert wurde — steuert den AE-Monat. Höchstens heute: vor Fristende der Tag der Zusage.',
       show:     f => f.status === 'Gewonnen',
       required: f => f.status === 'Gewonnen',
-      // Vorbelegung mit dem Kündigungsdatum (bucht AE im Kündigungsmonat, s. Regel), sonst heute.
-      autoFill: (form, changedKey) =>
-        changedKey === 'status' && form.status === 'Gewonnen' && !form.gewonnen_datum
-          ? ((form.ende_kuendigungsfrist || '').slice(0, 10) || new Date().toISOString().slice(0, 10))
-          : undefined,
+      max:      heuteLokal(),   // Zukunftssperre — der Server prueft dasselbe (utils/gewonnen.js)
+      // Vorbelegung: Ende der Kuendigungsfrist (Regel 10.08.: verstreicht die Frist, ist die
+      // Verlaengerung AN DEM TAG gewonnen) — aber hoechstens heute. Liegt die Frist noch vor uns,
+      // hat der Kunde schon zugesagt: dann ist heute der Gewinntag. Frueher stand hier das
+      // kuenftige Fristende; so entstand ein Oktober-Deal mit November-Datum (Meldung Morawitz).
+      autoFill: (form, changedKey) => {
+        if (!(changedKey === 'status' && form.status === 'Gewonnen' && !form.gewonnen_datum)) return undefined;
+        const frist = (form.ende_kuendigungsfrist || '').slice(0, 10), heute = heuteLokal();
+        return frist && frist < heute ? frist : heute;
+      },
     },
     // ── Umstellung auf Dauer-RaaS ─────────────────────────────────────────────
     // Keine Checkbox mehr: Der Ausgang IST der Status. Ein Haken daneben wäre eine zweite
@@ -795,7 +807,8 @@ export default function DealsVL() {
       {modal && (
         <DealModal key={modal.mode === 'create' ? 'new' : modal.data?.id}
           title={modal.mode === 'create' ? 'Neue Verlängerung' : 'Verlängerung bearbeiten'}
-          fields={fields} initial={modal.data} onSave={handleSave} onClose={() => setModal(null)} />
+          fields={fields} initial={modal.data} onSave={handleSave} onClose={modalSchliessen}
+          fehler={fehlerText} busy={createMut.isPending || updateMut.isPending} />
       )}
     </div>
   );

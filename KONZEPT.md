@@ -322,6 +322,19 @@ es ab, sind es Daten; weicht nur die Quote ab, war es der Code.
 10. **Close-Zugriff ist ausschließlich lesend.** `utils/closeClient.js` ist die einzige Zugriffs-
    schicht; kein POST/PUT/DELETE gegen Close, auch nicht zum Testen. `CLOSE_API_KEY` gehört
    niemals in Code, Logs oder Ausgaben.
+11. **Gewonnen-Datum nie in der Zukunft** (20.10.2026). Bei Status Gewonnen lehnt `resolveGewonnenFelder`
+   (`utils/gewonnen.js`) ein `gewonnen_datum` nach heute mit 400 ab — für NK, BK, VL, Willkommensmeeting
+   und den Dauer-RaaS-Deal einer Umstellung, VOR jedem Schreiben. „Heute" ist der **Berliner** Tag
+   (`utils/heute.js` `heuteBerlin()`), nicht der UTC-Tag des Containers (zwischen 0 und 2 Uhr nachts
+   wäre das gestern). Nur `gewonnen_datum` ist gesperrt; `dauervertrag_datum`, `datum` (Angebot) und alle
+   Kündigungs-/Fristdaten dürfen in der Zukunft liegen. VL-Vorbelegung: Ende der Kündigungsfrist, aber
+   höchstens heute (Regel 10.08.: verstreicht die Frist, ist die Verlängerung AN DEM TAG gewonnen; vorher
+   nur bei Zusage = heute). Der Dauer-RaaS-Deal einer Umstellung ohne eigenes Gewinndatum bekommt
+   `min(Umstellungsdatum, heute)` — der Vertrag darf später starten. Anlass: Meldung Morawitz, ein
+   Oktober-VL mit November-Datum stand in der Monatsübersicht als „November 100 %". Zukunftsmonate mit
+   Werten markiert das Dashboard seither mit „Zukunftsmonat — Datumsfehler?". Frontend-Gegenstück:
+   Felder mit `max: heuteLokal()` (`utils/format.js`, Browser-Ortszeit, NICHT `toISOString()`), geprüft
+   in `DealModal.handleSave`, weil der Speichern-Knopf kein Formular-Submit ist.
 
 ---
 
