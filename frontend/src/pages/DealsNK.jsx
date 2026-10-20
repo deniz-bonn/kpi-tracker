@@ -17,7 +17,7 @@ import InfoPopover from '../components/InfoPopover';
 // (ae_ab_monat-Gate, Risem erst ab August). Nur fuer Summen — Deal-Liste zeigt ae_wert normal.
 const aeEur = d => isAeCounted(d) ? (Number(d.ae_wert_eur ?? d.ae_wert) || 0) : 0;
 
-const QUELLEN = ['Cold Calling', 'Mail', 'Fax', 'Ad', 'Empfehlung', 'Follow Up', 'Inbound', 'Leadhandy', 'Post'];
+const QUELLEN = ['Cold Calling', 'Mail', 'Fax', 'Ad', 'Empfehlung', 'Follow Up', 'Inbound', 'Leadhandy', 'Post', 'KI'];
 const STATUS_OPTS = ['Offen', 'Gewonnen', 'Verloren', 'In Verhandlung', 'In Closing Call 2'];
 const STANDORTE = ['Bonn', 'Braunschweig', 'Österreich', 'Schweiz'];
 
