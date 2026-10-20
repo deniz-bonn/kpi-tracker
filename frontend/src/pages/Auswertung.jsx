@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { auswertungApi, employeesApi } from '../utils/api';
-import { formatEuro, currentMonat } from '../utils/format';
+import { auswertungApi, employeesApi, dealsApi } from '../utils/api';
+import { formatEuro, currentMonat, isDealCompanyActive, aeEurDeal } from '../utils/format';
+import { quellenStats, zeitraumVorTracking } from '../utils/nkConstants';
+import QuellenTabelle from '../components/QuellenTabelle';
 
 // ── Tab config ───────────────────────────────────────────────────────────────
 const TAB_CFG = {
@@ -190,6 +192,24 @@ export default function Auswertung() {
     queryFn:  () => auswertungApi.vl(bkParams),
     staleTime: 0, refetchOnMount: 'always',
   });
+  // Quoten nach Quelle: aus der Deal-Liste der NK-Seite (dieselbe Rechnung, dieselben Gates),
+  // NICHT aus /auswertung/nk — dessen Aggregat kennt angebot_erstellt nicht und zaehlt seit
+  // August angebotslose Calls als Angebote. Standort wie dort ueber den Closer.
+  const nkDealParams = {
+    ...(company && { company_id: company }),
+    ...(!showAllMonths && { monat }),
+    ...(closerId && { closer_id: closerId }),
+  };
+  const { data: nkDeals = [] } = useQuery({
+    queryKey: ['deals-nk', nkDealParams],
+    queryFn:  () => dealsApi.nk.list(nkDealParams),
+    enabled:  tab === 'nk',
+  });
+  const quellenTab = useMemo(() => quellenStats(
+    nkDeals.filter(d => isDealCompanyActive(d) && (!standort || d.closer_standort === standort)),
+    aeEurDeal,
+  ), [nkDeals, standort]);
+
   const { data: standorte = [] } = useQuery({
     queryKey: ['standorte'],
     queryFn:  auswertungApi.standorte,
@@ -257,6 +277,17 @@ export default function Auswertung() {
       {/* ── Gesamt ──────────────────────────────────────────────────── */}
       {activeData?.gesamt && (
         <GestaltBlock kpis={activeData.gesamt} tab={tab} />
+      )}
+
+      {/* ── Quoten nach Quelle (nur NK) ─────────────────────────────── */}
+      {tab === 'nk' && (
+        <div className="rounded-xl border border-gray-200 overflow-hidden">
+          <div className="bg-[#2d2e30] px-4 py-2.5">
+            <span className="text-xs font-bold text-gray-200 uppercase tracking-wider">Quoten nach Quelle</span>
+          </div>
+          <QuellenTabelle stats={quellenTab}
+            vorTracking={zeitraumVorTracking(showAllMonths ? 'alle' : 'monat', monat)} />
+        </div>
       )}
 
       {/* ── Pro Mitarbeiter ─────────────────────────────────────────── */}

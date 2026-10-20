@@ -30,6 +30,10 @@ export const isAeCounted = (d) => {
   return !!gm && gm >= ab;
 };
 
+// AE eines Deals in EUR mit Startmonat-Gate — die Summand-Funktion aller client-seitigen
+// AE-Summen der NK-Seite und der KPI Auswertung (eine Definition statt Kopien je Seite).
+export const aeEurDeal = (d) => (isAeCounted(d) ? (Number(d.ae_wert_eur ?? d.ae_wert) || 0) : 0);
+
 export const formatPct = (val) => `${val ?? 0} %`;
 
 export const monthLabel = (monat) => {

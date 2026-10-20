@@ -4,20 +4,21 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dealsApi, employeesApi, exportApi } from '../utils/api';
 import StatusBadge from '../components/StatusBadge';
 import DealModal from '../components/DealModal';
-import { formatEuro, formatMoney, companyCurrency, isDealCompanyActive, isAeCounted, currentMonat, periodLabel, periodFileSuffix } from '../utils/format';
+import { formatEuro, formatMoney, companyCurrency, isDealCompanyActive, aeEurDeal, currentMonat, periodLabel, periodFileSuffix } from '../utils/format';
 import { computeMedals, medalRowClass, medalBarClass, MedalBadge, MiniPodium } from '../components/medals';
 import { celebrateWin, shouldCelebrate } from '../components/Celebration';
 import { useAuth } from '../context/AuthContext';
 import { KEIN_ANGEBOT_GRUENDE, GRUND_LABEL, INFO_TEXTE, hatAngebot, istKeinAngebot,
-         rollenStats, klassischeKpis, callStats, dealFilterPred, zeitraumVorTracking, KEIN_ANGEBOT_HINWEIS } from '../utils/nkConstants';
+         rollenStats, klassischeKpis, callStats, dealFilterPred, zeitraumVorTracking, KEIN_ANGEBOT_HINWEIS,
+         QUELLEN, quellenStats } from '../utils/nkConstants';
 import NkMonatsvergleich from '../components/NkMonatsvergleich';
+import QuellenTabelle from '../components/QuellenTabelle';
 import InfoPopover from '../components/InfoPopover';
 
 // AE-Euro-Betrag eines Deals fuer Umsatz-Summen, 0 wenn der AE (noch) nicht getrackt wird
 // (ae_ab_monat-Gate, Risem erst ab August). Nur fuer Summen — Deal-Liste zeigt ae_wert normal.
-const aeEur = d => isAeCounted(d) ? (Number(d.ae_wert_eur ?? d.ae_wert) || 0) : 0;
+const aeEur = aeEurDeal;
 
-const QUELLEN = ['Cold Calling', 'Mail', 'Fax', 'Ad', 'Empfehlung', 'Follow Up', 'Inbound', 'Leadhandy', 'Post', 'KI'];
 const STATUS_OPTS = ['Offen', 'Gewonnen', 'Verloren', 'In Verhandlung', 'In Closing Call 2'];
 const STANDORTE = ['Bonn', 'Braunschweig', 'Österreich', 'Schweiz'];
 
@@ -39,6 +40,7 @@ export default function DealsNK() {
   const [showKpis, setShowKpis] = useState(true);
   const [showOpener, setShowOpener] = useState(false);
   const [showStandort, setShowStandort] = useState(false);
+  const [showQuellen, setShowQuellen]   = useState(false);
   const [showAngebot, setShowAngebot] = useState(false);
 
   const [filterQuelle, setFilterQuelle]     = useState('');
@@ -211,6 +213,8 @@ export default function DealsNK() {
   // ── Angebotsquote & bereinigte Closing Rate (Basis: ALLE Closing Calls) ──
   // Call-basierte Quoten — Rechnung in nkConstants.js (callStats), siehe klassischeKpis.
   const angebotStats = useMemo(() => callStats(calls), [calls]);
+  // Quoten je Leadquelle — dieselben Funktionen je Quelle, Gesamtzeile = Seitenzahlen.
+  const quellenTab = useMemo(() => quellenStats(calls, aeEur), [calls]);
 
   // Pro Closer im Angebots-Block: bewusst mit Basis-Override 'calls' — hier stehen klassische
   // und bereinigte Rate nebeneinander, deshalb muessen die angebotslosen Calls sichtbar sein.
@@ -710,6 +714,18 @@ export default function DealsNK() {
               )}
             </div>
           )}
+
+          {/* Quoten nach Leadquelle */}
+          <div className="rounded-lg border border-gray-200 overflow-hidden">
+            <button
+              onClick={() => setShowQuellen(v => !v)}
+              className="w-full flex items-center justify-between px-3 py-2 bg-[#2d2e30] hover:bg-[#3a3a3a] transition-colors"
+            >
+              <span className="text-xs font-bold text-white uppercase tracking-wide">Quoten nach Quelle</span>
+              <span className="text-gray-400 text-xs">{showQuellen ? '▲ Einklappen' : '▼ Anzeigen'}</span>
+            </button>
+            {showQuellen && <QuellenTabelle stats={quellenTab} vorTracking={vorTracking} />}
+          </div>
         </div>
       )}
 

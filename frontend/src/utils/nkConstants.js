@@ -169,6 +169,52 @@ export function callStats(calls) {
   };
 }
 
+// ── Leadquellen ──────────────────────────────────────────────────────────────
+// EINE Liste fuer Formular, Filter und Auswertung. deals_nk.quelle ist seit Migration 006
+// Freitext ohne CHECK — eine neue Quelle kostet nur diesen Eintrag.
+export const QUELLEN = ['Cold Calling', 'Mail', 'Fax', 'Ad', 'Empfehlung', 'Follow Up', 'Inbound', 'Leadhandy', 'Post', 'KI'];
+export const OHNE_QUELLE = 'ohne Quelle';
+
+/**
+ * Quoten je Leadquelle. Keine eigenen Formeln: jede Zeile ist callStats + klassischeKpis ueber
+ * die Calls dieser Quelle — dieselben Funktionen wie Kopfzeile und Gesamt-KPIs der NK-Seite.
+ * Die Gesamt-Zeile ist damit per Konstruktion identisch mit den Seitenzahlen.
+ *
+ * Zeilen: alle Quellen aus QUELLEN (auch mit 0 Calls, damit eine neue Quelle wie KI sichtbar
+ * bleibt, bevor sie Daten hat), danach Werte, die im Bestand vorkommen, aber nicht in der Liste
+ * stehen (Altwerte wie 'DMC'), zuletzt 'ohne Quelle'. Sortiert nach Calls, absteigend.
+ * @param calls  ALLE Closing Calls des Scopes (inkl. ohne Angebot)
+ * @param aeEur  (deal) => AE in EUR mit ae_ab_monat-Gate
+ */
+export function quellenStats(calls, aeEur) {
+  const gruppen = new Map(QUELLEN.map(q => [q, []]));
+  for (const d of calls) {
+    const q = String(d.quelle ?? '').trim() || OHNE_QUELLE;
+    if (!gruppen.has(q)) gruppen.set(q, []);
+    gruppen.get(q).push(d);
+  }
+  const zeile = (quelle, ds) => {
+    const cs = callStats(ds);
+    const kk = klassischeKpis(ds.filter(hatAngebot), aeEur);
+    return {
+      quelle,
+      calls:         cs.callsN,
+      angebote:      cs.mitN,
+      gewonnen:      kk.gewonnen,
+      angebotsquote: cs.angebotsquote,   // Angebote ÷ Calls
+      rateKlassisch: cs.rateKlassisch,   // Gewonnen ÷ Angebote
+      rateBereinigt: cs.rateBereinigt,   // Gewonnen ÷ alle Calls
+      ae:            kk.ae_summe,
+    };
+  };
+  const ohne = gruppen.get(OHNE_QUELLE);
+  gruppen.delete(OHNE_QUELLE);
+  const zeilen = [...gruppen].map(([q, ds]) => zeile(q, ds))
+    .sort((a, b) => b.calls - a.calls || a.quelle.localeCompare(b.quelle, 'de'));
+  if (ohne?.length) zeilen.push(zeile(OHNE_QUELLE, ohne));
+  return { zeilen, gesamt: zeile('Gesamt', calls) };
+}
+
 // ── Monatsvergleich „Stand Tag X" ─────────────────────────────────────────────
 // Prinzip gleicher Stichtag: der laufende Monat bis einschliesslich Tag X wird mit den
 // Vormonaten bis Tag X verglichen. Nur dieser Gleich-Tage-Schnitt ist fair — ein halber
