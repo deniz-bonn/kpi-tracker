@@ -335,6 +335,16 @@ es ab, sind es Daten; weicht nur die Quote ab, war es der Code.
    Werten markiert das Dashboard seither mit „Zukunftsmonat — Datumsfehler?". Frontend-Gegenstück:
    Felder mit `max: heuteLokal()` (`utils/format.js`, Browser-Ortszeit, NICHT `toISOString()`), geprüft
    in `DealModal.handleSave`, weil der Speichern-Knopf kein Formular-Submit ist.
+12. **Provisionen-Bereich: Freigabe je Person und je Kreis** (21.10.2026). Wer `/provisionen` sieht und
+   welche Abrechnungskreise, entscheidet EINE Funktion: `utils/provisionsZugriff.js` `provisionsKreise()`.
+   Superadmin → alle; Einzelfreigabe `provisionen` → alle, für jede Rolle; Rollenfreigabe `provisionen` →
+   alle, aber NUR für Admin/Vertriebsleitung; Einzelfreigabe `provisionen_<kreis>` → nur dieser Kreis
+   (kombinierbar). Die Rollenfreigabe steht in Produktion noch für Backoffice und NK-Vertrieb (Altlast aus
+   der Zeit vor `meine_provision`) und darf nichts öffnen — darum bleibt sie auf Admin/VL begrenzt; die
+   Zugriffssteuerung zeigt diese Haken als „—". Jede Admin-Leseroute prüft den Kreis des TATSÄCHLICH
+   geladenen Zeitraums, nicht den Query-Parameter: `resolveZeitraum()` nimmt eine `zeitraum_id` ohne
+   Kreisprüfung an. Die Staffel in der Übersicht wird auf die erlaubten Kreise zugeschnitten
+   (`staffelFuerKreise`). Abschluss, Export, Sätze ändern und Backfill bleiben Superadmin-only.
 
 ---
 

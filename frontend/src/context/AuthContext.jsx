@@ -6,9 +6,14 @@ const AuthContext = createContext(null);
 
 const TOKEN_KEY = 'kpi_token';
 
+// Payload lesen, ohne Signaturpruefung (die macht der Server). Das Segment ist Base64url
+// ('-', '_', ohne Padding) und enthaelt UTF-8: atob allein wirft bei '-'/'_' (Nutzer gilt dann
+// als abgemeldet) und liefert Latin-1 — aus "Röse" wird "RÃ¶se".
 function parseJwt(token) {
   try {
-    return JSON.parse(atob(token.split('.')[1]));
+    const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const bytes = Uint8Array.from(atob(b64 + '='.repeat((4 - b64.length % 4) % 4)), (c) => c.charCodeAt(0));
+    return JSON.parse(new TextDecoder('utf-8').decode(bytes));
   } catch {
     return null;
   }
@@ -122,8 +127,15 @@ export function AuthProvider({ children }) {
   const canSeeMeinDashboardKontrolle = hat('mein_dashboard_kontrolle');
   const canSeeMeineProvision          = hat('meine_provision') || hat('meine_provision_kontrolle');
   const canSeeMeineProvisionKontrolle = hat('meine_provision_kontrolle');
-  // Admin-Sicht der Provisionen (Gesamtübersicht/Abschluss): zusätzlich Rolle Admin/Vertriebsleitung.
-  const canSeeProvisionenAdmin = canSeeProvisionen && (isAdmin || isVertriebsleitung);
+  // Admin-Sicht der Provisionen (/provisionen) — Spiegel von utils/provisionsZugriff.js im Backend:
+  //   Einzelfreigabe 'provisionen' -> jede Rolle, alle Kreise
+  //   Rollenfreigabe 'provisionen' -> nur Admin/Vertriebsleitung (die Rolle steht in Produktion auch
+  //                                   fuer Backoffice/NK-Vertrieb drin — wirkungslos und so gewollt)
+  //   Einzelfreigabe 'provisionen_<kreis>' -> nur diese Kreise (welche, liefert der Server)
+  // Der Server setzt die Kreise durch; hier geht es nur um Menuepunkt und Route.
+  const canSeeProvisionenAdmin = isSuperAdmin || userHasFeature('provisionen')
+    || (roleHasFeature('provisionen') && (isAdmin || isVertriebsleitung))
+    || (userFeatures || []).some((f) => f.startsWith('provisionen_'));
 
   return (
     <AuthContext.Provider value={{

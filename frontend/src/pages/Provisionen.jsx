@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { provisionenApi } from '../utils/api';
 import { formatEuro } from '../utils/format';
@@ -154,11 +154,21 @@ export default function Provisionen() {
   const [gruppe, setGruppe] = useState('');     // Rollen-Gruppen-Filter (BK-Kreis)
   const [standort, setStandort] = useState(''); // Standort-Filter
 
-  const { data: zeitraeume = [] } = useQuery({ queryKey: ['prov-zeitraeume', kreis], queryFn: () => provisionenApi.zeitraeume(kreis) });
+  // Welche Kreise darf DIESER Nutzer sehen? Einzelfreigaben koennen auf einzelne Kreise begrenzt
+  // sein (z. B. "nur Österreich"). Der Server setzt das durch; hier nur Reiter und Startkreis.
+  const { data: erlaubt } = useQuery({ queryKey: ['prov-kreise'], queryFn: provisionenApi.kreise });
+  const sichtbareKreise = KREISE.filter((k) => (erlaubt || []).includes(k.key));
+  const kreisErlaubt = !!erlaubt && erlaubt.includes(kreis);
+  useEffect(() => {
+    if (erlaubt?.length && !erlaubt.includes(kreis)) { setKreis(erlaubt[0]); setZid(''); }
+  }, [erlaubt]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const { data: zeitraeume = [] } = useQuery({ queryKey: ['prov-zeitraeume', kreis], queryFn: () => provisionenApi.zeitraeume(kreis), enabled: kreisErlaubt });
   const { data, isLoading } = useQuery({
     queryKey: ['prov-overview', kreis, zid],
     queryFn: () => provisionenApi.overview({ kreis, zeitraum_id: zid || undefined }),
     placeholderData: keepPreviousData,
+    enabled: kreisErlaubt,
   });
 
   const zSel = zid || data?.zeitraum?.id || '';
@@ -208,7 +218,7 @@ export default function Provisionen() {
       {/* Abrechnungskreis (Standort-Dimension) — steuert Zeiträume, Regeln und Export */}
       <div className="space-y-1.5">
         <div className="inline-flex rounded-lg bg-gray-100 p-1 gap-1">
-          {KREISE.map((k) => (
+          {sichtbareKreise.map((k) => (
             <button key={k.key} onClick={() => changeKreis(k.key)}
               className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${kreis === k.key ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>{k.label}</button>
           ))}

@@ -2,6 +2,7 @@ const router = require('express').Router();
 const db     = require('../db');
 const wrap   = require('../middleware/asyncHandler');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { KREIS_FEATURES } = require('../utils/provisionsZugriff');
 
 router.use(requireAuth);
 
@@ -12,7 +13,13 @@ const validRoles    = ['admin', 'vertriebsleitung', 'backoffice', 'bk_vertrieb',
 const KNOWN_FEATURES = ['kpi_beta', 'bestenliste', 'provisionen', 'backup', 'show_rates_close',
   'mein_dashboard', 'mein_dashboard_kontrolle',
   'meine_provision', 'meine_provision_kontrolle',
-  'kontrolle_alle_mitarbeiter'];
+  'kontrolle_alle_mitarbeiter',
+  // Provisionen nur fuer einzelne Abrechnungskreise (provisionen_bonn, …_oesterreich, …) —
+  // reine Einzelfreigaben, siehe utils/provisionsZugriff.js.
+  ...KREIS_FEATURES];
+// Features, die es NUR als Einzelfreigabe gibt: Rollenhaken waeren hier eine Freigabe fuer
+// ganze Rollen auf einen Kreis — genau die Pauschalitaet, die die Kreis-Freigabe vermeiden soll.
+const NUR_EINZELN = new Set(KREIS_FEATURES);
 
 // feature -> [role] Map aus feature_flags aufbauen.
 async function loadRoleFlags() {
@@ -54,6 +61,9 @@ router.post('/', requireRole('superadmin'), wrap(async (req, res) => {
   const { feature, roles } = req.body;
   if (!feature || !Array.isArray(roles)) {
     return res.status(400).json({ error: 'feature und roles erforderlich' });
+  }
+  if (NUR_EINZELN.has(feature) && roles.length) {
+    return res.status(400).json({ error: 'Dieses Feature wird nur einzelnen Nutzern freigegeben, nicht Rollen.' });
   }
   const safeRoles = roles.filter(r => validRoles.includes(r));
   await db.run(`DELETE FROM feature_flags WHERE feature=${pg() ? '$1' : '?'}`, [feature]);

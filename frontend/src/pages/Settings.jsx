@@ -20,7 +20,13 @@ const ROLE_LABELS = { superadmin:'Super Admin', admin:'Admin', vertriebsleitung:
 const CONTROLLED_FEATURES = [
   { key: 'kpi_beta', label: 'KPI Mitarbeiter Beta', desc: 'Beta-Dashboard mit täglichem Activity-Tracking' },
   { key: 'bestenliste', label: 'Bestenliste (Beta)', desc: 'Motivations-Leaderboard für den Vertrieb (nur NK-Daten)' },
-  { key: 'provisionen', label: 'Provisionen — Admin-Übersicht', desc: 'Gesamtübersicht, Abschluss, Konfiguration und Export (/provisionen)' },
+  { key: 'provisionen', label: 'Provisionen — Admin-Übersicht',
+    desc: 'Gesamtübersicht je Abrechnungskreis (/provisionen). Rollen-Haken wirken nur für Admin und Vertriebsleitung; einzelne Personen lassen sich für alle oder nur für bestimmte Kreise freischalten (z. B. nur Österreich). Abschluss, Export und Sätze ändern bleiben Superadmin.',
+    // Einzelfreigabe wahlweise auf einen Kreis begrenzt -> Feature 'provisionen_<kreis>' (Backend: utils/provisionsZugriff.js)
+    kreisScope: true,
+    // Rollenfreigabe wirkt hier nur fuer diese Rollen (Backoffice/NK-Vertrieb stehen in Produktion
+    // noch als Altlast drin, wirken aber nicht) — die uebrigen Haken nicht als scheinbar wirksam zeigen.
+    rollenWirksam: ['admin', 'vertriebsleitung'] },
   { key: 'meine_provision', label: 'Meine Provision', desc: 'Eigener Kontoauszug je Abrechnungszeitraum' },
   { key: 'meine_provision_kontrolle', label: 'Meine Provision — Kontroll-Sicht', desc: '„Aus der Sicht von …": öffnet die Provisionssicht ANDERER freigeschalteter Personen. Superadmin immer.' },
   { key: 'show_rates_close', label: 'Show Rates (Close)', desc: 'Opener-/Setter-Show-Rates aus den Close-Statusdaten (Beta)' },
@@ -42,6 +48,7 @@ function AccessControlSection() {
   const qc = useQueryClient();
   const [localFlags, setLocalFlags] = useState({});
   const [savedOk,    setSavedOk]    = useState(null);
+  const [scopeKreis, setScopeKreis] = useState('');   // Einzelfreigabe Provisionen: '' = alle Kreise
   const colSpan = CONTROLLABLE_ROLES.length + 2;
 
   const { data, isLoading } = useQuery({
@@ -99,8 +106,15 @@ function AccessControlSection() {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {CONTROLLED_FEATURES.map(feat => {
-              const granted    = userGrants[feat.key] || [];
-              const candidates = allUsers.filter(u => (u.active === true || u.active === 1) && !granted.some(g => g.user_id === u.id));
+              // Provisionen: Einzelfreigaben fuer "alle Kreise" (feat.key) und je Kreis (provisionen_<kreis>)
+              // in EINER Liste — jeder Chip weiss, zu welchem Feature-Schluessel er gehoert.
+              const granted = feat.kreisScope
+                ? [ ...(userGrants[feat.key] || []).map(g => ({ ...g, feature: feat.key, scope: null })),
+                    ...KREISE.flatMap(k => (userGrants[`provisionen_${k.key}`] || []).map(g => ({ ...g, feature: `provisionen_${k.key}`, scope: k.label }))) ]
+                : (userGrants[feat.key] || []).map(g => ({ ...g, feature: feat.key }));
+              const zielFeature = feat.kreisScope && scopeKreis ? `provisionen_${scopeKreis}` : feat.key;
+              const schonDrin   = new Set((userGrants[zielFeature] || []).map(g => g.user_id));
+              const candidates  = allUsers.filter(u => (u.active === true || u.active === 1) && !schonDrin.has(u.id));
               return (
               <Fragment key={feat.key}>
               <tr className="hover:bg-gray-50">
@@ -115,7 +129,10 @@ function AccessControlSection() {
                   </div>
                   <div className="text-xs text-gray-400 mt-0.5">{feat.desc}</div>
                 </td>
-                {CONTROLLABLE_ROLES.map(role => (
+                {CONTROLLABLE_ROLES.map(role => (feat.rollenWirksam && !feat.rollenWirksam.includes(role.value)) ? (
+                  <td key={role.value} className="px-3 py-3 text-center text-gray-300 text-xs"
+                    title="Für diese Rolle wirkt die Rollenfreigabe hier nicht — Personen unten einzeln freischalten.">—</td>
+                ) : (
                   <td key={role.value} className="px-3 py-3 text-center">
                     <input
                       type="checkbox"
@@ -146,20 +163,31 @@ function AccessControlSection() {
                     <span className="text-[11px] text-gray-500 mr-1">Zusätzlich einzelne Nutzer:</span>
                     {granted.length === 0 && <span className="text-[11px] text-gray-400 italic">keine</span>}
                     {granted.map(g => (
-                      <span key={g.user_id}
+                      <span key={`${g.feature}-${g.user_id}`}
                         className={`inline-flex items-center gap-1 text-[11px] rounded-full border px-2 py-0.5 ${
                           g.active ? 'bg-white border-gray-200 text-gray-700' : 'bg-gray-100 border-gray-200 text-gray-400 line-through'
                         }`}
                         title={g.active ? '' : 'Nutzer ist deaktiviert — Freischaltung wirkungslos'}>
                         {g.name}<span className="text-gray-400">· {ROLE_LABELS[g.role] || g.role}</span>
+                        {feat.kreisScope && (
+                          <span className={g.scope ? 'text-indigo-600 font-medium' : 'text-gray-500'}>· {g.scope ? `nur ${g.scope}` : 'alle Kreise'}</span>
+                        )}
                         {!g.active && <span className="not-italic no-underline text-gray-400">(inaktiv)</span>}
-                        <button onClick={() => removeUserMut.mutate({ feature: feat.key, user_id: g.user_id })}
+                        <button onClick={() => removeUserMut.mutate({ feature: g.feature, user_id: g.user_id })}
                           disabled={removeUserMut.isPending}
                           className="ml-0.5 text-gray-400 hover:text-red-600 leading-none">✕</button>
                       </span>
                     ))}
+                    {feat.kreisScope && (
+                      <select value={scopeKreis} onChange={e => setScopeKreis(e.target.value)}
+                        title="Für welche Abrechnungskreise gilt die Freigabe?"
+                        className="text-[11px] bg-white border border-gray-300 text-gray-600 rounded px-2 py-0.5">
+                        <option value="">alle Kreise</option>
+                        {KREISE.map(k => <option key={k.key} value={k.key}>nur {k.label}</option>)}
+                      </select>
+                    )}
                     <select value="" disabled={addUserMut.isPending || candidates.length === 0}
-                      onChange={e => { if (e.target.value) addUserMut.mutate({ feature: feat.key, user_id: Number(e.target.value) }); }}
+                      onChange={e => { if (e.target.value) addUserMut.mutate({ feature: zielFeature, user_id: Number(e.target.value) }); }}
                       className="text-[11px] bg-white border border-gray-300 text-gray-600 rounded px-2 py-0.5 disabled:opacity-50">
                       <option value="">{candidates.length ? '+ Nutzer hinzufügen…' : 'alle Nutzer bereits/nicht verfügbar'}</option>
                       {candidates.map(u => (

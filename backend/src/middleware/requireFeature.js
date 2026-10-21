@@ -14,24 +14,28 @@ const db = require('../db');
 async function hatFeature(user, feature) {
   if (!user) return false;
   if (user.role === 'superadmin') return true;
+  if (await hatRollenFreigabe(user, feature)) return true;     // (b)
+  return hatEinzelFreigabe(user, feature);                     // (c)
+}
+
+/** (b) Ist die ROLLE des Nutzers fuer das Feature freigeschaltet? (ohne Superadmin-Sonderfall) */
+async function hatRollenFreigabe(user, feature) {
+  if (!user) return false;
+  const p = (n) => (db.dialect === 'postgres' ? `$${n}` : '?');
+  return !!(await db.get(`SELECT 1 AS ok FROM feature_flags WHERE feature = ${p(1)} AND role = ${p(2)}`, [feature, user.role]));
+}
+
+/** (c) Ist GENAU DIESER Nutzer einzeln freigeschaltet — und (noch) aktiv? Getrennt abfragbar,
+ *  weil manche Bereiche Rollen- und Einzelfreigabe verschieden behandeln (Provisionen-Admin). */
+async function hatEinzelFreigabe(user, feature) {
+  if (!user) return false;
   const pg = db.dialect === 'postgres';
-  const p = (n) => pg ? `$${n}` : '?';
-
-  // (b) Rolle freigeschaltet?
-  const byRole = await db.get(
-    `SELECT 1 AS ok FROM feature_flags WHERE feature = ${p(1)} AND role = ${p(2)}`,
-    [feature, user.role]
-  );
-  if (byRole) return true;
-
-  // (c) Einzel-Freischaltung — nur wenn der User (noch) aktiv ist.
-  const byUser = await db.get(
+  const p = (n) => (pg ? `$${n}` : '?');
+  return !!(await db.get(
     `SELECT 1 AS ok FROM feature_flag_users ffu
        JOIN users u ON u.id = ffu.user_id
       WHERE ffu.feature = ${p(1)} AND ffu.user_id = ${p(2)} AND u.active = ${pg ? 'TRUE' : '1'}`,
-    [feature, user.id]
-  );
-  return !!byUser;
+    [feature, user.id]));
 }
 
 function requireFeature(feature) {
@@ -56,4 +60,4 @@ function requireAnyFeature(...features) {
   };
 }
 
-module.exports = { requireFeature, requireAnyFeature, hatFeature };
+module.exports = { requireFeature, requireAnyFeature, hatFeature, hatRollenFreigabe, hatEinzelFreigabe };

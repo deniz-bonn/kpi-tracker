@@ -192,6 +192,8 @@ export const provisionenApi = {
   // `als` wirkt serverseitig nur mit 'meine_provision_kontrolle' und nur fuer freigeschaltete Personen.
   me:          (zeitraum_id, als) => api.get('/provisionen/me', { params: { zeitraum_id, ...(als ? { als } : {}) } }).then(r => r.data),
   overview:    (params)         => api.get('/provisionen/admin/overview', { params: params || {} }).then(r => r.data),
+  // Kreise, die DIESER Nutzer im Admin-Bereich sehen darf (Einzelfreigabe je Kreis moeglich).
+  kreise:      ()               => api.get('/provisionen/admin/kreise').then(r => r.data?.kreise || []),
   employee:    (id, zeitraum_id)=> api.get(`/provisionen/admin/employee/${id}`, { params: { zeitraum_id } }).then(r => r.data),
   config:      ()               => api.get('/provisionen/config').then(r => r.data),
   configUpsert:(gueltig_ab, d)  => api.put(`/provisionen/config/${gueltig_ab}`, d).then(r => r.data),

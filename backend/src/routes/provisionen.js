@@ -11,6 +11,7 @@ const { projektionLaufend, backfillLaufend, abschliesseZeitraum, staffelStatus, 
 const { projektionBk, backfillBk, KREIS: BK_KREIS } = require('../utils/provisionenBk');
 const { KREIS_KEYS, NK_KREISE, KALENDERMONAT_KREISE, istKreis, kreisInfo, labelFuer } = require('../utils/kreise');
 const { gruppeVonEmp } = require('../utils/rollen');
+const { provisionsKreise, provisionsSicht, staffelFuerKreise } = require('../utils/provisionsZugriff');
 
 // Kreis aus der Query holen. `pflicht: true` -> unbekannter/fehlender Kreis ist ein 400.
 // FRUEHER stand hier ueberall `KREISE.includes(x) ? x : 'bonn'`. Das war nicht "kein Zugang",
@@ -59,13 +60,28 @@ const nurAdminFeature = requireFeature('provisionen');
 // damit beide Seiten denselben Zeitraum und dieselbe Summenbildung benutzen.
 
 // ── Abrechnungszeitraeume ──
-router.get('/zeitraeume', requireAnyFeature(NUTZER_SICHT, KONTROLL_SICHT, 'provisionen'), wrap(async (req, res) => {
+// Gate: eigene Sicht, Kontroll-Sicht ODER mindestens ein Kreis im Admin-Bereich (provisionsZugriff).
+// Die Liste nennt nur Zeitraeume (Daten/Status), keine Personen oder Betraege.
+const zeitraumSicht = async (req, res, next) => {
+  try {
+    if (await hatFeature(req.user, NUTZER_SICHT) || await hatFeature(req.user, KONTROLL_SICHT)) return next();
+    if ((await provisionsKreise(req.user)).length) return next();
+    return res.status(403).json({ error: 'Kein Zugriff auf dieses Feature' });
+  } catch (e) { next(e); }
+};
+router.get('/zeitraeume', zeitraumSicht, wrap(async (req, res) => {
   // Ohne kreis-Param: alle Kreise (die Auswahl-Liste braucht das). Mit unbekanntem: 400.
   const k = kreisAus(req.query.kreis);
   if (k.fehler) return res.status(400).json({ error: k.fehler });
+  // Wer NUR ueber eine Kreisfreigabe hier ist (keine eigene/Kontroll-Sicht), sieht nur die Zeitraeume
+  // seiner Kreise — auch Perioden-Daten fremder Kreise gehen ihn nichts an (Angriffstest 21.10.).
+  const nurKreise = !(await hatFeature(req.user, NUTZER_SICHT) || await hatFeature(req.user, KONTROLL_SICHT));
+  const erlaubt = nurKreise ? await provisionsKreise(req.user) : null;
+  if (erlaubt && k.kreis && !erlaubt.includes(k.kreis)) return res.status(403).json({ error: 'Kein Zugriff auf diesen Abrechnungskreis' });
   const where = k.kreis ? ` WHERE kreis=${ph(1)}` : '';
   const params = k.kreis ? [k.kreis] : [];
-  res.json(await db.all(`SELECT id, von, bis, label, status, abgeschlossen_am, kreis FROM provision_zeitraeume${where} ORDER BY kreis, von DESC`, params));
+  const rows = await db.all(`SELECT id, von, bis, label, status, abgeschlossen_am, kreis FROM provision_zeitraeume${where} ORDER BY kreis, von DESC`, params);
+  res.json(erlaubt ? rows.filter(r => erlaubt.includes(r.kreis)) : rows);
 }));
 
 // ── Eigene Provision — NUR eigene Daten, ausser die Kontroll-Sicht ist freigeschaltet ──
@@ -112,13 +128,26 @@ router.get('/me', requireAnyFeature(NUTZER_SICHT, KONTROLL_SICHT), wrap(async (r
 }));
 
 // ── Admin/Vertriebsleitung: Gesamtuebersicht + Einzeldetail ──
-const adminOnly = requireRole('admin', 'vertriebsleitung');
+// Zugriff: provisionsSicht (utils/provisionsZugriff.js) — Superadmin, Admin/VL mit Rollenfreigabe,
+// Einzelfreigabe fuer alle Kreise ODER nur fuer einzelne Kreise. req.provKreise = erlaubte Kreise.
+//
+// Die Kreis-Pruefung haengt am TATSAECHLICH GELADENEN Zeitraum, nicht am Query-Parameter:
+// resolveZeitraum() nimmt eine zeitraum_id ohne Blick auf den Kreis an — mit kreis=oesterreich
+// und der ID eines Bonner Zeitraums kaeme man sonst an Bonner Daten.
+const kreisVerboten = (res) => res.status(403).json({ error: 'Kein Zugriff auf diesen Abrechnungskreis' });
 
-router.get('/admin/overview', adminOnly, nurAdminFeature, wrap(async (req, res) => {
-  const k = kreisAus(req.query.kreis, { standard: 'bonn' });
+// Erlaubte Kreise fuer die Oberflaeche (Kreis-Reiter).
+router.get('/admin/kreise', provisionsSicht, (req, res) => res.json({ kreise: req.provKreise }));
+
+router.get('/admin/overview', provisionsSicht, wrap(async (req, res) => {
+  const standard = req.provKreise.includes('bonn') ? 'bonn' : req.provKreise[0];
+  const k = kreisAus(req.query.kreis, { standard });
   if (k.fehler) return res.status(400).json({ error: k.fehler });
   const kreis = k.kreis;
+  if (!req.provKreise.includes(kreis)) return kreisVerboten(res);
   const z = await resolveZeitraum(req.query.zeitraum_id, kreis);
+  if (z && !req.provKreise.includes(z.kreis)) return kreisVerboten(res);
+  if (z && z.kreis !== kreis) return res.status(400).json({ error: `Zeitraum gehört zum Kreis ${z.kreis}, nicht zu ${kreis}` });
   if (!z) return res.json({ zeitraum: null, kreis, gesamt: 0, zeilen: [] });
   const rows = await db.all(
     // rolle/bk_gruppe werden mitgeliefert, damit die UI nach Rollen-Gruppe filtern kann
@@ -128,20 +157,31 @@ router.get('/admin/overview', adminOnly, nurAdminFeature, wrap(async (req, res) 
       WHERE b.zeitraum_id=${ph(1)} GROUP BY b.employee_id, e.name, e.standort, e.rolle, e.bk_gruppe ORDER BY summe DESC`, [z.id]);
   const zeilen = rows.map(r => ({ employee_id: r.employee_id, name: r.name, standort: r.standort,
     rolle: r.rolle, gruppe: gruppeVonEmp(r), summe: round2(num(r.summe)) }));
-  const staffel = await staffelStatus(heute().slice(0, 7));   // aktueller Monats-Satz je Closer/Team/AT (für Anzeige)
+  // Staffel nennt Personen, Monats-AE und Saetze ALLER Standorte -> auf die erlaubten Kreise zuschneiden.
+  const staffel = staffelFuerKreise(await staffelStatus(heute().slice(0, 7)), req.provKreise);
   res.json({ zeitraum: z, kreis, gesamt: round2(zeilen.reduce((a, r) => a + r.summe, 0)), zeilen, staffel });
 }));
 
-router.get('/admin/employee/:id', adminOnly, nurAdminFeature, wrap(async (req, res) => {
+router.get('/admin/employee/:id', provisionsSicht, wrap(async (req, res) => {
   const emp = await db.get(`SELECT id, name, standort FROM employees WHERE id=${ph(1)}`, [Number(req.params.id)]);
-  const z = await resolveZeitraum(req.query.zeitraum_id, kreisFor(emp?.standort) || 'bonn');
+  const eigenerKreis = kreisFor(emp?.standort) || 'bonn';
+  const z = await resolveZeitraum(req.query.zeitraum_id, eigenerKreis);
+  if (z && !req.provKreise.includes(z.kreis)) return kreisVerboten(res);
+  // Auch die IDENTITAET (Name, Standort) ist nur fuer Personen sichtbar, die der Nutzer in der
+  // Uebersicht ohnehin sieht: Heimatkreis erlaubt ODER Buchungen im angefragten (erlaubten) Zeitraum
+  // — Letzteres deckt z. B. KAMs aller Standorte im Bestandskunden-Kreis ab. Ohne diese Bedingung
+  // lieferte eine erlaubte oder unbekannte zeitraum_id Name+Standort jedes Mitarbeiters jedes Kreises.
+  const heimatErlaubt = req.provKreise.includes(eigenerKreis);
+  const imZeitraum = z ? await db.get(`SELECT 1 AS ok FROM provision_buchungen WHERE zeitraum_id=${ph(1)} AND employee_id=${ph(2)} LIMIT 1`, [z.id, Number(req.params.id)]) : null;
+  if (!heimatErlaubt && !imZeitraum) return kreisVerboten(res);
   if (!z) return res.json({ employee: emp, zeitraum: null, summe: 0, perTyp: {}, buchungen: [] });
   res.json({ employee: emp, zeitraum: z, ...(await detailFor(Number(req.params.id), z)) });
 }));
 
 // ── Konfiguration (Saetze/Schwellen) — Lesen fuer Admin, Schreiben nur Superadmin ──
-router.get('/config', adminOnly, nurAdminFeature, wrap(async (req, res) => {
-  res.json(await db.all(`SELECT * FROM provision_config ORDER BY kreis, gueltig_ab DESC`));
+router.get('/config', provisionsSicht, wrap(async (req, res) => {
+  const rows = await db.all(`SELECT * FROM provision_config ORDER BY kreis, gueltig_ab DESC`);
+  res.json(rows.filter(r => req.provKreise.includes(r.kreis)));
 }));
 
 // Editierbare Satz-Spalten je Kreis-Art. Die NK-Kreise haben Rollen-Saetze, der BK-Kreis
