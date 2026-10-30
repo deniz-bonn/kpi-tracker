@@ -2,19 +2,25 @@ import { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { employeesApi } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 
 const ROLLEN = ['KAM', 'NKV-Closer', 'Opener', 'Setter', 'Multi', 'Closer-KAM', 'Account Manager'];
 const STANDORTE = ['Bonn', 'Braunschweig', 'Österreich', 'Schweiz'];
 
 export default function Employees() {
   const { company, companies } = useOutletContext();
+  const { isSuperAdmin, verwaltung } = useAuth();
+  // Mit Standort-Scope nur der eigene Standort (der Server liefert ohnehin nur diese Mitarbeiter).
+  const nurStandort = verwaltung?.mitarbeiter?.scope === 'standort' ? verwaltung.mitarbeiter.standort : null;
+  const standortOpts = nurStandort ? [nurStandort] : STANDORTE;
   const qc = useQueryClient();
   const [form, setForm] = useState({ name: '', company_id: company || '', rolle: '', standort: '', bk_gruppe: '' });
   const [editId, setEditId] = useState(null);
   const [showInaktiv, setShowInaktiv] = useState(false);
   const [dupWarn, setDupWarn] = useState(null); // { data, existing:[…], message } — Dubletten-Warnung beim Anlegen
 
-  const params = { all: 1, ...(company && { company_id: company }) };
+  // verwaltung=1: je Zeile liefert der Server, was ich daran aendern darf (sperre, prov_gesperrt).
+  const params = { all: 1, verwaltung: 1, ...(company && { company_id: company }) };
   const { data: employees = [] } = useQuery({ queryKey: ['employees', params], queryFn: () => employeesApi.list(params) });
 
   const emptyForm = { name: '', company_id: '', rolle: '', standort: '', bk_gruppe: '' };
@@ -29,7 +35,11 @@ export default function Employees() {
       else alert(d?.message || d?.error || 'Fehler beim Anlegen');
     },
   });
-  const updateMut = useMutation({ mutationFn: ({ id, data }) => employeesApi.update(id, data), onSuccess: () => { invalidate(); setEditId(null); } });
+  const updateMut = useMutation({
+    mutationFn: ({ id, data }) => employeesApi.update(id, data),
+    onSuccess: () => { invalidate(); setEditId(null); setForm(emptyForm); },
+    onError: (err) => { const d = err?.response?.data; alert(d?.message || d?.error || 'Fehler beim Speichern'); },
+  });
   const toggleMut = useMutation({
     mutationFn: ({ id, aktiv, confirm }) => employeesApi.update(id, { aktiv, ...(confirm ? { confirm: true } : {}) }),
     onSuccess: invalidate,
@@ -54,6 +64,12 @@ export default function Employees() {
   // „Reaktivieren statt neu anlegen" — bestehenden (inaktiven) Datensatz wieder aktiv setzen.
   const reactivateExisting = (id) => { toggleMut.mutate({ id, aktiv: 1 }); setDupWarn(null); setForm(emptyForm); };
 
+  // Bearbeitung: Rolle/Standort/Company/BK-Gruppe wirken auf die Provisions-Zuordnung. Haengen
+  // Deals oder Buchungen am Mitarbeiter, aendert sie nur der Superadmin (Server: utils/verwaltung.js).
+  const editEmp = editId ? employees.find(e => e.id === editId) : null;
+  const provGesperrt = !isSuperAdmin && !!editEmp?.prov_gesperrt;
+  const provWarnung  = !isSuperAdmin && !!editEmp && !editEmp.prov_gesperrt;
+
   const aktive   = employees.filter(e => e.aktiv);
   const inaktive = employees.filter(e => !e.aktiv);
 
@@ -73,6 +89,9 @@ export default function Employees() {
         </span>
       </td>
       <td className="px-3 py-2">
+        {e.sperre ? (
+          <span className="text-xs text-gray-400" title={e.sperre}>🔒 gesperrt</span>
+        ) : (
         <div className="flex gap-2">
           <button onClick={() => { setEditId(e.id); setForm({ name: e.name, company_id: e.company_id, rolle: e.rolle, standort: e.standort || '', bk_gruppe: e.bk_gruppe || '' }); }}
             className="text-gray-400 hover:text-blue-600 text-xs">Bearbeiten</button>
@@ -81,6 +100,7 @@ export default function Employees() {
             {e.aktiv ? 'Deaktivieren' : 'Aktivieren'}
           </button>
         </div>
+        )}
       </td>
     </tr>
   );
@@ -98,7 +118,10 @@ export default function Employees() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-xl font-bold text-gray-800">Mitarbeiter</h1>
+        <h1 className="text-xl font-bold text-gray-800">
+          Mitarbeiter
+          {nurStandort && <span className="ml-2 align-middle text-xs font-medium text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-full px-2 py-0.5">nur {nurStandort}</span>}
+        </h1>
         {inaktive.length > 0 && (
           <button
             onClick={() => setShowInaktiv(v => !v)}
@@ -152,19 +175,22 @@ export default function Employees() {
             onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
             className="bg-white border border-gray-300 text-gray-700 text-sm rounded px-3 py-1.5" />
           <select required value={form.company_id} onChange={e => setForm(f => ({ ...f, company_id: e.target.value }))}
-            className="bg-white border border-gray-300 text-gray-700 text-sm rounded px-3 py-1.5">
+            disabled={provGesperrt}
+            className="bg-white border border-gray-300 text-gray-700 text-sm rounded px-3 py-1.5 disabled:bg-gray-100 disabled:text-gray-400">
             <option value="">Company wählen</option>
             {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
           <select required value={form.rolle} onChange={e => setForm(f => ({ ...f, rolle: e.target.value }))}
-            className="bg-white border border-gray-300 text-gray-700 text-sm rounded px-3 py-1.5">
+            disabled={provGesperrt}
+            className="bg-white border border-gray-300 text-gray-700 text-sm rounded px-3 py-1.5 disabled:bg-gray-100 disabled:text-gray-400">
             <option value="">Rolle wählen</option>
             {ROLLEN.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
-          <select value={form.standort || ''} onChange={e => setForm(f => ({ ...f, standort: e.target.value }))}
-            className="bg-white border border-gray-300 text-gray-700 text-sm rounded px-3 py-1.5">
+          <select required={!!nurStandort} value={form.standort || ''} onChange={e => setForm(f => ({ ...f, standort: e.target.value }))}
+            disabled={provGesperrt}
+            className="bg-white border border-gray-300 text-gray-700 text-sm rounded px-3 py-1.5 disabled:bg-gray-100 disabled:text-gray-400">
             <option value="">Standort wählen</option>
-            {STANDORTE.map(s => <option key={s} value={s}>{s}</option>)}
+            {standortOpts.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
           <div className="flex gap-2">
             <button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded px-3 py-1.5">
@@ -178,11 +204,18 @@ export default function Employees() {
             )}
           </div>
         </div>
+        {provGesperrt && (
+          <p className="mt-3 text-[11px] text-gray-500">🔒 An diesem Mitarbeiter hängen Deals oder Provisionsbuchungen — Rolle, Standort und Company ändert nur der Superadmin (wirkt auf die Provisions-Zuordnung).</p>
+        )}
+        {provWarnung && (
+          <p className="mt-3 text-[11px] text-amber-700">⚠️ Rolle, Standort und Company wirken auf die Provisions-Zuordnung. Änderungen werden im Änderungslog festgehalten.</p>
+        )}
         {form.rolle === 'Multi' && (
           <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3">
             <label className="text-xs font-medium text-gray-600">BK-Auftragseingang zählt als:</label>
             <select value={form.bk_gruppe || ''} onChange={e => setForm(f => ({ ...f, bk_gruppe: e.target.value }))}
-              className="bg-white border border-gray-300 text-gray-700 text-sm rounded px-3 py-1.5">
+              disabled={provGesperrt}
+              className="bg-white border border-gray-300 text-gray-700 text-sm rounded px-3 py-1.5 disabled:bg-gray-100 disabled:text-gray-400">
               <option value="">— keine Zuordnung</option>
               <option value="kam">Key Account Manager</option>
               <option value="am">Account Manager</option>

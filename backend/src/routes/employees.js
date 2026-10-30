@@ -1,6 +1,10 @@
 const router = require('express').Router();
 const db = require('../db');
 const wrap = require('../middleware/asyncHandler');
+const { logAudit } = require('../utils/audit');
+const {
+  verwaltungsZugriff, requireVerwaltung, mitarbeiterMitBuchungen, mitarbeiterSperre, PROV_SPERRE,
+} = require('../utils/verwaltung');
 
 router.get('/', wrap(async (req, res) => {
   const { company_id, all } = req.query;
@@ -15,7 +19,23 @@ router.get('/', wrap(async (req, res) => {
 
   const where = conds.length ? ' WHERE ' + conds.join(' AND ') : '';
   const sql = `SELECT e.*, c.name as company_name FROM employees e JOIN companies c ON c.id=e.company_id${where} ORDER BY e.name`;
-  res.json(await db.all(sql, params));
+  const rows = await db.all(sql, params);
+
+  // ?verwaltung=1 (Mitarbeiter-Seite): je Zeile ausweisen, was DIESER Nutzer daran aendern darf —
+  // dieselbe Regel wie in POST/PATCH, damit die Seite nichts nachbaut. Mit Standort-Scope nur
+  // der eigene Standort. Ohne Verwaltungsrecht bleibt die Liste, wie sie war (Dropdowns ueberall).
+  if (req.query.verwaltung) {
+    const z = await verwaltungsZugriff(req.user, 'mitarbeiter');
+    if (!z) return res.status(403).json({ error: 'Kein Zugriff auf dieses Feature' });
+    const sicht = z.scope === 'standort' ? rows.filter(e => e.standort === z.standort) : rows;
+    const gebucht = z.ebene === 'superadmin' ? new Set() : await mitarbeiterMitBuchungen(sicht.map(e => e.id));
+    return res.json(sicht.map(e => ({
+      ...e,
+      sperre: mitarbeiterSperre(z, e),
+      prov_gesperrt: gebucht.has(Number(e.id)),
+    })));
+  }
+  res.json(rows);
 }));
 
 // BK-Gruppe (nur 'kam' | 'am' | null) validieren — betrifft praktisch nur rolle='Multi'.
@@ -37,9 +57,13 @@ async function dealCountFor(id) {
   return { total: nk + bk + vl, nk, bk, vl };
 }
 
-router.post('/', wrap(async (req, res) => {
+router.post('/', requireVerwaltung('mitarbeiter'), wrap(async (req, res) => {
   const { name, company_id, rolle, standort, bk_gruppe, confirm } = req.body;
   if (!name || !company_id || !rolle) return res.status(400).json({ error: 'name, company_id, rolle required' });
+  const z = req.verwaltung;
+  if (z.scope === 'standort' && standort !== z.standort) {
+    return res.status(403).json({ error: `Nur Mitarbeiter am eigenen Standort (${z.standort}).` });
+  }
 
   // Härtung gegen Mitarbeiter-Dubletten (siehe Vorfall #55/#70 „Veikko-Colin Poppinga"): Beim Anlegen
   // eines normalisiert gleichen Namens — auch eines INAKTIVEN — warnen und auf den Bestand verweisen.
@@ -58,20 +82,52 @@ router.post('/', wrap(async (req, res) => {
   }
   const bk = normBkGruppe(bk_gruppe);
 
+  let row;
   if (db.dialect === 'postgres') {
-    const row = await db.get(
+    row = await db.get(
       'INSERT INTO employees (name, company_id, rolle, standort, bk_gruppe) VALUES ($1,$2,$3,$4,$5) RETURNING *',
       [name, company_id, rolle, standort || null, bk]
     );
-    res.status(201).json(row);
   } else {
     const result = db.run('INSERT INTO employees (name, company_id, rolle, standort, bk_gruppe) VALUES (?,?,?,?,?)', [name, company_id, rolle, standort || null, bk]);
-    res.status(201).json({ id: result.lastInsertRowid, name, company_id, rolle, standort: standort || null, bk_gruppe: bk, aktiv: 1 });
+    row = { id: result.lastInsertRowid, name, company_id, rolle, standort: standort || null, bk_gruppe: bk, aktiv: 1 };
   }
+  await logAudit({ user: req.user, action: 'create', entityType: 'employee', entityId: Number(row.id), newData: row });
+  res.status(201).json(row);
 }));
 
-router.patch('/:id', wrap(async (req, res) => {
+router.patch('/:id', requireVerwaltung('mitarbeiter'), wrap(async (req, res) => {
   const { name, company_id, rolle, standort, aktiv, show_in_kpi, confirm } = req.body;
+  const z = req.verwaltung;
+  const vorher = await db.get(`SELECT * FROM employees WHERE id=${db.dialect === 'postgres' ? '$1' : '?'}`, [req.params.id]);
+  if (!vorher) return res.status(404).json({ error: 'Mitarbeiter nicht gefunden' });
+
+  // Leitplanken (utils/verwaltung.js) — fuer jeden ausser dem Superadmin.
+  const sperre = mitarbeiterSperre(z, vorher);
+  if (sperre) return res.status(403).json({ error: sperre });
+  if (z.ebene !== 'superadmin') {
+    if (show_in_kpi !== undefined && show_in_kpi !== null) {
+      return res.status(403).json({ error: 'Die KPI-Sichtbarkeit ändert nur der Superadmin.' });
+    }
+    // Was die Provisions-Zuordnung WIRKLICH aendert. Das Formular schickt beim Bearbeiten alle
+    // Felder mit — unveraenderte Werte duerfen nicht als Aenderung zaehlen. Leerer Standort /
+    // fehlende Company / Rolle bedeuten "unveraendert" (COALESCE unten).
+    const zielRolle = rolle || vorher.rolle;
+    const geaendert = [];
+    if (rolle && rolle !== vorher.rolle) geaendert.push('rolle');
+    if (standort && standort !== vorher.standort) geaendert.push('standort');
+    if (company_id != null && String(company_id) !== String(vorher.company_id)) geaendert.push('company_id');
+    if (Object.prototype.hasOwnProperty.call(req.body, 'bk_gruppe') && zielRolle === 'Multi'
+        && normBkGruppe(req.body.bk_gruppe) !== (vorher.bk_gruppe || null)) geaendert.push('bk_gruppe');
+    if (geaendert.length) {
+      if ((await mitarbeiterMitBuchungen([vorher.id])).size) {
+        return res.status(403).json({ error: PROV_SPERRE, felder: geaendert });
+      }
+      if (z.scope === 'standort' && geaendert.includes('standort')) {
+        return res.status(403).json({ error: `Nur Mitarbeiter am eigenen Standort (${z.standort}).` });
+      }
+    }
+  }
 
   // Härtung: Deaktivieren eines Mitarbeiters, an dem noch Deals hängen -> warnen (mit Anzahl), außer confirm.
   // Grund: inaktive MA verschwinden aus den Filter-Dropdowns; ihre Deals bleiben zugeordnet, sind aber
@@ -106,6 +162,7 @@ router.patch('/:id', wrap(async (req, res) => {
        aktiv, show_in_kpi !== undefined ? show_in_kpi : null,
        setBk, bkVal, req.params.id]
     );
+    await logAudit({ user: req.user, action: 'update', entityType: 'employee', entityId: Number(vorher.id), oldData: vorher, newData: row });
     res.json(row);
   } else {
     db.run(
@@ -120,7 +177,9 @@ router.patch('/:id', wrap(async (req, res) => {
        aktiv ?? null, show_in_kpi !== undefined ? show_in_kpi : null,
        setBk ? 1 : 0, bkVal, req.params.id]
     );
-    res.json(await db.get('SELECT e.*, c.name as company_name FROM employees e JOIN companies c ON c.id=e.company_id WHERE e.id=?', [req.params.id]));
+    const row = await db.get('SELECT e.*, c.name as company_name FROM employees e JOIN companies c ON c.id=e.company_id WHERE e.id=?', [req.params.id]);
+    await logAudit({ user: req.user, action: 'update', entityType: 'employee', entityId: Number(vorher.id), oldData: vorher, newData: row });
+    res.json(row);
   }
 }));
 

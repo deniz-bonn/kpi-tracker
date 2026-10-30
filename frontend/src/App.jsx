@@ -33,7 +33,7 @@ const ROLES = {
 // Inner component so useAuth() works (AuthProvider wraps it)
 function AppRoutes() {
   const { canSeeKpiBeta, canSeeBestenliste, canSeeProvisionen, canSeeProvisionenAdmin, canSeeShowRates,
-          canSeeMeinDashboard, canSeeMeineProvision } = useAuth();
+          canSeeMeinDashboard, canSeeMeineProvision, canManageEmployees } = useAuth();
 
   return (
     <Routes>
@@ -126,7 +126,7 @@ function AppRoutes() {
           </ProtectedRoute>
         } />
         <Route path="mitarbeiter" element={
-          <ProtectedRoute allowedRoles={ROLES.adminAndBo}>
+          <ProtectedRoute canAccess={canManageEmployees}>
             <Employees />
           </ProtectedRoute>
         } />

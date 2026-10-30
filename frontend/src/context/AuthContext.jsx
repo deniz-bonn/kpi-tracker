@@ -28,6 +28,9 @@ export function AuthProvider({ children }) {
   const [loading, setLoading]     = useState(false);
   const [featureFlags, setFeatureFlags] = useState(null); // null = not yet loaded (feature -> [role])
   const [userFeatures, setUserFeatures] = useState([]);   // Features, für die DIESER User einzeln freigeschaltet ist
+  // Mitarbeiter-/Benutzerverwaltung — vom Server berechnet (utils/verwaltung.js), nicht nachgebaut:
+  // { mitarbeiter: null | {ebene, scope, standort, eigene_employee_id, rollen}, benutzer: … }
+  const [verwaltung, setVerwaltung] = useState({});
 
   // Keep axios default header in sync
   useEffect(() => {
@@ -51,10 +54,10 @@ export function AuthProvider({ children }) {
 
   // Fetch feature flags whenever user changes. Response: { flags, userFeatures }.
   useEffect(() => {
-    if (!user) { setFeatureFlags(null); setUserFeatures([]); return; }
+    if (!user) { setFeatureFlags(null); setUserFeatures([]); setVerwaltung({}); return; }
     featureFlagsApi.list()
-      .then(data => { setFeatureFlags(data?.flags || {}); setUserFeatures(data?.userFeatures || []); })
-      .catch(() => { setFeatureFlags({}); setUserFeatures([]); }); // on error: no extra access
+      .then(data => { setFeatureFlags(data?.flags || {}); setUserFeatures(data?.userFeatures || []); setVerwaltung(data?.verwaltung || {}); })
+      .catch(() => { setFeatureFlags({}); setUserFeatures([]); setVerwaltung({}); }); // on error: no extra access
   }, [user?.id]);
 
   // Heartbeat: keep last_seen fresh while the tab is open
@@ -87,7 +90,7 @@ export function AuthProvider({ children }) {
   const refreshFeatureFlags = useCallback(() => {
     if (!user) return;
     featureFlagsApi.list()
-      .then(data => { setFeatureFlags(data?.flags || {}); setUserFeatures(data?.userFeatures || []); })
+      .then(data => { setFeatureFlags(data?.flags || {}); setUserFeatures(data?.userFeatures || []); setVerwaltung(data?.verwaltung || {}); })
       .catch(() => {});
   }, [user?.id]);
 
@@ -136,6 +139,9 @@ export function AuthProvider({ children }) {
   const canSeeProvisionenAdmin = isSuperAdmin || userHasFeature('provisionen')
     || (roleHasFeature('provisionen') && (isAdmin || isVertriebsleitung))
     || (userFeatures || []).some((f) => f.startsWith('provisionen_'));
+  // Delegierbare Verwaltung: Menuepunkte und Formulare; die Leitplanken setzt der Server durch.
+  const canManageEmployees = isSuperAdmin || !!verwaltung?.mitarbeiter;
+  const canManageUsers     = isSuperAdmin || !!verwaltung?.benutzer;
 
   return (
     <AuthContext.Provider value={{
@@ -146,6 +152,7 @@ export function AuthProvider({ children }) {
       canSeeProvisionen, canSeeProvisionenAdmin, canSeeShowRates,
       canSeeMeinDashboard, canSeeMeinDashboardKontrolle,
       canSeeMeineProvision, canSeeMeineProvisionKontrolle,
+      canManageEmployees, canManageUsers, verwaltung,
       featureFlags, featureFlagsGeladen, userFeatures, refreshFeatureFlags,
     }}>
       {children}

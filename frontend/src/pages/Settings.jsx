@@ -34,7 +34,14 @@ const CONTROLLED_FEATURES = [
   { key: 'kontrolle_alle_mitarbeiter', label: 'Kontroll-Sicht: alle Mitarbeiter', desc: 'Erweitert BEIDE Kontroll-Sichten auf alle Mitarbeiter mit NK-Beteiligung oder Incentive-Ziel — auch ohne Nutzerkonto. Ohne dieses Flag sieht ein Kontrolleur nur die freigeschalteten Personen. Superadmin immer.' },
   { key: 'mein_dashboard_kontrolle', label: 'Mein Dashboard — Kontroll-Sicht', desc: 'Team-Überblick und „Aus der Sicht von …": öffnet Provisions- und Incentive-Daten ANDERER freigeschalteter Personen. Superadmin immer.' },
   { key: 'backup',   label: 'Datensicherung',       desc: 'Backup-Export und automatische Datensicherung herunterladen' },
+  // Delegierbare Verwaltung (Backend: utils/verwaltung.js). Chips wahlweise "nur eigener Standort"
+  // -> Feature '<key>_eigener_standort'; Rollen-Haken gelten immer fuer alle Standorte.
+  { key: 'mitarbeiter_verwaltung', label: 'Mitarbeiter verwalten', standortScope: true,
+    desc: 'Mitarbeiter anlegen und ändern (/mitarbeiter). Rolle, Standort und Company von Mitarbeitern mit Deals oder Provisionsbuchungen ändert nur der Superadmin; KPI-Sichtbarkeit bleibt Superadmin. Alles im Änderungslog.' },
+  { key: 'benutzer_verwaltung', label: 'Benutzer verwalten', standortScope: true,
+    desc: 'Benutzerkonten anlegen, verknüpfen, Rolle setzen, (de)aktivieren, Reset-Link auslösen. Nur Vertriebsrollen bis zur eigenen Stufe; keine Admin-/Superadmin-Konten, keine Konten mit Einzel-Freigaben, nicht das eigene. Löschen und Passwort direkt setzen bleiben Admin. Die Zugriffssteuerung gehört nicht dazu.' },
 ];
+const STANDORT_SCOPE_SUFFIX = '_eigener_standort';
 const CONTROLLABLE_ROLES = [
   { value: 'admin',            label: 'Admin' },
   { value: 'vertriebsleitung', label: 'Vertriebsleitung' },
@@ -49,6 +56,7 @@ function AccessControlSection() {
   const [localFlags, setLocalFlags] = useState({});
   const [savedOk,    setSavedOk]    = useState(null);
   const [scopeKreis, setScopeKreis] = useState('');   // Einzelfreigabe Provisionen: '' = alle Kreise
+  const [scopeStandort, setScopeStandort] = useState({}); // je Feature: 'standort' (Vorgabe) | 'alle'
   const colSpan = CONTROLLABLE_ROLES.length + 2;
 
   const { data, isLoading } = useQuery({
@@ -111,8 +119,14 @@ function AccessControlSection() {
               const granted = feat.kreisScope
                 ? [ ...(userGrants[feat.key] || []).map(g => ({ ...g, feature: feat.key, scope: null })),
                     ...KREISE.flatMap(k => (userGrants[`provisionen_${k.key}`] || []).map(g => ({ ...g, feature: `provisionen_${k.key}`, scope: k.label }))) ]
+                : feat.standortScope
+                ? [ ...(userGrants[feat.key] || []).map(g => ({ ...g, feature: feat.key, scope: 'alle Standorte' })),
+                    ...(userGrants[feat.key + STANDORT_SCOPE_SUFFIX] || []).map(g => ({ ...g, feature: feat.key + STANDORT_SCOPE_SUFFIX, scope: 'nur eigener Standort' })) ]
                 : (userGrants[feat.key] || []).map(g => ({ ...g, feature: feat.key }));
-              const zielFeature = feat.kreisScope && scopeKreis ? `provisionen_${scopeKreis}` : feat.key;
+              const standortWahl = scopeStandort[feat.key] || 'standort';
+              const zielFeature = feat.kreisScope && scopeKreis ? `provisionen_${scopeKreis}`
+                : feat.standortScope && standortWahl === 'standort' ? feat.key + STANDORT_SCOPE_SUFFIX
+                : feat.key;
               const schonDrin   = new Set((userGrants[zielFeature] || []).map(g => g.user_id));
               const candidates  = allUsers.filter(u => (u.active === true || u.active === 1) && !schonDrin.has(u.id));
               return (
@@ -172,6 +186,13 @@ function AccessControlSection() {
                         {feat.kreisScope && (
                           <span className={g.scope ? 'text-indigo-600 font-medium' : 'text-gray-500'}>· {g.scope ? `nur ${g.scope}` : 'alle Kreise'}</span>
                         )}
+                        {feat.standortScope && (
+                          <span className={g.scope === 'alle Standorte' ? 'text-gray-500' : 'text-indigo-600 font-medium'}>· {g.scope}</span>
+                        )}
+                        {/* Ein gespeicherter Rollen-Haken gilt fuer alle Standorte und ueberdeckt die Grenze. */}
+                        {feat.standortScope && g.scope !== 'alle Standorte' && (data?.flags?.[feat.key] || []).includes(g.role) && (
+                          <span className="text-amber-600" title="Die Rolle dieser Person hat den Rollen-Haken — der gilt für alle Standorte. Für die Standort-Grenze den Haken der Rolle entfernen.">· wirkt nicht (Rolle hat Haken)</span>
+                        )}
                         {!g.active && <span className="not-italic no-underline text-gray-400">(inaktiv)</span>}
                         <button onClick={() => removeUserMut.mutate({ feature: g.feature, user_id: g.user_id })}
                           disabled={removeUserMut.isPending}
@@ -184,6 +205,14 @@ function AccessControlSection() {
                         className="text-[11px] bg-white border border-gray-300 text-gray-600 rounded px-2 py-0.5">
                         <option value="">alle Kreise</option>
                         {KREISE.map(k => <option key={k.key} value={k.key}>nur {k.label}</option>)}
+                      </select>
+                    )}
+                    {feat.standortScope && (
+                      <select value={standortWahl} onChange={e => setScopeStandort(s => ({ ...s, [feat.key]: e.target.value }))}
+                        title="Für welche Standorte gilt die Freigabe? Eigener Standort = Standort des verknüpften Mitarbeiters."
+                        className="text-[11px] bg-white border border-gray-300 text-gray-600 rounded px-2 py-0.5">
+                        <option value="standort">nur eigener Standort</option>
+                        <option value="alle">alle Standorte</option>
                       </select>
                     )}
                     <select value="" disabled={addUserMut.isPending || candidates.length === 0}
@@ -347,9 +376,16 @@ const ACTION_LABELS = { create: 'Erstellt', update: 'Bearbeitet', delete: 'Gelö
 const ACTION_COLORS = { create:'text-green-600', update:'text-blue-600', delete:'text-red-600', undo:'text-amber-600' };
 
 export default function Settings() {
-  const { user: me, isAdmin, isSuperAdmin, canSeeBackup } = useAuth();
+  const { user: me, isAdmin, isSuperAdmin, canSeeBackup, canManageUsers, verwaltung } = useAuth();
   const qc = useQueryClient();
-  const [tab, setTab] = useState(() => isSuperAdmin ? 'access' : isAdmin ? 'users' : 'password');
+  const [tab, setTab] = useState(() => isSuperAdmin ? 'access' : canManageUsers ? 'users' : 'password');
+  // Die Verwaltungsrechte kommen mit den Feature-Flags — nach einem Reload erst NACH dem ersten
+  // Render. Delegierte landen dann trotzdem auf dem Benutzer-Tab.
+  useEffect(() => { if (canManageUsers && !isSuperAdmin && tab === 'password') setTab('users'); }, [canManageUsers]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Vergebbare Rollen und Standort-Scope liefert der Server (utils/verwaltung.js).
+  const benutzerV   = verwaltung?.benutzer;
+  const rollenOpts  = ROLE_OPTS.filter(r => isSuperAdmin || (benutzerV?.rollen || []).includes(r.value));
+  const nurStandort = benutzerV?.scope === 'standort' ? benutzerV.standort : null;
 
   // ── Password change ───────────────────────────────────────────────────────
   const [pwForm, setPwForm]   = useState({ current_password: '', new_password: '', confirm: '' });
@@ -422,8 +458,9 @@ export default function Settings() {
   const [resetLink,   setResetLink]  = useState(null);
   const [delUserId,   setDelUserId]  = useState(null);   // Zwei-Schritt-Bestätigung beim Löschen
 
-  const { data: users     = [] } = useQuery({ queryKey: ['admin-users'], queryFn: adminApi.listUsers, enabled: isAdmin });
-  const { data: employees = [] } = useQuery({ queryKey: ['employees'],   queryFn: () => employeesApi.list() });
+  const { data: users     = [] } = useQuery({ queryKey: ['admin-users'], queryFn: adminApi.listUsers, enabled: canManageUsers });
+  const { data: employeesAlle = [] } = useQuery({ queryKey: ['employees'],   queryFn: () => employeesApi.list() });
+  const employees = nurStandort ? employeesAlle.filter(e => e.standort === nurStandort) : employeesAlle;
 
   const createUser = useMutation({
     mutationFn: adminApi.createUser,
@@ -444,6 +481,7 @@ export default function Settings() {
   const updateUser = useMutation({
     mutationFn: ({ id, data }) => adminApi.updateUser(id, data),
     onSuccess: () => { qc.invalidateQueries({queryKey:['admin-users']}); setEditUser(null); },
+    onError: (err) => setUserMsg({ err: err.response?.data?.error || 'Fehler beim Speichern' }),
   });
 
   // Löscht ausschliesslich den Login-Benutzer — der verknüpfte Mitarbeiter bleibt bestehen.
@@ -470,7 +508,9 @@ export default function Settings() {
   };
 
   const resendInvite = async (id) => {
-    const data = await adminApi.resendInvite(id);
+    let data;
+    try { data = await adminApi.resendInvite(id); }
+    catch (err) { setUserMsg({ err: err.response?.data?.error || 'Fehler beim Senden der Einladung' }); return; }
     if (data.invite_link) {
       setInviteLink(data.invite_link);
       setUserMsg({ ok: 'Neuer Link generiert. Kein SMTP konfiguriert — Link unten kopieren und manuell verschicken.' });
@@ -486,7 +526,7 @@ export default function Settings() {
       setResetLink(data.reset_link || null);
       setInviteLink(null);
       setUserMsg(data.email_sent
-        ? { ok: 'Reset-E-Mail wurde gesendet. Der Link ist unten zusätzlich kopierbar (24h gültig).' }
+        ? { ok: data.reset_link ? 'Reset-E-Mail wurde gesendet. Der Link ist unten zusätzlich kopierbar (24h gültig).' : 'Reset-E-Mail wurde gesendet (24h gültig).' }
         : { ok: 'Reset-Link erzeugt (24h gültig) — unten kopieren und manuell verschicken.' });
     } catch (err) {
       setUserMsg({ err: err.response?.data?.error || 'Fehler beim Erzeugen des Reset-Links' });
@@ -593,8 +633,8 @@ export default function Settings() {
       { id: 'provisionen',    label: 'Provisionen' },
       { id: 'online',         label: 'Online' },
     ] : []),
+    ...(canManageUsers ? [{ id: 'users', label: 'Benutzer' }] : []),
     ...(isAdmin ? [
-      { id: 'users',     label: 'Benutzer' },
       { id: 'companies', label: 'Companies' },
       { id: 'targets',   label: 'Monatsziele' },
       { id: 'exchange',  label: 'Wechselkurs' },
@@ -627,11 +667,14 @@ export default function Settings() {
       {tab === 'provisionen' && isSuperAdmin && <ProvisionConfigSection />}
 
       {/* ── TAB: Benutzer ──────────────────────────────────────────── */}
-      {tab === 'users' && isAdmin && (
+      {tab === 'users' && canManageUsers && (
         <div className="space-y-6">
           {/* Create user */}
           <section className="rounded-xl border border-gray-200 bg-white p-5">
-            <h2 className="text-sm font-semibold text-gray-700 mb-4">Neuen Benutzer einladen</h2>
+            <h2 className="text-sm font-semibold text-gray-700 mb-4">
+              Neuen Benutzer einladen
+              {nurStandort && <span className="ml-2 align-middle text-xs font-medium text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-full px-2 py-0.5">nur {nurStandort}</span>}
+            </h2>
             {userMsg && (
               <div className={`text-xs rounded px-3 py-2 mb-3 ${userMsg.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
                 {userMsg.ok || userMsg.err}
@@ -684,12 +727,12 @@ export default function Settings() {
               <div>
                 <label className="text-xs text-gray-600 mb-1 block">Rolle *</label>
                 <select required value={userForm.role} onChange={e => setUserForm(f=>({...f,role:e.target.value}))} className={inp}>
-                  {ROLE_OPTS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                  {rollenOpts.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-xs text-gray-600 mb-1 block">Mitarbeiter verknüpfen</label>
-                <select value={userForm.employee_id} onChange={e => setUserForm(f=>({...f,employee_id:e.target.value}))} className={inp}>
+                <label className="text-xs text-gray-600 mb-1 block">Mitarbeiter verknüpfen{nurStandort ? ' *' : ''}</label>
+                <select required={!!nurStandort} value={userForm.employee_id} onChange={e => setUserForm(f=>({...f,employee_id:e.target.value}))} className={inp}>
                   <option value="">— keiner —</option>
                   {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
                 </select>
@@ -719,8 +762,10 @@ export default function Settings() {
                       </div>
                       <div>
                         <label className="text-xs text-gray-500 mb-1 block">Rolle</label>
-                        <select value={editUser.role} onChange={e => setEditUser(f=>({...f,role:e.target.value}))} className={inp}>
-                          {ROLE_OPTS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                        <select value={editUser.role} onChange={e => setEditUser(f=>({...f,role:e.target.value}))} className={inp}
+                          disabled={String(u.id) === String(me?.id)} title={String(u.id) === String(me?.id) ? 'Die eigene Rolle lässt sich nicht ändern.' : ''}>
+                          {(rollenOpts.some(r => r.value === editUser.role) ? rollenOpts : [...ROLE_OPTS.filter(r => r.value === editUser.role), ...rollenOpts])
+                            .map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                         </select>
                       </div>
                       <div>
@@ -749,16 +794,19 @@ export default function Settings() {
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium text-gray-800">{u.name}</span>
                           {!u.active && <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded">Deaktiviert</span>}
-                          {u.invite_token && <span className="text-xs bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded">Einladung ausstehend</span>}
+                          {u.einladung_offen && <span className="text-xs bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded">Einladung ausstehend</span>}
                         </div>
                         <p className="text-xs text-gray-500">{u.email} · {ROLE_LABELS[u.role]} {u.employee_name && `· ${u.employee_name}`}</p>
                       </div>
+                      {u.sperre ? (
+                        <span className="text-xs text-gray-400 shrink-0" title={u.sperre}>🔒 gesperrt</span>
+                      ) : (
                       <div className="flex items-center gap-1 shrink-0">
-                        {u.invite_token && (
+                        {u.einladung_offen && (
                           <button onClick={() => resendInvite(u.id)} className="text-xs text-blue-600 hover:underline px-2 py-1">Neu senden</button>
                         )}
                         <button onClick={() => sendResetLink(u.id)} className="text-xs text-blue-600 hover:underline px-2 py-1 whitespace-nowrap">Reset-Link</button>
-                        {resetPwId === u.id ? (
+                        {!isAdmin ? null : resetPwId === u.id ? (
                           <div className="flex gap-1">
                             <input type="password" placeholder="Neues PW" value={resetPwVal} onChange={e => setResetPwVal(e.target.value)}
                               className="bg-white text-gray-900 border border-gray-300 rounded px-2 py-1 text-xs w-28" />
@@ -769,8 +817,8 @@ export default function Settings() {
                           <button onClick={() => setResetPwId(u.id)} className="text-xs text-gray-500 hover:text-gray-800 px-2 py-1 whitespace-nowrap">PW setzen</button>
                         )}
                         <button onClick={() => setEditUser({...u})} className="text-xs text-gray-500 hover:text-gray-800 px-2 py-1">Bearbeiten</button>
-                        {/* Löschen: nur fremde Benutzer, Zwei-Schritt-Bestätigung */}
-                        {String(u.id) !== String(me?.id) && (
+                        {/* Löschen: nur Admin, nur fremde Benutzer, Zwei-Schritt-Bestätigung */}
+                        {isAdmin && String(u.id) !== String(me?.id) && (
                           delUserId === u.id ? (
                             <span className="flex items-center gap-1 whitespace-nowrap">
                               <span className="text-xs text-red-700">Endgültig löschen?</span>
@@ -787,6 +835,7 @@ export default function Settings() {
                           )
                         )}
                       </div>
+                      )}
                     </div>
                   )}
                 </div>

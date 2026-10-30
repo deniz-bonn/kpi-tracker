@@ -3,6 +3,7 @@ const db     = require('../db');
 const wrap   = require('../middleware/asyncHandler');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { KREIS_FEATURES } = require('../utils/provisionsZugriff');
+const { VERWALTUNG_FEATURES, STANDORT_FEATURES, verwaltungFuerUi } = require('../utils/verwaltung');
 
 router.use(requireAuth);
 
@@ -16,10 +17,13 @@ const KNOWN_FEATURES = ['kpi_beta', 'bestenliste', 'provisionen', 'backup', 'sho
   'kontrolle_alle_mitarbeiter',
   // Provisionen nur fuer einzelne Abrechnungskreise (provisionen_bonn, …_oesterreich, …) —
   // reine Einzelfreigaben, siehe utils/provisionsZugriff.js.
-  ...KREIS_FEATURES];
+  ...KREIS_FEATURES,
+  // Mitarbeiter-/Benutzerverwaltung — wahlweise nur fuer den eigenen Standort (utils/verwaltung.js).
+  ...VERWALTUNG_FEATURES, ...STANDORT_FEATURES];
 // Features, die es NUR als Einzelfreigabe gibt: Rollenhaken waeren hier eine Freigabe fuer
 // ganze Rollen auf einen Kreis — genau die Pauschalitaet, die die Kreis-Freigabe vermeiden soll.
-const NUR_EINZELN = new Set(KREIS_FEATURES);
+// Dasselbe fuer "nur eigener Standort": ein Rollenhaken gilt immer fuer alle Standorte.
+const NUR_EINZELN = new Set([...KREIS_FEATURES, ...STANDORT_FEATURES]);
 
 // feature -> [role] Map aus feature_flags aufbauen.
 async function loadRoleFlags() {
@@ -48,7 +52,9 @@ router.get('/', wrap(async (req, res) => {
   const flags = await loadRoleFlags();
   const rows = await db.all(
     `SELECT feature FROM feature_flag_users WHERE user_id = ${pg() ? '$1' : '?'}`, [req.user.id]);
-  res.json({ flags, userFeatures: rows.map(r => r.feature) });
+  // verwaltung: was DIESER Nutzer an Mitarbeitern/Benutzern verwalten darf — die Oberflaeche
+  // zeigt danach Menuepunkte, Rollen-Auswahl und Standort; entschieden wird in den Routen.
+  res.json({ flags, userFeatures: rows.map(r => r.feature), verwaltung: await verwaltungFuerUi(req.user) });
 }));
 
 // GET /api/feature-flags/users — superadmin: volle Einzel-Freischaltungs-Übersicht (für die UI-Chips + Audit).

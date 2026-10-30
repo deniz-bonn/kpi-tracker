@@ -20,7 +20,7 @@ const ALL_NAV = [
   { to: '/meine-provision',     label: 'Meine Provision',       icon: '💰', feature: 'meine_provision' },
   { to: '/provisionen',         label: 'Provisionen',           icon: '🧾', feature: 'provisionen_admin' },
   { to: '/show-rates',          label: 'Show Rates (Close)',   icon: '📞', feature: 'show_rates_close' },
-  { to: '/mitarbeiter',         label: 'Mitarbeiter',           icon: '👥', roles: ['admin','superadmin','backoffice','vertriebsleitung'] },
+  { to: '/mitarbeiter',         label: 'Mitarbeiter',           icon: '👥', feature: 'mitarbeiter_verwaltung' },
   { to: '/einstellungen',       label: 'Einstellungen',         icon: '⚙️',  roles: ['admin','superadmin','nk_vertrieb','bk_vertrieb','backoffice'] },
 ];
 
@@ -35,7 +35,7 @@ const ROLE_LABELS = {
 
 export default function Layout() {
   const { user, logout, canSeeKpiBeta, canSeeBestenliste, canSeeProvisionen, canSeeProvisionenAdmin,
-          canSeeShowRates, canSeeMeinDashboard, canSeeMeineProvision } = useAuth();
+          canSeeShowRates, canSeeMeinDashboard, canSeeMeineProvision, canManageEmployees, canManageUsers } = useAuth();
   const navigate = useNavigate();
   const [company, setCompany]     = useState('');
   const [sidebarOpen, setSidebar] = useState(false);
@@ -49,6 +49,9 @@ export default function Layout() {
     if (n.feature === 'show_rates_close') return canSeeShowRates;
     if (n.feature === 'mein_dashboard') return canSeeMeinDashboard;
     if (n.feature === 'meine_provision') return canSeeMeineProvision;
+    if (n.feature === 'mitarbeiter_verwaltung') return canManageEmployees;
+    // Einstellungen: zusaetzlich fuer delegierte Benutzerverwalter (dort liegt der Benutzer-Tab).
+    if (n.to === '/einstellungen') return n.roles.includes(user?.role) || canManageUsers;
     return n.roles.includes(user?.role);
   });
   const close = () => setSidebar(false);
