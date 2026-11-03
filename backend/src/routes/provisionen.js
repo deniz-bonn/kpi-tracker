@@ -111,7 +111,17 @@ router.get('/me', requireAnyFeature(NUTZER_SICHT, KONTROLL_SICHT), wrap(async (r
       ? 'Dein Account ist mit keinem Mitarbeiter verknüpft — wähle oben eine Person.'
       : 'Kein Mitarbeiter mit diesem Account verknüpft.' });
   const emp = await db.get(`SELECT id, name, standort FROM employees WHERE id=${ph(1)}`, [empId]);
-  const kreis = kreisFor(emp?.standort) || 'bonn';                        // eigener Abrechnungskreis
+  // Eigener Abrechnungskreis. Standort ohne Kreis (Schweiz …): explizit "keiner", kein Bonn-Rueckfall
+  // (gleiches Prinzip wie Mein Dashboard; utils/kreise.js: unbekannt -> explizit).
+  const kreis = kreisFor(emp?.standort);
+  if (!kreis) {
+    if (alsFremde) {
+      await logAudit({ user: req.user, action: 'sehen_als', entityType: 'meine_provision',
+        entityId: empId, newData: { employee_id: empId, name: emp?.name } });
+    }
+    return res.json({ employee: emp, zeitraum: null, kreis: null, kein_kreis: true, summe: 0, perTyp: {}, buchungen: [], sicht,
+      hinweis: `Kein Provisionskreis für den Standort ${emp?.standort || '(ohne Standort)'}.` });
+  }
   const z = await resolveZeitraum(req.query.zeitraum_id, kreis);
   const ss = await staffelStatus(heute().slice(0, 7));                    // aktueller Kalendermonat
   const staffel = ss.closers.find(c => c.employee_id === empId) || null;  // eigener Closer-Satz (Bonn/BS)

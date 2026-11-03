@@ -108,6 +108,9 @@ export default function MeineProvision() {
           <h1 className="text-xl font-bold text-gray-900">💰 Meine Provision</h1>
           {data?.employee?.name && <p className="text-sm text-gray-500">{data.employee.name}{data.employee.standort ? ` · ${data.employee.standort}` : ''}</p>}
         </div>
+        {/* Ohne Provisionskreis (z. B. Schweiz) gibt es keine eigenen Zeitraeume — ohne Kreis-Filter
+            stuende hier sonst die Zeitraum-Liste ALLER Kreise. */}
+        {!data?.kein_kreis && (
         <select
           value={zSel}
           onChange={(e) => setZid(e.target.value)}
@@ -117,6 +120,7 @@ export default function MeineProvision() {
             <option key={z.id} value={z.id}>{z.label}{z.status === 'abgeschlossen' ? ' (abgeschlossen)' : ''}</option>
           ))}
         </select>
+        )}
       </div>
 
       {data?.hinweis && (

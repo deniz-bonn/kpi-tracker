@@ -88,21 +88,28 @@ async function dashboardFuer(empId, { zeitraumId = null, monat = null, ss = null
   const emp = await db.get(
     `SELECT id, name, rolle, standort FROM employees WHERE id=${P(1)}`, [empId]);
   if (!emp) return null;
-  const kreis = kreisFor(emp.standort) || 'bonn';
+  // Standort ohne Provisionskreis (Schweiz, jeder kuenftige): KEIN Rueckfall auf Bonn. Frueher
+  // stand hier `|| 'bonn'` — ein Risem-Mitarbeiter sah dann Bonns Zeitraum 21.–20. mit 0 €, als
+  // waere er im Bonner Modul. Kreis-Registry-Prinzip (utils/kreise.js): unbekannt -> explizit.
+  // Provision, Forecast und Incentive entfallen; Deals und KPIs laufen normal.
+  const kreis = kreisFor(emp.standort);
 
   // ── 1) Provision: laufender/gewaehlter Zeitraum + Historie ──
-  const z = await resolveZeitraum(zeitraumId, kreis);
-  const provision = z ? await detailFor(empId, z) : { summe: 0, perTyp: {}, buchungen: [] };
-  const zeitraeume = await db.all(
-    `SELECT id, von, bis, label, status, abgeschlossen_am FROM provision_zeitraeume
-      WHERE kreis=${P(1)} ORDER BY von DESC`, [kreis]);
-  // Summe je Zeitraum in EINER Abfrage (statt N Aufrufen von /me).
-  const summen = await db.all(
-    `SELECT zeitraum_id, COALESCE(SUM(betrag),0) summe FROM provision_buchungen
-      WHERE employee_id=${P(1)} GROUP BY zeitraum_id`, [empId]);
-  const summeVon = Object.fromEntries(summen.map(s => [String(s.zeitraum_id), r2(s.summe)]));
-  const st = ss || await staffelStatus(heute().slice(0, 7));
-  const staffel = st.closers.find(c => c.employee_id === empId) || null;
+  let z = null, provision = null, zeitraeume = [], summeVon = {}, staffel = null;
+  if (kreis) {
+    z = await resolveZeitraum(zeitraumId, kreis);
+    provision = z ? await detailFor(empId, z) : { summe: 0, perTyp: {}, buchungen: [] };
+    zeitraeume = await db.all(
+      `SELECT id, von, bis, label, status, abgeschlossen_am FROM provision_zeitraeume
+        WHERE kreis=${P(1)} ORDER BY von DESC`, [kreis]);
+    // Summe je Zeitraum in EINER Abfrage (statt N Aufrufen von /me).
+    const summen = await db.all(
+      `SELECT zeitraum_id, COALESCE(SUM(betrag),0) summe FROM provision_buchungen
+        WHERE employee_id=${P(1)} GROUP BY zeitraum_id`, [empId]);
+    summeVon = Object.fromEntries(summen.map(s => [String(s.zeitraum_id), r2(s.summe)]));
+    const st = ss || await staffelStatus(heute().slice(0, 7));
+    staffel = st.closers.find(c => c.employee_id === empId) || null;
+  }
 
   // ── 2) Eigene Deals — Achse: KALENDERMONAT ──
   //
@@ -156,8 +163,8 @@ async function dashboardFuer(empId, { zeitraumId = null, monat = null, ss = null
     monate,              // Auswahl fuer den Umschalter
   };
 
-  // ── 3) Provisions-Forecast ──
-  const forecast = await provisionsForecast({
+  // ── 3) Provisions-Forecast ── (nur mit Provisionskreis)
+  const forecast = !kreis ? null : await provisionsForecast({
     empId, standort: emp?.standort,
     offene: offen.map(d => ({ opener_id: d.opener_id, setter_id: d.setter_id, closer_id: d.closer_id,
       wert: Number(d.angebotswert_eur) || 0 })),
@@ -183,7 +190,7 @@ async function dashboardFuer(empId, { zeitraumId = null, monat = null, ss = null
   const ziel = await db.get(
     `SELECT * FROM incentive_ziele WHERE employee_id=${P(1)} ORDER BY zeitraum_von DESC LIMIT 1`, [empId]);
   let incentive = null;
-  if (ziel) {
+  if (ziel && kreis) {
     const f = await inc.fortschrittFuer(ziel);
     const monate = inc.monateVon(ziel.zeitraum_von, ziel.zeitraum_bis);
     const gate = await inc.teamGate(monate);
@@ -212,8 +219,10 @@ async function dashboardFuer(empId, { zeitraumId = null, monat = null, ss = null
 
   return {
     employee: { id: emp.id, name: emp.name, rolle: emp.rolle, standort: emp.standort, kreis },
-    provision: { zeitraum: z, ...provision, staffel,
-      zeitraeume: zeitraeume.map(zz => ({ ...zz, summe: summeVon[String(zz.id)] || 0 })) },
+    kein_kreis: !kreis,
+    hinweis_kreis: kreis ? null : `Kein Provisionskreis für den Standort ${emp.standort || '(ohne Standort)'} — Provision, Forecast und Incentive entfallen.`,
+    provision: kreis ? { zeitraum: z, ...provision, staffel,
+      zeitraeume: zeitraeume.map(zz => ({ ...zz, summe: summeVon[String(zz.id)] || 0 })) } : null,
     deals, forecast, kpis, incentive,
     konfiguration: { closing_rate: ZIEL_CLOSING_RATE, teamziel: inc.TEAMZIEL_MONAT,
       freeze_tag: inc.FREEZE_TAG },
@@ -295,8 +304,9 @@ router.get('/team', wrap(async (req, res) => {
       employee_id: p.id, name: p.name, rolle: p.rolle, standort: p.standort,
       hat_konto: p.hat_konto, konto_aktiv: p.konto_aktiv, freigeschaltet: p.freigeschaltet,
       messbasis: i?.messbasis || null, showrate_art: i?.showrate_art || null,
-      provision: d.provision.summe,
-      forecast: d.forecast.forecast,
+      kein_kreis: d.kein_kreis,
+      provision: d.provision ? d.provision.summe : null,
+      forecast: d.forecast ? d.forecast.forecast : null,
       ae_gesamt: i?.ae_gesamt ?? null,
       sr_mittel: i?.sr_mittel ?? null,
       sr_nicht_messbar: i ? i.sr_nicht_messbar : null,

@@ -294,7 +294,9 @@ router.get('/auftragseingang', wrap(async (req, res) => {
 
   // CHF-Beträge (Risem) in EUR umrechnen (Kurs des Gewinnmonats); EUR bleibt unverändert.
   const rates = await loadRates();
-  const aeEur = d => { const v = toEur(Number(d.ae_wert), d.currency, d.monat, rates); return v == null ? Number(d.ae_wert) : v; };
+  // toEur faellt selbst auf den letzten bekannten Kurs zurueck; null heisst "gar kein Kurs hinterlegt".
+  // Dann zaehlt der CHF-Betrag NICHT (wie in SQL, rateSql) — nie 1:1 als EUR.
+  const aeEur = d => { const v = toEur(Number(d.ae_wert), d.currency, d.monat, rates); return v == null ? 0 : v; };
 
   const pickLoc = (deals, monat, standorte) =>
     deals.filter(d => d.monat === monat && standorte.includes(d.standort))

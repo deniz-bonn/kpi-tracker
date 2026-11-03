@@ -71,3 +71,26 @@ export const periodFileSuffix = (zeitMode, monat, von, bis) =>
   zeitMode === 'alle' ? '_alle'
     : zeitMode === 'zeitraum' ? `_${von}_${bis}`
       : `_${monat}`;
+
+// 'YYYY-MM' -> 'MM/JJJJ' fuer Kurs-Hinweise.
+const mmJJJJ = (m) => (m ? `${m.slice(5, 7)}/${m.slice(0, 4)}` : '');
+const kursZahl = (r) => Number(r).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+
+/**
+ * Hinweistext fuer CHF-Monate ohne gepflegten Kurs (GET /exchange-rates/status -> fehlend).
+ * Gruppiert nach Rueckfall-Kurs: "Kurs für 10/2026, 11/2026 nicht gepflegt, Rückfall auf 09/2026 (1,08 €)".
+ * null, wenn nichts fehlt.
+ */
+export function kursHinweis(fehlend) {
+  if (!fehlend?.length) return null;
+  const gruppen = new Map();
+  for (const f of fehlend) {
+    const k = f.rueckfall_monat || '';
+    if (!gruppen.has(k)) gruppen.set(k, { rate: f.rate, monate: [] });
+    gruppen.get(k).monate.push(f.monat);
+  }
+  return [...gruppen.entries()].map(([rm, g]) => rm
+    ? `CHF-Kurs für ${g.monate.map(mmJJJJ).join(', ')} nicht gepflegt, Rückfall auf ${mmJJJJ(rm)} (1 CHF = ${kursZahl(g.rate)} €)`
+    : `CHF-Kurs für ${g.monate.map(mmJJJJ).join(', ')} nicht gepflegt und kein Kurs hinterlegt — CHF-Beträge fehlen in den Summen`
+  ).join(' · ');
+}

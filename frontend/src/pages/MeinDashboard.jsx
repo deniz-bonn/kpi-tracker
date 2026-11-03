@@ -146,8 +146,11 @@ function MitarbeiterSicht({ data, zeitraumId, setZeitraumId, monat, setMonat }) 
   }, [inc]);
 
   const { employee, provision, deals, forecast, kpis } = data;
-  const z = provision.zeitraum;
-  const fcAnteil = forecast.forecast > 0 ? (forecast.gebucht / forecast.forecast) * 100 : 0;
+  // Standort ohne Provisionskreis (z. B. Schweiz): Provision, Forecast und Incentive kommen als null
+  // (Server, mein_dashboard.js) — die Sektionen entfallen, Deals und KPIs bleiben.
+  const keinKreis = !!data.kein_kreis;
+  const z = provision?.zeitraum;
+  const fcAnteil = forecast?.forecast > 0 ? (forecast.gebucht / forecast.forecast) * 100 : 0;
 
   return (
     <div className="space-y-1 text-gray-900">
@@ -165,7 +168,7 @@ function MitarbeiterSicht({ data, zeitraumId, setZeitraumId, monat, setMonat }) 
             {employee.name}{employee.standort ? ` · ${employee.standort}` : ''} — nur deine eigenen Zahlen
           </p>
         </div>
-        {provision.zeitraeume?.length > 0 && (
+        {provision?.zeitraeume?.length > 0 && (
           <select
             value={zeitraumId ?? (z ? z.id : '')}
             onChange={e => setZeitraumId(e.target.value || null)}
@@ -179,7 +182,14 @@ function MitarbeiterSicht({ data, zeitraumId, setZeitraumId, monat, setMonat }) 
         )}
       </div>
 
+      {keinKreis && (
+        <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-600">
+          ℹ️ {data.hinweis_kreis || 'Kein Provisionskreis für diesen Standort.'} Deals und KPIs siehst du wie gewohnt.
+        </div>
+      )}
+
       {/* 1 Provision */}
+      {!keinKreis && (<>
       <div className={sec}>Provision</div>
       <div className="flex gap-3 flex-wrap">
         <div className="flex-1 min-w-[320px] rounded-xl bg-[#2d2e30] text-white px-5 py-4">
@@ -239,6 +249,7 @@ function MitarbeiterSicht({ data, zeitraumId, setZeitraumId, monat, setMonat }) 
           </div>
         </div>
       </div>
+      </>)}
 
       {/* 2 Meine Deals — Achse ist der KALENDERMONAT (siehe Kommentar in mein_dashboard.js) */}
       <div className="flex flex-wrap items-baseline justify-between gap-2 mt-6 mb-2">
@@ -291,6 +302,7 @@ function MitarbeiterSicht({ data, zeitraumId, setZeitraumId, monat, setMonat }) 
       )}
 
       {/* 3 Provisions-Forecast */}
+      {forecast && (<>
       <div className={sec}>Provisions-Forecast</div>
       <div className={card}>
         <div className={head}><span className={headT}>Gebucht → Forecast</span></div>
@@ -312,6 +324,7 @@ function MitarbeiterSicht({ data, zeitraumId, setZeitraumId, monat, setMonat }) 
           </div>
         </div>
       </div>
+      </>)}
 
       {/* 4 Meine KPIs */}
       <div className={sec}>Meine KPIs <span className="normal-case font-normal text-gray-400">— {kpis.monat}</span></div>
@@ -591,7 +604,10 @@ function TeamUeberblick({ onPerson }) {
                       {z.messbasis || <span className="text-gray-300">kein Incentive</span>}
                       {z.showrate_art && <span className="text-gray-400"> · {z.showrate_art === 'setting' ? 'Setting' : 'Beratung'}</span>}
                     </td>
-                    <td className="px-3 py-1.5 text-right text-gray-700">{formatEuro(z.provision)}</td>
+                    <td className="px-3 py-1.5 text-right text-gray-700"
+                        title={z.kein_kreis ? 'Kein Provisionskreis für diesen Standort' : undefined}>
+                      {z.provision != null ? formatEuro(z.provision) : <span className="text-gray-300">kein Kreis</span>}
+                    </td>
                     <td className="px-3 py-1.5 text-right font-medium text-gray-900">
                       {z.ae_gesamt != null ? formatEuro(z.ae_gesamt) : '—'}
                       {z.ziele?.warschau?.ae != null && (

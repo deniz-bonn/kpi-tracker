@@ -111,6 +111,8 @@ export const targetsApi = {
 export const exchangeRatesApi = {
   list: () => api.get('/exchange-rates').then(r => r.data),
   upsert: (monat, rate) => api.put(`/exchange-rates/${monat}`, { rate }).then(r => r.data),
+  // { fehlend: [{monat, rueckfall_monat, rate}], folgemonat: {monat, gepflegt}, letzter_kurs }
+  status: () => api.get('/exchange-rates/status').then(r => r.data),
 };
 
 export const adminApi = {

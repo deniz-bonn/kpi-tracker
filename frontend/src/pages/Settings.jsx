@@ -2,7 +2,7 @@ import { useState, useEffect, Fragment } from 'react';
 import { KREISE } from '../utils/kreise';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { companiesApi, targetsApi, adminApi, auditApi, employeesApi, featureFlagsApi, backupApi, exchangeRatesApi, monthlyTargetsStandortApi, provisionenApi } from '../utils/api';
-import { currentMonat } from '../utils/format';
+import { currentMonat, kursHinweis } from '../utils/format';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 
@@ -443,9 +443,14 @@ export default function Settings() {
 
   const [rateForm, setRateForm] = useState({ monat: currentMonat(), rate: '' });
   const { data: exchangeRates = [] } = useQuery({ queryKey: ['exchange-rates'], queryFn: exchangeRatesApi.list, enabled: isAdmin && tab === 'exchange' });
+  // Pflege-Erinnerung: Folgemonat ohne Kurs (die "Januar-Falle") + Monate, die gerade zurueckfallen.
+  const { data: kursStatus } = useQuery({ queryKey: ['kurs-status'], queryFn: exchangeRatesApi.status, enabled: isAdmin && tab === 'exchange' });
   const upsertRate = useMutation({
     mutationFn: ({ monat, rate }) => exchangeRatesApi.upsert(monat, rate),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['exchange-rates'] }); setRateForm(f => ({ ...f, rate: '' })); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['exchange-rates'] }); qc.invalidateQueries({ queryKey: ['kurs-status'] });
+      setRateForm(f => ({ ...f, rate: '' }));
+    },
   });
 
   // ── User management (admin only) ──────────────────────────────────────────
@@ -1069,7 +1074,18 @@ export default function Settings() {
       {tab === 'exchange' && isAdmin && (
         <section className="rounded-xl border border-gray-200 bg-white p-5">
           <h2 className="text-sm font-semibold text-gray-700 mb-1">Wechselkurs CHF → EUR</h2>
-          <p className="text-xs text-gray-500 mb-4">Kurs = Euro pro 1 CHF, gültig pro Monat. Wird für Risem-Beträge (CHF) in Anzeige/Aggregation und bei der AE-Buchung verwendet. Spätere Änderungen wirken nur auf den jeweiligen Monat.</p>
+          <p className="text-xs text-gray-500 mb-4">Kurs = Euro pro 1 CHF, gültig pro Monat. Wird für Risem-Beträge (CHF) in Anzeige/Aggregation und bei der AE-Buchung verwendet. Spätere Änderungen wirken nur auf den jeweiligen Monat. Fehlt ein Monat, rechnet die App überall mit dem letzten bekannten Kurs davor.</p>
+          {kursStatus && !kursStatus.folgemonat.gepflegt && (
+            <div className="mb-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              ⚠️ Für <b>{kursStatus.folgemonat.monat.slice(5, 7)}/{kursStatus.folgemonat.monat.slice(0, 4)}</b> ist noch kein Kurs gepflegt
+              {kursStatus.letzter_kurs && <> — ab dem 1. rechnet die App mit dem Kurs von {kursStatus.letzter_kurs.monat.slice(5, 7)}/{kursStatus.letzter_kurs.monat.slice(0, 4)}</>}.
+              <button type="button" onClick={() => setRateForm(f => ({ ...f, monat: kursStatus.folgemonat.monat }))}
+                className="ml-2 underline">Monat übernehmen</button>
+            </div>
+          )}
+          {kursHinweis(kursStatus?.fehlend) && (
+            <div className="mb-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">💱 {kursHinweis(kursStatus.fehlend)}</div>
+          )}
           <form onSubmit={e => { e.preventDefault(); if (rateForm.rate) upsertRate.mutate({ monat: rateForm.monat, rate: Number(rateForm.rate) }); }} className="flex gap-3 mb-4 items-end flex-wrap">
             <div>
               <label className="text-xs text-gray-600 mb-1 block">Monat</label>

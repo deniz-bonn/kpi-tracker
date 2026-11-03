@@ -433,7 +433,12 @@ router.post('/import-csv', wrap(async (req, res) => {
 
 router.post('/', wrap(async (req, res) => {
   const body = { ...req.body };
-  if (['bk_vertrieb'].includes(req.user.role) && req.user.employee_id) {
+  // KAM-REGEL wie in deals_bk.js (erstelleBkDeal): die eigene employee_id nur einsetzen, wenn KEINE
+  // kam_id mitkommt. Frueher ueberschrieb diese Route sie fuer bk_vertrieb bedingungslos — ein fuer
+  // einen Kollegen erfasster Verlaengerungs-Deal waere samt AE und 2 % VL-Provision beim Erfasser
+  // gelandet. Das VL-Formular zeigt bk_vertrieb das KAM-Feld nicht (canSeeAll), dort kommt es
+  // weiterhin leer an und wird wie bisher gefuellt.
+  if (!body.kam_id && ['bk_vertrieb'].includes(req.user.role) && req.user.employee_id) {
     body.kam_id = req.user.employee_id;
   }
 

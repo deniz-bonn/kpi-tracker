@@ -1,7 +1,8 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { companiesApi, adminApi } from '../utils/api';
+import { companiesApi, adminApi, exchangeRatesApi } from '../utils/api';
+import { kursHinweis } from '../utils/format';
 import { useAuth } from '../context/AuthContext';
 
 const ALL_NAV = [
@@ -63,6 +64,12 @@ export default function Layout() {
     refetchInterval: 30_000,
     staleTime: 15_000,
   });
+
+  // CHF-Kurs-Rueckfall: fehlt fuer einen Monat mit CHF-Betraegen der Kurs, rechnet die App ueberall
+  // mit dem letzten bekannten Kurs (utils/currency.js) — das soll sichtbar sein, nicht still passieren.
+  const { data: kurs } = useQuery({ queryKey: ['kurs-status'], queryFn: exchangeRatesApi.status,
+    enabled: !!user, staleTime: 10 * 60_000 });
+  const kursText = kursHinweis(kurs?.fehlend);
 
   const handleLogout = () => {
     logout();
@@ -164,6 +171,12 @@ export default function Layout() {
         {/* Page content */}
         <main className="flex-1 overflow-y-auto bg-gray-50">
           <div className="p-4 md:p-6">
+            {kursText && (
+              <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                💱 {kursText}
+                {['admin', 'superadmin'].includes(user?.role) && <> — <NavLink to="/einstellungen" className="underline">unter Einstellungen → Wechselkurs pflegen</NavLink>.</>}
+              </div>
+            )}
             <Outlet context={{ company, setCompany, companies }} />
           </div>
         </main>

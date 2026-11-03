@@ -3,12 +3,20 @@ const db     = require('../db');
 const wrap   = require('../middleware/asyncHandler');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { logAudit } = require('../utils/audit');
+const { kursStatus } = require('../utils/currency');
+const { heuteBerlin } = require('../utils/heute');
 
 router.use(requireAuth);
 
 // Lesen: alle eingeloggten Nutzer (fürs Anzeige-Umrechnen im Frontend)
 router.get('/', wrap(async (req, res) => {
   res.json(await db.all('SELECT monat, rate FROM chf_eur_rates ORDER BY monat DESC'));
+}));
+
+// Rueckfall-Status: welche Monate rechnen mit einem fremden Monatskurs, ist der Folgemonat gepflegt?
+// Alle Eingeloggten — der Hinweis steht ueberall dort, wo CHF-Betraege einfliessen.
+router.get('/status', wrap(async (req, res) => {
+  res.json(await kursStatus(heuteBerlin()));
 }));
 
 // Upsert eines Monatskurses — nur Admin/Superadmin. rate = EUR pro 1 CHF.

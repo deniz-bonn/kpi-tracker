@@ -4,6 +4,7 @@ const wrap   = require('../middleware/asyncHandler');
 const { requireAuth } = require('../middleware/auth');
 const { gruppeVonEmp } = require('../utils/rollen');
 const { standortInSql } = require('../utils/standorte');
+const { rateSql } = require('../utils/currency');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Vertragsverlaengerungen — Arbeits- und Auswertungsflaeche fuer die Umstellung auf Dauer-RaaS.
@@ -40,9 +41,9 @@ const r1 = v => Math.round(v * 10) / 10;
 // Ausgeschrieben statt ueber moneyEurSql(), weil der Kursmonat hier ein COALESCE braucht: ein
 // noch offener Dauer-RaaS-Deal hat kein gewonnen_monat, und ohne Rueckfall auf den Angebotsmonat
 // faende die Kursabfrage nichts und rechnete CHF still mit Faktor 1.
+// Kurs: zentrale Regel rateSql() (letzter bekannter Kurs, nie 1:1).
 const UMS_EUR = `(COALESCE(u.ae_wert,0) * CASE WHEN uc.currency = 'CHF'
-  THEN COALESCE((SELECT r.rate FROM chf_eur_rates r
-                  WHERE r.monat = COALESCE(u.gewonnen_monat, u.monat)), 1)
+  THEN ${rateSql('COALESCE(u.gewonnen_monat, u.monat)')}
   ELSE 1 END)`;
 
 function zeitraum(req) {
