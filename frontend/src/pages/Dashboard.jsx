@@ -89,7 +89,8 @@ function LocationCol({ title, deals, color, showDienstleistung = false }) {
 function MonthSection({ row, isExpanded, onToggle, isCurrent, isFuture }) {
   const monthIdx = parseInt(row.monat.split('-')[1]) - 1;
   const year = row.monat.split('-')[0];
-  const gesamt = row.nk.gesamt + row.bk.gesamt + row.vl.gesamt; // ohne Schweiz (Risem)
+  const gesamt = row.nk.gesamt + row.bk.gesamt + row.vl.gesamt; // Schweiz nur ab Gruppen-Beitritt (row.ch_in_gesamt)
+  const chTitel = row.ch_in_gesamt ? 'Schweiz' : 'Schweiz (nicht in Gesamt)';
   // Sichtbarkeit an vorhandenen Deals (inkl. Schweiz), damit Schweiz-only-Monate nicht verschwinden
   const nkHas = (row.nk.bonn.length + row.nk.braunschweig.length + row.nk.oesterreich.length + row.nk.schweiz.length) > 0;
   const bkHas = (row.bk.deutschland.length + row.bk.oesterreich.length + row.bk.schweiz.length) > 0;
@@ -141,7 +142,7 @@ function MonthSection({ row, isExpanded, onToggle, isCurrent, isFuture }) {
                 <LocationCol title="Bonn" deals={row.nk.bonn} color="border-blue-900/50" />
                 <LocationCol title="Braunschweig" deals={row.nk.braunschweig} color="border-blue-900/50" />
                 <LocationCol title="Österreich" deals={row.nk.oesterreich} color="border-blue-900/50" />
-                <LocationCol title="Schweiz (nicht in Gesamt)" deals={row.nk.schweiz} color="border-blue-900/50" />
+                <LocationCol title={chTitel} deals={row.nk.schweiz} color="border-blue-900/50" />
               </div>
             </div>
           )}
@@ -154,7 +155,7 @@ function MonthSection({ row, isExpanded, onToggle, isCurrent, isFuture }) {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                 <LocationCol title="Deutschland" deals={row.bk.deutschland} color="border-green-900/50" showDienstleistung />
                 <LocationCol title="Österreich" deals={row.bk.oesterreich} color="border-green-900/50" showDienstleistung />
-                <LocationCol title="Schweiz (nicht in Gesamt)" deals={row.bk.schweiz} color="border-green-900/50" showDienstleistung />
+                <LocationCol title={chTitel} deals={row.bk.schweiz} color="border-green-900/50" showDienstleistung />
               </div>
             </div>
           )}
@@ -167,7 +168,7 @@ function MonthSection({ row, isExpanded, onToggle, isCurrent, isFuture }) {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                 <LocationCol title="Deutschland" deals={row.vl.deutschland} color="border-purple-900/50" showDienstleistung />
                 <LocationCol title="Österreich" deals={row.vl.oesterreich} color="border-purple-900/50" showDienstleistung />
-                <LocationCol title="Schweiz (nicht in Gesamt)" deals={row.vl.schweiz} color="border-purple-900/50" showDienstleistung />
+                <LocationCol title={chTitel} deals={row.vl.schweiz} color="border-purple-900/50" showDienstleistung />
               </div>
             </div>
           )}
@@ -241,6 +242,9 @@ export default function Dashboard() {
 
   // Jahressummen (Übersichtstabelle)
   const sum = (key) => rows.reduce((s, r) => s + (Number(r[key]) || 0), 0);
+  // Erster Monat, ab dem die Schweiz in Gesamt zaehlt (Server-Regel utils/gruppe.js, je Monat)
+  const chAb = rows.find(r => r.ch_in_gesamt)?.monat || null;
+  const chGanzesJahr = !!chAb && chAb === rows[0]?.monat;
   const totals = {
     nk_bonn: sum('nk_bonn'), nk_bs: sum('nk_bs'), nk_at: sum('nk_at'), nk_ch: sum('nk_ch'), nk_gesamt: sum('nk_gesamt'),
     nk_bonn_anz: sum('nk_bonn_anz'), nk_bs_anz: sum('nk_bs_anz'), nk_at_anz: sum('nk_at_anz'), nk_ch_anz: sum('nk_ch_anz'), nk_gesamt_anz: sum('nk_gesamt_anz'),
@@ -320,7 +324,7 @@ export default function Dashboard() {
             ) : rows.map((row) => {
               const monthIdx = parseInt(row.monat.split('-')[1]) - 1;
               const isCurrent = row.monat === currentMonat;
-              // Schweiz (Risem) zählt nicht in row.gesamt, soll die Zeile aber nicht ausgrauen
+              // Schweiz zählt vor dem Gruppen-Beitritt nicht in row.gesamt, soll die Zeile aber nicht ausgrauen
               const hasData = row.gesamt > 0 || row.nk_ch > 0 || row.bk_ch > 0 || row.vl_ch > 0;
               // Werte in einem Monat NACH dem aktuellen = Gewinndatum in der Zukunft. Kennzeichnen statt
               // als normale Zeile zeigen; die Anteile (dort typischerweise 100 %) blenden wir aus — sie
@@ -457,7 +461,11 @@ export default function Dashboard() {
       </div>
 
       <p className="text-xs text-gray-400 -mt-3">
-        🇨🇭 Schweiz (Risem) wird angezeigt, fließt aber noch nicht in die „Gesamt"-/Umsatzsummen ein.
+        {chGanzesJahr
+          ? <>🇨🇭 Schweiz (HiOffice CH) zählt in die „Gesamt"-/Umsatzsummen.</>
+          : chAb
+          ? <>🇨🇭 Schweiz (HiOffice CH) zählt ab {chAb.slice(5)}/{chAb.slice(0, 4)} in die „Gesamt"-/Umsatzsummen; frühere Monate werden nur angezeigt.</>
+          : <>🇨🇭 Schweiz (HiOffice CH) wird angezeigt, fließt aber nicht in die „Gesamt"-/Umsatzsummen ein.</>}
       </p>
 
       {canSeeTargets && (

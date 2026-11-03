@@ -1,13 +1,15 @@
 const router = require('express').Router();
 const db = require('../db');
 const wrap = require('../middleware/asyncHandler');
+const { requireRole } = require('../middleware/auth');
 
 router.get('/', wrap(async (req, res) => {
   const rows = await db.all('SELECT * FROM companies ORDER BY name');
   res.json(rows);
 }));
 
-router.post('/', wrap(async (req, res) => {
+// Anlegen/Aendern nur Admin — vorher konnte jeder eingeloggte Nutzer Firmen umbenennen/deaktivieren.
+router.post('/', requireRole('admin'), wrap(async (req, res) => {
   const { name, standort } = req.body;
   if (!name) return res.status(400).json({ error: 'name required' });
 
@@ -23,7 +25,7 @@ router.post('/', wrap(async (req, res) => {
   }
 }));
 
-router.patch('/:id', wrap(async (req, res) => {
+router.patch('/:id', requireRole('admin'), wrap(async (req, res) => {
   const { name, standort, aktiv } = req.body;
   if (db.dialect === 'postgres') {
     const row = await db.get(

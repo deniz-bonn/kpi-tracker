@@ -57,7 +57,7 @@ async function main() {
   const mode = EMIT ? 'EMIT-MIGRATION' : COMMIT ? 'COMMIT (schreibt)' : 'DRY-RUN (schreibt nichts)';
   console.log(`\n=== Risem-Import — ${mode} · Dialekt: ${dialect} ===\n`);
 
-  const risem = await db.get(`SELECT id FROM companies WHERE name='Risem'`);
+  const risem = await db.get(`SELECT id FROM companies WHERE name IN ('Risem','HiOffice CH')`);
   if (!risem) { console.error('FEHLER: Company Risem fehlt — erst Migration 073 ausführen.'); process.exit(1); }
   const emps = await db.all(`SELECT id, name FROM employees WHERE company_id=${dialect === 'postgres' ? '$1' : '?'}`, [risem.id]);
   const byName = Object.fromEntries(emps.map(e => [e.name, e.id]));
@@ -71,7 +71,7 @@ async function main() {
   };
 
   const p = (n) => dialect === 'postgres' ? `$${n}` : '?';
-  const RISEM_SUB = `(SELECT id FROM companies WHERE name='Risem')`;
+  const RISEM_SUB = `(SELECT id FROM companies WHERE name IN ('Risem','HiOffice CH'))`;
   const empSub = (fullName) => fullName == null ? 'NULL'
     : `(SELECT id FROM employees WHERE name=${sqlStr(fullName)} AND company_id=${RISEM_SUB})`;
 

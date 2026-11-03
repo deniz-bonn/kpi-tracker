@@ -3,7 +3,7 @@ const db = require('../db');
 const wrap = require('../middleware/asyncHandler');
 const { loadRates, toEur, moneyEurSql, aeEurGatedSql } = require('../utils/currency');
 const { activeCompanySql } = require('../utils/companyActive');
-const { gruppenStandorte } = require('../utils/gruppe');
+const { gruppenRegel } = require('../utils/gruppe');
 
 // EUR-umgerechnete Beträge (CHF-Companies via Monatskurs); erfordern JOIN companies c.
 // AE_EUR mit AE-Startmonat-Gate (Umsatz erst ab company.ae_ab_monat, Risem: 2026-08).
@@ -302,11 +302,12 @@ router.get('/auftragseingang', wrap(async (req, res) => {
     deals.filter(d => d.monat === monat && standorte.includes(d.standort))
          .map(d => ({ kunde: d.kunde, ae_wert: aeEur(d), mitarbeiter: d.mitarbeiter, datum: d.gewonnen_datum, dienstleistung: d.dienstleistung || null }));
 
-  // Zentrale Gruppen-Scope-Regel (companies.zaehlt_in_gruppe): welche Standorte in gesamt zaehlen.
-  // Schweiz (Risem) wird angezeigt, ist aber nicht in der Gruppe -> nicht in gesamt.
-  const gruppe = await gruppenStandorte();
+  // Zentrale Gruppen-Scope-Regel (utils/gruppe.js): welche Standorte in gesamt zaehlen — je Monat.
+  // Schweiz wird immer angezeigt, zaehlt aber erst ab companies.gruppe_ab_monat (2026-11) in gesamt.
+  const gruppeFuer = await gruppenRegel();
 
   const result = months.map(monat => {
+    const gruppe = gruppeFuer(monat);
     const nk = {
       bonn:         pickLoc(nkDeals, monat, ['Bonn']),
       braunschweig: pickLoc(nkDeals, monat, ['Braunschweig']),
@@ -329,7 +330,7 @@ router.get('/auftragseingang', wrap(async (req, res) => {
     };
     vl.gesamt = pickLoc(vlDeals, monat, gruppe).reduce((s, d) => s + d.ae_wert, 0);
 
-    return { monat, nk, bk, vl };
+    return { monat, nk, bk, vl, ch_in_gesamt: gruppe.includes('Schweiz') };
   });
 
   res.json(result);

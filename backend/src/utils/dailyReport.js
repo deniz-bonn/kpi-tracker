@@ -80,8 +80,9 @@ async function buildDashboardEmailData(monat, today) {
   ]);
 
   const monatsziel = Number(zielRow?.ziel_gesamt) || 0;
-  // Zentrale Gruppen-Scope-Regel (welche Standorte in Gesamt/Ziel zaehlen) — Schweiz bleibt draussen.
-  const gruppe = await gruppenStandorte();
+  // Zentrale Gruppen-Scope-Regel (welche Standorte in Gesamt/Ziel zaehlen) fuer den Berichtsmonat —
+  // Schweiz zaehlt ab companies.gruppe_ab_monat (2026-11).
+  const gruppe = await gruppenStandorte(monat);
   return { monat, today, nkMonth, bkMonth, vlMonth, nkToday, bkToday, vlToday, monatsziel, gruppenStandorte: gruppe };
 }
 

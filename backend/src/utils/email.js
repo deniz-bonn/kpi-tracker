@@ -143,7 +143,7 @@ function buildDashboardHtml(data) {
   const { monat, today, nkMonth, bkMonth, vlMonth, nkToday, bkToday, vlToday, monatsziel } = data;
 
   // Zentrale Gruppen-Scope-Regel (dieselbe wie Dashboard/Auswertung): nur diese Standorte zaehlen in
-  // Gesamt-AE und Zielerreichung. Schweiz (Risem) wird informativ gezeigt, fliesst aber NICHT ein.
+  // Gesamt-AE und Zielerreichung. Standorte ausserhalb (Schweiz vor 2026-11) werden informativ gezeigt.
   const gruppe = data.gruppenStandorte && data.gruppenStandorte.length ? data.gruppenStandorte : ['Bonn', 'Braunschweig', 'Österreich'];
   const inGruppe = s => gruppe.includes(s);
   // Anzeigereihenfolge: bekannte Standorte zuerst, dann evtl. weitere.
@@ -247,7 +247,7 @@ function buildDashboardHtml(data) {
 
       <!-- Gesamt-Übersicht -->
       ${(() => {
-        // Gesamt/Ziel NUR ueber Gruppen-Standorte (Schweiz ausgeschlossen, s. sumInGruppe).
+        // Gesamt/Ziel NUR ueber Gruppen-Standorte des Berichtsmonats (s. sumInGruppe).
         const nkAe  = sumInGruppe(nkMonth);
         const bkAe  = sumInGruppe(bkMonth);
         const vlAe  = sumInGruppe(vlMonth);

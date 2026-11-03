@@ -3,7 +3,7 @@ const db = require('../db');
 const wrap = require('../middleware/asyncHandler');
 const { aeEurGatedSql } = require('../utils/currency');
 const { activeCompanySql } = require('../utils/companyActive');
-const { gruppenStandorte } = require('../utils/gruppe');
+const { gruppenRegel } = require('../utils/gruppe');
 
 // EUR-umgerechnetes ae_wert (CHF-Companies via Monatskurs) MIT AE-Startmonat-Gate:
 // Umsatz zaehlt erst ab company.ae_ab_monat (Risem: 2026-08). Erfordert JOIN companies c.
@@ -354,12 +354,13 @@ router.get('/dashboard', wrap(async (req, res) => {
 
   const months = Array.from({ length: 12 }, (_, i) => `${yr}-${String(i + 1).padStart(2, '0')}`);
 
-  // Zentrale Gruppen-Scope-Regel (companies.zaehlt_in_gruppe): welche Standorte in Gesamt/Umsatz zaehlen.
-  // Schweiz (Risem) wird als Spalte gezeigt, zaehlt aber nicht in Gesamt (solange Flag=FALSE).
-  const gruppe = await gruppenStandorte();
-  const inG = s => gruppe.includes(s);
+  // Zentrale Gruppen-Scope-Regel (utils/gruppe.js): welche Standorte in Gesamt/Umsatz zaehlen — je Monat.
+  // Schweiz wird immer als Spalte gezeigt, zaehlt aber erst ab companies.gruppe_ab_monat (2026-11) in Gesamt.
+  const gruppeFuer = await gruppenRegel();
 
   const rows = months.map(monat => {
+    const gruppe = gruppeFuer(monat);
+    const inG = s => gruppe.includes(s);
     const ag = aeGesamt(monat); // authoritative AE Gesamt record (may be null)
 
     // Use ae_gesamt_monthly whenever a non-zero record exists.
@@ -414,6 +415,7 @@ router.get('/dashboard', wrap(async (req, res) => {
       gesamt,
       ziel,
       differenz: ziel > 0 ? gesamt - ziel : null,
+      ch_in_gesamt: inG('Schweiz'),
     };
   });
 
