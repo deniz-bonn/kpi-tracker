@@ -10,7 +10,7 @@ import { celebrateWin, shouldCelebrate } from '../components/Celebration';
 import { useAuth } from '../context/AuthContext';
 import { KEIN_ANGEBOT_GRUENDE, GRUND_LABEL, INFO_TEXTE, hatAngebot, istKeinAngebot,
          rollenStats, klassischeKpis, callStats, dealFilterPred, zeitraumVorTracking, KEIN_ANGEBOT_HINWEIS,
-         QUELLEN, quellenStats } from '../utils/nkConstants';
+         QUELLEN, quellenStats, dienstleistungStats, dlVon } from '../utils/nkConstants';
 import NkMonatsvergleich from '../components/NkMonatsvergleich';
 import QuellenTabelle from '../components/QuellenTabelle';
 import InfoPopover from '../components/InfoPopover';
@@ -22,7 +22,7 @@ const aeEur = aeEurDeal;
 const STATUS_OPTS = ['Offen', 'Gewonnen', 'Verloren', 'In Verhandlung', 'In Closing Call 2'];
 const STANDORTE = ['Bonn', 'Braunschweig', 'Österreich', 'Schweiz'];
 
-const DIENSTLEISTUNGEN_NK = ['RaaS', 'RaaS Kleinkunde', 'Performance Recruiting'];
+const DIENSTLEISTUNGEN_NK = ['RaaS', 'RaaS Kleinkunde', 'Performance Recruiting', 'Akutsuche', 'Konstantsuche'];
 const AUTO_VL_OPTS = ['Ja', 'Nein'];
 const ABGERECHNET_OPTS = ['Nein', 'Ja', 'On Hold'];
 
@@ -49,6 +49,7 @@ export default function DealsNK() {
   const [filterSetter, setFilterSetter]     = useState('');
   const [filterStatus, setFilterStatus]     = useState('');
   const [filterStandort, setFilterStandort] = useState('');
+  const [filterDienstleistung, setFilterDienstleistung] = useState('');
 
   // Nur im Monats-Modus serverseitig filtern; Zeitraum/Alle laden alles (Zeitraum filtert clientseitig).
   const params = { ...(company && { company_id: company }), ...(zeitMode === 'monat' && { monat }) };
@@ -129,7 +130,10 @@ export default function DealsNK() {
     { name: 'company_id',     label: 'Company',                  type: 'select', options: compOpts, required: true },
     { name: 'kunde',          label: 'Kunde',                                     required: true },
     { name: 'kundennummer',   label: 'HubSpot ID', show: mitAngebot },
-    { name: 'dienstleistung', label: 'Dienstleistung',            type: 'select', options: DIENSTLEISTUNGEN_NK, show: mitAngebot, required: f => f.status === 'Gewonnen' },
+    // Pflicht bei jedem NEUEN Angebot (Abschlussquote je Dienstleistung braucht sie auch bei offenen/verlorenen);
+    // beim Bearbeiten alter Deals weiterhin nur bei Gewonnen, damit Altbestand ohne Angabe speicherbar bleibt.
+    { name: 'dienstleistung', label: 'Dienstleistung',            type: 'select', options: DIENSTLEISTUNGEN_NK, show: mitAngebot,
+      required: f => f.status === 'Gewonnen' || (modal?.mode === 'create' && mitAngebot(f)) },
     { name: 'closer_id', label: 'Closer', type: 'select', options: closerOptions },
     { name: 'opener_id', label: 'Opener', type: 'select', options: openerOptions },
     { name: 'setter_id', label: 'Setter', type: 'select', options: setterOptions },
@@ -169,11 +173,11 @@ export default function DealsNK() {
   // Zeilen-Praedikat der Filterleiste (nkConstants.dealFilterPred) — geteilt mit dem Monatsvergleich,
   // der bewusst OHNE Status-Filter laeuft (sonst macht „Gewonnen" jede Quote zu 100 %).
   const filterPred = useMemo(() => dealFilterPred({ quelle: filterQuelle, closer: filterCloser, opener: filterOpener,
-    setter: filterSetter, status: filterStatus, standort: filterStandort }),
-    [filterQuelle, filterCloser, filterOpener, filterSetter, filterStatus, filterStandort]);
+    setter: filterSetter, status: filterStatus, standort: filterStandort, dienstleistung: filterDienstleistung }),
+    [filterQuelle, filterCloser, filterOpener, filterSetter, filterStatus, filterStandort, filterDienstleistung]);
   const vergleichPred = useMemo(() => dealFilterPred({ quelle: filterQuelle, closer: filterCloser, opener: filterOpener,
-    setter: filterSetter, standort: filterStandort }),
-    [filterQuelle, filterCloser, filterOpener, filterSetter, filterStandort]);
+    setter: filterSetter, standort: filterStandort, dienstleistung: filterDienstleistung }),
+    [filterQuelle, filterCloser, filterOpener, filterSetter, filterStandort, filterDienstleistung]);
   const listDeals = useMemo(() => deals.filter(d => filterPred(d) &&
     (zeitMode !== 'zeitraum' || ((d.monat || '').trim() >= vonMonat && (d.monat || '').trim() <= bisMonat))
   ), [deals, filterPred, zeitMode, vonMonat, bisMonat]);
@@ -223,6 +227,12 @@ export default function DealsNK() {
   const angebotStats = useMemo(() => callStats(calls), [calls]);
   // Quoten je Leadquelle — dieselben Funktionen je Quelle, Gesamtzeile = Seitenzahlen.
   const quellenTab = useMemo(() => quellenStats(calls, aeEur), [calls]);
+  // Abschlussquote je Dienstleistung — angebotsbasiert; Klick auf eine Zeile setzt den Filter.
+  const dlStats = useMemo(() => dienstleistungStats(angebote, aeEur, DIENSTLEISTUNGEN_NK), [angebote]);
+  // Filter-Auswahl: feste Liste + Altwerte aus den geladenen Deals
+  const dlOptions = useMemo(() => [...DIENSTLEISTUNGEN_NK,
+    ...[...new Set(deals.map(dlVon).filter(x => x && !DIENSTLEISTUNGEN_NK.includes(x)))].sort((a, b) => a.localeCompare(b, 'de'))],
+    [deals]);
 
   // Pro Closer im Angebots-Block: bewusst mit Basis-Override 'calls' — hier stehen klassische
   // und bereinigte Rate nebeneinander, deshalb muessen die angebotslosen Calls sichtbar sein.
@@ -291,7 +301,7 @@ export default function DealsNK() {
   const openerMedals = useMemo(() => computeMedals(openerStats), [openerStats]);
 
   const sel = "bg-white border border-gray-300 text-gray-700 text-xs rounded px-2 py-1.5";
-  const hasFilters = filterQuelle || filterCloser || filterOpener || filterSetter || filterStatus || filterStandort;
+  const hasFilters = filterQuelle || filterCloser || filterOpener || filterSetter || filterStatus || filterStandort || filterDienstleistung;
 
   return (
     <div className="space-y-4">
@@ -381,12 +391,24 @@ export default function DealsNK() {
           <option value="">Alle Status</option>
           {STATUS_OPTS.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
+        <select value={filterDienstleistung} onChange={e => setFilterDienstleistung(e.target.value)} className={sel}>
+          <option value="">Alle Dienstleistungen</option>
+          {dlOptions.map(d => <option key={d} value={d}>{d}</option>)}
+          <option value="__ohne__">ohne Angabe</option>
+        </select>
         {hasFilters && (
           <button onClick={() => { setFilterQuelle(''); setFilterCloser(''); setFilterOpener('');
-            setFilterSetter(''); setFilterStatus(''); setFilterStandort(''); }}
+            setFilterSetter(''); setFilterStatus(''); setFilterStandort(''); setFilterDienstleistung(''); }}
             className="text-xs text-gray-500 hover:text-white ml-1">✕ Zurücksetzen</button>
         )}
       </div>
+
+      {filterDienstleistung && (
+        <div className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-1.5">
+          Dienstleistungs-Filter aktiv: Es zählen nur Angebote {filterDienstleistung === '__ohne__' ? 'ohne Dienstleistung' : `mit „${filterDienstleistung}"`}.
+          Calls ohne Angebot haben keine Dienstleistung und fallen heraus — Angebotsquote und Quoten „auf alle Calls" sind in dieser Ansicht nicht aussagekräftig.
+        </div>
+      )}
 
       {/* Monatsvergleich „Stand Tag X" — reiner Lese-Block, Default zu, unabhaengig von showKpis */}
       <NkMonatsvergleich company={company} basisMonat={vergleichMonat} tag={heuteTag} aeEur={aeEur}
@@ -518,6 +540,59 @@ export default function DealsNK() {
                   <div className="font-bold text-gray-900">{val}</div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Abschlussquote nach Dienstleistung — Zeile anklicken = ganzer KPI-Block nur für diese Dienstleistung */}
+          <div className="rounded-lg border border-gray-200 overflow-hidden">
+            <div className="px-3 py-2 bg-[#2d2e30] border-b border-[#444] flex items-center justify-between">
+              <span className="text-xs font-bold text-white uppercase tracking-wide">Abschlussquote nach Dienstleistung</span>
+              {filterDienstleistung && (
+                <button onClick={() => setFilterDienstleistung('')} className="text-[11px] text-gray-300 hover:text-white">✕ alle Dienstleistungen</button>
+              )}
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 font-medium">
+                    <th className="px-3 py-2 text-left">Dienstleistung</th>
+                    <th className="px-3 py-2 text-right">Angebote platziert</th>
+                    <th className="px-3 py-2 text-right">Angenommen</th>
+                    <th className="px-3 py-2 text-right">Verloren</th>
+                    <th className="px-3 py-2 text-right">Offen</th>
+                    <th className="px-3 py-2 text-right">Abschlussquote</th>
+                    <th className="px-3 py-2 text-right">Quote entschieden</th>
+                    <th className="px-3 py-2 text-right">Realisierte AE</th>
+                    <th className="px-3 py-2 text-right">Offen (Wert)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {dlStats.filter(r => r.total > 0 || DIENSTLEISTUNGEN_NK.includes(r.key)).map(r => {
+                    const aktiv = filterDienstleistung === r.key;
+                    return (
+                      <tr key={r.key} onClick={() => setFilterDienstleistung(aktiv ? '' : r.key)}
+                        title={aktiv ? 'Filter aufheben' : `Alle KPIs nur für ${r.label} anzeigen`}
+                        className={`cursor-pointer ${aktiv ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                        <td className={`px-3 py-1.5 font-medium ${r.key === '__ohne__' ? 'text-gray-400 italic' : 'text-gray-700'}`}>{r.label}{aktiv && ' ✓'}</td>
+                        <td className="px-3 py-1.5 text-right text-gray-600">{r.total}</td>
+                        <td className="px-3 py-1.5 text-right text-green-700 font-medium">{r.gewonnen}</td>
+                        <td className="px-3 py-1.5 text-right text-red-600">{r.verloren}</td>
+                        <td className="px-3 py-1.5 text-right text-gray-500">{r.offen}</td>
+                        <td className={`px-3 py-1.5 text-right font-bold ${r.quote >= 30 ? 'text-green-600' : r.quote > 0 ? 'text-amber-600' : 'text-gray-400'}`}>
+                          {r.total > 0 ? `${r.quote.toFixed(1)}%` : '—'}
+                        </td>
+                        <td className="px-3 py-1.5 text-right text-gray-600">{(r.gewonnen + r.verloren) > 0 ? `${r.quote_entschieden.toFixed(1)}%` : '—'}</td>
+                        <td className="px-3 py-1.5 text-right text-blue-700 font-medium">{r.ae_summe > 0 ? formatEuro(r.ae_summe) : '—'}</td>
+                        <td className="px-3 py-1.5 text-right text-gray-500">{r.wert_offen > 0 ? formatEuro(r.wert_offen) : '—'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="px-3 py-1.5 bg-gray-50 border-t border-gray-100 text-[11px] text-gray-500">
+              Basis: Angebote im gewählten Zeitraum (Angebotsmonat). Abschlussquote = angenommen / platziert; Quote entschieden = angenommen / (angenommen + verloren).
+              Offen = Offen, In Verhandlung, Closing Call 2. Zeile anklicken, um alle KPIs dieser Seite nur für diese Dienstleistung zu sehen.
             </div>
           </div>
 

@@ -241,13 +241,47 @@ export function quellenStats(calls, aeEur) {
 
 // Zeilen-Praedikat der Filterleiste (DealsNK.jsx) — eine Stelle fuer Seite und Vergleichsblock.
 // Leere Werte = kein Filter. Vergleiche wortgleich mit der frueheren Inline-Fassung von listDeals.
-export const dealFilterPred = ({ quelle, closer, opener, setter, status, standort } = {}) => (d) =>
+// Dienstleistung '__ohne__' = Deals ohne Angabe (Kein-Angebot-Calls haben nie eine Dienstleistung).
+// Altwerte tragen teils Leerzeichen am Ende ("Kontingente ") -> immer getrimmt vergleichen.
+export const dlVon = (d) => (d.dienstleistung || '').trim();
+export const dealFilterPred = ({ quelle, closer, opener, setter, status, standort, dienstleistung } = {}) => (d) =>
+  (!dienstleistung || (dienstleistung === '__ohne__' ? !dlVon(d) : dlVon(d) === dienstleistung)) &&
   (!quelle   || d.quelle            === quelle) &&
   (!closer   || String(d.closer_id) === closer) &&
   (!opener   || String(d.opener_id) === opener) &&
   (!setter   || String(d.setter_id) === setter) &&
   (!status   || d.status            === status) &&
   (!standort || d.closer_standort   === standort);
+
+/**
+ * Abschlussquote je Dienstleistung — angebotsbasiert wie die Standort-Tabelle.
+ * Reihenfolge: bekannte Dienstleistungen, dann weitere aus den Daten, zuletzt „ohne Angabe".
+ * @param angebote  nur Deals MIT Angebot (hatAngebot)
+ */
+export function dienstleistungStats(angebote, aeEur, bekannte = []) {
+  const weitere = [...new Set(angebote.map(dlVon).filter(x => x && !bekannte.includes(x)))].sort((a, b) => a.localeCompare(b, 'de'));
+  const zeile = (key, label, s) => {
+    const gew = s.filter(d => d.status === 'Gewonnen');
+    const offen = s.filter(d => !['Gewonnen', 'Verloren'].includes(d.status));
+    return {
+      key, label,
+      total:    s.length,
+      gewonnen: gew.length,
+      verloren: s.filter(d => d.status === 'Verloren').length,
+      offen:    offen.length,
+      ae_summe: gew.reduce((sum, d) => sum + aeEur(d), 0),
+      wert_offen: offen.reduce((sum, d) => sum + (Number(d.angebotswert_eur ?? d.angebotswert) || 0), 0),
+      quote:    s.length > 0 ? gew.length / s.length * 100 : 0,
+      // Quote nur auf entschiedene Angebote (ohne offene) — zeigt, wie es ausgeht, wenn es ausgeht
+      quote_entschieden: (gew.length + s.filter(d => d.status === 'Verloren').length) > 0
+        ? gew.length / (gew.length + s.filter(d => d.status === 'Verloren').length) * 100 : 0,
+    };
+  };
+  const rows = [...bekannte, ...weitere].map(dl => zeile(dl, dl, angebote.filter(d => dlVon(d) === dl)));
+  const ohne = angebote.filter(d => !dlVon(d));
+  if (ohne.length) rows.push(zeile('__ohne__', 'ohne Angabe', ohne));
+  return rows;
+}
 
 export const VERGLEICH_DURCHSCHNITTE = [3, 6];     // Spalten „Ø letzte N Monate"
 // Kein-Angebot-Tracking ist am 16.08.2026 live gegangen (KEIN_ANGEBOT_AB ist die
