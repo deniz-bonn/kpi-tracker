@@ -1,0 +1,1017 @@
+{
+ "bruchstellen": [
+  {
+   "id": "B1",
+   "name": "Opening ohne Setting",
+   "beschreibung": "Opening-Calls, die nicht in einen datierten QC- oder direkten SC-Termin münden. Basis: 4 Fehlschläge (davon 1 Setting-Inhalt in Opening-Zeitlinie) und 13 erfolgreiche Openings als Kontrast. Je Call alle beobachteten Gründe codieren; die Definitionen grenzen über Entscheiderstatus, Bedarfslage und MA-Verhalten ab.",
+   "gruende": [
+    {
+     "id": "B1-01",
+     "name": "Entscheider nicht erreicht",
+     "definition": "Es kommt kein Gespräch mit dem Ansprechpartner zustande. Der MA spricht nur mit Zentrale oder Empfang, der Ansprechpartner ist abwesend oder nicht durchstellbar.",
+     "kategorie": "Prozess",
+     "signal": "Die Zentrale meldet den Ansprechpartner außer Haus und verweist auf eine Antwort per E-Mail.",
+     "n_stichprobe": 1,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B1-02",
+     "name": "Gesprächspartner ohne Entscheidungs- oder Freigabebefugnis",
+     "definition": "Der Gesprächspartner ist erreicht und inhaltlich offen, erklärt aber, nicht freigeben zu dürfen. Er verweist auf Geschäftsführung, Management oder ein Gremium; ein Termin wird erst nach interner Freigabe angenommen.",
+     "kategorie": "Prozess",
+     "signal": "Eine Backoffice-Kraft oder ein Fachverantwortlicher lehnt den Termin ab, bis die Geschäftsführung bzw. ein Management-Meeting grundsätzlich zugestimmt hat.",
+     "n_stichprobe": 2,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B1-03",
+     "name": "Kein aktueller Bedarf",
+     "definition": "Der Entscheider gibt an, die Stellen seien besetzt bzw. mit Probearbeitern belegt. Zusätzlicher Bedarf ist nur optional oder hängt von externen Faktoren ab.",
+     "kategorie": "Lead-Qualitaet",
+     "signal": "Der Inhaber sagt, offene Stellen seien eigentlich schon besetzt; ein weiteres Team hänge von einem Großkunden ab.",
+     "n_stichprobe": 1,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B1-04",
+     "name": "Bestehende Alternative (Dienstleister oder funktionierende eigene Kanäle)",
+     "definition": "Der Kunde nennt einen aktuellen Dienstleister oder eigene Kanäle (Agentur für Arbeit, Anzeigen, Empfehlungen), die ausreichend Bewerber liefern.",
+     "kategorie": "Lead-Qualitaet",
+     "signal": "Bewerbungen kommen laut Kunde über Arbeitsagentur, Anzeigen und Empfehlungen; Kandidaten mussten bereits abgesagt werden.",
+     "n_stichprobe": 1,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B1-05",
+     "name": "Budget / Kosten",
+     "definition": "Der Kunde lehnt den Termin ab, weil er die Kosten für zu hoch hält oder kein Budget hat. Fehlende Freigabebefugnis fällt nicht hierunter, sondern unter B1-02.",
+     "kategorie": "Lead-Qualitaet",
+     "signal": "In der Stichprobe nicht als Ablehnungsgrund beobachtet; Kostenfragen im Opening wurden in erfolgreichen Calls auf den Folgetermin verschoben.",
+     "n_stichprobe": 0,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B1-06",
+     "name": "Timing: Bedarf vorhanden, Besetzung nicht dringlich",
+     "definition": "Eine konkrete Vakanz besteht, aber der Kunde befindet sich in einer frühen Suchphase, ist beim Startzeitpunkt flexibel oder will erst eigene Wege prüfen.",
+     "kategorie": "Lead-Qualitaet",
+     "signal": "Die Stelle ist erst seit Kurzem offen, eigene Bewerbungen fehlen noch, und der Kunde will zunächst intern weitere Wege prüfen.",
+     "n_stichprobe": 1,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B1-07",
+     "name": "Kunde ohne Zeit / Gespräch vorzeitig beendet",
+     "definition": "Der Kunde bricht das Gespräch wegen Folgetermin, Baustelle oder Montage ab, bevor ein Termin fixiert ist, oder blockt Terminvorschläge mit Verweis auf volle Auslastung.",
+     "kategorie": "Prozess",
+     "signal": "Der Kunde ist die ganze Woche auf Montage und beendet das Gespräch abrupt; ein anderer muss wegen eines Folgetermins abbrechen.",
+     "n_stichprobe": 2,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B1-08",
+     "name": "Termin angeboten, aber unverbindliche Absprache akzeptiert",
+     "definition": "Der MA bietet konkrete Slots an. Nach Ablehnung gibt er sich mit einer losen Rückruf- oder Mailabsprache ohne festes Datum und Uhrzeit zufrieden.",
+     "kategorie": "Gespraechsfuehrung",
+     "signal": "Statt eines Termins wird vereinbart, dass man sich irgendwann telefonisch meldet oder der Kunde per Mail Vorschläge schickt.",
+     "n_stichprobe": 2,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B1-09",
+     "name": "Keine Termin- bzw. Abschlussfrage gestellt",
+     "definition": "Der MA fragt weder nach einem Termin noch nach einer konkreten Rückrufzeit, obwohl dies im Gespräch möglich gewesen wäre (auch gegenüber einem Gatekeeper).",
+     "kategorie": "Gespraechsfuehrung",
+     "signal": "Der MA übernimmt den Vorschlag, auf eine E-Mail zu antworten, ohne Rückrufzeit oder Termin zu erfragen.",
+     "n_stichprobe": 1,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B1-10",
+     "name": "Kunde verlangt Profile oder Infos schriftlich statt Termin",
+     "definition": "Der Kunde fordert, dass zuerst Lebensläufe oder Informationen per Mail kommen, und stellt einen Termin dafür zurück. Dies ist ein Warnsignal, auch wenn der Termin am Ende zustande kommt.",
+     "kategorie": "Gespraechsfuehrung",
+     "signal": "Der Kunde will zunächst nur per E-Mail kontaktiert werden bzw. versteht nicht, warum keine Profile vorab geschickt werden.",
+     "n_stichprobe": 2,
+     "aus_pflichtliste": false
+    }
+   ]
+  },
+  {
+   "id": "B2",
+   "name": "Setting ohne Closing-Termin (QC Follow-Up)",
+   "beschreibung": "Qualifizierungsgespräche, die nicht in einen datierten Sales Call münden. Basis: 10 Setting-Calls sowie 4 Nachfass-Calls nach QC_FOLLOWUP bzw. QC_SC_AUSSTEH, in denen der Stillstandsgrund sichtbar wird. Kundenseitige Gründe (Lead-Qualität) sind von MA-Verhalten (Gesprächsführung) und Ablauffehlern (Prozess) getrennt.",
+   "gruende": [
+    {
+     "id": "B2-01",
+     "name": "Hauptentscheider bzw. Mitentscheider nicht im Gespräch",
+     "definition": "Der Gesprächspartner nennt eine nicht anwesende Person oder ein Gremium als Entscheider (Inhaber, Gesellschafter, Partner, Geschäftsleitung, Vorgesetzter, Werksleiter).",
+     "kategorie": "Prozess",
+     "signal": "Der Gesprächspartner muss die Investition erst mit weiteren Gesellschaftern, Partnern oder der Geschäftsleitung klären, die nicht dabei sind.",
+     "n_stichprobe": 7,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B2-02",
+     "name": "Entscheider anwesend, verweist aber auf internen Freigabeweg",
+     "definition": "Der Gesprächspartner hat inhaltliches OK bzw. Budgethoheit, will aber vor dem Termin mit HR oder Kollegen abstimmen, oder die finale Entscheidungsinstanz bleibt unklar.",
+     "kategorie": "Prozess",
+     "signal": "Der Kunde bestätigt die Budgethoheit, die Beauftragung läuft aber über HR; in einem anderen Fall ist intern noch nicht das letzte Wort gesprochen.",
+     "n_stichprobe": 2,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B2-03",
+     "name": "Preis generell zu hoch / Budget",
+     "definition": "Der Kunde empfindet die genannten Kosten als über seiner Erwartung oder vergleicht sie mit eigenen Kampagnen bzw. Headhuntern – ohne dass dies an Stellenniveau oder Volumen festgemacht wird (sonst B2-07).",
+     "kategorie": "Lead-Qualitaet",
+     "signal": "Nach Nennung der Pauschale sagt der Kunde, er habe mit deutlich weniger gerechnet und das sei zu teuer.",
+     "n_stichprobe": 4,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B2-04",
+     "name": "Skepsis gegenüber Zahlungsmodell, Garantie oder Risiko",
+     "definition": "Der Kunde hinterfragt die Vorab-Pauschale, die Fälligkeit unabhängig vom Arbeitsvertrag, Garantie- und Nachbesetzungsregeln oder fürchtet eine Fehlbesetzung. Das Modell ist ihm unklar.",
+     "kategorie": "Gespraechsfuehrung",
+     "signal": "Der Kunde fragt, was passiert, wenn der Kandidat nach kurzer Zeit geht, und versteht die Logik aus Garantie und Pauschale nicht.",
+     "n_stichprobe": 5,
+     "aus_pflichtliste": false
+    },
+    {
+     "id": "B2-05",
+     "name": "Timing (Saison, Jahresende, Nachfolge)",
+     "definition": "Die Vakanz ist konkret, die Besetzung ist aber erst für einen späteren Zeitpunkt geplant (Frühjahr, nach Betriebsferien, Nachfolge in einigen Monaten).",
+     "kategorie": "Lead-Qualitaet",
+     "signal": "Über den Winter kommt man mit eigenem Personal aus; eingestellt werden soll erst Anfang des nächsten Jahres.",
+     "n_stichprobe": 2,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B2-06",
+     "name": "Geringer Leidensdruck / eigene Besetzungswege",
+     "definition": "Der Kunde hat laufende eigene Bewerbungen, kann intern nachziehen oder ist aktuell voll besetzt und sucht nur langfristig.",
+     "kategorie": "Lead-Qualitaet",
+     "signal": "Wöchentlich kommen mehrere Bewerbungen, zwei Kandidaten stehen kurz vor Gesprächen; in einem anderen Fall wurden solche Stellen bisher intern besetzt.",
+     "n_stichprobe": 3,
+     "aus_pflichtliste": false
+    },
+    {
+     "id": "B2-07",
+     "name": "Lead unqualifiziert (Stelle oder Volumen passt nicht zum Modell, falsche Branche)",
+     "definition": "Die Kosten stehen nach Aussage des Kunden in keinem Verhältnis zur Stelle (einfache, gering bezahlte Position) oder zum Volumen (nur eine Einstellung), oder der Betrieb gehört nicht zur Zielbranche.",
+     "kategorie": "Lead-Qualitaet",
+     "signal": "Die Kosten seien für einfache Maschinenführer- oder Schichtleiterstellen nicht kalkulierbar bzw. erst ab mindestens zwei Einstellungen interessant.",
+     "n_stichprobe": 3,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B2-08",
+     "name": "Wettbewerber oder Vergleichsangebot im Spiel",
+     "definition": "Der Kunde nennt andere Personalvermittler oder Headhunter, mit denen er arbeitet oder die er vergleicht, oder er will Gegenangebote einholen.",
+     "kategorie": "Lead-Qualitaet",
+     "signal": "Die Kundin bekommt viele Vermittleranrufe und will gezielt Gegenangebote einholen; ein anderer Kunde zahlt bereits bei anderen Vermittlern.",
+     "n_stichprobe": 4,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B2-09",
+     "name": "Kunde will erst Unterlagen oder Vertrag prüfen",
+     "definition": "Der Kunde macht den SC-Termin von schriftlichen Unterlagen abhängig (Vertragswerk, AGB, Kostenaufstellung) oder hat zugesandte Unterlagen noch nicht geprüft.",
+     "kategorie": "Gespraechsfuehrung",
+     "signal": "Der Kunde will vor einer Zusage das Vertragswerk sehen; ein anderer hat die Unterlagen noch nicht gelesen.",
+     "n_stichprobe": 4,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B2-10",
+     "name": "Bedarf nicht ausreichend herausgearbeitet",
+     "definition": "Der MA erfragt Anforderungsprofil, Dringlichkeit oder Folgekosten der Vakanz nicht bzw. nur oberflächlich, bevor er den Termin anfragt.",
+     "kategorie": "Gespraechsfuehrung",
+     "signal": "In der Stichprobe nicht beobachtet; ein Fall ohne Qualifizierung war technisch bedingt (siehe B2-16).",
+     "n_stichprobe": 0,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B2-11",
+     "name": "Preisnennung zur Unzeit (zu früh oder zu spät)",
+     "definition": "Der Preis wird ohne Wertverankerung früh genannt, oder der MA vertagt die vom Kunden früh gestellte Kostenfrage bis zum Gesprächsende und der Kunde reagiert verärgert.",
+     "kategorie": "Gespraechsfuehrung",
+     "signal": "Die Kundin wollte zu Beginn Kosten und Vorgehen kennen und ärgert sich am Ende über die verlorene Viertelstunde; ein anderer Kunde kritisiert, dass der Kostenrahmen nicht von Anfang an genannt wurde.",
+     "n_stichprobe": 2,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B2-12",
+     "name": "Einwand nicht behandelt",
+     "definition": "Der Kunde äußert einen Einwand (Preis, Stellenniveau, Bedarf), und der MA nimmt die Absage hin, ohne Nutzen, Alternativen oder Rückfragen anzusprechen.",
+     "kategorie": "Gespraechsfuehrung",
+     "signal": "Der MA widerspricht nur kurz der Einordnung der Stelle und akzeptiert die Absage dann sofort.",
+     "n_stichprobe": 1,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B2-13",
+     "name": "Setter bietet Closing-Termin nicht aktiv an",
+     "definition": "Der MA schlägt keinen SC-Termin vor. Er nimmt Bedenkzeit oder eine Rückmeldung durch den Kunden hin oder schlägt selbst Abwarten bzw. ein Zwischentelefonat vor.",
+     "kategorie": "Gespraechsfuehrung",
+     "signal": "Der MA unterstellt selbst, der Kunde wolle erst eigene Bewerbungsgespräche abwarten, und bietet nur ein kurzes Zwischentelefonat an.",
+     "n_stichprobe": 7,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B2-14",
+     "name": "Termin angeboten, aber nicht verbindlich fixiert",
+     "definition": "Der MA schlägt einen SC-Termin oder ein Zeitfenster vor, das Gespräch endet aber ohne bestätigtes Datum mit Uhrzeit (Abstimmung per Mail, Kunde meldet sich).",
+     "kategorie": "Prozess",
+     "signal": "Der Termin wird nur grob für Donnerstag oder Freitag angestrebt, und Vorschläge sollen per Mail folgen.",
+     "n_stichprobe": 3,
+     "aus_pflichtliste": false
+    },
+    {
+     "id": "B2-15",
+     "name": "Fehlerhafte Übergabe aus dem Opening",
+     "definition": "Im Setting zeigen sich falsche Vorinformationen aus dem Opening (Branche, Stelle, Zusagen), sodass sich der Kunde falsch verstanden fühlt.",
+     "kategorie": "Prozess",
+     "signal": "Der Einstieg dreht sich um eine falsche Branche; der Kunde ist dadurch schon vorab skeptisch.",
+     "n_stichprobe": 1,
+     "aus_pflichtliste": false
+    },
+    {
+     "id": "B2-16",
+     "name": "Technische Störung / Gespräch nicht durchführbar",
+     "definition": "Verbindungsprobleme verhindern Qualifizierung und Terminierung; das Gespräch endet mit dem Austausch einer Ersatznummer.",
+     "kategorie": "Prozess",
+     "signal": "Der MA hört nach der Einleitung nur noch Bruchstücke; das Gespräch endet beim Austausch einer anderen Rufnummer.",
+     "n_stichprobe": 1,
+     "aus_pflichtliste": false
+    }
+   ]
+  },
+  {
+   "id": "B3",
+   "name": "Setting ohne Ausgang (QC Terminiert stehen geblieben)",
+   "beschreibung": "Regelbasiert aus der Aufzeichnungslage zum QC-Termin; kein Transkript-Grund nötig.",
+   "gruende": [
+    {
+     "id": "B3-01",
+     "name": "Aufzeichnung ab 60 s vorhanden – stattgefunden, nicht dokumentiert",
+     "definition": "Zum QC-Termin existiert eine Aufzeichnung von mindestens 60 Sekunden, der Funnel-Status wurde aber nicht fortgeschrieben.",
+     "kategorie": "Prozess",
+     "signal": "Regelbasiert aus Aufzeichnungsdauer und fehlendem Ausgangsstatus.",
+     "n_stichprobe": 0,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B3-02",
+     "name": "Keine Aufzeichnung – vermutlich nicht stattgefunden",
+     "definition": "Zum QC-Termin existiert keine Aufzeichnung.",
+     "kategorie": "Prozess",
+     "signal": "Regelbasiert: keine Aufzeichnung im Terminfenster.",
+     "n_stichprobe": 0,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B3-03",
+     "name": "Aufzeichnung unter 60 s – Mailbox / nicht erreicht",
+     "definition": "Zum QC-Termin existieren nur Aufzeichnungen unter 60 Sekunden.",
+     "kategorie": "Prozess",
+     "signal": "Regelbasiert aus der Aufzeichnungsdauer.",
+     "n_stichprobe": 0,
+     "aus_pflichtliste": true
+    }
+   ]
+  },
+  {
+   "id": "B4",
+   "name": "Sales Call geplatzt (SC No-Show / Abgesagt)",
+   "beschreibung": "Block A (B4-01 bis B4-07): Warnsignale aus dem vorherigen Setting-Call, codiert am Setting-Transkript. Block B (B4-08, B4-09): beobachtete Ausfallsituation am Termin- oder Nachfasstag. Innerhalb jedes Blocks schließen sich die Gründe gegenseitig aus. Die Basis ist klein: 4 Setting-Calls mit Ausgang SC terminiert und 5 Ausfall- bzw. Reterminierungs-Calls.",
+   "gruende": [
+    {
+     "id": "B4-01",
+     "name": "Entscheider nicht fest zugesagt",
+     "definition": "Im Setting ist offen, ob der Hauptentscheider am SC teilnimmt, oder seine Teilnahme ist an eine Bedingung geknüpft.",
+     "kategorie": "Prozess",
+     "signal": "In den Setting-Calls vor einem SC nicht beobachtet; die Mitentscheider wurden jeweils fest eingeladen.",
+     "n_stichprobe": 0,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B4-02",
+     "name": "Termin mehr als 5 Werktage entfernt",
+     "definition": "Zwischen Setting-Datum und SC-Datum liegen mehr als 5 Werktage (regelbasiert aus CRM-Daten).",
+     "kategorie": "Prozess",
+     "signal": "Aus den Codierungen nicht ableitbar, da das Gesprächsdatum fehlt.",
+     "n_stichprobe": 0,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B4-03",
+     "name": "Keine Bestätigung / Kalendereinladung",
+     "definition": "Im Setting wird keine Kalendereinladung bzw. Bestätigung zugesagt, oder es gibt keine Bestätigung vor dem Termin (CRM-Abgleich).",
+     "kategorie": "Prozess",
+     "signal": "In der Stichprobe wurde in allen SC-Settings eine Einladung per Mail angekündigt.",
+     "n_stichprobe": 0,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B4-04",
+     "name": "Kunde zögerlich / ungelöste Vorbehalte",
+     "definition": "Der Kunde stimmt dem SC zu, äußert aber ungelöste Vorbehalte (Preisschock, Misstrauen gegenüber Vorabzahlung, schlechte Vorerfahrungen mit Anbietern).",
+     "kategorie": "Lead-Qualitaet",
+     "signal": "Der Kunde empfindet den Kostenrahmen als sehr hoch und verlangt ein schriftliches Angebot; ein anderer fürchtet, ohne geeignete Leute zu zahlen.",
+     "n_stichprobe": 2,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B4-05",
+     "name": "Termin vom Setter gedrückt",
+     "definition": "Der Kunde signalisiert Zeitknappheit oder lehnt mehrere Slots ab, und der MA schiebt so lange Alternativen nach, bis ein Termin steht.",
+     "kategorie": "Gespraechsfuehrung",
+     "signal": "Der Kunde hat anfangs wenig Zeit, mehrere Wochentage fallen aus, und der MA schlägt nacheinander Alternativen vor.",
+     "n_stichprobe": 1,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B4-06",
+     "name": "Format oder Kanal des SC ungeklärt",
+     "definition": "Bei Terminvereinbarung bleibt offen, über welchen Kanal der SC stattfindet (z. B. Teams abgelehnt, Alternative nicht fixiert).",
+     "kategorie": "Prozess",
+     "signal": "Der Kunde lehnt Teams aus Compliance-Gründen ab und bietet Handy-Video oder Telefon an; das Format bleibt offen.",
+     "n_stichprobe": 1,
+     "aus_pflichtliste": false
+    },
+    {
+     "id": "B4-07",
+     "name": "Wechsel des Gesprächsführers zwischen Setting und SC",
+     "definition": "Im Setting wird angekündigt, dass ein anderer Berater, Kollege oder Vorgesetzter den SC führt.",
+     "kategorie": "Prozess",
+     "signal": "Der Folgetermin wird an einen Kollegen bzw. Vorgesetzten des MA übergeben.",
+     "n_stichprobe": 4,
+     "aus_pflichtliste": false
+    },
+    {
+     "id": "B4-08",
+     "name": "Ausfall: Terminkollision oder Prioritätenwechsel beim Kunden",
+     "definition": "Der Kunde oder sein Umfeld nennt einen konkreten Grund für Ausfall oder Absage (anderer Kundentermin, Meetings, keine Zeit) bzw. bittet um Kontaktpause.",
+     "kategorie": "Lead-Qualitaet",
+     "signal": "Der Videotermin wurde wegen eines anderen Kundentermins verpasst; ein Entscheider ist die ganze Woche in Meetings und lässt um Zurückhaltung bitten.",
+     "n_stichprobe": 2,
+     "aus_pflichtliste": false
+    },
+    {
+     "id": "B4-09",
+     "name": "Ausfall: Kunde ohne Erklärung nicht erreichbar",
+     "definition": "Zum Termin oder bei der Reterminierung ist der Ansprechpartner weder mobil noch über die Zentrale erreichbar, und ein Grund wird nicht genannt.",
+     "kategorie": "Prozess",
+     "signal": "Zum Teams-Termin ist der Ansprechpartner nicht am Platz; ein anderer Anruf endet in der Warteschleife.",
+     "n_stichprobe": 3,
+     "aus_pflichtliste": false
+    }
+   ]
+  },
+  {
+   "id": "B5",
+   "name": "Sales Call geführt ohne Abschluss (SC Statt. FU, Lost, Kein Angebot)",
+   "beschreibung": "Basis: 9 Closing-Calls ohne Abschluss sowie 3 Nachfass-Calls nach SC_STATT_FU mit inhaltlichem Grund; 4 gewonnene Closings dienen als Kontrast. Gründe sind nach Entscheiderlage, kundenseitigen Einwänden, Lead-Qualität, Passung des Angebots und Closer-Verhalten getrennt.",
+   "gruende": [
+    {
+     "id": "B5-01",
+     "name": "Entscheider bzw. Mitentscheider nicht dabei",
+     "definition": "Eine benannte entscheidende Person fehlt im SC (Inhaber, weitere Geschäftsführer, künftiger Personal-Geschäftsführer, Kollegen mit Entscheidungsrecht).",
+     "kategorie": "Prozess",
+     "signal": "Der Inhaber aus dem Vorgespräch fehlt kurzfristig; zwei weitere Geschäftsführer müssen noch abgeholt werden.",
+     "n_stichprobe": 4,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B5-02",
+     "name": "Interne Abstimmung oder Bedenkzeit trotz anwesender Entscheider",
+     "definition": "Alle relevanten Entscheider sind anwesend, wollen aber vor der Zusage intern beraten oder darüber schlafen.",
+     "kategorie": "Gespraechsfuehrung",
+     "signal": "Die Inhaber wollen eine Nacht darüber schlafen; eine Geschäftsführerin will das Angebot erst mit dem Kollegen durchsprechen.",
+     "n_stichprobe": 3,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B5-03",
+     "name": "Preis zu hoch",
+     "definition": "Der Kunde lehnt ab oder vertagt ausdrücklich wegen der Höhe des Preises.",
+     "kategorie": "Lead-Qualitaet",
+     "signal": "In der Closing-Stichprobe nicht als Hinderungsgrund beobachtet.",
+     "n_stichprobe": 0,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B5-04",
+     "name": "Vertragsbedingungen ungeklärt oder fehlerhaft (Laufzeit, Start, Pausierung, Zahlungsaufteilung)",
+     "definition": "Der Abschluss stockt, weil Laufzeit, Startdatum, Pausierung oder Zahlungsstaffel offen sind, erst intern geklärt werden müssen oder im Vertrag falsch abgebildet sind.",
+     "kategorie": "Prozess",
+     "signal": "Der MA muss eine Pausierungsoption erst intern klären; im Vertrag fehlt die vereinbarte Zahlungsaufteilung.",
+     "n_stichprobe": 2,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B5-05",
+     "name": "Garantie, Risiko oder Zahlungsmodell",
+     "definition": "Der Kunde will nur bei Erfolg zahlen, lehnt eine Fälligkeit bei Profilübergabe ab oder wünscht ein risikoärmeres Zahlungsmodell.",
+     "kategorie": "Gespraechsfuehrung",
+     "signal": "Der Kunde will nur bei erfolgreicher Besetzung zahlen; ein anderer wünscht ein Zahlungsmodell mit weniger Risiko.",
+     "n_stichprobe": 2,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B5-06",
+     "name": "Kandidatenprofile verfehlen Mussanforderungen oder sind nicht belastbar",
+     "definition": "Die gezeigten Profile erfüllen ein Kernkriterium nicht (Zertifikat, Sprache, Branchenbezug) oder es fehlen Lebensläufe bzw. Tätigkeitsangaben.",
+     "kategorie": "Prozess",
+     "signal": "Keines der Profile hat die geforderte Sprache bzw. die Pflichtzertifikate; ein anderer Kunde sieht sich ohne Lebenslauf nicht entscheidungsfähig.",
+     "n_stichprobe": 4,
+     "aus_pflichtliste": false
+    },
+    {
+     "id": "B5-07",
+     "name": "Widersprüche zum Vorgespräch / wechselnde Ansprechpartner",
+     "definition": "Der Kunde kritisiert, dass Aussagen aus Opening oder Setting nicht zum SC passen oder dass er mit zu vielen Ansprechpartnern zu tun hatte.",
+     "kategorie": "Prozess",
+     "signal": "Der im Vorgespräch angekündigte Kandidat wird im SC anders dargestellt; ein Kunde hinterfragt Aussagen zu verfügbaren Kandidaten.",
+     "n_stichprobe": 2,
+     "aus_pflichtliste": false
+    },
+    {
+     "id": "B5-08",
+     "name": "Vorbehalte zu Kandidaten-Gehaltsniveau oder Wechselbereitschaft",
+     "definition": "Der Kunde zweifelt an der Wechselabsicht vermittelter Kandidaten oder hält deren Gehaltsvorstellungen für zu hoch im Vergleich zum Bestandspersonal.",
+     "kategorie": "Gespraechsfuehrung",
+     "signal": "Der Kunde will mit Blick auf Bestandsmitarbeiter nicht über Tarif zahlen; ein anderer hat mit Direktbewerbern bessere Erfahrungen gemacht.",
+     "n_stichprobe": 3,
+     "aus_pflichtliste": false
+    },
+    {
+     "id": "B5-09",
+     "name": "Wettbewerber oder Alternativangebot",
+     "definition": "Der Kunde vergleicht mit anderen Anbietern oder Modellen bzw. hat eine laufende kostenpflichtige Kampagne eines Dritten.",
+     "kategorie": "Lead-Qualitaet",
+     "signal": "Der Kunde schaut sich noch zwei weitere Modelle an und braucht ein bis zwei Wochen für die Entscheidung.",
+     "n_stichprobe": 2,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B5-10",
+     "name": "Geringe Dringlichkeit / eigene Kanäle",
+     "definition": "Der Kunde beschreibt den Bedarf als nicht akut, deckt Kapazität über Subunternehmer oder eigene Bewerbungen und sieht keinen Zeitdruck.",
+     "kategorie": "Lead-Qualitaet",
+     "signal": "Es komme auf ein paar Wochen nicht an; Kapazitäten laufen teils über Nachunternehmer bzw. eigene Bewerbungen.",
+     "n_stichprobe": 4,
+     "aus_pflichtliste": false
+    },
+    {
+     "id": "B5-11",
+     "name": "Timing (Saison, Betriebsferien, Jahreswechsel)",
+     "definition": "Ein konkreter Kalendergrund verhindert den Start (Inventur, Betriebsferien, Weihnachtssaison).",
+     "kategorie": "Lead-Qualitaet",
+     "signal": "Wegen Inventur und Betriebsferien ist ein Start vor dem Jahreswechsel nicht machbar.",
+     "n_stichprobe": 2,
+     "aus_pflichtliste": false
+    },
+    {
+     "id": "B5-12",
+     "name": "Bedarf doch nicht (mehr) vorhanden",
+     "definition": "Der Kunde hat die Stelle inzwischen selbst besetzt oder sieht keinen Bedarf mehr.",
+     "kategorie": "Lead-Qualitaet",
+     "signal": "Der Kunde hat die gesuchten Fachkräfte zwischenzeitlich selbst eingestellt.",
+     "n_stichprobe": 1,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B5-13",
+     "name": "Closer hat Abschluss nicht aktiv versucht",
+     "definition": "Nach Angebotsvorstellung fehlt eine klare Abschlussfrage. Der Closer fragt nur nach offenen Fragen oder Feedback-Zeitpunkt und akzeptiert Bedenkzeit ohne Einwandbehandlung.",
+     "kategorie": "Gespraechsfuehrung",
+     "signal": "Der Closer fragt nur allgemein nach offenen Fragen, obwohl der Kunde Unterschriftsbereitschaft signalisiert hatte.",
+     "n_stichprobe": 5,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B5-14",
+     "name": "Angebot wird nur nachgesendet",
+     "definition": "Angebot bzw. Vertrag wird im Call nicht unterschriftsreif gemacht, sondern per Mail nachgereicht, und die Entscheidung erfolgt außerhalb des Calls.",
+     "kategorie": "Gespraechsfuehrung",
+     "signal": "Der Call endet mit der Ankündigung, das Angebot zuzusenden und auf Rückmeldung zu warten.",
+     "n_stichprobe": 6,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B5-15",
+     "name": "Kein konkreter nächster Schritt mit Datum",
+     "definition": "Der Call endet ohne datierten Folgetermin oder datierte Entscheidungsfrist; die Initiative liegt beim Kunden.",
+     "kategorie": "Prozess",
+     "signal": "Der Kunde will sich nach interner Abstimmung selbst melden, ein Datum wird nicht fixiert.",
+     "n_stichprobe": 6,
+     "aus_pflichtliste": true
+    }
+   ]
+  },
+  {
+   "id": "B6",
+   "name": "Nachfassung",
+   "beschreibung": "Gründe, warum ein Nachfasskontakt keinen Fortschritt bringt. Basis: 13 Nachfass-, Reterminierungs- und Koordinationscalls. Ob überhaupt nachgefasst wurde, ist ein Merkmal; der Kontaktausgang wird über die Ergebniswerte der Stufe Nachfassung erfasst. Inhaltliche Kundengründe werden mit den Codes der Ursprungs-Bruchstelle (B2 bzw. B5) erfasst.",
+   "gruende": [
+    {
+     "id": "B6-01",
+     "name": "Ansprechpartner nicht erreicht (Gatekeeper / abwesend)",
+     "definition": "Nur Empfang oder Zentrale ist erreichbar; der Ansprechpartner ist abwesend, in Meetings oder nicht durchstellbar; der Gatekeeper lenkt auf E-Mail um.",
+     "kategorie": "Prozess",
+     "signal": "Der Empfang gibt die Mobilnummer nicht heraus und empfiehlt, Terminvorschläge per Mail zu schicken.",
+     "n_stichprobe": 3,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B6-02",
+     "name": "Kein Kontakt (Mailbox, Warteschleife, Abbruch)",
+     "definition": "Die Aufzeichnung enthält keinen inhaltlichen Austausch mit einer Person (nur Ansage oder bruchstückhafte Äußerung).",
+     "kategorie": "Prozess",
+     "signal": "Der Anruf endet in der automatischen Warteschleife bzw. nach einer einzelnen unverständlichen Äußerung.",
+     "n_stichprobe": 2,
+     "aus_pflichtliste": true
+    },
+    {
+     "id": "B6-03",
+     "name": "Nachfassung zu spät",
+     "definition": "Zwischen letztem Termin und Nachfassung liegen Wochen, und der Kunde hat das Problem inzwischen anders gelöst.",
+     "kategorie": "Prozess",
+     "signal": "Die Nachfassung erfolgt Wochen nach dem Sales Call; der Kunde hat inzwischen selbst eingestellt.",
+     "n_stichprobe": 1,
+     "aus_pflichtliste": false
+    },
+    {
+     "id": "B6-04",
+     "name": "Nachfassung zu früh / Kunde fühlt sich gedrängt",
+     "definition": "Der Kunde reagiert gereizt auf den Zeitpunkt der Nachfrage, weil die interne Prüfung noch nicht erfolgt ist.",
+     "kategorie": "Prozess",
+     "signal": "Der Kunde betont, man müsse sich nach seinem Zeitplan richten, und lehnt Druck ab.",
+     "n_stichprobe": 1,
+     "aus_pflichtliste": false
+    },
+    {
+     "id": "B6-05",
+     "name": "Zusage des Anbieters nicht oder fehlerhaft eingelöst",
+     "definition": "Zugesagte Unterlagen sind nicht angekommen oder weichen von der Absprache ab; der Kunde muss selbst nachhaken.",
+     "kategorie": "Prozess",
+     "signal": "Die versprochene Mail mit Kosten und Ablauf fehlt; im Vertrag fehlt die vereinbarte Zahlungsaufteilung.",
+     "n_stichprobe": 2,
+     "aus_pflichtliste": false
+    },
+    {
+     "id": "B6-06",
+     "name": "Absage hingenommen ohne Einwandbehandlung oder Wiedervorlage",
+     "definition": "Der Kunde sagt ab, und der MA fragt weder nach Gründen, Alternativen, künftigem Bedarf noch nach einem späteren Kontaktzeitpunkt.",
+     "kategorie": "Gespraechsfuehrung",
+     "signal": "Der MA akzeptiert die Absage sofort, ohne nach weiteren Positionen oder einer Wiedervorlage zu fragen.",
+     "n_stichprobe": 2,
+     "aus_pflichtliste": false
+    },
+    {
+     "id": "B6-07",
+     "name": "Offener Ausgang ohne datierten nächsten Schritt",
+     "definition": "Der Kunde ist erreicht oder eine Nachricht hinterlassen, die Sache ist nicht abgesagt, aber es wird nur eine Rückrufbitte, ein vages Zeitfenster oder eine Kundenmeldung vereinbart.",
+     "kategorie": "Gespraechsfuehrung",
+     "signal": "Der MA hinterlässt nur seine Mobilnummer bzw. vereinbart einen Rückruf irgendwann im Dezember.",
+     "n_stichprobe": 6,
+     "aus_pflichtliste": false
+    },
+    {
+     "id": "B6-08",
+     "name": "Interne Koordinationslücke",
+     "definition": "Auf Anbieterseite ist unklar, wer nachfasst oder zuständig ist. Der anrufende MA kennt den Stand nicht, oder der Kunde landet beim falschen Ansprechpartner.",
+     "kategorie": "Prozess",
+     "signal": "Es ist unklar, wer nach dem verpassten Termin schon angerufen hat; ein MA weiß nicht, dass bereits ein Vertrag besteht.",
+     "n_stichprobe": 3,
+     "aus_pflichtliste": false
+    },
+    {
+     "id": "B6-09",
+     "name": "Sonstiger Grund (Freitext nötig)",
+     "definition": "Ein Grund, der keinem der obigen Codes entspricht, z. B. eine Servicebeschwerde eines Bestandskunden über ausgefallene Betreuertermine.",
+     "kategorie": "Prozess",
+     "signal": "Ein Bestandskunde beschwert sich über vergessene bzw. abgesagte Onboarding- und Folgetermine.",
+     "n_stichprobe": 1,
+     "aus_pflichtliste": false
+    }
+   ]
+  }
+ ],
+ "ergebnisse_je_stufe": [
+  {
+   "stufe": "Opening",
+   "werte": [
+    {
+     "wert": "QC terminiert",
+     "definition": "Datierter Qualifizierungstermin mit Uhrzeit vereinbart, auch am selben Tag."
+    },
+    {
+     "wert": "Direkter SC terminiert",
+     "definition": "Datierter Sales Call bzw. Kandidatenpräsentation ohne vorheriges QC vereinbart."
+    },
+    {
+     "wert": "Rückruf mit Datum, kein Termin",
+     "definition": "Kein Termin, aber ein datierter Rückruf (z. B. nach interner Rücksprache)."
+    },
+    {
+     "wert": "Lose Absprache ohne Datum",
+     "definition": "Kunde oder MA meldet sich irgendwann bzw. Abstimmung per Mail, ohne festes Datum."
+    },
+    {
+     "wert": "Entscheider nicht erreicht",
+     "definition": "Gespräch nur mit Gatekeeper, kein inhaltlicher Kontakt."
+    }
+   ]
+  },
+  {
+   "stufe": "Setting",
+   "werte": [
+    {
+     "wert": "SC terminiert",
+     "definition": "Datierter Sales Call mit Uhrzeit vereinbart."
+    },
+    {
+     "wert": "SC ausstehend mit datiertem Rückmeldetermin",
+     "definition": "Kein SC, aber Rückmelde- oder Zwischentelefonat mit Datum und Uhrzeit."
+    },
+    {
+     "wert": "QC Follow-Up ohne Datum",
+     "definition": "Kein SC, nur lose Rückmeldung bzw. Bedenkzeit ohne Datum."
+    },
+    {
+     "wert": "Absage",
+     "definition": "Kunde erklärt, man werde nicht zusammenkommen; kein nächster Schritt."
+    },
+    {
+     "wert": "Nicht durchgeführt",
+     "definition": "QC kam nicht zustande (No-Show, Terminkollision, Technik); ggf. Verschiebung."
+    }
+   ]
+  },
+  {
+   "stufe": "Closing",
+   "werte": [
+    {
+     "wert": "Gewonnen / mündliche Zusage",
+     "definition": "Angebot angenommen, ggf. Unterschrift oder Zweitunterschrift ausstehend."
+    },
+    {
+     "wert": "Follow-Up mit datiertem Entscheidungstermin",
+     "definition": "Kein Abschluss, aber Feedback- bzw. Rückmeldetermin mit Datum."
+    },
+    {
+     "wert": "Follow-Up ohne Datum",
+     "definition": "Angebot versendet, Kunde meldet sich selbst."
+    },
+    {
+     "wert": "Lost",
+     "definition": "Kunde lehnt ab bzw. Opportunity später verloren."
+    },
+    {
+     "wert": "SC nicht stattgefunden",
+     "definition": "No-Show oder Absage des Sales Calls."
+    }
+   ]
+  },
+  {
+   "stufe": "Nachfassung",
+   "werte": [
+    {
+     "wert": "Nicht erreicht",
+     "definition": "Mailbox, Warteschleife, Gatekeeper oder Abbruch ohne Kontakt zum Ansprechpartner."
+    },
+    {
+     "wert": "Erreicht ohne Ergebnis",
+     "definition": "Kontakt mit Ansprechpartner, aber kein neuer Termin und keine Entscheidung."
+    },
+    {
+     "wert": "Erreicht mit neuem Termin",
+     "definition": "Neuer datierter Termin oder datierte Verschiebung vereinbart."
+    },
+    {
+     "wert": "Absage",
+     "definition": "Kunde beendet den Prozess."
+    },
+    {
+     "wert": "Abschluss vorbereitet",
+     "definition": "Vertragsklärung, Kunde signalisiert Unterschrift."
+    }
+   ]
+  }
+ ],
+ "merkmale": [
+  {
+   "name": "Entscheider im Gespräch",
+   "definition": "ja / nein / unklar: Ist die Person mit Freigabebefugnis anwesend?"
+  },
+  {
+   "name": "Bedarf bestätigt",
+   "definition": "ja / nein / unklar: Kunde bestätigt eine konkrete Vakanz."
+  },
+  {
+   "name": "Nächster Schritt mit Datum",
+   "definition": "ja / nein: Datum und Uhrzeit für den nächsten Kontakt sind fixiert."
+  },
+  {
+   "name": "MA fragte nach Termin bzw. Abschluss",
+   "definition": "ja / nein: aktive Termin- oder Abschlussfrage gestellt."
+  },
+  {
+   "name": "Termin angeboten und abgelehnt",
+   "definition": "ja / nein: Der MA nannte konkrete Slots, die der Kunde ablehnte."
+  },
+  {
+   "name": "Preis genannt",
+   "definition": "nein / früh / spät / auf Kundennachfrage: Zeitpunkt der Preisnennung im Gespräch."
+  },
+  {
+   "name": "Bestätigung bzw. Kalendereinladung angekündigt",
+   "definition": "ja / nein: Einladung oder Bestätigung im Gespräch zugesagt."
+  },
+  {
+   "name": "Werktage bis Termin",
+   "definition": "Anzahl Werktage zwischen Gespräch und vereinbartem Termin (aus CRM)."
+  },
+  {
+   "name": "Gesprächsführer-Wechsel zum Folgetermin",
+   "definition": "ja / nein: Folgetermin wird von anderer Person geführt."
+  },
+  {
+   "name": "Kandidatenaufhänger genutzt",
+   "definition": "ja / nein: Konkrete regionale Kandidaten oder Profile als Begründung für den Termin."
+  },
+  {
+   "name": "Nachgefasst",
+   "definition": "ja / nein: Nach einem offenen Ausgang existiert ein Nachfasskontakt im Zeitfenster (aus CRM bzw. Aufzeichnungen)."
+  },
+  {
+   "name": "Tage bis Nachfassung",
+   "definition": "Kalendertage zwischen letztem Termin und Nachfasskontakt."
+  },
+  {
+   "name": "Aufzeichnungsdauer",
+   "definition": "Sekunden; Grundlage der B3-Regel (ab 60 s / unter 60 s / keine)."
+  }
+ ],
+ "pflichtliste_abdeckung": [
+  {
+   "grund_aus_pflichtliste": "B1 Entscheider nicht erreicht",
+   "in_stichprobe_beobachtet": "vereinzelt",
+   "umgesetzt_als": "B1-01, aufgeteilt in nicht erreicht (B1-01) und Gesprächspartner ohne Befugnis (B1-02)"
+  },
+  {
+   "grund_aus_pflichtliste": "B1 Entscheider erreicht aber kein Bedarf",
+   "in_stichprobe_beobachtet": "vereinzelt",
+   "umgesetzt_als": "B1-03"
+  },
+  {
+   "grund_aus_pflichtliste": "B1 Bedarf aber kein Termin angeboten",
+   "in_stichprobe_beobachtet": "nein",
+   "umgesetzt_als": "Zusammengelegt mit Abschlussfrage nicht gestellt in B1-09"
+  },
+  {
+   "grund_aus_pflichtliste": "B1 Termin angeboten aber abgelehnt (Grund)",
+   "in_stichprobe_beobachtet": "ja",
+   "umgesetzt_als": "Merkmal 'Termin angeboten und abgelehnt'; Grund über B1-02/03/06/07, MA-Reaktion über B1-08"
+  },
+  {
+   "grund_aus_pflichtliste": "B1 bereits Dienstleister",
+   "in_stichprobe_beobachtet": "vereinzelt",
+   "umgesetzt_als": "B1-04, erweitert um funktionierende eigene Kanäle"
+  },
+  {
+   "grund_aus_pflichtliste": "B1 Budget",
+   "in_stichprobe_beobachtet": "nein",
+   "umgesetzt_als": "B1-05 (n=0, beibehalten)"
+  },
+  {
+   "grund_aus_pflichtliste": "B1 Timing",
+   "in_stichprobe_beobachtet": "vereinzelt",
+   "umgesetzt_als": "B1-06"
+  },
+  {
+   "grund_aus_pflichtliste": "B1 Gespräch abgebrochen",
+   "in_stichprobe_beobachtet": "vereinzelt",
+   "umgesetzt_als": "B1-07, erweitert um Kunde ohne Zeit"
+  },
+  {
+   "grund_aus_pflichtliste": "B1 Mitarbeiter hat Abschlussfrage nicht gestellt",
+   "in_stichprobe_beobachtet": "vereinzelt",
+   "umgesetzt_als": "B1-09"
+  },
+  {
+   "grund_aus_pflichtliste": "B2 Hauptentscheider nicht im Gespräch",
+   "in_stichprobe_beobachtet": "ja",
+   "umgesetzt_als": "B2-01"
+  },
+  {
+   "grund_aus_pflichtliste": "B2 Entscheider dabei aber muss intern klären",
+   "in_stichprobe_beobachtet": "vereinzelt",
+   "umgesetzt_als": "B2-02"
+  },
+  {
+   "grund_aus_pflichtliste": "B2 Budget",
+   "in_stichprobe_beobachtet": "ja",
+   "umgesetzt_als": "B2-03; stellenbezogene Kostenargumente in B2-07, Modellskepsis in B2-04"
+  },
+  {
+   "grund_aus_pflichtliste": "B2 Timing (Saison, Jahresende, Projekt)",
+   "in_stichprobe_beobachtet": "vereinzelt",
+   "umgesetzt_als": "B2-05"
+  },
+  {
+   "grund_aus_pflichtliste": "B2 Bedarf nicht ausreichend herausgearbeitet",
+   "in_stichprobe_beobachtet": "nein",
+   "umgesetzt_als": "B2-10 (n=0, beibehalten)"
+  },
+  {
+   "grund_aus_pflichtliste": "B2 Einwand nicht behandelt",
+   "in_stichprobe_beobachtet": "vereinzelt",
+   "umgesetzt_als": "B2-12"
+  },
+  {
+   "grund_aus_pflichtliste": "B2 Setter hat Closing-Termin nicht aktiv angeboten",
+   "in_stichprobe_beobachtet": "ja",
+   "umgesetzt_als": "B2-13; angeboten, aber nicht fixiert separat als B2-14"
+  },
+  {
+   "grund_aus_pflichtliste": "B2 Kunde will erst Unterlagen",
+   "in_stichprobe_beobachtet": "ja",
+   "umgesetzt_als": "B2-09"
+  },
+  {
+   "grund_aus_pflichtliste": "B2 Preis zu früh genannt",
+   "in_stichprobe_beobachtet": "vereinzelt",
+   "umgesetzt_als": "B2-11, umformuliert zu Preisnennung zur Unzeit, da nur zu späte Nennung beobachtet"
+  },
+  {
+   "grund_aus_pflichtliste": "B2 Wettbewerber im Spiel",
+   "in_stichprobe_beobachtet": "ja",
+   "umgesetzt_als": "B2-08"
+  },
+  {
+   "grund_aus_pflichtliste": "B2 Lead unqualifiziert (zu klein, falsche Branche)",
+   "in_stichprobe_beobachtet": "ja",
+   "umgesetzt_als": "B2-07, erweitert um Stellenniveau bzw. Volumen passt nicht zum Preismodell"
+  },
+  {
+   "grund_aus_pflichtliste": "B3 Aufzeichnung ab 60 s",
+   "in_stichprobe_beobachtet": "nein",
+   "umgesetzt_als": "B3-01 (regelbasiert)"
+  },
+  {
+   "grund_aus_pflichtliste": "B3 keine Aufzeichnung",
+   "in_stichprobe_beobachtet": "nein",
+   "umgesetzt_als": "B3-02 (regelbasiert)"
+  },
+  {
+   "grund_aus_pflichtliste": "B3 Aufzeichnung unter 60 s",
+   "in_stichprobe_beobachtet": "nein",
+   "umgesetzt_als": "B3-03 (regelbasiert)"
+  },
+  {
+   "grund_aus_pflichtliste": "B4 Entscheider nicht fest zugesagt",
+   "in_stichprobe_beobachtet": "nein",
+   "umgesetzt_als": "B4-01 (n=0, beibehalten)"
+  },
+  {
+   "grund_aus_pflichtliste": "B4 Termin mehr als 5 Werktage entfernt",
+   "in_stichprobe_beobachtet": "nein",
+   "umgesetzt_als": "B4-02, regelbasiert aus CRM über Merkmal 'Werktage bis Termin'"
+  },
+  {
+   "grund_aus_pflichtliste": "B4 keine Bestätigung",
+   "in_stichprobe_beobachtet": "nein",
+   "umgesetzt_als": "B4-03 (n=0), plus Merkmal 'Bestätigung bzw. Kalendereinladung angekündigt'"
+  },
+  {
+   "grund_aus_pflichtliste": "B4 Kunde zögerlich",
+   "in_stichprobe_beobachtet": "vereinzelt",
+   "umgesetzt_als": "B4-04"
+  },
+  {
+   "grund_aus_pflichtliste": "B4 Termin vom Setter gedrückt",
+   "in_stichprobe_beobachtet": "vereinzelt",
+   "umgesetzt_als": "B4-05"
+  },
+  {
+   "grund_aus_pflichtliste": "B5 Entscheider nicht dabei",
+   "in_stichprobe_beobachtet": "ja",
+   "umgesetzt_als": "B5-01"
+  },
+  {
+   "grund_aus_pflichtliste": "B5 Preis",
+   "in_stichprobe_beobachtet": "nein",
+   "umgesetzt_als": "B5-03 (n=0, beibehalten)"
+  },
+  {
+   "grund_aus_pflichtliste": "B5 Vertragslaufzeit",
+   "in_stichprobe_beobachtet": "vereinzelt",
+   "umgesetzt_als": "B5-04, erweitert auf Vertragsbedingungen insgesamt"
+  },
+  {
+   "grund_aus_pflichtliste": "B5 Garantie/Risiko",
+   "in_stichprobe_beobachtet": "vereinzelt",
+   "umgesetzt_als": "B5-05, inklusive Zahlungsmodell"
+  },
+  {
+   "grund_aus_pflichtliste": "B5 kein konkreter nächster Schritt vereinbart",
+   "in_stichprobe_beobachtet": "ja",
+   "umgesetzt_als": "B5-15"
+  },
+  {
+   "grund_aus_pflichtliste": "B5 Angebot 'schicken wir'",
+   "in_stichprobe_beobachtet": "ja",
+   "umgesetzt_als": "B5-14"
+  },
+  {
+   "grund_aus_pflichtliste": "B5 Wettbewerber",
+   "in_stichprobe_beobachtet": "vereinzelt",
+   "umgesetzt_als": "B5-09"
+  },
+  {
+   "grund_aus_pflichtliste": "B5 interner Abstimmungsbedarf",
+   "in_stichprobe_beobachtet": "ja",
+   "umgesetzt_als": "B5-02, abgegrenzt von fehlendem Entscheider (B5-01)"
+  },
+  {
+   "grund_aus_pflichtliste": "B5 Bedarf doch nicht vorhanden",
+   "in_stichprobe_beobachtet": "vereinzelt",
+   "umgesetzt_als": "B5-12; geringe Dringlichkeit separat als B5-10"
+  },
+  {
+   "grund_aus_pflichtliste": "B5 Closer hat Abschluss nicht aktiv versucht",
+   "in_stichprobe_beobachtet": "ja",
+   "umgesetzt_als": "B5-13"
+  },
+  {
+   "grund_aus_pflichtliste": "B6 Wurde nachgefasst?",
+   "in_stichprobe_beobachtet": "nein",
+   "umgesetzt_als": "Merkmal 'Nachgefasst' (aus CRM, nicht aus Transkript bestimmbar)"
+  },
+  {
+   "grund_aus_pflichtliste": "B6 Mailbox",
+   "in_stichprobe_beobachtet": "vereinzelt",
+   "umgesetzt_als": "Ergebniswert 'Nicht erreicht', Grund B6-02 bzw. B6-01"
+  },
+  {
+   "grund_aus_pflichtliste": "B6 erreicht ohne Ergebnis",
+   "in_stichprobe_beobachtet": "ja",
+   "umgesetzt_als": "Ergebniswert 'Erreicht ohne Ergebnis', Grund B6-07 sowie Inhaltscodes aus B2/B5"
+  },
+  {
+   "grund_aus_pflichtliste": "B6 erreicht mit neuem Termin",
+   "in_stichprobe_beobachtet": "nein",
+   "umgesetzt_als": "Ergebniswert 'Erreicht mit neuem Termin' (im Nachfass-Sample nicht beobachtet)"
+  },
+  {
+   "grund_aus_pflichtliste": "B6 Absage",
+   "in_stichprobe_beobachtet": "vereinzelt",
+   "umgesetzt_als": "Ergebniswert 'Absage', MA-Reaktion über B6-06"
+  }
+ ],
+ "neu_induziert": [
+  "B1-02 Gesprächspartner ohne Entscheidungs- oder Freigabebefugnis (Abspaltung von 'Entscheider nicht erreicht')",
+  "B1-10 Kunde verlangt Profile oder Infos schriftlich statt Termin (Warnsignal, auch in erfolgreichen Openings)",
+  "B2-04 Skepsis gegenüber Zahlungsmodell, Garantie oder Risiko",
+  "B2-06 Geringer Leidensdruck / eigene Besetzungswege",
+  "B2-14 Termin angeboten, aber nicht verbindlich fixiert",
+  "B2-15 Fehlerhafte Übergabe aus dem Opening",
+  "B2-16 Technische Störung / Gespräch nicht durchführbar",
+  "B4-06 Format oder Kanal des SC ungeklärt",
+  "B4-07 Wechsel des Gesprächsführers zwischen Setting und SC",
+  "B4-08 Ausfall: Terminkollision oder Prioritätenwechsel beim Kunden",
+  "B4-09 Ausfall: Kunde ohne Erklärung nicht erreichbar",
+  "B5-06 Kandidatenprofile verfehlen Mussanforderungen oder sind nicht belastbar",
+  "B5-07 Widersprüche zum Vorgespräch / wechselnde Ansprechpartner",
+  "B5-08 Vorbehalte zu Kandidaten-Gehaltsniveau oder Wechselbereitschaft",
+  "B5-10 Geringe Dringlichkeit / eigene Kanäle",
+  "B5-11 Timing (Saison, Betriebsferien, Jahreswechsel)",
+  "B6-01 bis B6-08 als Grundcodes der Nachfassung (Erreichbarkeit, Zeitpunkt zu früh/zu spät, nicht eingelöste Zusagen, hingenommene Absage, fehlender datierter Schritt, interne Koordinationslücke)",
+  "B6-09 Sonstiger Grund (Freitext nötig) für einen beobachteten Fall außerhalb der Liste"
+ ],
+ "gestrichen_oder_zusammengelegt": [
+  "B1 'Bedarf aber kein Termin angeboten' mit 'Abschlussfrage nicht gestellt' zu B1-09 zusammengelegt, da beides dasselbe MA-Verhalten beschreibt",
+  "B1 'Termin angeboten aber abgelehnt (Grund)' nicht als eigener Grund geführt, sondern als Merkmal plus Ursachencode, da es ein Ergebnis und keine Ursache ist",
+  "B2 'Budget' aufgeteilt in Preis generell (B2-03), stellen- bzw. volumenbezogene Unwirtschaftlichkeit (B2-07) und Modellskepsis (B2-04)",
+  "B2 'Preis zu früh genannt' zu 'Preisnennung zur Unzeit' (B2-11) umformuliert, da in der Stichprobe nur zu späte Nennung auftrat",
+  "B5 'Vertragslaufzeit' zu Vertragsbedingungen insgesamt (B5-04) erweitert",
+  "B6 Pflichtpunkte Mailbox, erreicht ohne Ergebnis, erreicht mit neuem Termin und Absage als Ergebniswerte der Stufe Nachfassung geführt statt als Gründe; 'Wurde nachgefasst?' als Merkmal"
+ ],
+ "luecken_der_stichprobe": [
+  "B1 hat nur 4 Fehlschläge gegenüber 13 erfolgreichen Openings; Budget (B1-05) wurde nie als Ablehnungsgrund beobachtet.",
+  "B4: Nur ein Setting-Call mit späterer SC-Absage liegt vor; die Warnsignale 'Termin mehr als 5 Werktage', 'Bestätigung fehlt' und 'Entscheider nicht fest zugesagt' sind aus den Codierungen nicht prüfbar und brauchen CRM-Daten (Datum, Einladungsversand).",
+  "QC-No-Shows und QC-Verschiebungen (3 Calls zwischen QC terminiert und Ausgang) passen weder zur regelbasierten B3 noch zu B4 (nur SC). Empfehlung: B4-Logik analog auf QC anwenden oder B3 um einen Transkriptcode ergänzen.",
+  "B5 Preis (B5-03) wurde in 9 Closings ohne Abschluss nie als Hinderungsgrund beobachtet; die Preisproblematik konzentriert sich im Setting.",
+  "Closing-Calls stammen überwiegend von einem einzigen Closer (Fireflies); Verhaltenscodes wie B5-13 und B5-14 sind daher personenlastig und nicht teamrepräsentativ.",
+  "Nachfass-Calls nach QC_FOLLOWUP, QC_SC_AUSSTEH bzw. SC_STATT_FU wurden sowohl in B6 als auch in den Inhaltsgründen der Ursprungs-Bruchstelle (B2 bzw. B5) gezählt; die n-Werte sind daher nicht über Bruchstellen addierbar.",
+  "Drei Calls mit abweichender Inhalts- und Zeitlinien-Stufe wurden nach Inhalt zugeordnet (Setting-Inhalt in Opening- bzw. Sonstiges-Zeitlinie, Nachfass-Inhalt zwischen QC terminiert und Ausgang).",
+  "Der Ergebniswert 'Erreicht mit neuem Termin' kam im Nachfass-Sample nicht vor; ob überhaupt nachgefasst wurde, ist aus Einzeltranskripten nicht bestimmbar.",
+  "Ein Bestandskunden-Servicecall nach Abschluss liegt außerhalb aller Bruchstellen und wurde nur als B6-09 bzw. B6-08 erfasst.",
+  "Für B2-10 (Bedarf nicht ausreichend herausgearbeitet) fehlt jeder Beleg; die Qualifizierungstiefe müsste gezielt codiert werden."
+ ]
+}

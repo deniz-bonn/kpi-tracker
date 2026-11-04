@@ -1,0 +1,22 @@
+const L = require('./lib'); const E = L.E; const S = E.S; const ymd = E.ymd; const fs = require('fs');
+const { ein, sct, ausg, users, heute } = require('./run/sc/ein.json'); const tasks = require('./run/sc/tasks.json'); const evs = require('./run/sc/events.json'); const byOpp = {}; for (const e of evs.sort((a, b) => a.t < b.t ? -1 : 1)) (byOpp[e.opp] ||= []).push(e);
+const HELD = new Set([S.SC_STATT_FU, S.SC_STATT_KEINA, S.ALT_HIGHPOT, S.ALT_CC2, S.ALT_SOFTCLOSE, S.ALT_FU_KURZ, S.ALT_FU_LANG]);
+const dd = (a, b) => Math.round((new Date(a + 'T12:00:00Z') - new Date(b + 'T12:00:00Z')) / 864e5); const plus = (d, n) => new Date(new Date(d + 'T12:00:00Z').getTime() + n * 864e5).toISOString().slice(0, 10);
+const scTasks = lead => (Array.isArray(tasks[lead]) ? tasks[lead] : []).filter(t => /^\s*sc\b/i.test(t.text) && t.d);
+const offen = lead => (Array.isArray(tasks[lead]) ? tasks[lead] : []).filter(t => !t.done).sort((a, b) => (a.d || '9999') < (b.d || '9999') ? -1 : 1);
+function aufg(lead) { const o = offen(lead); if (!o.length) return { n: 0, txt: 'keine', ueberfaellig: null }; const m = o[0]; return { n: o.length, txt: `${m.d ? m.d.slice(8) + '.' + m.d.slice(5, 7) + '.' : 'ohne Datum'} ${m.text}`.trim() + (o.length > 1 ? ` (+${o.length - 1})` : ''), ueberfaellig: m.d ? m.d < heute : null }; }
+const rows = ein.map(r => { const h = byOpp[r.opp] || []; const gebTs = r.gebucht; const ausgEv = h.filter(e => HELD.has(e.to) && (!gebTs || ymd(e.t) >= gebTs)).sort((a, b) => a.t < b.t ? -1 : 1)[0] || h.filter(e => HELD.has(e.to))[0]; const ausgangAm = ausgEv ? ymd(ausgEv.t) : r.seit;
+  const cands = scTasks(r.lead).filter(t => (!gebTs || t.d >= plus(gebTs, -1)) && t.d <= plus(ausgangAm, 3)).sort((a, b) => Math.abs(dd(a.d, ausgangAm)) - Math.abs(dd(b.d, ausgangAm)));
+  const scAm = cands.length ? cands[0].d : ausgangAm; const quelle = cands.length ? 'SC-Aufgabe' : 'Ausgang gepflegt (keine SC-Aufgabe)';
+  const closer = (r.closerId && users[r.closerId]) || r.ausgangUser || r.ownerName || '(unbekannt)'; const closerQuelle = r.closerId && users[r.closerId] ? 'Feld Closer' : r.ausgangUser ? 'hat Ausgang gepflegt' : 'Opp-Inhaber';
+  return { ...r, ausgangAm, scAm, quelle, tage: dd(heute, scAm), closer, closerQuelle, aufgabe: aufg(r.lead) }; }).sort((a, b) => a.scAm < b.scAm ? -1 : 1);
+const sRows = sct.map(r => { const c = scTasks(r.lead).filter(t => !r.gebucht || t.d >= plus(r.gebucht, -1)).sort((a, b) => a.d < b.d ? -1 : 1)[0]; return { ...r, scAm: c ? c.d : null, closer: (r.closerId && users[r.closerId]) || r.ownerName || '(unbekannt)', aufgabe: aufg(r.lead) }; });
+const vorbei = sRows.filter(r => r.scAm && r.scAm < heute).map(r => ({ ...r, tage: dd(heute, r.scAm) })).sort((a, b) => a.scAm < b.scAm ? -1 : 1);
+const cnt = (a, f) => a.reduce((m, x) => { const k = f(x); m[k] = (m[k] || 0) + 1; return m; }, {});
+fs.writeFileSync('run/sc/liste.json', JSON.stringify({ rows, vorbei, ohneDatumSct: sRows.filter(r => !r.scAm).length, zukunftSct: sRows.filter(r => r.scAm && r.scAm >= heute).length, ausg, heute }));
+console.log('Stand', heute, '| Liste', rows.length, '| Datum aus SC-Aufgabe', rows.filter(r => r.quelle === 'SC-Aufgabe').length, '| nur Ausgang gepflegt', rows.filter(r => r.quelle !== 'SC-Aufgabe').length);
+console.log('je Status:', JSON.stringify(cnt(rows, r => r.status))); console.log('je Kategorie:', JSON.stringify(cnt(rows, r => r.kat)));
+console.log('je SC-Monat:', JSON.stringify(Object.fromEntries(Object.entries(cnt(rows, r => r.scAm.slice(0, 7))).sort())));
+console.log('je Closer:', JSON.stringify(cnt(rows, r => r.closer.split(' ')[0]))); console.log('Closer-Quelle:', JSON.stringify(cnt(rows, r => r.closerQuelle)));
+console.log('ohne offene Aufgabe:', rows.filter(r => r.aufgabe.n === 0).length, '| ueberfaellig:', rows.filter(r => r.aufgabe.ueberfaellig).length);
+console.log('aeltester SC', rows[0].scAm, '| juengster', rows[rows.length - 1].scAm, '| SC terminiert: vorbei', vorbei.length, 'zukuenftig', sRows.filter(r => r.scAm && r.scAm >= heute).length, 'ohne Datum', sRows.filter(r => !r.scAm).length);
