@@ -11,7 +11,6 @@
 //   Auftragseingang   = incentive.teamGate / Dashboard nk_bonn: deals_nk Gewonnen, gewonnen_monat,
 //                       Closer-Standort Bonn, aeEurGatedSql (EUR + ae_ab_monat-Gate)
 //   Monatsziel        = monthly_targets_standort (Bonn) > shared/kpiConstants.json (750k = Bonn)
-//   Teamgate          = incentive.TEAMZIEL (700k)
 //   Settings/SC gelegt= termine (art setting/closing, gelegt_am), Attribution employee_id
 //   Show-Rate + Gate  = utils/showrateRegeln.js (dieselben Regeln wie die Show-Rate-Seite)
 //   Provision         = provision_buchungen (Journal) je Bonn-Zeitraum; Team-Anteil = rolle 'team'
@@ -31,7 +30,6 @@ const { logAudit } = require('../utils/audit');
 const K = require('../../../shared/kpiConstants.json');
 
 const STANDORT = 'Bonn';
-const TEAMZIEL = Number(process.env.INCENTIVE_TEAMZIEL || 700000);   // wie utils/incentive.js
 const SCOPE    = 'board:read';
 const pg = () => db.dialect === 'postgres';
 const P  = (i) => (pg() ? `$${i}` : '?');
@@ -145,7 +143,30 @@ async function termineJePerson(von, bis) {
   return out;
 }
 
-async function provisionsSichten(stichtag) {
+// Einstellungen je Person (Migration 118): ausblenden + Arbeitstage (ISO 1=Mo..5=Fr; null = Mo–Fr).
+async function personenEinstellungen() {
+  let rows = [];
+  try { rows = await db.all(`SELECT employee_id, ausblenden, arbeitstage FROM board_personen`); }
+  catch { /* Migration 118 noch nicht gelaufen */ }
+  const ausgeblendet = new Set(rows.filter(r => wahr(r.ausblenden)).map(r => Number(r.employee_id)));
+  const tage = {};
+  for (const r of rows) {
+    const t = String(r.arbeitstage || '').split(',').map(Number).filter(n => n >= 1 && n <= 5);
+    if (t.length) tage[r.employee_id] = new Set(t);
+  }
+  return { ausgeblendet, tage };
+}
+const isoTag = (d) => ((wochentag(d) + 6) % 7) + 1;          // 1=Mo..7=So
+function arbeitstageVon(monat, bis, tageSet) {
+  let n = 0, nBis = 0;
+  for (let d = `${monat}-01`; d.slice(0, 7) === monat; d = addTage(d, 1)) {
+    if (!istArbeitstag(d) || (tageSet && !tageSet.has(isoTag(d)))) continue;
+    n++; if (d <= bis) nBis++;
+  }
+  return { gesamt: n, bisHeute: nBis };
+}
+
+async function provisionsSichten(stichtag, ausgeblendet = new Set()) {
   const z = await db.get(
     `SELECT id, von, bis, label, status FROM provision_zeitraeume WHERE kreis='bonn' AND von <= ${P(1)} ORDER BY von DESC LIMIT 1`, [stichtag]);
   const jahr = stichtag.slice(0, 4);
@@ -175,7 +196,7 @@ async function provisionsSichten(stichtag) {
   const rangliste = (rows, filter) => {
     const m = new Map();
     for (const r of rows) {
-      if (!filter(r.rolle)) continue;
+      if (!filter(r.rolle) || ausgeblendet.has(Number(r.employee_id))) continue;
       const e = m.get(r.employee_id) || { employee_id: Number(r.employee_id), summe: 0, gestern: 0 };
       e.summe += Number(r.summe) || 0; e.gestern += Number(r.gestern) || 0;
       m.set(r.employee_id, e);
@@ -230,6 +251,8 @@ async function boardDaten(stichtag) {
   const woche = wochenStart(stichtag);
   const at = arbeitstage(monat, stichtag);
   const ziel = await monatsziel(monat);
+  const { ausgeblendet, tage: personTage } = await personenEinstellungen();
+  const sichtbar = (id) => !ausgeblendet.has(Number(id));
   const vm = vormonat(monat);
 
   // Team. Monatswert EXAKT wie Dashboard-Zelle nk_bonn und incentive.teamGate: nach gewonnen_monat
@@ -265,13 +288,13 @@ async function boardDaten(stichtag) {
     const kette = (rolle) => Object.fromEntries(aeJe[k][rolle].map(x => [x.employee_id, x.ae]));
     const kO = kette('opener'), kS = kette('setter');
     rollen[k] = {
-      opener: Object.entries(t).filter(([, p]) => p.setting?.gelegt).map(([id, p]) => ({
+      opener: Object.entries(t).filter(([id, p]) => p.setting?.gelegt && sichtbar(id)).map(([id, p]) => ({
         employee_id: Number(id), gelegt: p.setting.gelegt, showrate: showrate(tMonat[id]?.setting), ae_kette: kO[id] || 0 }))
         .sort((a, b) => b.gelegt - a.gelegt || b.ae_kette - a.ae_kette),
-      setter: Object.entries(t).filter(([, p]) => p.closing?.gelegt).map(([id, p]) => ({
+      setter: Object.entries(t).filter(([id, p]) => p.closing?.gelegt && sichtbar(id)).map(([id, p]) => ({
         employee_id: Number(id), gelegt: p.closing.gelegt, showrate: showrate(tMonat[id]?.closing), ae_kette: kS[id] || 0 }))
         .sort((a, b) => b.gelegt - a.gelegt || b.ae_kette - a.ae_kette),
-      closer: aeJe[k].closer.map(x => ({ employee_id: x.employee_id, ae: x.ae, gewonnen: x.n }))
+      closer: aeJe[k].closer.filter(x => sichtbar(x.employee_id)).map(x => ({ employee_id: x.employee_id, ae: x.ae, gewonnen: x.n }))
         .sort((a, b) => b.ae - a.ae),
     };
   }
@@ -345,11 +368,18 @@ async function boardDaten(stichtag) {
     ae:          { tag: (id) => aeHeuteCloser[id] || 0,             monat: (id) => aeMonatCloser[id] || 0 },
   };
   const zielePerson = {};
+  const heuteIso = isoTag(stichtag);
   for (const z of zielRows) {
-    const p = (zielePerson[z.employee_id] = zielePerson[z.employee_id] || { employee_id: Number(z.employee_id), kennzahlen: {} });
+    const eid = Number(z.employee_id);
+    if (!sichtbar(eid)) continue;
+    // Nur an den eigenen Arbeitstagen getrackt (z. B. Praktikant Mo/Di): an anderen Tagen nicht in der Liste.
+    const tg = personTage[eid] || null;
+    if (tg && !tg.has(heuteIso)) continue;
+    const atP = tg ? arbeitstageVon(monat, stichtag, tg) : at;
+    const p = (zielePerson[eid] = zielePerson[eid] || { employee_id: eid, kennzahlen: {}, arbeitstage: tg ? [...tg].sort() : null });
     const zt = z.ziel_tag == null ? null : Number(z.ziel_tag);
     const zm = z.ziel_monat == null ? null : Number(z.ziel_monat);
-    const sollStand = zm != null && at.gesamt ? zm * at.bisHeute / at.gesamt : null;
+    const sollStand = zm != null && atP.gesamt ? zm * atP.bisHeute / atP.gesamt : null;
     p.kennzahlen[z.kennzahl] = {
       ist_tag: r2(ist[z.kennzahl].tag(z.employee_id)), ziel_tag: zt,
       ist_monat: r2(ist[z.kennzahl].monat(z.employee_id)), ziel_monat: zm, soll_stand: sollStand == null ? null : r2(sollStand),
@@ -363,7 +393,7 @@ async function boardDaten(stichtag) {
     return { ...p, erreichung_tag: mittel(tag), pacing_monat: mittel(mon) };
   }).sort((a, b) => (b.erreichung_tag ?? -1) - (a.erreichung_tag ?? -1));
 
-  const provision = await provisionsSichten(stichtag);
+  const provision = await provisionsSichten(stichtag, ausgeblendet);
   const verlaufAkt = await verlauf(monat);
   const verlaufVor = await verlauf(vm);
 
@@ -387,7 +417,8 @@ async function boardDaten(stichtag) {
       foto: p.foto_stand ? String(p.foto_stand instanceof Date ? p.foto_stand.getTime() : Date.parse(String(p.foto_stand).replace(' ', 'T') + (String(p.foto_stand).includes('T') ? '' : 'Z'))) : null })),
     team: {
       ae_monat: aeMonat.ae, deals_monat: aeMonat.n, ae_heute: aeHeute.ae, deals_heute: aeHeute.n,
-      ziel_monat: ziel.ziel, ziel_quelle: ziel.quelle, soll_heute: sollHeute, teamgate: TEAMZIEL,
+      // Teamgate (700k) bewusst NICHT: galt nur fuer das Incentive September/Oktober 2026 (Deniz, 04.11.2026).
+      ziel_monat: ziel.ziel, ziel_quelle: ziel.quelle, soll_heute: sollHeute,
       ae_soll_tag: at.gesamt ? r2(ziel.ziel / at.gesamt) : null,
       settings_heute: summeArt(tHeute, 'setting'), sales_calls_heute: summeArt(tHeute, 'closing'),
       tagesziel_settings: K.tagesziele.settings, tagesziel_sales_calls: K.tagesziele.sales_calls,
@@ -495,7 +526,10 @@ router.get('/ziele', session, zielRecht, wrap(async (_req, res) => {
     `SELECT e.id, e.name, e.rolle FROM employees e
       WHERE e.standort=${P(1)} AND e.aktiv=${pg() ? 'TRUE' : '1'} AND e.rolle <> 'KAM' ORDER BY e.name`, [STANDORT]);
   const ziele = await db.all(`SELECT employee_id, kennzahl, ziel_tag, ziel_monat, updated_at FROM board_ziele`);
-  res.json({ personen, ziele, kennzahlen: KENNZAHLEN });
+  const einst = await db.all(`SELECT employee_id, ausblenden, arbeitstage FROM board_personen`);
+  const e = Object.fromEntries(einst.map(x => [x.employee_id, x]));
+  res.json({ personen: personen.map(p => ({ ...p, ausblenden: wahr(e[p.id]?.ausblenden),
+    arbeitstage: e[p.id]?.arbeitstage ? String(e[p.id].arbeitstage).split(',').map(Number) : null })), ziele, kennzahlen: KENNZAHLEN });
 }));
 
 // PUT /ziele/:employeeId  { settings: {ziel_tag, ziel_monat}, sales_calls: {...}, ae: {...} }
@@ -530,6 +564,36 @@ router.put('/ziele/:employeeId', session, zielRecht, wrap(async (req, res) => {
   await logAudit({ user: req.user, action: 'update', entityType: 'board_ziele', entityId: id, oldData: alt, newData: neu });
   cache.clear();
   res.json(neu);
+}));
+
+// PUT /ziele/:employeeId/einstellungen  { ausblenden: bool, arbeitstage: [1..5] | null }
+router.put('/ziele/:employeeId/einstellungen', session, zielRecht, wrap(async (req, res) => {
+  const id = Number(req.params.employeeId);
+  const emp = await db.get(`SELECT id, standort FROM employees WHERE id=${P(1)}`, [id]);
+  if (!emp || emp.standort !== STANDORT) return res.status(404).json({ error: 'Mitarbeiter nicht gefunden (nur Bonn)' });
+  const ausblenden = !!req.body?.ausblenden;
+  let tage = req.body?.arbeitstage;
+  if (tage != null) {
+    if (!Array.isArray(tage) || tage.some(t => ![1, 2, 3, 4, 5].includes(Number(t)))) return res.status(400).json({ error: 'Arbeitstage: Liste aus 1 (Mo) bis 5 (Fr)' });
+    tage = [...new Set(tage.map(Number))].sort();
+    if (!tage.length) return res.status(400).json({ error: 'Mindestens ein Arbeitstag' });
+    if (tage.length === 5) tage = null;   // Mo–Fr = Standard
+  }
+  const wert = tage ? tage.join(',') : null;
+  const alt = await db.get(`SELECT * FROM board_personen WHERE employee_id=${P(1)}`, [id]);
+  if (pg()) {
+    await db.run(`INSERT INTO board_personen (employee_id, ausblenden, arbeitstage, updated_at, updated_by) VALUES ($1,$2,$3,NOW(),$4)
+      ON CONFLICT (employee_id) DO UPDATE SET ausblenden=EXCLUDED.ausblenden, arbeitstage=EXCLUDED.arbeitstage, updated_at=NOW(), updated_by=EXCLUDED.updated_by`,
+      [id, ausblenden, wert, req.user.id ?? null]);
+  } else {
+    await db.run(`INSERT INTO board_personen (employee_id, ausblenden, arbeitstage, updated_at, updated_by) VALUES (?,?,?,datetime('now'),?)
+      ON CONFLICT (employee_id) DO UPDATE SET ausblenden=excluded.ausblenden, arbeitstage=excluded.arbeitstage, updated_at=datetime('now'), updated_by=excluded.updated_by`,
+      [id, ausblenden ? 1 : 0, wert, req.user.id ?? null]);
+  }
+  const neu = await db.get(`SELECT * FROM board_personen WHERE employee_id=${P(1)}`, [id]);
+  await logAudit({ user: req.user, action: 'update', entityType: 'board_personen', entityId: id, oldData: alt || null, newData: neu });
+  cache.clear();
+  res.json({ employee_id: id, ausblenden: wahr(neu.ausblenden), arbeitstage: neu.arbeitstage ? neu.arbeitstage.split(',').map(Number) : null });
 }));
 
 module.exports = router;

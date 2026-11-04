@@ -99,6 +99,40 @@ const KZ = [
   { key: 'ae',          label: 'AE gewonnen (Closer)', einheit: '€' },
 ];
 
+const TAGE = [[1, 'Mo'], [2, 'Di'], [3, 'Mi'], [4, 'Do'], [5, 'Fr']];
+
+// Einstellungen je Person: auf dem Board zeigen + Arbeitstage. Speichert sofort beim Klick.
+function Einstellungen({ p, onSaved }) {
+  const [aus, setAus] = useState(!!p.ausblenden);
+  const [tage, setTage] = useState(p.arbeitstage || [1, 2, 3, 4, 5]);
+  const [fehler, setFehler] = useState(null);
+  useEffect(() => { setAus(!!p.ausblenden); setTage(p.arbeitstage || [1, 2, 3, 4, 5]); }, [p.ausblenden, p.arbeitstage]);
+  const speichern = async (a, t) => {
+    setFehler(null);
+    try { await boardApi.einstellungen(p.id, { ausblenden: a, arbeitstage: t }); onSaved(); }
+    catch (e) { setFehler(e.response?.data?.error || e.message); setAus(!!p.ausblenden); setTage(p.arbeitstage || [1, 2, 3, 4, 5]); }
+  };
+  const tag = (n) => {
+    const neu = tage.includes(n) ? tage.filter(x => x !== n) : [...tage, n].sort();
+    if (!neu.length) return;
+    setTage(neu); speichern(aus, neu);
+  };
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="flex items-center gap-1.5 text-gray-700 whitespace-nowrap">
+        <input type="checkbox" checked={!aus} onChange={e => { setAus(!e.target.checked); speichern(!e.target.checked, tage); }} /> auf dem Board
+      </label>
+      <div className="flex gap-0.5" title="An welchen Tagen getrackt wird (Tagesziele und Soll-Stand des Monats)">
+        {TAGE.map(([n, l]) => (
+          <button key={n} type="button" onClick={() => tag(n)}
+            className={`px-1.5 py-0.5 rounded text-[11px] border ${tage.includes(n) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-400 border-gray-300'}`}>{l}</button>
+        ))}
+      </div>
+      {fehler && <div className="text-[11px] text-red-600">{fehler}</div>}
+    </div>
+  );
+}
+
 function ZielZeile({ p, ziele, onSaved }) {
   const start = () => Object.fromEntries(KZ.map(k => {
     const z = ziele.find(x => Number(x.employee_id) === p.id && x.kennzahl === k.key);
@@ -113,8 +147,9 @@ function ZielZeile({ p, ziele, onSaved }) {
   });
   const set = (k, feld, v) => setF(x => ({ ...x, [k]: { ...x[k], [feld]: v } }));
   return (
-    <tr className="border-t border-gray-100">
-      <td className="px-3 py-2 text-gray-800 whitespace-nowrap">{p.name}</td>
+    <tr className={`border-t border-gray-100 ${p.ausblenden ? 'opacity-50' : ''}`}>
+      <td className="px-3 py-2 text-gray-800 whitespace-nowrap">{p.name}{p.ausblenden && <div className="text-[11px] text-gray-500">nicht auf dem Board</div>}</td>
+      <td className="px-3 py-2"><Einstellungen p={p} onSaved={onSaved} /></td>
       {KZ.map(k => (
         <td key={k.key} className="px-2 py-2">
           <div className="flex gap-1">
@@ -142,7 +177,10 @@ function Tagesziele() {
         <div className="text-sm font-semibold text-gray-700">Tagesziele je Person (Bonn)</div>
         <p className="text-xs text-gray-500 mt-1">
           Je Kennzahl ein Tagesziel und ein Monatsziel. Beide werden eingetragen, nichts wird aus Arbeitstagen abgeleitet.
-          Leer heißt: kein Ziel in dieser Kennzahl. Das Board zeigt nur Personen mit mindestens einem Ziel.
+          Leer heißt: kein Ziel in dieser Kennzahl. Wer z. B. keine Sales Calls legt, bekommt dort einfach kein Ziel; die Zielerreichung
+          rechnet dann nur mit den Kennzahlen, die ein Ziel haben. Das Board zeigt nur Personen mit mindestens einem Ziel.
+          „auf dem Board“ aus: Die Person erscheint in keiner Liste des Boards, ihre Deals zählen weiter in die Teamzahlen.
+          Arbeitstage: An anderen Tagen steht die Person nicht in den Tageszielen, und ihr Monats-Soll rechnet nur mit ihren Tagen.
           „Monat“ auf dem Board = Ist ÷ (Monatsziel × Arbeitstag ÷ Arbeitstage des Monats).
         </p>
       </div>
@@ -150,6 +188,7 @@ function Tagesziele() {
         <table className="w-full text-xs">
           <thead className="bg-gray-50 text-gray-500"><tr>
             <th className="text-left px-3 py-2">Person</th>
+            <th className="text-left px-3 py-2">Board · Arbeitstage</th>
             {KZ.map(k => <th key={k.key} className="text-left px-2 py-2">{k.label}<span className="text-gray-400 font-normal"> · Tag / Monat ({k.einheit})</span></th>)}
             <th className="px-3 py-2" /></tr></thead>
           <tbody>{(data?.personen || []).map(p => (

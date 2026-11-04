@@ -117,7 +117,7 @@ const SICHTEN = [
   { key: 'jahr',   titel: 'Jahr',   art: 'jahr' },
 ];
 
-function Rainmakers({ prov, pers, token }) {
+function TopPerformer({ prov, pers, token }) {
   const [i, setI] = useState(0);
   useEffect(() => { const t = setInterval(() => setI(x => (x + 1) % SICHTEN.length), SICHT_MS); return () => clearInterval(t); }, []);
   const s = SICHTEN[i];
@@ -142,7 +142,7 @@ function Rainmakers({ prov, pers, token }) {
   ) : <div className="pod" />;
   return (
     <div className="tile">
-      <div className="th" style={{ marginBottom: 8 }}><div><div className="tt">Top Rainmakers</div><div className="ts">{sub}</div></div></div>
+      <div className="th" style={{ marginBottom: 8 }}><div><div className="tt">Top Performer</div><div className="ts">{sub}</div></div></div>
       <div className="chips" style={{ marginLeft: 0, justifyContent: 'flex-start', marginBottom: 2 }}>{SICHTEN.map((x, k) => <span key={x.key} className={`chip ${k === i ? 'on' : ''}`}>{x.titel}</span>)}</div>
       {liste.length === 0 ? <div className="leer">Noch keine Provision in dieser Sicht.</div> : (<>
         <div className="podium">
@@ -163,23 +163,31 @@ function Rainmakers({ prov, pers, token }) {
   );
 }
 
-function Thermometer({ team }) {
+// Auftragseingang: EINE Botschaft — Ist gegen Monatsziel, und ob wir fuer heute im Plan sind.
+// "Soll bis heute" = Monatsziel × vergangene Arbeitstage (inkl. heute) ÷ Arbeitstage des Monats,
+// also der kumulierte Stand, den wir bei gleichmaessigem Tempo heute erreicht haben sollten.
+function Thermometer({ team, stand }) {
   const ist = team.ae_monat, ziel = team.ziel_monat, soll = team.soll_heute;
-  const max = Math.max(ziel, ist, team.teamgate) || 1;
-  const vorn = ist - soll;
+  const max = Math.max(ziel, ist) || 1;
+  const diff = ist - soll;
+  const restTage = Math.max(1, stand.arbeitstage_monat - stand.arbeitstag + 1);   // inkl. heute
+  const nochNoetig = Math.max(0, ziel - ist);
   const bg = ist >= soll ? 'linear-gradient(135deg,#16a34a,#15803d)' : ist >= soll * 0.85 ? 'linear-gradient(135deg,#d97706,#b45309)' : 'linear-gradient(135deg,#dc2626,#b91c1c)';
+  const monatName = new Date(`${stand.monat}-15T12:00:00`).toLocaleDateString('de-DE', { month: 'long' });
   return (
     <div className="tile hero" style={{ background: bg }}>
-      <div className="th"><div><div className="tt">Auftragseingang NK Bonn</div>
-        <div className="ts">Monat bis heute · Ziel {eur(ziel)}{team.ziel_quelle === 'kpi_vorgabe' ? ' (KPI-Vorgabe)' : ''}</div></div>
-        <div className="chips"><span className="chip dark">{vorn >= 0 ? `▲ ${eur(vorn)} vor Soll heute` : `▼ ${eur(-vorn)} hinter Soll heute`}</span></div></div>
+      <div className="th"><div><div className="tt">Auftragseingang Neukunden Bonn · {monatName}</div>
+        <div className="ts">Gewonnen seit Monatsanfang · Monatsziel {eur(ziel)}{team.ziel_quelle === 'kpi_vorgabe' ? ' (KPI-Vorgabe)' : ''}</div></div></div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 18 }}>
-        <div className="big">{eur(ist)}</div><div className="bigp">{ziel ? Math.round(ist / ziel * 100) : 0} %</div></div>
+        <div className="big">{eur(ist)}</div><div className="bigp">{ziel ? Math.round(ist / ziel * 100) : 0} % vom Ziel</div></div>
       <div className="bar"><i style={{ width: `${Math.min(100, ist / max * 100)}%` }} />
-        <div className="mk" style={{ left: `${Math.min(100, soll / max * 100)}%` }}><span>Soll heute {kEur(soll)}</span></div>
-        {team.teamgate < max * 1.001 && <div className="mk gate" style={{ left: `${team.teamgate / max * 100}%` }}><span>Teamgate {kEur(team.teamgate)}</span></div>}
+        <div className="mk" style={{ left: `${Math.min(100, soll / max * 100)}%` }}><span>Soll bis heute</span></div>
       </div>
-      <div style={{ height: 24 }} />
+      <div className="hero-fakten">
+        <div><small>Soll bis heute</small><b>{eur(soll)}</b><small>{stand.arbeitstag} von {stand.arbeitstage_monat} Arbeitstagen</small></div>
+        <div><small>{diff >= 0 ? 'Vorsprung' : 'Rückstand'}</small><b>{diff >= 0 ? '+' : '−'}{eur(Math.abs(diff))}</b><small>gegenüber Soll bis heute</small></div>
+        <div><small>Noch nötig pro Arbeitstag</small><b>{nochNoetig ? eur(nochNoetig / restTage) : '✓ Ziel erreicht'}</b><small>{nochNoetig ? `${eur(nochNoetig)} in ${restTage} Tagen inkl. heute` : ''}</small></div>
+      </div>
     </div>
   );
 }
@@ -453,9 +461,9 @@ export default function Board() {
             <section className="page">
               <Kopf d={d} seite={seite} alter={Math.round((jetzt - letzterOk) / 1000)} fehler={fehler} />
               <div className="grid" style={{ gridTemplateColumns: '560px 1fr 640px' }}>
-                <Rainmakers prov={d.provision} pers={pers} token={auth.token} />
+                <TopPerformer prov={d.provision} pers={pers} token={auth.token} />
                 <div className="mitte">
-                  <Thermometer team={d.team} />
+                  <Thermometer team={d.team} stand={d.stand} />
                   <div className="tile">
                     <div className="th"><div><div className="tt">Team heute</div><div className="ts">Heute · Teamziele aus den KPI-Vorgaben</div></div></div>
                     <div className="gauges">
@@ -541,13 +549,15 @@ display:flex;align-items:center;justify-content:center;color:#0b1220;border:3px 
 .lb-root .rr:nth-child(odd){background:rgba(255,255,255,.03)}
 .lb-root .rr .p{color:var(--tx3);font-weight:700;text-align:center}.lb-root .rr .n{font-weight:600}.lb-root .rr .v{font-weight:800;text-align:right}.lb-root .d{text-align:right;font-size:14px}
 .lb-root .note{font-size:12.5px;color:var(--tx3);margin-top:auto;padding-top:10px;line-height:1.45}
-.lb-root .hero{border-color:rgba(255,255,255,.25)}.lb-root .hero .ts,.lb-root .hero .tt{color:#f0fff4}
-.lb-root .big{font-size:96px;font-weight:900;letter-spacing:-3px;line-height:1}.lb-root .bigp{font-size:28px;font-weight:800;opacity:.9}
+.lb-root .hero{border-color:rgba(255,255,255,.25);padding-bottom:16px}.lb-root .hero .ts,.lb-root .hero .tt{color:#f0fff4}
+.lb-root .big{font-size:80px;font-weight:900;letter-spacing:-2.5px;line-height:1;white-space:nowrap}.lb-root .bigp{font-size:26px;font-weight:800;opacity:.9;white-space:nowrap}
 .lb-root .bar{height:16px;border-radius:8px;background:rgba(0,0,0,.25);position:relative;margin-top:16px}
 .lb-root .bar>i{position:absolute;left:0;top:0;bottom:0;border-radius:8px;background:#fff;transition:width .8s}
 .lb-root .mk{position:absolute;top:-8px;bottom:-8px;width:3px;background:#0b1220}
 .lb-root .mk span{position:absolute;top:30px;transform:translateX(-50%);font-size:13px;white-space:nowrap;color:#f0fff4;font-weight:600}
-.lb-root .mk.gate{background:#fde68a}.lb-root .mk.gate span{color:#fde68a}
+.lb-root .hero-fakten{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:34px}
+.lb-root .hero-fakten>div{background:rgba(0,0,0,.18);border-radius:12px;padding:10px 14px;display:flex;flex-direction:column;gap:2px}
+.lb-root .hero-fakten small{font-size:12.5px;color:#f0fff4;opacity:.85;white-space:nowrap}.lb-root .hero-fakten b{font-size:24px;font-weight:800;white-space:nowrap}
 .lb-root .gauges{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .lb-root .lb-g{display:flex;flex-direction:column;align-items:center}.lb-root .lb-g .lab{font-size:15px;color:var(--tx2);margin-top:-4px}
 .lb-root table{width:100%;border-collapse:separate;border-spacing:0 4px;font-size:17px}

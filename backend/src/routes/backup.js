@@ -51,6 +51,7 @@ const TABLES = [
   // Beide haengen nur an employees. Fotos sind ~30 KB je Person (256 px), also kein Gewicht.
   'employee_fotos',
   'board_ziele',
+  'board_personen',
   // Aenderungshistorie — inzwischen Beweismittel (Monatsdifferenzen, Mitarbeiter-Dubletten,
   // Provisions-Rueckfragen). Ein Restore ohne sie waere ein Informationsverlust, der erst im
   // Ernstfall auffaellt. Bewusst als LETZTE Tabelle: sie referenziert nur users.

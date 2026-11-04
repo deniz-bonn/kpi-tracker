@@ -231,6 +231,7 @@ export const boardApi = {
   widerrufen: (id)         => api.post(`/board/sessions/${id}/widerrufen`).then(r => r.data),
   ziele:      ()           => api.get('/board/ziele').then(r => r.data),
   zieleSetzen:(empId, data)=> api.put(`/board/ziele/${empId}`, data).then(r => r.data),
+  einstellungen:(empId, data)=> api.put(`/board/ziele/${empId}/einstellungen`, data).then(r => r.data),
 };
 
 export const fotoApi = {
