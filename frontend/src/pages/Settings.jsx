@@ -1,7 +1,7 @@
 import { useState, useEffect, Fragment } from 'react';
 import { KREISE } from '../utils/kreise';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { companiesApi, targetsApi, adminApi, auditApi, employeesApi, featureFlagsApi, backupApi, exchangeRatesApi, monthlyTargetsStandortApi, provisionenApi } from '../utils/api';
+import { companiesApi, targetsApi, adminApi, auditApi, apiTokensApi, employeesApi, featureFlagsApi, backupApi, exchangeRatesApi, monthlyTargetsStandortApi, provisionenApi } from '../utils/api';
 import { currentMonat, kursHinweis } from '../utils/format';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
@@ -637,6 +637,7 @@ export default function Settings() {
       { id: 'kpi_visibility', label: 'KPI-Mitarbeiter' },
       { id: 'provisionen',    label: 'Provisionen' },
       { id: 'online',         label: 'Online' },
+      { id: 'api_tokens',     label: 'API-Tokens' },
     ] : []),
     ...(canManageUsers ? [{ id: 'users', label: 'Benutzer' }] : []),
     ...(isAdmin ? [
@@ -1110,6 +1111,9 @@ export default function Settings() {
         </section>
       )}
 
+      {/* ── TAB: API-Tokens (nur Superadmin) ───────────────────────── */}
+      {tab === 'api_tokens' && isSuperAdmin && <ApiTokensTab />}
+
       {/* ── TAB: Änderungslog ──────────────────────────────────────── */}
       {tab === 'audit' && isAdmin && (
         <section className="rounded-xl border border-gray-200 bg-white overflow-hidden">
@@ -1275,6 +1279,111 @@ export default function Settings() {
           </form>
         </section>
       )}
+    </div>
+  );
+}
+
+// ── API-Tokens: Anlegen (Token wird genau einmal angezeigt), Liste, Widerrufen ──────────────
+// Schnittstellen-Doku fuer Empfaenger: docs/api-ext.md im Repo.
+function ApiTokensTab() {
+  const qc = useQueryClient();
+  const { data } = useQuery({ queryKey: ['api-tokens'], queryFn: apiTokensApi.list });
+  const [form, setForm] = useState({ name: '', scopes: ['vl:read'], standorte: [] });
+  const [neu, setNeu] = useState(null);       // { name, token } — nur bis zum Schliessen sichtbar
+  const [kopiert, setKopiert] = useState(false);
+  const anlegen = useMutation({
+    mutationFn: apiTokensApi.create,
+    onSuccess: (r) => { setNeu({ name: r.name, token: r.token }); setKopiert(false); setForm({ name: '', scopes: ['vl:read'], standorte: [] }); qc.invalidateQueries({ queryKey: ['api-tokens'] }); },
+  });
+  const widerrufen = useMutation({
+    mutationFn: apiTokensApi.widerrufen,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['api-tokens'] }),
+  });
+  const toggle = (key, val) => setForm(f => ({ ...f, [key]: f[key].includes(val) ? f[key].filter(x => x !== val) : [...f[key], val] }));
+  const datum = (v) => v ? String(v).replace('T', ' ').slice(0, 16) : '—';
+  const aktiv = (t) => (t.aktiv === true || t.aktiv === 1) && !t.widerrufen_am;
+  const inp = "w-full bg-white border border-gray-300 text-gray-700 text-sm rounded px-3 py-1.5";
+
+  return (
+    <div className="space-y-4">
+      <section className="rounded-xl border border-gray-200 bg-white p-5">
+        <h2 className="text-sm font-semibold text-gray-700 mb-1">Neues API-Token</h2>
+        <p className="text-xs text-gray-500 mb-4">
+          Für Skripte und Automatisierungen (z. B. HubSpot-Sync). Das Token wird <b>einmal</b> angezeigt und danach nur noch als Hash gespeichert.
+          Ohne Standort-Auswahl gilt es für alle Standorte. Schnittstellen-Doku: <code>docs/api-ext.md</code>.
+        </p>
+        <form onSubmit={e => { e.preventDefault(); anlegen.mutate(form); }} className="space-y-3">
+          <div>
+            <label className="text-xs text-gray-600 mb-1 block">Name (erscheint im Änderungsprotokoll als „API: …")</label>
+            <input required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="z. B. Thorsten HubSpot-Sync" className={inp} />
+          </div>
+          <div className="flex flex-wrap gap-6">
+            <div>
+              <div className="text-xs text-gray-600 mb-1">Rechte</div>
+              {(data?.scopes || ['vl:read', 'vl:write']).map(s => (
+                <label key={s} className="flex items-center gap-2 text-sm text-gray-700">
+                  <input type="checkbox" checked={form.scopes.includes(s)} onChange={() => toggle('scopes', s)} />
+                  {s === 'vl:read' ? 'Verlängerungen lesen (vl:read)' : s === 'vl:write' ? 'Verlängerungen anlegen/ändern (vl:write)' : s}
+                </label>
+              ))}
+            </div>
+            <div>
+              <div className="text-xs text-gray-600 mb-1">Nur diese Standorte (leer = alle)</div>
+              {(data?.standorte || []).map(s => (
+                <label key={s} className="flex items-center gap-2 text-sm text-gray-700">
+                  <input type="checkbox" checked={form.standorte.includes(s)} onChange={() => toggle('standorte', s)} /> {s}
+                </label>
+              ))}
+            </div>
+          </div>
+          {anlegen.error && <div className="text-xs text-red-600">{anlegen.error.response?.data?.error || anlegen.error.message}</div>}
+          <button type="submit" disabled={anlegen.isPending || !form.scopes.length}
+            className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm rounded">Token anlegen</button>
+        </form>
+        {neu && (
+          <div className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-3">
+            <div className="text-xs font-semibold text-amber-900 mb-1">Token für „{neu.name}" — jetzt kopieren, es wird nicht noch einmal angezeigt:</div>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 break-all text-xs bg-white border border-amber-200 rounded px-2 py-1.5 select-all">{neu.token}</code>
+              <button onClick={() => { navigator.clipboard?.writeText(neu.token); setKopiert(true); }}
+                className="px-3 py-1.5 text-xs rounded bg-amber-600 hover:bg-amber-500 text-white">{kopiert ? 'Kopiert ✓' : 'Kopieren'}</button>
+              <button onClick={() => setNeu(null)} className="px-3 py-1.5 text-xs rounded border border-amber-300 text-amber-900">Schließen</button>
+            </div>
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+        <div className="px-5 py-3 border-b border-gray-100 text-sm font-semibold text-gray-700">Vorhandene Tokens</div>
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 font-medium">
+              <th className="px-3 py-2 text-left">Name</th><th className="px-3 py-2 text-left">Präfix</th>
+              <th className="px-3 py-2 text-left">Rechte</th><th className="px-3 py-2 text-left">Standorte</th>
+              <th className="px-3 py-2 text-left">Zuletzt benutzt</th><th className="px-3 py-2 text-left">Erstellt</th><th className="px-3 py-2"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {(data?.tokens || []).length === 0 && <tr><td colSpan={7} className="px-3 py-6 text-center text-gray-400">Noch keine Tokens</td></tr>}
+            {(data?.tokens || []).map(t => (
+              <tr key={t.id} className={aktiv(t) ? '' : 'opacity-50'}>
+                <td className="px-3 py-2 font-medium text-gray-800">{t.name}</td>
+                <td className="px-3 py-2 font-mono text-gray-500">kpt_{t.praefix}_…</td>
+                <td className="px-3 py-2 text-gray-600">{t.scopes}</td>
+                <td className="px-3 py-2 text-gray-600">{t.standorte || 'alle'}</td>
+                <td className="px-3 py-2 text-gray-500">{datum(t.zuletzt_benutzt)}</td>
+                <td className="px-3 py-2 text-gray-500">{datum(t.erstellt_am)}{t.erstellt_von_name ? ` · ${t.erstellt_von_name}` : ''}</td>
+                <td className="px-3 py-2 text-right">
+                  {aktiv(t)
+                    ? <button onClick={() => { if (confirm(`Token „${t.name}" widerrufen? Skripte mit diesem Token funktionieren danach nicht mehr.`)) widerrufen.mutate(t.id); }}
+                        className="text-red-600 hover:text-red-500">Widerrufen</button>
+                    : <span className="text-gray-400">widerrufen {datum(t.widerrufen_am)}</span>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
     </div>
   );
 }

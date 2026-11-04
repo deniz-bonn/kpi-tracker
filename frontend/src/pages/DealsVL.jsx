@@ -763,6 +763,12 @@ export default function DealsVL() {
                 <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{d.datum?.slice(0,10)}</td>
                 <td className="px-3 py-2 text-gray-900 font-medium">
                   {d.kunde}
+                  {d.herkunft === 'api' && (
+                    <span className="ml-1.5 align-middle text-[10px] font-semibold text-sky-700 bg-sky-50 border border-sky-200 rounded px-1.5 py-0.5"
+                          title="Automatisch über die externe API angelegt — bitte prüfen und ggf. nachpflegen">
+                      per API
+                    </span>
+                  )}
                   {istDv(d) && (
                     <span className="ml-1.5 align-middle text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded px-1.5 py-0.5"
                           title={`${DV.chip}${d.dauervertrag_datum ? ` am ${String(d.dauervertrag_datum).slice(0, 10)}` : ''} · ${DV.aeLabel}: ${formatEuro(dvAe(d))}${d.umstellung_deal_bk_id ? ` · BK-Deal #${d.umstellung_deal_bk_id}` : ''}`}>

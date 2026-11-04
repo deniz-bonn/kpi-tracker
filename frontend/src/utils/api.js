@@ -222,6 +222,13 @@ async function ladeCsv(url) {
   URL.revokeObjectURL(a.href);
 }
 
+// API-Tokens fuer die externe Schnittstelle (nur Superadmin). create liefert das Token EINMAL.
+export const apiTokensApi = {
+  list:      ()     => api.get('/api-tokens').then(r => r.data),
+  create:    (data) => api.post('/api-tokens', data).then(r => r.data),
+  widerrufen:(id)   => api.post(`/api-tokens/${id}/widerrufen`).then(r => r.data),
+};
+
 export const auditApi = {
   list: (params) => api.get('/audit', { params }).then(r => r.data),
   undo: (id) => api.post(`/audit/${id}/undo`).then(r => r.data),

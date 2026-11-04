@@ -257,6 +257,42 @@ const heuteYmd = () => heuteBerlin();
 // Der Stand des Dauer-RaaS-Deals wird IMMER live mitgelesen, nie kopiert — dasselbe Prinzip wie
 // bei den Willkommensmeetings. Faellt der Deal weg, liefert der LEFT JOIN NULL und die Oberflaeche
 // kann eine Umstellung ohne Umsatz als das anzeigen, was sie ist.
+// ── Pflichtfelder einer Verlaengerung — Spiegel des VL-Formulars (DealsVL.jsx, fields[].required) ──
+// Frueher prueften nur Formular und Browser; der Server legte an, was kam (ein API-Skript haette
+// Gewonnen-Deals ohne AE oder Laufzeit anlegen koennen). Ausgewertet wird der ENDZUSTAND, den die
+// Datenbank danach haelt — wie das Formular, das den vollen Deal prueft. "Leer" heisst wie im
+// DealModal: falsy und nicht 0. kam_id ist im Formular KEIN Pflichtfeld (bk_vertrieb bekommt ihn
+// automatisch) — die externe API verlangt ihn zusaetzlich selbst (routes/ext_v1.js).
+const VL_PFLICHT = [
+  ['datum',                   'Datum der Vertragsverlängerung', () => true],
+  ['monat',                   'Monat',                          () => true],
+  ['company_id',              'Company',                        () => true],
+  ['kunde',                   'Kunde',                          () => true],
+  ['angebotswert',            'Möglicher AE',                   () => true],
+  ['status',                  'Status',                         () => true],
+  ['dienstleistung',          'Dienstleistung',                 m => m.status === 'Gewonnen'],
+  ['ae_wert',                 'Realisierter AE',                m => m.status === 'Gewonnen'],
+  ['laufzeit_monate',         'Neue Laufzeit (Monate)',         m => m.status === 'Gewonnen'],
+  ['wie_vielt_verlaengerung', 'Wievielte Verlängerung',         m => m.status === 'Gewonnen'],
+  ['gewonnen_datum',          'Realisiert am',                  m => m.status === 'Gewonnen'],
+  ['dauervertrag_datum',      'Umstellungsdatum',               m => m.status === 'Umgestellt'],
+  ['weitergeben_an_vertrieb', 'Weitergeben an Vertrieb?',       m => m.status === 'Verloren'],
+  ['gekuendigt_am',           'Gekündigt am',                   m => m.status === 'Verloren'],
+  ['auslaufend_am',           'Auslaufend am',                  m => m.status === 'Verloren'],
+  ['ansprechpartner',         'Ansprechpartner kundenseitig',   m => m.status === 'Verloren' && m.weitergeben_an_vertrieb === 'Ja'],
+  ['telefon',                 'Telefonnummer',                  m => m.status === 'Verloren' && m.weitergeben_an_vertrieb === 'Ja'],
+  ['email_kontakt',           'E-Mail Adresse',                 m => m.status === 'Verloren' && m.weitergeben_an_vertrieb === 'Ja'],
+];
+const istLeer = v => !v && v !== 0;
+function pruefePflichtfelder(m) {
+  const fehlen = VL_PFLICHT.filter(([f, , wann]) => wann(m) && istLeer(m[f]));
+  if (!fehlen.length) return;
+  const e = new Error(`Pflichtfelder fehlen: ${fehlen.map(([, label]) => label).join(', ')}`);
+  e.statusCode = 400;
+  e.felder = fehlen.map(([feld, label]) => ({ feld, grund: 'fehlt', label }));
+  throw e;
+}
+
 const BASE_SELECT = `
   SELECT d.*, c.name as company_name, c.currency, c.aktiv_ab, c.ae_ab_monat, k.name as kam_name, k.standort as kam_standort,
          u.ae_wert AS umstellung_ae_wert, u.status AS umstellung_status, u.monat AS umstellung_monat,
@@ -431,15 +467,22 @@ router.post('/import-csv', wrap(async (req, res) => {
   res.json({ created, errors });
 }));
 
-router.post('/', wrap(async (req, res) => {
-  const body = { ...req.body };
+/**
+ * Verlaengerung anlegen — EINE Schreibfunktion fuer die UI-Route und die externe API
+ * (routes/ext_v1.js). Hooks (AE-Snapshot, BK-Provision, Audit) und Umstellungslogik haengen hier,
+ * nicht an der Route; die API ist nur eine zweite Tuer mit Token statt Session.
+ * @param extra { herkunft, api_token_id } — nur die API setzt sie (Badge "per API").
+ * @returns die geschriebene Zeile
+ */
+async function erstelleVlDeal(rohBody, user, extra = {}) {
+  const body = { ...rohBody };
   // KAM-REGEL wie in deals_bk.js (erstelleBkDeal): die eigene employee_id nur einsetzen, wenn KEINE
   // kam_id mitkommt. Frueher ueberschrieb diese Route sie fuer bk_vertrieb bedingungslos — ein fuer
   // einen Kollegen erfasster Verlaengerungs-Deal waere samt AE und 2 % VL-Provision beim Erfasser
   // gelandet. Das VL-Formular zeigt bk_vertrieb das KAM-Feld nicht (canSeeAll), dort kommt es
   // weiterhin leer an und wird wie bisher gefuellt.
-  if (!body.kam_id && ['bk_vertrieb'].includes(req.user.role) && req.user.employee_id) {
-    body.kam_id = req.user.employee_id;
+  if (!body.kam_id && ['bk_vertrieb'].includes(user?.role) && user?.employee_id) {
+    body.kam_id = user.employee_id;
   }
 
   // Reihenfolge: erst die Umstellungs-Felder normalisieren, dann die Ereignisachse ableiten —
@@ -460,12 +503,10 @@ router.post('/', wrap(async (req, res) => {
   // Deal ohne seinen Umsatz waere ein gueltiger, aber falscher Zustand; ein Umsatz ohne Deal
   // eine unsichtbare Leiche. Scheitert das Schreiben, wird der eben angelegte Deal entfernt
   // (gleiches Muster wie bei den Willkommensmeetings).
-  const ums = await synchronisiereUmstellung({
-    zielStatus, body, existing: null, vlFelder: { ...body, ...dv }, vlId: null, user: req.user });
-  const values = fields.map(f => {
+  const wert = (f, umsId) => {
     if (f === 'gewonnen_datum') return gewonnen_datum;
     if (f === 'gewonnen_monat') return gewonnen_monat;
-    if (f === 'umstellung_deal_bk_id') return ums.id;
+    if (f === 'umstellung_deal_bk_id') return umsId;
     if (f === 'abgerechnet') return body[f] ?? (body.status === 'Gewonnen' ? 'Nein' : null);
     if (f === 'upsale_angesprochen' || f === 'upsale_angenommen') return Number(body[f]) || 0;
     if (f === 'terminiert') return Number(body[f]) || 0;
@@ -477,7 +518,14 @@ router.post('/', wrap(async (req, res) => {
       return v;
     }
     return body[f] ?? null;
-  });
+  };
+  // Pflichtfelder auf dem ENDZUSTAND pruefen — vor jedem Schreiben, auch vor dem Dauer-RaaS-Deal.
+  pruefePflichtfelder(Object.fromEntries(fields.map(f => [f, wert(f, body.umstellung_deal_bk_id ?? null)])));
+  const ums = await synchronisiereUmstellung({
+    zielStatus, body, existing: null, vlFelder: { ...body, ...dv }, vlId: null, user });
+  const values = fields.map(f => wert(f, ums.id));
+  // Herkunft (nur API): eigene Spalten, nicht Teil des Formular-Feldsatzes.
+  if (extra.herkunft) { fields.push('herkunft', 'api_token_id'); values.push(extra.herkunft, extra.api_token_id ?? null); }
 
   let row;
   try {
@@ -490,11 +538,11 @@ router.post('/', wrap(async (req, res) => {
       // ...dv/ums NACH dem Body spreaden: sonst gewaenne der rohe Body gegen die normalisierten
       // Werte und der Hook saehe einen anderen Stand als die Datenbank.
       row = { id: result.lastInsertRowid, ...body, ...dv, umstellung_deal_bk_id: ums.id,
-        gewonnen_datum, gewonnen_monat };
+        gewonnen_datum, gewonnen_monat, ...(extra.herkunft ? { herkunft: extra.herkunft, api_token_id: extra.api_token_id ?? null } : {}) };
     }
   } catch (e) {
     if (ums.neuerDeal) {
-      try { await loescheBkDeal(ums.neuerDeal.id, req.user); }
+      try { await loescheBkDeal(ums.neuerDeal.id, user); }
       catch (e2) { console.error('[vl] Rueckbau Dauer-RaaS-Deal:', e2.message); }
     }
     throw e;
@@ -502,19 +550,30 @@ router.post('/', wrap(async (req, res) => {
 
   try { await syncAeGesamtVL(row, null); } catch (e) { console.error('[sync-vl] POST:', e.message); }
   try { await provisionSyncBk(row, 'vl'); } catch (e) { console.error('[prov-vl] POST:', e.message); }
-  await logAudit({ user: req.user, action: 'create', entityType: 'deal_vl', entityId: row.id, newData: row });
-  res.status(201).json(row);
+  await logAudit({ user, action: 'create', entityType: 'deal_vl', entityId: row.id, newData: row });
+  return row;
+}
+
+router.post('/', wrap(async (req, res) => {
+  res.status(201).json(await erstelleVlDeal(req.body, req.user));
 }));
 
-router.put('/:id', wrap(async (req, res) => {
+/**
+ * Verlaengerung aendern (Teil-Update) — EINE Schreibfunktion fuer die UI-Route (PUT) und die
+ * externe API (PATCH). Wirft Fehler mit statusCode (403 Datum, 404, 400 Pflichtfelder/Umstellung).
+ * @returns die geschriebene Zeile
+ */
+async function aendereVlDeal(id, rohBody, user) {
+  const req = { params: { id }, body: rohBody, user };   // gleiche Lesart wie in der Route
   const existing = db.dialect === 'postgres'
     ? await db.get('SELECT * FROM deals_vl WHERE id=$1', [req.params.id])
     : db.get('SELECT * FROM deals_vl WHERE id=?', [req.params.id]);
+  if (!existing) { const e = new Error('Not found'); e.statusCode = 404; throw e; }
 
   // VL: Account Manager dürfen das Datum nachträglich korrigieren (fehlerhafte Import-Daten),
-  // nicht nur Admins. NK/BK bleiben admin-only (Default-Guard).
-  const datumFehler = pruefeDatumsaenderung(req, existing, ['admin', 'superadmin', 'bk_vertrieb', 'backoffice', 'vertriebsleitung']);
-  if (datumFehler) return res.status(403).json({ error: datumFehler });
+  // nicht nur Admins. NK/BK bleiben admin-only (Default-Guard). 'api' = externe API (Token).
+  const datumFehler = pruefeDatumsaenderung(req, existing, ['admin', 'superadmin', 'bk_vertrieb', 'backoffice', 'vertriebsleitung', 'api']);
+  if (datumFehler) { const e = new Error(datumFehler); e.statusCode = 403; throw e; }
 
   // ZWINGEND VOR resolveGewonnenFelder: die Ableitung prueft body.status. Fehlt der Status im
   // Teil-Body, liefe sie in den "nicht gewonnen"-Zweig und setzte gewonnen_datum/-monat auf NULL.
@@ -552,13 +611,10 @@ router.put('/:id', wrap(async (req, res) => {
   // Aufrufern. Ein EXPLIZITES null im Body loescht weiterhin: PUT bleibt PUT.
   // Dauer-RaaS-Deal anlegen, verknuepfen oder — bei Ruecknahme der Umstellung — wieder entfernen.
   // Wirft 400, wenn Angaben fehlen; dann ist noch nichts geschrieben.
-  const ums = await synchronisiereUmstellung({
-    zielStatus, body: req.body, existing,
-    vlFelder: { ...existing, ...req.body, ...dv }, vlId: Number(req.params.id), user: req.user });
-  const values = fields.map(f => {
+  const wert = (f, umsId) => {
     if (f === 'gewonnen_datum') return gewonnen_datum;
     if (f === 'gewonnen_monat') return gewonnen_monat;
-    if (f === 'umstellung_deal_bk_id') return ums.id;
+    if (f === 'umstellung_deal_bk_id') return umsId;
     if (f === 'abgerechnet') {
       if (req.body[f] === undefined) return existing?.abgerechnet ?? null;
       return req.body[f] ?? (gwBody.status === 'Gewonnen' ? 'Nein' : null);   // gemergter Status
@@ -583,7 +639,14 @@ router.put('/:id', wrap(async (req, res) => {
     // Teil-Update: nicht mitgeschickte Felder behalten ihren Wert. Explizites null loescht.
     if (req.body[f] === undefined) return existing?.[f] ?? null;
     return req.body[f] ?? null;
-  });
+  };
+  // Pflichtfelder auf dem ENDZUSTAND (Bestand + Aenderung) pruefen, bevor irgendetwas geschrieben
+  // wird — dieselbe Regel wie das Formular, das ebenfalls den vollen Stand prueft.
+  pruefePflichtfelder(Object.fromEntries(fields.map(f => [f, wert(f, existing.umstellung_deal_bk_id ?? null)])));
+  const ums = await synchronisiereUmstellung({
+    zielStatus, body: req.body, existing,
+    vlFelder: { ...existing, ...req.body, ...dv }, vlId: Number(req.params.id), user: req.user });
+  const values = fields.map(f => wert(f, ums.id));
 
   let row;
   try {
@@ -611,7 +674,17 @@ router.put('/:id', wrap(async (req, res) => {
   // Damit sind Gewinn, Storno, ae_wert-Aenderung und KAM-Wechsel mit einem Aufruf abgedeckt.
   try { await provisionSyncBk(row, 'vl'); } catch (e) { console.error('[prov-vl] PUT:', e.message); }
   await logAudit({ user: req.user, action: 'update', entityType: 'deal_vl', entityId: Number(req.params.id), oldData: existing, newData: row });
-  res.json(row);
+  return row;
+}
+
+router.put('/:id', wrap(async (req, res) => {
+  try {
+    res.json(await aendereVlDeal(req.params.id, req.body, req.user));
+  } catch (e) {
+    // Verhalten wie vorher: Datumssperre als 403 { error }; der Rest geht an den Fehler-Handler.
+    if (e.statusCode === 403) return res.status(403).json({ error: e.message });
+    throw e;
+  }
 }));
 
 router.patch('/:id/kontakt', wrap(async (req, res) => {
@@ -686,3 +759,13 @@ router.delete('/:id', wrap(async (req, res) => {
 
 module.exports = router;
 module.exports.syncAeGesamtVL = syncAeGesamtVL; // für Regressionstests
+// Externe API (routes/ext_v1.js): dieselben Schreibfunktionen und dieselbe Lese-Abfrage wie die UI.
+module.exports.erstelleVlDeal = erstelleVlDeal;
+module.exports.aendereVlDeal  = aendereVlDeal;
+module.exports.BASE_SELECT    = BASE_SELECT;
+module.exports.VL_EUR_MAP     = VL_EUR_MAP;
+// dry_run der API: dieselbe Pflichtfeld-Regel auf einem Anlage-Body, ohne zu schreiben.
+module.exports.pruefePflichtfelderVl = (body) => {
+  const { gewonnen_datum } = resolveGewonnenFelder(body);
+  pruefePflichtfelder({ ...body, gewonnen_datum });
+};

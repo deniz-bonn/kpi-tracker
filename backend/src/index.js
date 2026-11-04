@@ -63,6 +63,9 @@ app.use('/api/upsale-deals',   require('./routes/upsale_deals'));   // requireAu
 app.use('/api/admin',          require('./routes/admin'));       // requireAuth + requireRole inside
 app.use('/api/audit',          require('./routes/audit'));       // requireAuth inside
 app.use('/api/export',         require('./routes/export'));      // requireAuth inside
+app.use('/api/api-tokens',     require('./routes/api_tokens'));  // requireAuth + Superadmin inside
+// Externe API fuer Skripte: Token statt Session (middleware/apiToken.js), Doku in docs/api-ext.md
+app.use('/api/ext/v1',         require('./routes/ext_v1'));
 const { router: backupRouter, generateBackup, storeAutoBackup } = require('./routes/backup');
 const cron = require('node-cron');
 app.use('/api/backup',         backupRouter);                   // requireAuth + requireRole inside
