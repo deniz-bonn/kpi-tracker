@@ -42,6 +42,7 @@ export default function DealsNK() {
   const [showStandort, setShowStandort] = useState(false);
   const [showQuellen, setShowQuellen]   = useState(false);
   const [showAngebot, setShowAngebot] = useState(false);
+  const [showDienstleistung, setShowDienstleistung] = useState(true);
 
   const [filterQuelle, setFilterQuelle]     = useState('');
   const [filterCloser, setFilterCloser]     = useState('');
@@ -545,12 +546,17 @@ export default function DealsNK() {
 
           {/* Abschlussquote nach Dienstleistung — Zeile anklicken = ganzer KPI-Block nur für diese Dienstleistung */}
           <div className="rounded-lg border border-gray-200 overflow-hidden">
-            <div className="px-3 py-2 bg-[#2d2e30] border-b border-[#444] flex items-center justify-between">
-              <span className="text-xs font-bold text-white uppercase tracking-wide">Abschlussquote nach Dienstleistung</span>
+            <div className="flex items-center bg-[#2d2e30] hover:bg-[#3a3a3a] transition-colors">
+              <button onClick={() => setShowDienstleistung(v => !v)}
+                className="flex-1 flex items-center justify-between px-3 py-2">
+                <span className="text-xs font-bold text-white uppercase tracking-wide">Abschlussquote nach Dienstleistung</span>
+                <span className="text-gray-400 text-xs">{showDienstleistung ? '▲ Einklappen' : '▼ Anzeigen'}</span>
+              </button>
               {filterDienstleistung && (
-                <button onClick={() => setFilterDienstleistung('')} className="text-[11px] text-gray-300 hover:text-white">✕ alle Dienstleistungen</button>
+                <button onClick={() => setFilterDienstleistung('')} className="text-[11px] text-gray-300 hover:text-white px-3 py-2 border-l border-[#444]">✕ alle Dienstleistungen</button>
               )}
             </div>
+            {showDienstleistung && (<>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
@@ -594,6 +600,7 @@ export default function DealsNK() {
               Basis: Angebote im gewählten Zeitraum (Angebotsmonat). Abschlussquote = angenommen / platziert; Quote entschieden = angenommen / (angenommen + verloren).
               Offen = Offen, In Verhandlung, Closing Call 2. Zeile anklicken, um alle KPIs dieser Seite nur für diese Dienstleistung zu sehen.
             </div>
+            </>)}
           </div>
 
           {/* Closer- und Setter-Tabellen nebeneinander */}
