@@ -1,11 +1,69 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { employeesApi } from '../utils/api';
+import { employeesApi, fotoApi } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 
 const ROLLEN = ['KAM', 'NKV-Closer', 'Opener', 'Setter', 'Multi', 'Closer-KAM', 'Account Manager'];
 const STANDORTE = ['Bonn', 'Braunschweig', 'Österreich', 'Schweiz'];
+
+// ── Foto (Live-Board) ─────────────────────────────────────────────────────────────────────────
+// Quadratisch aus der Bildmitte zugeschnitten und auf 256 px verkleinert (JPEG) — so bleibt jedes
+// Foto bei rund 20–40 KB. Der Server nimmt hoechstens 500 KB an.
+async function fotoVorbereiten(datei) {
+  const url = URL.createObjectURL(datei);
+  try {
+    const img = await new Promise((ok, fehler) => { const i = new Image(); i.onload = () => ok(i); i.onerror = fehler; i.src = url; });
+    const seite = Math.min(img.naturalWidth, img.naturalHeight);
+    const c = document.createElement('canvas'); c.width = 256; c.height = 256;
+    c.getContext('2d').drawImage(img, (img.naturalWidth - seite) / 2, (img.naturalHeight - seite) / 2, seite, seite, 0, 0, 256, 256);
+    return await new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.85));
+  } finally { URL.revokeObjectURL(url); }
+}
+
+// Modul-Cache: EmpRow wird bei jedem Rendern der Seite neu erzeugt (und damit diese Zelle neu
+// eingehaengt) — ohne Cache luede jedes Tippen im Formular alle Fotos neu.
+const fotoCache = new Map();   // `${id}:${stand}` -> objectURL
+function FotoZelle({ e, stand, darf, onChange }) {
+  const key = stand ? `${e.id}:${stand}` : null;
+  const [url, setUrl] = useState(() => (key ? fotoCache.get(key) || null : null));
+  const [fehler, setFehler] = useState(null);
+  const [laeuft, setLaeuft] = useState(false);
+  const input = useRef(null);
+  useEffect(() => {
+    let weg = false;
+    if (!key) { setUrl(null); return; }
+    if (fotoCache.has(key)) { setUrl(fotoCache.get(key)); return; }
+    fotoApi.laden(e.id).then(b => { const u = URL.createObjectURL(b); fotoCache.set(key, u); if (!weg) setUrl(u); }).catch(() => {});
+    return () => { weg = true; };
+  }, [e.id, key]);
+  const waehlen = async (ev) => {
+    const datei = ev.target.files?.[0]; ev.target.value = '';
+    if (!datei) return;
+    setFehler(null); setLaeuft(true);
+    try {
+      const blob = await fotoVorbereiten(datei);
+      if (blob.size > 500 * 1024) throw new Error('Bild größer als 500 KB');
+      await fotoApi.hochladen(e.id, blob);
+      onChange();
+    } catch (err) { setFehler(err.response?.data?.error || err.message || 'Fehler'); }
+    finally { setLaeuft(false); }
+  };
+  const ini = String(e.name || '?').split(' ').filter(Boolean).map(x => x[0]).slice(0, 2).join('').toUpperCase();
+  return (
+    <div className="flex items-center gap-2">
+      {url ? <img src={url} alt="" className="w-8 h-8 rounded-full object-cover" />
+        : <span className="w-8 h-8 rounded-full bg-gray-200 text-gray-500 text-[11px] font-bold inline-flex items-center justify-center">{ini}</span>}
+      {darf && <>
+        <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={waehlen} />
+        <button onClick={() => input.current?.click()} disabled={laeuft} className="text-gray-400 hover:text-blue-600 text-xs">{laeuft ? '…' : stand ? 'Ändern' : 'Foto'}</button>
+        {stand && <button onClick={async () => { if (window.confirm(`Foto von ${e.name} entfernen?`)) { await fotoApi.loeschen(e.id); onChange(); } }}
+          className="text-gray-300 hover:text-red-600 text-xs" title="Foto entfernen">✕</button>}
+      </>}
+      {fehler && <span className="text-[11px] text-red-600">{fehler}</span>}
+    </div>
+  );
+}
 
 export default function Employees() {
   const { company, companies } = useOutletContext();
@@ -70,11 +128,16 @@ export default function Employees() {
   const provGesperrt = !isSuperAdmin && !!editEmp?.prov_gesperrt;
   const provWarnung  = !isSuperAdmin && !!editEmp && !editEmp.prov_gesperrt;
 
+  const { data: fotos = [] } = useQuery({ queryKey: ['employee-fotos'], queryFn: fotoApi.stand });
+  const fotoStand = Object.fromEntries(fotos.map(f => [f.employee_id, String(f.updated_at)]));
+  const fotosNeu = () => qc.invalidateQueries({ queryKey: ['employee-fotos'] });
+
   const aktive   = employees.filter(e => e.aktiv);
   const inaktive = employees.filter(e => !e.aktiv);
 
   const EmpRow = ({ e }) => (
     <tr key={e.id} className="hover:bg-gray-50">
+      <td className="px-3 py-2"><FotoZelle e={e} stand={fotoStand[e.id]} darf={!e.sperre} onChange={fotosNeu} /></td>
       <td className="px-3 py-2 text-gray-900 font-medium">{e.name}</td>
       <td className="px-3 py-2 text-gray-600">{e.company_name}</td>
       <td className="px-3 py-2">
@@ -108,7 +171,7 @@ export default function Employees() {
   const THead = () => (
     <thead className="bg-[#2d2e30] text-gray-300 text-xs uppercase">
       <tr>
-        {['Name','Company','Rolle','Standort','Status',''].map(h => (
+        {['Foto','Name','Company','Rolle','Standort','Status',''].map(h => (
           <th key={h} className="px-3 py-2 text-left font-medium">{h}</th>
         ))}
       </tr>
@@ -231,7 +294,7 @@ export default function Employees() {
           <THead />
           <tbody className="divide-y divide-gray-100">
             {aktive.length === 0 ? (
-              <tr><td colSpan={6} className="px-3 py-6 text-center text-gray-400 text-xs">Keine aktiven Mitarbeiter</td></tr>
+              <tr><td colSpan={7} className="px-3 py-6 text-center text-gray-400 text-xs">Keine aktiven Mitarbeiter</td></tr>
             ) : aktive.map(e => <EmpRow key={e.id} e={e} />)}
           </tbody>
         </table>

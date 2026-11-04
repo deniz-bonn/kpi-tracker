@@ -164,7 +164,7 @@ async function syncOpportunities({ since, log = () => {} } = {}) {
     const ph = vals.map((_, i) => P(i + 1)).join(',');
     await db.run(`INSERT INTO close_opportunities (${cols}) VALUES (${ph}) ON CONFLICT (id) DO UPDATE SET ${upd}`, vals);
   }
-  return { gesamt: rows.length };
+  return { gesamt: rows.length, ids: rows.map(o => o.id) };
 }
 
 // ── (3) Close-User -> employee ───────────────────────────────────────────────
@@ -199,19 +199,29 @@ async function syncUserMap({ log = () => {} } = {}) {
 }
 
 // ── (4) termine ableiten (ueber status_id, inkl. Anlage-Termine) ─────────────
-async function deriveTermine({ log = () => {} } = {}) {
+// oppIds (optional): nur diese Opportunities neu ableiten — fuer den Minuten-Abgleich
+// (syncDelta). Dieselbe Ableitung wie im Volllauf, nur auf weniger Zeilen; das Aufraeumen am Ende
+// beschraenkt sich dann auf genau diese Opportunities. Ohne oppIds: alles wie bisher.
+async function deriveTermine({ log = () => {}, oppIds = null } = {}) {
   // Untergrenze: Opportunities, die VOR dem Backfill-Start angelegt wurden, haben eine
   // Statushistorie, die wir nicht gespiegelt haben — ihr Ausgang saehe faelschlich "offen" aus.
   // Solche Termine gehoeren nicht in die Auswertung.
   const AB = process.env.CLOSE_BACKFILL_AB || '2026-06-01';
+  const teil = Array.isArray(oppIds);
+  if (teil && !oppIds.length) return { abgeleitet: 0, ausAnlage: 0, ausWechsel: 0, unbekannteStatus: [] };
+  const inListe = (spalte, werte, start = 1) =>
+    `${spalte} IN (${werte.map((_, i) => P(start + i)).join(',')})`;
   const opps = await db.all(
     `SELECT id, lead_id, status_id, user_id, user_name, created_by, created_by_name, date_created
-       FROM close_opportunities`);
+       FROM close_opportunities${teil ? ` WHERE ${inListe('id', oppIds)}` : ''}`, teil ? oppIds : []);
   const evs = await db.all(
     `SELECT id, opportunity_id, lead_id, old_status_id, new_status_id, new_status_label, close_user_id, close_user_name, date_created
-       FROM close_status_events WHERE typ='opportunity' ORDER BY opportunity_id, date_created, id`);
-  const leadEv = await db.all(
-    `SELECT lead_id, new_status_label, date_created FROM close_status_events WHERE typ='lead' ORDER BY lead_id, date_created`);
+       FROM close_status_events WHERE typ='opportunity'${teil ? ` AND ${inListe('opportunity_id', oppIds)}` : ''}
+      ORDER BY opportunity_id, date_created, id`, teil ? oppIds : []);
+  const leadIds = teil ? [...new Set(opps.map(o => o.lead_id).filter(Boolean))] : null;
+  const leadEv = teil && !leadIds.length ? [] : await db.all(
+    `SELECT lead_id, new_status_label, date_created FROM close_status_events WHERE typ='lead'${teil ? ` AND ${inListe('lead_id', leadIds)}` : ''}
+      ORDER BY lead_id, date_created`, teil ? leadIds : []);
 
   const kanaele = {};
   for (const e of leadEv) {
@@ -314,7 +324,11 @@ async function deriveTermine({ log = () => {} } = {}) {
       nWechsel++;
     }
   }
-  await db.run(`DELETE FROM termine WHERE berechnet_am < ${P(1)}`, [runTs]);
+  if (teil) {
+    await db.run(`DELETE FROM termine WHERE berechnet_am < ${P(1)} AND ${inListe('close_opportunity_id', oppIds, 2)}`, [runTs, ...oppIds]);
+  } else {
+    await db.run(`DELETE FROM termine WHERE berechnet_am < ${P(1)}`, [runTs]);
+  }
   const u = Object.keys(unbekannt).length;
   log(`  termine: ${nAnlage + nWechsel} (${nAnlage} aus Anlage, ${nWechsel} aus Statuswechsel)${u ? ` · ⚠️ ${u} unbekannte Status` : ''}`);
   return { abgeleitet: nAnlage + nWechsel, ausAnlage: nAnlage, ausWechsel: nWechsel, unbekannteStatus: Object.keys(unbekannt) };
@@ -332,5 +346,56 @@ async function runSync({ since, log = console.log } = {}) {
   return { events, opportunities, map, termine, dauerSek: Number(dauer) };
 }
 
-module.exports = { runSync, syncStatusEvents, syncOpportunities, syncUserMap, deriveTermine,
+// ── Minuten-Abgleich fuer das Live-Board ─────────────────────────────────────
+// Der Volllauf holt jedes Mal 7 Tage Ueberlappung und leitet ALLE termine neu ab (~15 s). Tagsueber
+// reicht das Delta: Events und Opportunities seit dem letzten gespiegelten Zeitstempel (minus
+// UEBERLAPPUNG_MIN als Sicherheitsrand gegen Uhrzeit-Versatz und spaet sichtbare Close-Eintraege),
+// dann nur die betroffenen Opportunities neu ableiten. Der naechtliche Volllauf bleibt das Netz,
+// das alles wieder glattzieht. User-Mapping laeuft hier bewusst NICHT mit (neuer Close-User: bis
+// zum naechsten Volllauf ohne employee_id). READ-ONLY gegenueber Close wie alles hier.
+const UEBERLAPPUNG_MIN = 10;
+async function deltaStart(sql) {
+  const r = await db.get(sql);
+  if (!r || !r.m) return null;
+  const d = new Date(r.m);
+  if (isNaN(d.getTime())) return null;
+  return new Date(d.getTime() - UEBERLAPPUNG_MIN * 60_000).toISOString();
+}
+async function syncDelta({ log = () => {} } = {}) {
+  const t0 = Date.now();
+  const evVon  = await deltaStart(`SELECT MAX(date_created) m FROM close_status_events`);
+  const oppVon = await deltaStart(`SELECT MAX(date_updated) m FROM close_opportunities`);
+  // Leere Spiegel -> kein Delta moeglich; das ist Aufgabe des Volllaufs (Backfill).
+  if (!evVon || !oppVon) return { uebersprungen: 'kein_spiegel' };
+  const betroffen = new Set();
+  let nEv = 0;
+  for (const [typ, pfad] of [['opportunity', '/activity/status_change/opportunity/'],
+                             ['lead', '/activity/status_change/lead/']]) {
+    const rows = await close.getAll(pfad, { date_created__gte: evVon }, { max: 5000, limit: 100 });
+    const cols = 'id,typ,lead_id,opportunity_id,old_status_label,new_status_label,new_status_type,pipeline_name,close_user_id,close_user_name,date_created,old_status_id,new_status_id';
+    const upd = `old_status_label=EXCLUDED.old_status_label, new_status_label=EXCLUDED.new_status_label,
+                 old_status_id=EXCLUDED.old_status_id, new_status_id=EXCLUDED.new_status_id`;
+    for (const e of rows) {
+      const vals = [e.id, typ, e.lead_id ?? null, e.opportunity_id ?? null,
+        e.old_status_label ?? null, e.new_status_label ?? null, e.new_status_type ?? null,
+        e.new_pipeline_name ?? null, e.user_id ?? null, e.user_name ?? null, e.date_created,
+        e.old_status_id ?? null, e.new_status_id ?? null];
+      await db.run(`INSERT INTO close_status_events (${cols}) VALUES (${vals.map((_, i) => P(i + 1)).join(',')}) ON CONFLICT (id) DO UPDATE SET ${upd}`, vals);
+      if (typ === 'opportunity' && e.opportunity_id) betroffen.add(e.opportunity_id);
+      // Lead-Events aendern die Quelle (Kanal) der Termine aller Opportunities dieses Leads.
+      if (typ === 'lead' && e.lead_id) {
+        for (const o of await db.all(`SELECT id FROM close_opportunities WHERE lead_id=${P(1)}`, [e.lead_id])) betroffen.add(o.id);
+      }
+    }
+    nEv += rows.length;
+  }
+  const o = await syncOpportunities({ since: oppVon, log: () => {} });
+  for (const id of o.ids || []) betroffen.add(id);
+  const termine = await deriveTermine({ oppIds: [...betroffen], log: () => {} });
+  const dauerSek = Number(((Date.now() - t0) / 1000).toFixed(1));
+  if (betroffen.size) log(`[close-delta] ${nEv} Events, ${o.gesamt} Opportunities, ${betroffen.size} neu abgeleitet in ${dauerSek}s`);
+  return { events: nEv, opportunities: o.gesamt, neuAbgeleitet: betroffen.size, termine: termine.abgeleitet, dauerSek };
+}
+
+module.exports = { runSync, syncDelta, syncStatusEvents, syncOpportunities, syncUserMap, deriveTermine,
   S, GELEGT, NEGATIV, POSITIV, UNKLAR, BEKANNT, kanalAus };

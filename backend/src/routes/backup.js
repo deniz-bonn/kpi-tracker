@@ -47,6 +47,10 @@ const TABLES = [
   // haengt eine Reise-Entscheidung, und ein neu gerechneter Wert waere kein Freeze mehr.
   'incentive_ziele',
   'incentive_monatswerte',
+  // ── Live-Board: Mitarbeiterfotos und Tagesziele je Person (Migration 117) ──
+  // Beide haengen nur an employees. Fotos sind ~30 KB je Person (256 px), also kein Gewicht.
+  'employee_fotos',
+  'board_ziele',
   // Aenderungshistorie — inzwischen Beweismittel (Monatsdifferenzen, Mitarbeiter-Dubletten,
   // Provisions-Rueckfragen). Ein Restore ohne sie waere ein Informationsverlust, der erst im
   // Ernstfall auffaellt. Bewusst als LETZTE Tabelle: sie referenziert nur users.

@@ -223,6 +223,23 @@ async function ladeCsv(url) {
 }
 
 // API-Tokens fuer die externe Schnittstelle (nur Superadmin). create liefert das Token EINMAL.
+// Live-Board: Display-Sitzungen + Tagesziele (die Board-Daten selbst holt pages/Board.jsx mit
+// eigenem Token, ohne den 401-Redirect dieses Clients).
+export const boardApi = {
+  sessions:   ()           => api.get('/board/sessions').then(r => r.data),
+  oeffnen:    (name)       => api.post('/board/sessions', { name }).then(r => r.data),
+  widerrufen: (id)         => api.post(`/board/sessions/${id}/widerrufen`).then(r => r.data),
+  ziele:      ()           => api.get('/board/ziele').then(r => r.data),
+  zieleSetzen:(empId, data)=> api.put(`/board/ziele/${empId}`, data).then(r => r.data),
+};
+
+export const fotoApi = {
+  stand:    ()          => api.get('/employees/fotos').then(r => r.data),
+  laden:    (id)        => api.get(`/employees/${id}/foto`, { responseType: 'blob' }).then(r => r.data),
+  hochladen:(id, blob)  => api.put(`/employees/${id}/foto`, blob, { headers: { 'Content-Type': blob.type } }).then(r => r.data),
+  loeschen: (id)        => api.delete(`/employees/${id}/foto`).then(r => r.data),
+};
+
 export const apiTokensApi = {
   list:      ()     => api.get('/api-tokens').then(r => r.data),
   create:    (data) => api.post('/api-tokens', data).then(r => r.data),

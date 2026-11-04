@@ -66,6 +66,8 @@ app.use('/api/export',         require('./routes/export'));      // requireAuth 
 app.use('/api/api-tokens',     require('./routes/api_tokens'));  // requireAuth + Superadmin inside
 // Externe API fuer Skripte: Token statt Session (middleware/apiToken.js), Doku in docs/api-ext.md
 app.use('/api/ext/v1',         require('./routes/ext_v1'));
+// Live-Board (/board): Session mit Feature 'live_board' ODER Display-Token (Scope board:read) — Zugang in routes/board.js
+app.use('/api/board',          require('./routes/board'));
 const { router: backupRouter, generateBackup, storeAutoBackup } = require('./routes/backup');
 const cron = require('node-cron');
 app.use('/api/backup',         backupRouter);                   // requireAuth + requireRole inside
@@ -195,6 +197,14 @@ cron.schedule('15 1 * * *', async () => {
   const job = require('./utils/closeSyncJob');
   const r = await job.starten({ ausgeloestVon: 'cron', cooldownUmgehen: true });
   if (!r.ok) console.warn('[close-sync] Nightly uebersprungen:', r.grund);
+}, { timezone: 'Europe/Berlin' });
+
+// Live-Board: Minuten-Abgleich mit Close, Mo–Fr 07:00–18:59 Berlin. Holt nur das Delta seit dem
+// letzten gespiegelten Stand und leitet nur die betroffenen Opportunities neu ab (~1 s); der
+// Nightly oben bleibt der Volllauf. Ohne CLOSE_API_KEY inaktiv. CLOSE_DELTA_AUS=1 schaltet ab.
+cron.schedule('* 7-18 * * 1-5', async () => {
+  if (!process.env.CLOSE_API_KEY || process.env.CLOSE_DELTA_AUS === '1') return;
+  await require('./utils/closeSyncJob').deltaLaufen({ log: console.log });
 }, { timezone: 'Europe/Berlin' });
 
 // ── Serve built React frontend (production / Railway) ────────────────────────

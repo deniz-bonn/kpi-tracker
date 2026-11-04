@@ -9,7 +9,7 @@
 // Doppel-Klicks und gegen "zwei Leute gleichzeitig"; er ist KEIN verteiltes Lock. Skaliert die App
 // je auf mehrere Instanzen, muss der Lock in die DB wandern — der Kommentar bleibt als Marker.
 const db = require('../db');
-const { runSync } = require('./closeSync');
+const { runSync, syncDelta } = require('./closeSync');
 
 const COOLDOWN_MIN   = Number(process.env.CLOSE_SYNC_COOLDOWN_MIN || 10);
 // Ein Lauf, der laenger als das braucht, gilt als abgestuerzt (Prozess-Neustart mitten im Sync).
@@ -58,6 +58,7 @@ async function starten({ since = null, ausgeloestVon = 'manuell', user = null, c
   if (aktiv) {
     return { ok: false, grund: 'laeuft', runId: aktiv.runId, gestartetAm: aktiv.gestartetAm };
   }
+
   if (!cooldownUmgehen) {
     const rest = await cooldownRest();
     if (rest > 0) {
@@ -67,22 +68,33 @@ async function starten({ since = null, ausgeloestVon = 'manuell', user = null, c
   }
 
   const userName = user?.name || user?.email || null;
+  // Platzhalter SOFORT setzen (vor jedem await): ab hier startet kein Minuten-Abgleich mehr und
+  // kein zweiter Volllauf. Ein bereits laufender Abgleich muss fertig sein, BEVOR der Volllauf
+  // ableitet — der Volllauf loescht am Ende jede termine-Zeile mit aelterem berechnet_am, und ein
+  // parallel schreibendes Delta koennte frisch abgeleitete Zeilen mit altem Zeitstempel ueberschreiben.
+  aktiv = { runId: null, gestartetAm: new Date().toISOString(), ausgeloestVon, userName, schritte: [] };
+  if (deltaLauf) await deltaLauf.catch(() => {});
   const werte = [ausgeloestVon, user?.id ?? null, userName, since];
   const spalten = 'gestartet_am, ausgeloest_von, user_id, user_name, status, since';
   let runId;
-  if (db.dialect === 'postgres') {
-    const row = await db.get(
-      `INSERT INTO close_sync_runs (${spalten}) VALUES (NOW(), $1, $2, $3, 'laeuft', $4) RETURNING id`, werte);
-    runId = row.id;
-  } else {
-    // SQLite-Pfad wie ueberall im Repo: kein RETURNING, id aus lastInsertRowid.
-    const r = db.run(
-      `INSERT INTO close_sync_runs (${spalten}) VALUES (datetime('now'), ?, ?, ?, 'laeuft', ?)`, werte);
-    runId = r.lastInsertRowid;
+  try {
+    if (db.dialect === 'postgres') {
+      const row = await db.get(
+        `INSERT INTO close_sync_runs (${spalten}) VALUES (NOW(), $1, $2, $3, 'laeuft', $4) RETURNING id`, werte);
+      runId = row.id;
+    } else {
+      // SQLite-Pfad wie ueberall im Repo: kein RETURNING, id aus lastInsertRowid.
+      const r = db.run(
+        `INSERT INTO close_sync_runs (${spalten}) VALUES (datetime('now'), ?, ?, ?, 'laeuft', ?)`, werte);
+      runId = r.lastInsertRowid;
+    }
+  } catch (e) {
+    aktiv = null;   // Platzhalter freigeben, sonst blockiert er jeden weiteren Lauf
+    throw e;
   }
 
-  const gestartetAm = new Date().toISOString();
-  aktiv = { runId, gestartetAm, ausgeloestVon, userName, schritte: [] };
+  const gestartetAm = aktiv.gestartetAm;
+  aktiv.runId = runId;
 
   // Bewusst NICHT awaited: der Aufrufer antwortet sofort mit 202.
   (async () => {
@@ -128,6 +140,28 @@ async function starten({ since = null, ausgeloestVon = 'manuell', user = null, c
   return { ok: true, runId, gestartetAm };
 }
 
+// ── Minuten-Abgleich (Live-Board) ────────────────────────────────────────────
+// Bewusst OHNE Eintrag in close_sync_runs: 700 Zeilen am Tag wuerden das Lauf-Protokoll der
+// Show-Rate-Seite unlesbar machen. Der letzte Stand liegt im Speicher und geht ans Board.
+let deltaLauf = null;          // Promise des laufenden Deltas (null = keiner)
+let deltaLetzter = null;       // { am, ok, fehler?, ...ergebnis }
+async function deltaLaufen({ log = console.log } = {}) {
+  if (aktiv || deltaLauf) return { ok: false, grund: aktiv ? 'volllauf' : 'laeuft' };
+  deltaLauf = syncDelta({ log });
+  try {
+    const r = await deltaLauf;
+    deltaLetzter = { am: new Date().toISOString(), ok: true, ...r };
+    return { ok: true, ...r };
+  } catch (e) {
+    deltaLetzter = { am: new Date().toISOString(), ok: false, fehler: String(e.message).slice(0, 300) };
+    console.error('[close-delta] Fehlgeschlagen:', e.message);
+    return { ok: false, grund: 'fehler', fehler: e.message };
+  } finally {
+    deltaLauf = null;
+  }
+}
+const deltaStand = () => deltaLetzter;
+
 /** Aktueller Zustand fuer das Polling der UI. */
 async function status({ historie = 10 } = {}) {
   const laufend = aktiv
@@ -150,4 +184,4 @@ async function status({ historie = 10 } = {}) {
   };
 }
 
-module.exports = { starten, status, aufraeumen, cooldownRest, letzterErfolg, COOLDOWN_MIN };
+module.exports = { starten, status, aufraeumen, cooldownRest, letzterErfolg, COOLDOWN_MIN, deltaLaufen, deltaStand };

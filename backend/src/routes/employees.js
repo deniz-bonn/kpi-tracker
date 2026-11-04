@@ -183,4 +183,63 @@ router.patch('/:id', requireVerwaltung('mitarbeiter'), wrap(async (req, res) => 
   }
 }));
 
+// ── Foto (Live-Board) ─────────────────────────────────────────────────────────────────────────
+// Der Browser schneidet quadratisch zu und verkleinert auf 256 px; hier wird nur noch geprueft.
+// Rohes Bild als Body (Content-Type image/*) statt JSON — umgeht das 100-KB-Limit von express.json
+// gezielt fuer diese eine Route, mit eigener Grenze von 500 KB.
+const FOTO_MAX = 500 * 1024;
+const FOTO_TYPEN = ['image/jpeg', 'image/png', 'image/webp'];
+const ph1 = () => (db.dialect === 'postgres' ? '$1' : '?');
+
+// Wer Mitarbeiter verwalten darf, darf auch das Foto setzen — mit Standort-Scope nur am eigenen Standort.
+async function fotoRecht(req, res) {
+  const z = req.verwaltung;
+  const emp = await db.get(`SELECT id, name, standort FROM employees WHERE id=${ph1()}`, [Number(req.params.id)]);
+  if (!emp) { res.status(404).json({ error: 'Mitarbeiter nicht gefunden' }); return null; }
+  if (z.scope === 'standort' && emp.standort !== z.standort) { res.status(403).json({ error: 'Nur Mitarbeiter des eigenen Standorts' }); return null; }
+  return emp;
+}
+
+// Welche Mitarbeiter haben ein Foto (und seit wann)? Fuer die Mitarbeiter-Seite.
+router.get('/fotos', wrap(async (_req, res) => {
+  res.json(await db.all(`SELECT employee_id, bytes, updated_at FROM employee_fotos`));
+}));
+
+router.get('/:id/foto', wrap(async (req, res) => {
+  const f = await db.get(`SELECT mime, daten FROM employee_fotos WHERE employee_id=${ph1()}`, [Number(req.params.id)]);
+  if (!f) return res.status(404).json({ error: 'Kein Foto' });
+  res.set('Content-Type', f.mime);
+  res.set('Cache-Control', 'private, max-age=300');
+  res.send(Buffer.from(f.daten, 'base64'));
+}));
+
+router.put('/:id/foto', requireVerwaltung('mitarbeiter'),
+  require('express').raw({ type: FOTO_TYPEN, limit: FOTO_MAX }),
+  wrap(async (req, res) => {
+    const emp = await fotoRecht(req, res); if (!emp) return;
+    const mime = String(req.headers['content-type'] || '').split(';')[0].trim();
+    if (!FOTO_TYPEN.includes(mime) || !Buffer.isBuffer(req.body) || !req.body.length) {
+      return res.status(400).json({ error: 'Bitte ein Bild (JPEG, PNG oder WebP) senden' });
+    }
+    if (req.body.length > FOTO_MAX) return res.status(413).json({ error: 'Bild größer als 500 KB' });
+    const daten = req.body.toString('base64');
+    const werte = [emp.id, mime, daten, req.body.length, req.user?.id ?? null];
+    if (db.dialect === 'postgres') {
+      await db.run(`INSERT INTO employee_fotos (employee_id, mime, daten, bytes, updated_at, updated_by) VALUES ($1,$2,$3,$4,NOW(),$5)
+        ON CONFLICT (employee_id) DO UPDATE SET mime=EXCLUDED.mime, daten=EXCLUDED.daten, bytes=EXCLUDED.bytes, updated_at=NOW(), updated_by=EXCLUDED.updated_by`, werte);
+    } else {
+      await db.run(`INSERT INTO employee_fotos (employee_id, mime, daten, bytes, updated_at, updated_by) VALUES (?,?,?,?,datetime('now'),?)
+        ON CONFLICT (employee_id) DO UPDATE SET mime=excluded.mime, daten=excluded.daten, bytes=excluded.bytes, updated_at=datetime('now'), updated_by=excluded.updated_by`, werte);
+    }
+    await logAudit({ user: req.user, action: 'update', entityType: 'employee_foto', entityId: emp.id, newData: { mime, bytes: req.body.length } });
+    res.json({ ok: true, bytes: req.body.length });
+  }));
+
+router.delete('/:id/foto', requireVerwaltung('mitarbeiter'), wrap(async (req, res) => {
+  const emp = await fotoRecht(req, res); if (!emp) return;
+  await db.run(`DELETE FROM employee_fotos WHERE employee_id=${ph1()}`, [emp.id]);
+  await logAudit({ user: req.user, action: 'delete', entityType: 'employee_foto', entityId: emp.id });
+  res.json({ ok: true });
+}));
+
 module.exports = router;

@@ -12,6 +12,8 @@ const validRoles    = ['admin', 'vertriebsleitung', 'backoffice', 'bk_vertrieb',
 // Bekannte, steuerbare Features (Sync mit CONTROLLED_FEATURES im Frontend). Einzel-
 // Freischaltungen sind nur für diese Keys erlaubt.
 const KNOWN_FEATURES = ['kpi_beta', 'bestenliste', 'provisionen', 'backup', 'show_rates_close',
+  // Live-Board (/board): ansehen + Display-Sitzungen oeffnen; Tagesziele pflegen (routes/board.js).
+  'live_board', 'live_board_ziele',
   'mein_dashboard', 'mein_dashboard_kontrolle',
   'meine_provision', 'meine_provision_kontrolle',
   'kontrolle_alle_mitarbeiter',

@@ -142,6 +142,9 @@ export function AuthProvider({ children }) {
   // Delegierbare Verwaltung: Menuepunkte und Formulare; die Leitplanken setzt der Server durch.
   const canManageEmployees = isSuperAdmin || !!verwaltung?.mitarbeiter;
   const canManageUsers     = isSuperAdmin || !!verwaltung?.benutzer;
+  // Live-Board: ansehen/Display oeffnen ('live_board'), Tagesziele pflegen ('live_board_ziele').
+  const canSeeLiveBoard       = hat('live_board');
+  const canPflegeBoardZiele   = hat('live_board_ziele');
 
   return (
     <AuthContext.Provider value={{
@@ -153,6 +156,7 @@ export function AuthProvider({ children }) {
       canSeeMeinDashboard, canSeeMeinDashboardKontrolle,
       canSeeMeineProvision, canSeeMeineProvisionKontrolle,
       canManageEmployees, canManageUsers, verwaltung,
+      canSeeLiveBoard, canPflegeBoardZiele,
       featureFlags, featureFlagsGeladen, userFeatures, refreshFeatureFlags,
     }}>
       {children}

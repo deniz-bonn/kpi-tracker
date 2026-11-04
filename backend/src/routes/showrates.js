@@ -37,10 +37,8 @@ const NOW = () => pg() ? 'NOW()' : `datetime('now')`;
 // eine Aussage ueber die selbst gewaehlte Teilmenge der gepflegten Termine.
 // (Frueher wurde hierfuer die Opportunity-Abdeckung gegen die Lead-Ebene benutzt — untauglich,
 //  seit fuer nahezu jeden Termin eine Opportunity existiert; die Kennzahl ueberschritt 100 %.)
-const MIN_BEWERTET = 50;     // Prozent der gelegten Termine mit Ausgang
-const MIN_BASIS    = 10;     // und mindestens 10 bewertbare Termine im Monat
-
-const quote = (ja, nein) => (ja + nein) > 0 ? Number((ja / (ja + nein) * 100).toFixed(1)) : null;
+// Schwellen und Quote liegen in utils/showrateRegeln.js (geteilt mit dem Live-Board).
+const { MIN_BEWERTET, MIN_BASIS, quote } = require('../utils/showrateRegeln');
 const leer = () => ({ gelegt: 0, stattgefunden: 0, nicht_stattgefunden: 0, offen: 0, unklar: 0,
   verschoben: 0, basis: 0, gepflegt: 0, rate: null });
 function fasse(rows) {

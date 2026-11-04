@@ -9,7 +9,7 @@ function fmtBetrag(betrag, currency) {
   return currency === 'CHF' ? `+${n} CHF` : `+${n} €`;
 }
 
-const reducedMotion = () =>
+export const reducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia
     ? window.matchMedia('(prefers-reduced-motion: reduce)').matches : false;
 
@@ -26,7 +26,8 @@ export function celebrateWin({ kunde, betrag, currency = 'EUR' }) {
   window.dispatchEvent(new CustomEvent('deal-won', { detail: { kunde, betrag, currency } }));
 }
 
-function fireConfetti(canvas) {
+// Exportiert fuer das Live-Board (pages/Board.jsx): derselbe Effekt auf dem TV.
+export function fireConfetti(canvas) {
   const ctx = canvas.getContext('2d');
   const dpr = window.devicePixelRatio || 1;
   const W = (canvas.width = window.innerWidth * dpr);

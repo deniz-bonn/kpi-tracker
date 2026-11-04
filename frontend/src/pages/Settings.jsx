@@ -34,6 +34,8 @@ const CONTROLLED_FEATURES = [
   { key: 'kontrolle_alle_mitarbeiter', label: 'Kontroll-Sicht: alle Mitarbeiter', desc: 'Erweitert BEIDE Kontroll-Sichten auf alle Mitarbeiter mit NK-Beteiligung oder Incentive-Ziel — auch ohne Nutzerkonto. Ohne dieses Flag sieht ein Kontrolleur nur die freigeschalteten Personen. Superadmin immer.' },
   { key: 'mein_dashboard_kontrolle', label: 'Mein Dashboard — Kontroll-Sicht', desc: 'Team-Überblick und „Aus der Sicht von …": öffnet Provisions- und Incentive-Daten ANDERER freigeschalteter Personen. Superadmin immer.' },
   { key: 'backup',   label: 'Datensicherung',       desc: 'Backup-Export und automatische Datensicherung herunterladen' },
+  { key: 'live_board', label: 'Live-Board (TV)', desc: 'Wettbewerbs-Dashboard für den Bildschirm (Bonn NK, /board): ansehen und per „Jetzt Dashboard öffnen“ eine Display-Sitzung für einen Bildschirm starten. Entzug des Chips schaltet auch die Bildschirme dieser Person ab.' },
+  { key: 'live_board_ziele', label: 'Live-Board — Tagesziele pflegen', desc: 'Tages- und Monatsziele je Person für das Live-Board eintragen (Menü „Live-Board“). Superadmin immer.' },
   // Delegierbare Verwaltung (Backend: utils/verwaltung.js). Chips wahlweise "nur eigener Standort"
   // -> Feature '<key>_eigener_standort'; Rollen-Haken gelten immer fuer alle Standorte.
   { key: 'mitarbeiter_verwaltung', label: 'Mitarbeiter verwalten', standortScope: true,

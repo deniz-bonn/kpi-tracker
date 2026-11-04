@@ -23,6 +23,8 @@ import Provisionen from './pages/Provisionen';
 import Auswertung from './pages/Auswertung';
 import ShowRates from './pages/ShowRates';
 import Settings from './pages/Settings';
+import Board from './pages/Board';
+import LiveBoardAdmin from './pages/LiveBoardAdmin';
 
 const ROLES = {
   nkAndAbove: ['admin', 'nk_vertrieb', 'bk_vertrieb', 'backoffice', 'vertriebsleitung'],
@@ -33,13 +35,16 @@ const ROLES = {
 // Inner component so useAuth() works (AuthProvider wraps it)
 function AppRoutes() {
   const { canSeeKpiBeta, canSeeBestenliste, canSeeProvisionen, canSeeProvisionenAdmin, canSeeShowRates,
-          canSeeMeinDashboard, canSeeMeineProvision, canManageEmployees } = useAuth();
+          canSeeMeinDashboard, canSeeMeineProvision, canManageEmployees, canSeeLiveBoard, canPflegeBoardZiele } = useAuth();
 
   return (
     <Routes>
       {/* Public */}
       <Route path="/login"        element={<Login />} />
       <Route path="/set-password" element={<SetPassword />} />
+      {/* Live-Board: Vollbild ohne Layout. Meldet sich selbst an (Display-Sitzung oder Login),
+          deshalb ausserhalb von ProtectedRoute — der Server prueft jeden Abruf. */}
+      <Route path="/board"        element={<Board />} />
 
       {/* Protected */}
       <Route path="/" element={
@@ -128,6 +133,11 @@ function AppRoutes() {
         <Route path="mitarbeiter" element={
           <ProtectedRoute canAccess={canManageEmployees}>
             <Employees />
+          </ProtectedRoute>
+        } />
+        <Route path="live-board" element={
+          <ProtectedRoute canAccess={canSeeLiveBoard || canPflegeBoardZiele}>
+            <LiveBoardAdmin />
           </ProtectedRoute>
         } />
         <Route path="einstellungen" element={<Settings />} />
