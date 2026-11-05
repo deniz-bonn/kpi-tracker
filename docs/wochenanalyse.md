@@ -18,7 +18,7 @@ Cron läuft auf Railway automatisch (`DATABASE_URL` gesetzt). Lokal aus; mit `AN
 
 ## Versand
 
-- Modus steht in `analyse_settings.versand_modus`: `test` (Standard, nur d.akpinar@hioffice.com) oder `live` (die drei Empfänger aus `team.json`).
+- Modus steht in `analyse_settings.versand_modus`: `test` (Standard, nur an `versand.empfaenger_test`, derzeit deniz@fach-digital.de, solange Resend keine verifizierte Domain hat) oder `live` (die drei Empfänger aus `team.json`).
 - Umschalten nur durch Superadmin: `PUT /api/admin/analyse/versand-modus {"modus":"live"}` (Audit-Log).
 - Betreff `Vertriebsanalyse Bonn KW xx`; Mailtext ohne Kundennamen; Anhänge `Verbleib_Bonn_KWxx.xlsx` (mit Firma) und `Codierungen_Bonn_KWxx.xlsx`.
 - Mailanbieter wie der Rest der App: `RESEND_API_KEY` (bevorzugt) oder `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS`, Absender `SMTP_FROM`. Fehlt beides, bricht der Report mit Fehlermail ab statt still „gesendet“ zu melden.

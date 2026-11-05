@@ -64,7 +64,7 @@ function html(d, texte) {
   s += `<h1 style="font-size:22px;margin:0 0 4px 0">Vertriebsanalyse Bonn KW ${Zr.woche.kw}</h1>`;
   s += `<p style="margin:0 0 10px 0;color:#555">Woche ${de(Zr.woche.von)}–${de(Zr.woche.bis)}${Zr.woche.bis.slice(0, 4)} (Sa–Fr) · Monat ${de(Zr.monat.von)}–${de(Zr.monat.bis)} · Vergleich: Vorwoche ${de(Zr.vorwoche.von)}–${de(Zr.vorwoche.bis)} und Oktober-Basis (01.10.–03.11.). Codiert: ${d.codierung.woche} Gespräche in der Woche, ${d.codierung.monat} im Monat.</p>`;
   if (d.codierung.nichtVollstaendig) s += `<p style="background:#fff4d6;border:1px solid #e0b84c;padding:6px 10px"><b>Nicht vollständig:</b> ${d.codierung.nichtCodiertWoche} Aufnahmen der Woche waren bis zum Versand noch nicht codiert. Sie werden nachts nachgeholt und erscheinen im Vorwochen-Vergleich des nächsten Reports.</p>`;
-  if (texte.modus === 'test') s += `<p style="background:#e8f1fb;border:1px solid #8bb3e0;padding:6px 10px"><b>Testlauf</b> — nur an d.akpinar@hioffice.com.</p>`;
+  if (texte.modus === 'test') s += `<p style="background:#e8f1fb;border:1px solid #8bb3e0;padding:6px 10px"><b>Testlauf</b> — nur an ${esc(TEAM.versand.empfaenger_test.join(', '))}.</p>`;
 
   s += h2('Team');
   const si = (x) => x.zeilen.map(z => [esc(z.label), z.label.includes('EUR') ? fmtE(z.ist) : fmtZ(z.ist), z.soll == null ? '–' : (z.label.includes('EUR') ? fmtE(z.soll) : fmtZ(z.soll)),

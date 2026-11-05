@@ -185,12 +185,13 @@
       "m.scheller@hioffice.com"
     ],
     "empfaenger_test": [
-      "d.akpinar@hioffice.com"
+      "deniz@fach-digital.de"
     ],
     "fehler_an": [
-      "d.akpinar@hioffice.com"
+      "deniz@fach-digital.de"
     ],
-    "betreff": "Vertriebsanalyse Bonn KW {kw}"
+    "betreff": "Vertriebsanalyse Bonn KW {kw}",
+    "_hinweis_resend": "Resend ist noch im Testmodus (keine verifizierte Domain) und stellt nur an deniz@fach-digital.de zu. Nach Verifizierung einer Domain: Test/Fehler wieder an d.akpinar@hioffice.com, SMTP_FROM auf die verifizierte Domain."
   },
   "_hinweis_sprecher": "Sprecher-Muster nur ueber Nachnamen (wie Oktober): Vornamen allein koennten Kunden treffen."
 }
