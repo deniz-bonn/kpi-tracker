@@ -35,7 +35,7 @@ async function berechne({ stichtag = heute(), speichern = true, log = () => {} }
   // Kandidaten: Opportunities mit Setting/Closing-Termin, an denen einer der acht beteiligt ist, Status offen
   const opps = await db.all(
     `SELECT DISTINCT o.* FROM close_opportunities o JOIN termine t ON t.close_opportunity_id = o.id
-      WHERE o.status_id IN (${PH(OFFEN_D.size)})`, [...OFFEN_D]);
+      WHERE o.status_id IN (${PH(OFFEN_D.size)}) AND o.geloescht_am IS NULL`, [...OFFEN_D]);
   const kand = opps.filter(o => [o.user_id, o.setter_user_id, o.closer_user_id].some(u => acht.has(u)));
   const leadIds = [...new Set(kand.map(o => o.lead_id).filter(Boolean))];
   log(`  Verbleib: ${kand.length} offene Opportunities der acht mit Termin (${leadIds.length} Leads)`);

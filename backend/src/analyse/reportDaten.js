@@ -184,10 +184,25 @@ async function verpassteChancen(rows, gewonnen, { beispiele = 3 } = {}) {
       try { const l = await close.get(`/lead/${id}/`, { _fields: 'id,display_name' }); lead[id] = { ...(lead[id] || {}), lead_id: id, lead_name: l.display_name }; } catch { /* bleibt ohne Namen */ }
     }
   }
+  // Letzter Ausweg bei Fireflies-Calls (Opportunity und Lead in Close geloescht/zusammengefuehrt): Firma aus dem
+  // Meeting-Titel ("HiOffice Cloud | Firma"), sonst die Mail-Domain des Kunden. Die Aufnahme bleibt per Link erreichbar.
+  const ffFirma = {};
+  const ffOhne = b.filter(c => c.quelle === 'fireflies' && !((opp[c.close_opportunity_id] || {}).lead_name || (lead[c.close_lead_id] || {}).lead_name));
+  if (ffOhne.length && process.env.FIREFLIES_API_KEY) {
+    const ff = require('./fireflies');
+    for (const c of ffOhne.slice(0, 20)) {
+      try {
+        const r = await ff.gql(`query($id:String!){ transcript(id:$id){ title participants meeting_attendees{ email } } }`, { id: c.quell_id });
+        const m = r.transcript || {};
+        const k = ff.klassifiziere({ ...m, host_email: '' });
+        ffFirma[c.quell_id] = k.titelFirma && k.titelFirma.trim() ? k.titelFirma.trim() : (k.extDomains[0] ? `${k.extDomains[0]} (Lead in Close gelöscht)` : null);
+      } catch { /* bleibt ohne Firma */ }
+    }
+  }
   const beispiel = (c, warum) => {
     const o1 = opp[c.close_opportunity_id] || {}, o2 = lead[c.close_lead_id] || {};
     const o = { ...o2, ...Object.fromEntries(Object.entries(o1).filter(([, v]) => v != null)) };
-    return { datum: c.call_datum, mitarbeiter: vorname(c), firma: o.lead_name || '(Firma unbekannt)', wert: o.value != null ? Number(o.value) : null,
+    return { datum: c.call_datum, mitarbeiter: vorname(c), firma: o.lead_name || ffFirma[c.quell_id] || '(Firma unbekannt)', wert: o.value != null ? Number(o.value) : null,
       waehrung: o.value_currency || 'EUR', link: linkVon({ ...c, close_lead_id: c.close_lead_id || o.lead_id }), was: c.einzeiler || '', warum };
   };
   const jePerson = (liste, verpasst) => {

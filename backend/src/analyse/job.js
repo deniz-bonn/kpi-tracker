@@ -108,7 +108,7 @@ async function oppBackfill(log) {
 async function oppLuecken(log) {
   const close = require('../utils/closeClient');
   const { P: Pp } = require('./basis');
-  const ids = (await db.all(`SELECT o.id FROM close_opportunities o WHERE o.lead_name IS NULL AND (
+  const ids = (await db.all(`SELECT o.id FROM close_opportunities o WHERE o.lead_name IS NULL AND o.geloescht_am IS NULL AND (
       EXISTS (SELECT 1 FROM termine t WHERE t.close_opportunity_id = o.id) OR EXISTS (SELECT 1 FROM call_codings c WHERE c.close_opportunity_id = o.id))
       LIMIT 400`)).map(r => r.id);
   if (!ids.length) return;
@@ -119,9 +119,13 @@ async function oppLuecken(log) {
       await db.run(`UPDATE close_opportunities SET lead_name=${Pp(1)}, value=${Pp(2)}, value_currency=${Pp(3)}, value_period=${Pp(4)} WHERE id=${Pp(5)}`,
         [o.lead_name ?? null, o.value != null ? Number(o.value) / 100 : null, o.value_currency ?? null, o.value_period ?? null, id]);
       ok++;
-    } catch (e) { weg++; }
+    } catch (e) {
+      weg++;
+      // In Close geloescht (z. B. beim Zusammenfuehren doppelter Leads): markieren, nicht loeschen.
+      if (/HTTP 404/.test(String(e.message))) await db.run(`UPDATE close_opportunities SET geloescht_am=${NOW()} WHERE id=${Pp(1)}`, [id]);
+    }
   }
-  log(`  Opportunity-Luecken: ${ok} nachgezogen${weg ? `, ${weg} nicht abrufbar (geloescht?)` : ''}`);
+  log(`  Opportunity-Luecken: ${ok} nachgezogen${weg ? `, ${weg} in Close nicht mehr vorhanden (markiert)` : ''}`);
 }
 
 /** Einmalig: Calls ab 01.10. spiegeln (fuer Bedingung c der Verbleib-Liste), ohne Codier-Auftraege. */
