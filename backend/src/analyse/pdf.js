@@ -11,6 +11,7 @@ pdfmake.setFonts(FONTS);
 pdfmake.setLocalAccessPolicy((p) => path.resolve(p).startsWith(FONT_DIR));
 pdfmake.setUrlAccessPolicy(() => false);
 
+let BLOCK_ABSTAND = 8;   // wird beim Einpassen auf 3 Seiten verkleinert
 const BLAU = '#1f4e79', GRAU = '#666666', LINIE = '#d0d7de', HELL = '#f3f6fa', GELB = '#fff4d6';
 const de = (s) => (s ? `${s.slice(8, 10)}.${s.slice(5, 7)}.` : '');
 const STUFE_VON = { opener: 'Opening', setter: 'Setting', closer: 'Closing' };
@@ -105,7 +106,7 @@ function blockPerson(p, txt, ov, herkunft) {
   const pot = p.potenzial.woche[0] || p.potenzial.monat[0];
   const zeile = (label, text, farbe) => ({ text: [{ text: label + ' ', bold: true, color: farbe || '#1b1f23' }, text || '–'], margin: [0, 1, 0, 0] });
   return {
-    unbreakable: true, margin: [0, 0, 0, 8],
+    unbreakable: true, margin: [0, 0, 0, BLOCK_ABSTAND],
     stack: [
       { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 523, y2: 0, lineWidth: 0.8, lineColor: BLAU }] },
       { columns: [{ text: `${p.vorname}`, bold: true, fontSize: 11, color: BLAU }, { text: p.rolle, alignment: 'right', color: GRAU, fontSize: 8 }], margin: [0, 3, 0, 2] },
@@ -121,26 +122,43 @@ function blockPerson(p, txt, ov, herkunft) {
   };
 }
 
-/** PDF als Buffer. */
-async function erzeuge(d, texte) {
+async function rendere(d, texte, { fontSize, lineHeight, abstand, raender }) {
+  BLOCK_ABSTAND = abstand;
   const personen = d.personen.map(p => blockPerson(p, texte.personen[p.vorname], d.openingVergleichbar,
     p.funktionen.includes('opener') ? d.team.settingsJeOpener.monat[p.vorname] : null));
   const doc = {
-    pageSize: 'A4', pageMargins: [36, 32, 36, 32],
-    defaultStyle: { font: 'Roboto', fontSize: 8.5, lineHeight: 1.15, color: '#1b1f23' },
+    pageSize: 'A4', pageMargins: raender,
+    defaultStyle: { font: 'Roboto', fontSize, lineHeight, color: '#1b1f23' },
     info: { title: `Vertriebsanalyse Bonn KW ${d.zeitraeume.woche.kw}` },
-    footer: (seite, gesamt) => ({ text: `Vertriebsanalyse Bonn · KW ${d.zeitraeume.woche.kw} · Seite ${seite} von ${gesamt} · Quoten aus ausgewerteten Gesprächen (Konfidenz hoch/mittel); Opening vor dem 31.10. nicht vergleichbar`, fontSize: 6.5, color: GRAU, margin: [36, 10, 36, 0] }),
+    footer: (seite, gesamt) => ({ text: `Vertriebsanalyse Bonn · KW ${d.zeitraeume.woche.kw} · Seite ${seite} von ${gesamt} · Quoten aus ausgewerteten Gesprächen (Konfidenz hoch/mittel); Opening vor dem 31.10. nicht vergleichbar`, fontSize: 6.5, color: GRAU, margin: [raender[0], 10, raender[2], 0] }),
     content: [
       ...seiteTeam(d, texte),
       { text: 'Mitarbeiter (Werte Woche / Monat)', bold: true, fontSize: 12, color: BLAU, pageBreak: 'before', margin: [0, 0, 0, 6] },
       ...personen,
     ],
   };
-  const buf = await pdfmake.createPdf(doc).getBuffer();
-  return Buffer.from(buf);
+  return Buffer.from(await pdfmake.createPdf(doc).getBuffer());
+}
+
+// Stufen zum Einpassen auf hoechstens 3 Seiten: erst normal, dann schrittweise kompakter.
+const STUFEN_LAYOUT = [
+  { fontSize: 8.5, lineHeight: 1.15, abstand: 8, raender: [36, 32, 36, 32] },
+  { fontSize: 8, lineHeight: 1.1, abstand: 6, raender: [32, 28, 32, 28] },
+  { fontSize: 7.5, lineHeight: 1.05, abstand: 4, raender: [30, 26, 30, 26] },
+  { fontSize: 7, lineHeight: 1.0, abstand: 3, raender: [28, 24, 28, 24] },
+];
+
+/** PDF als Buffer, auf hoechstens 3 Seiten eingepasst (soweit moeglich). */
+async function erzeuge(d, texte) {
+  let buf = null;
+  for (const layout of STUFEN_LAYOUT) {
+    buf = await rendere(d, texte, layout);
+    if (seiten(buf) <= 3) return buf;
+  }
+  return buf;   // auch kompakt mehr als 3 Seiten: der Lauf meldet das als Warnung
 }
 
 /** Seitenzahl eines erzeugten PDFs (fuer die Pruefung auf max. 3 Seiten). */
-const seiten = (buf) => (buf.toString('latin1').match(/\/Type \/Page[^s]/g) || []).length;
+function seiten(buf) { return (buf.toString('latin1').match(/\/Type \/Page[^s]/g) || []).length; }
 
 module.exports = { erzeuge, seiten };
