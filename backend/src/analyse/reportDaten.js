@@ -166,9 +166,27 @@ async function verpassteChancen(rows, gewonnen, { beispiele = 3 } = {}) {
       (scSpaeter[r.close_opportunity_id] = scSpaeter[r.close_opportunity_id] || []).push(ymd(r.gelegt_am));
     for (const o of await db.all(`SELECT id, lead_id, lead_name, value, value_currency FROM close_opportunities WHERE id IN (${PH(t.length)})`, t)) opp[o.id] = o;
   }
+  // Ohne Opportunity an der Codierung (z. B. Lead im Close-Spiegel ohne Opportunity): Firma ueber den Lead nachschlagen —
+  // juengste Opportunity des Leads, sonst Lead-Name aus close_leads, sonst aus Close direkt.
+  const ohneOpp = [...new Set(b.filter(c => !opp[c.close_opportunity_id] && c.close_lead_id).map(c => c.close_lead_id))];
+  const lead = {};
+  for (let i = 0; i < ohneOpp.length; i += 500) {
+    const t = ohneOpp.slice(i, i + 500);
+    for (const o of await db.all(`SELECT id, lead_id, lead_name, value, value_currency, date_created FROM close_opportunities WHERE lead_id IN (${PH(t.length)})
+                                   ORDER BY date_created`, t)) lead[o.lead_id] = o;            // juengste gewinnt
+    for (const l of await db.all(`SELECT id, display_name FROM close_leads WHERE id IN (${PH(t.length)})`, t))
+      if (!lead[l.id]) lead[l.id] = { lead_id: l.id, lead_name: l.display_name };
+  }
+  const fehlend = ohneOpp.filter(id => !lead[id] || !lead[id].lead_name);
+  if (fehlend.length) {
+    const close = require('../utils/closeClient');
+    for (const id of fehlend.slice(0, 20)) {
+      try { const l = await close.get(`/lead/${id}/`, { _fields: 'id,display_name' }); lead[id] = { ...(lead[id] || {}), lead_id: id, lead_name: l.display_name }; } catch { /* bleibt ohne Namen */ }
+    }
+  }
   const beispiel = (c, warum) => {
-    const o = opp[c.close_opportunity_id] || {};
-    return { datum: c.call_datum, mitarbeiter: vorname(c), firma: o.lead_name || '(ohne Opportunity)', wert: o.value != null ? Number(o.value) : null,
+    const o = opp[c.close_opportunity_id] || lead[c.close_lead_id] || {};
+    return { datum: c.call_datum, mitarbeiter: vorname(c), firma: o.lead_name || '(Firma unbekannt)', wert: o.value != null ? Number(o.value) : null,
       waehrung: o.value_currency || 'EUR', link: linkVon({ ...c, close_lead_id: c.close_lead_id || o.lead_id }), was: c.einzeiler || '', warum };
   };
   const jePerson = (liste, verpasst) => {
