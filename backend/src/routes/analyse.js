@@ -40,6 +40,21 @@ admin.get('/laeufe/:id', wrap(async (req, res) => {
   res.json(r);
 }));
 
+// Metadaten der Codierungen (ohne Einzeiler/Texte) zur Fehlersuche, z. B. fehlende Opportunity oder Lead.
+admin.get('/codierungen', wrap(async (req, res) => {
+  const von = datum(req.query.von), bis = datum(req.query.bis);
+  if (!von || !bis) return res.status(400).json({ error: 'von und bis als YYYY-MM-DD' });
+  const w = [`c.call_datum >= ${P(1)}`, `c.call_datum <= ${P(2)}`]; const par = [von, bis];
+  if (req.query.stufe) { w.push(`c.stufe = ${P(par.length + 1)}`); par.push(String(req.query.stufe)); }
+  if (req.query.mitarbeiter) { w.push(`LOWER(c.mitarbeiter) LIKE ${P(par.length + 1)}`); par.push('%' + String(req.query.mitarbeiter).toLowerCase() + '%'); }
+  const rows = await db.all(`SELECT c.id, c.quelle, c.quell_id, c.basis, c.mitarbeiter, c.call_datum, c.stufe, c.erfolg, c.close_opportunity_id, c.close_lead_id,
+                                    c.prompt_version, a.close_lead_id AS auftrag_lead, a.status AS auftrag_status,
+                                    (SELECT COUNT(*) FROM close_opportunities o WHERE o.lead_id = COALESCE(c.close_lead_id, a.close_lead_id)) AS opps_zum_lead
+                               FROM call_codings c LEFT JOIN codier_auftraege a ON a.quelle = c.quelle AND a.quell_id = c.quell_id
+                              WHERE ${w.join(' AND ')} ORDER BY c.call_datum, c.id LIMIT 500`, par);
+  res.json(rows);
+}));
+
 // Laeufe starten: antworten sofort (202), der Lauf protokolliert sich in analyse_runs.
 const starte = (fn) => (req, res) => {
   const p = fn(req);
