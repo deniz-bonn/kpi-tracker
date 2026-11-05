@@ -26,7 +26,10 @@ admin.get('/status', wrap(async (req, res) => {
   const reports = await db.all(`SELECT id, jahr, kw, woche_von, woche_bis, modus, empfaenger, anzahl_codiert_woche, nicht_vollstaendig, offen_ungecodiert,
                                        kosten_codierung_usd, kosten_texte_usd, kosten_gesamt_usd, versand_status, versendet_am, fehler, erstellt_am
                                   FROM weekly_reports ORDER BY erstellt_am DESC LIMIT 20`);
-  res.json({ versandModus: await setting('versand_modus', 'test'), laufend: job.status(), laeufe, batches, auftraege, reports });
+  // Nur ob etwas gesetzt ist — nie Werte.
+  const konfiguration = { anthropic: !!process.env.ANTHROPIC_API_KEY, fireflies: !!process.env.FIREFLIES_API_KEY,
+    mail: process.env.RESEND_API_KEY ? 'resend' : process.env.SMTP_HOST ? 'smtp' : 'keiner', absender: !!process.env.SMTP_FROM };
+  res.json({ versandModus: await setting('versand_modus', 'test'), konfiguration, laufend: job.status(), laeufe, batches, auftraege, reports });
 }));
 
 admin.get('/laeufe/:id', wrap(async (req, res) => {

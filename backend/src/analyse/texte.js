@@ -173,12 +173,17 @@ async function teamText(d, warnungen) {
 
 /** Pruefen, ob die konfigurierten Modell-IDs gueltig sind (Models-API). Wirft mit klarer Meldung. */
 async function pruefeModelle() {
+  if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY ist nicht gesetzt (Railway-Variablen des Dienstes pruefen)');
   const ids = [...new Set([MODELS.codierung.model, MODELS.texte.model])];
-  const fehler = [];
+  const ungueltig = [];
   for (const id of ids) {
-    try { await anthropic().models.retrieve(id); } catch (e) { fehler.push(`${id}: ${e.status || ''} ${String(e.message).slice(0, 120)}`); }
+    try { await anthropic().models.retrieve(id); } catch (e) {
+      if (e && (e.status === 401 || e.status === 403)) throw new Error(`ANTHROPIC_API_KEY wird abgelehnt (HTTP ${e.status}) — Schluessel pruefen`);
+      if (e && e.status === 404) ungueltig.push(id);
+      else throw new Error(`Models-API nicht erreichbar beim Pruefen von ${id}: ${e && e.status ? 'HTTP ' + e.status + ' ' : ''}${String(e && e.message).slice(0, 120)}`);
+    }
   }
-  if (fehler.length) throw new Error('Ungueltige Modell-ID(s) in config/analyse/models.json — ' + fehler.join('; '));
+  if (ungueltig.length) throw new Error('Ungueltige Modell-ID(s) in config/analyse/models.json: ' + ungueltig.join(', '));
   return ids;
 }
 
