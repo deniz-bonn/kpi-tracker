@@ -90,30 +90,48 @@ function potenziale(rows, teamRef, { dealWert, scZuWon, settingZuSc, gewonnen })
 }
 
 /**
- * Woher kommen unqualifizierte Settings? Je Opener (Close: Opportunity "Assigned to"): Settings, davon ohne
- * Entscheider (weder dabei noch zugesagt), ohne (deckbaren) Bedarf, nicht zeitnah. Ohne Entscheider = Fehler im Opening.
+ * Settings je Opener, gezaehlt pro gelegtem Setting-Termin (Close, gelegt im Zeitraum), von links nach rechts:
+ *   gelegt = stattgefunden + geplatzt + offen
+ *     stattgefunden: Ausgang in Close stattgefunden ODER ein aufgenommenes Setting-Gespraech ab dem Legen
+ *     geplatzt:      No-Show oder abgesagt laut Close (und keine Aufnahme)
+ *     offen:         Ausgang in Close noch nicht gepflegt oder verschoben (und keine Aufnahme)
+ *   ausgewertet (<= stattgefunden) = Settings mit aufgenommenem Gespraech -> qualifiziert / nicht qualifiziert.
+ * Nicht qualifiziert bekommt GENAU EINEN Hauptgrund in dieser Reihenfolge: Entscheider fehlt, Bedarf fehlt, nicht zeitnah.
  */
-async function settingsJeOpener(rows) {
+async function settingsJeOpener(_rows, zeitraum) {
   const { ladeTeam } = require('./team');
   const team = await ladeTeam();
-  const st = rows.filter(c => c.stufe === 'Setting' && c.konfidenz !== 'niedrig' && c.close_opportunity_id);
-  const ids = [...new Set(st.map(c => c.close_opportunity_id))];
-  const opener = {};
+  const nachEmp = new Map(team.personen.filter(p => p.employeeId).map(p => [Number(p.employeeId), p.vorname]));
+  const leer = () => ({ gelegt: 0, stattgefunden: 0, geplatzt: 0, offen: 0, showRate: null,
+    ausgewertet: 0, qualifiziert: 0, nichtQualifiziert: 0, entscheiderFehlt: 0, bedarfFehlt: 0, nichtZeitnah: 0 });
+  const termine = await db.all(`SELECT close_opportunity_id, employee_id, status, gelegt_am FROM termine
+                                 WHERE art='setting' AND gelegt_am >= ${P(1)} AND gelegt_am <= ${P(2)}`, [zeitraum.von, zeitraum.bis]);
+  const ids = [...new Set(termine.map(t => t.close_opportunity_id).filter(Boolean))];
+  const cods = {};
   for (let i = 0; i < ids.length; i += 500) {
-    const t = ids.slice(i, i + 500);
-    for (const o of await db.all(`SELECT id, user_id FROM close_opportunities WHERE id IN (${PH(t.length)})`, t)) opener[o.id] = o.user_id;
+    const tt = ids.slice(i, i + 500);
+    const rows = await db.all(`SELECT * FROM call_codings WHERE stufe='Setting' AND konfidenz <> 'niedrig' AND close_opportunity_id IN (${PH(tt.length)})
+                                ORDER BY call_datum, id`, tt);
+    for (const c of rows) (cods[c.close_opportunity_id] = cods[c.close_opportunity_id] || []).push({ ...c, call_datum: ymd(c.call_datum) });
   }
   const out = {};
-  for (const c of st) {
-    const p = team.nachUser.get(opener[c.close_opportunity_id]);
-    const n = p ? p.vorname : 'andere';
-    const o = (out[n] = out[n] || { settings: 0, ohneEntscheider: 0, ohneBedarf: 0, nichtZeitnah: 0, qualifiziert: 0 });
-    o.settings++;
-    if (!K.entscheiderDa(c)) o.ohneEntscheider++;
-    if (c.bedarf_bestaetigt !== 'ja' || c.bedarf_deckbar === 'nein') o.ohneBedarf++;
-    if (c.zeitnah === 'nein') o.nichtZeitnah++;
-    if (K.qualSetting(c)) o.qualifiziert++;
+  for (const t of termine) {
+    const n = nachEmp.get(Number(t.employee_id)) || 'andere';
+    const o = (out[n] = out[n] || leer());
+    o.gelegt++;
+    const c = (cods[t.close_opportunity_id] || []).find(x => x.call_datum >= ymd(t.gelegt_am));
+    if (c || t.status === 'stattgefunden') o.stattgefunden++;
+    else if (t.status === 'nicht_stattgefunden') o.geplatzt++;
+    else o.offen++;
+    if (!c) continue;
+    o.ausgewertet++;
+    if (K.qualSetting(c)) { o.qualifiziert++; continue; }
+    o.nichtQualifiziert++;
+    if (!K.entscheiderDa(c)) o.entscheiderFehlt++;
+    else if (c.bedarf_bestaetigt !== 'ja' || c.bedarf_deckbar === 'nein') o.bedarfFehlt++;
+    else o.nichtZeitnah++;
   }
+  for (const o of Object.values(out)) o.showRate = pct(o.stattgefunden, o.stattgefunden + o.geplatzt);
   return out;
 }
 
@@ -204,7 +222,7 @@ async function baue({ stichtag, von = null, bis = null, log = () => {} }) {
     openingVergleichbar: { woche: openingOk(Zr.woche), vorwoche: openingOk(Zr.vorwoche), monat: openingOk(Zr.monat), oktober: false },
     team: { woche: auswahl(aW).team, vorwoche: auswahl(aV).team, monat: auswahl(aM).team, oktober: auswahl(aO).team,
       sollIst: { woche: tW, monat: tM },
-      settingsJeOpener: { woche: await settingsJeOpener(cW), monat: await settingsJeOpener(cM) }, zielKennzahlen: { woche: zielKz(aW), monat: zielKz(aM), oktober: zielKz(aO) }, hebel: potTeamM.slice(0, 3) },
+      settingsJeOpener: { woche: await settingsJeOpener(cW, Zr.woche), monat: await settingsJeOpener(cM, Zr.monat) }, zielKennzahlen: { woche: zielKz(aW), monat: zielKz(aM), oktober: zielKz(aO) }, hebel: potTeamM.slice(0, 3) },
     personen,
     verbleib: { stand: snap.stand, woche: vW, monat: vM, zeilen: snap.zeilen },
     codierung: { woche: cW.length, monat: cM.length, nichtCodiertWoche: offenW, nichtVollstaendig: offenW > 0 },

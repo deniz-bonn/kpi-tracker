@@ -53,12 +53,25 @@ function seiteTeam(d, texte) {
       TEAM.november_ziele.kennzahlen.map((z, i) => [z.label, fmtP(t.zielKennzahlen.woche[i].quote), fmtP(t.zielKennzahlen.monat[i].quote), fmtP(z.ziel)]))] },
   ], columnGap: 12 });
 
-  const jo = Object.entries(t.settingsJeOpener.monat).sort((a, b) => b[1].settings - a[1].settings);
+  const jo = Object.entries(t.settingsJeOpener.monat).filter(([, x]) => x.gelegt || x.ausgewertet)
+    .sort((a, b) => (a[0] === 'andere') - (b[0] === 'andere') || b[1].gelegt - a[1].gelegt);
   if (jo.length) {
-    c.push(h('Woher kommen unqualifizierte Settings? (Monat, nach Opener)'));
-    c.push(tab(['Opener', 'Settings', 'qualifiziert', 'ohne Entscheider', 'ohne Bedarf', 'nicht zeitnah'],
-      jo.map(([n, x]) => [n, fmtZ(x.settings), `${fmtZ(x.qualifiziert)} (${fmtP(Math.round(1000 * x.qualifiziert / x.settings) / 10)})`, fmtZ(x.ohneEntscheider), fmtZ(x.ohneBedarf), fmtZ(x.nichtZeitnah)])));
-    c.push({ text: 'Qualifiziert = Entscheider dabei oder Teilnahme zugesagt, deckbarer Bedarf, zeitnah. Settings ohne Entscheider sind ein Fehler im Opening: Termin nur anbieten, wenn der Entscheider erreicht ist.', fontSize: 7, color: GRAU });
+    c.push(h('Settings nach Opener (Monat): Show-Rate und Qualifizierung'));
+    c.push({
+      table: { headerRows: 2, widths: ['*', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto'],
+        body: [
+          [{ text: '', border: [false, false, false, false] }, { text: 'Gelegte Settings', colSpan: 5, alignment: 'center', bold: true }, {}, {}, {}, {},
+            { text: 'davon mit Aufnahme ausgewertet', colSpan: 5, alignment: 'center', bold: true }, {}, {}, {}, {}],
+          ['Opener', 'gelegt', 'statt-\ngefunden', 'geplatzt', 'offen', 'Show-\nRate', 'aus-\ngewertet', 'quali-\nfiziert', 'Entscheider\nfehlt', 'Bedarf\nfehlt', 'nicht\nzeitnah']
+            .map((k, i) => ({ text: k, bold: true, alignment: i ? 'right' : 'left' })),
+          ...jo.map(([n, x]) => [n, fmtZ(x.gelegt), fmtZ(x.stattgefunden), fmtZ(x.geplatzt), fmtZ(x.offen), fmtP(x.showRate),
+            fmtZ(x.ausgewertet), fmtZ(x.qualifiziert), fmtZ(x.entscheiderFehlt), fmtZ(x.bedarfFehlt), fmtZ(x.nichtZeitnah)]
+            .map((v, i) => ({ text: String(v), alignment: i ? 'right' : 'left', noWrap: i > 0 }))),
+        ] },
+      layout: { ...tabLayout, fillColor: (r) => (r <= 1 ? HELL : null), hLineWidth: (i, node) => (i === 2 || i === node.table.body.length ? 0.6 : 0.3) },
+      margin: [0, 2, 0, 4],
+    });
+    c.push({ text: 'Je Zeile: gelegt = stattgefunden + geplatzt + offen; ausgewertet = qualifiziert + Entscheider fehlt + Bedarf fehlt + nicht zeitnah. Stattgefunden = laut Close oder Aufnahme vorhanden. Geplatzt = No-Show oder abgesagt. Offen = Termin noch nicht fällig, verschoben oder Ausgang in Close nicht gepflegt. Show-Rate = stattgefunden / (stattgefunden + geplatzt). Qualifiziert = Entscheider dabei oder zugesagt, deckbarer Bedarf, zeitnah; sonst genau ein Grund, in dieser Reihenfolge geprüft. Entscheider fehlt = Fehler im Opening.', fontSize: 7, color: GRAU });
   }
 
   c.push(h('Die drei größten Hebel (Monat)'));
@@ -89,7 +102,7 @@ function qualitaetKurz(st, s, herkunft) {
   if (q && st === 'Opening') teile.push(`Termin ohne Entscheider ${anteil(q.terminOhneEntscheider)}`, `Bedarf festgestellt ${anteil(q.bedarfFestgestellt)}`);
   if (q && st === 'Setting') teile.push(`qualifiziert ${anteil(q.qualifiziert)}`, `angeboten ohne Qualifizierung ${q.angebotenUnqualifiziert.ja}`);
   if (q && st === 'Closing') teile.push(`Einwände behandelt ${anteil(q.einwaendeBehandelt)}`, `Folgetermin trotz Einwand ${anteil(q.folgeterminTrotzEinwaenden)}`);
-  if (st === 'Opening' && herkunft) teile.push(`deine Settings ohne Entscheider ${herkunft.ohneEntscheider} von ${herkunft.settings} (Monat)`);
+  if (st === 'Opening' && herkunft) teile.push(`deine Settings (Monat): Show-Rate ${fmtP(herkunft.showRate)}, qualifiziert ${herkunft.qualifiziert} von ${herkunft.ausgewertet}, ohne Entscheider ${herkunft.entscheiderFehlt}`);
   return teile.join(' · ') || '–';
 }
 

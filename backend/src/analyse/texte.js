@@ -184,7 +184,7 @@ function werteFuerTeam(d) {
     w[`V.${kz}.fuAnzahl`] = fmtZ(v.fuAnzahl);
     w[`V.${kz}.fuStattTerminAnteil`] = fmtP(v.fuStattTerminAnteil);
   }
-  for (const [name, x] of Object.entries(d.team.settingsJeOpener.monat || {})) w[`T.opener.${name}`] = `${x.settings} Settings im Monat, davon ${x.ohneEntscheider} ohne Entscheider, ${x.ohneBedarf} ohne Bedarf, ${x.nichtZeitnah} nicht zeitnah`;
+  for (const [name, x] of Object.entries(d.team.settingsJeOpener.monat || {})) w[`T.opener.${name}`] = `${x.gelegt} Settings gelegt, Show-Rate ${fmtP(x.showRate)} (${x.geplatzt} geplatzt); von ${x.ausgewertet} ausgewerteten ${x.qualifiziert} qualifiziert, nicht qualifiziert weil Entscheider fehlt ${x.entscheiderFehlt}, Bedarf fehlt ${x.bedarfFehlt}, nicht zeitnah ${x.nichtZeitnah}`;
   const g = d.verbleib.woche.gesamtListe;
   w['V.liste.opportunities'] = fmtZ(g.opportunities); w['V.liste.wert'] = fmtE(g.wert); w['V.liste.followUpStattTermin'] = fmtZ(g.followUpStattTermin);
   for (const [b, n] of Object.entries(g.jeBedingung)) w[`V.liste.bedingung_${b}`] = fmtZ(n);
