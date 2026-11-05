@@ -2,7 +2,9 @@
 // je Mitarbeiter ein Thread-Beitrag. KEINE Kundennamen im Text (nur in der Excel-Datei im Thread).
 const { TEAM } = require('./basis');
 const K = require('./kennzahlen');
-const { fmtP, fmtZ, fmtE } = require('./texte');
+const { fmtP, fmtZ, fmtE, rechnungSchritte } = require('./texte');
+const hebel = (h, satz) => `*${esc(h.titel)}*\n${esc(h.text)}\n${rechnungSchritte(h).map(x => `   ◦ ${esc(x)}`).join('\n')}${satz ? '\n' + esc(satz) : ''}`;
+const absatz = (text) => String(text || '').split('\n').map(z => z.trim()).filter(Boolean).map(z => (z.startsWith('- ') ? `• ${esc(z.slice(2))}` : `*${esc(z)}*`)).join('\n');
 
 const de = (s) => (s ? `${s.slice(8, 10)}.${s.slice(5, 7)}.` : '');
 const q = (s) => (s ? `${fmtP(s.erfolgsquote)} (${s.erfolgJa}/${s.erfolgBasis})` : '–');
@@ -43,24 +45,24 @@ function haupt(d, texte) {
   })));
 
   zeilen.push('*Die drei größten Hebel*');
-  zeilen.push(liste(texte.team ? texte.team.hebel : null));
-  if (t.hebel.length) zeilen.push(`_Ø Deal = AE je gewonnenem NK-Deal Bonn, letzte 90 Tage (${d.deal.basis} Deals)._`);
+  zeilen.push(t.hebel.length ? t.hebel.map((h, i) => hebel(h, texte.team && texte.team.hebel ? texte.team.hebel[i] : null)).join('\n\n') : '–');
+  if (t.hebel.length) zeilen.push(`_Durchschnittlicher Auftrag = Auftragseingang je gewonnenem Neukunden-Deal in Bonn, letzte 90 Tage (${d.deal.basis} Deals). „Bis zu“ ist eine Obergrenze, vorsichtig gerechnet die Hälfte._`);
 
   zeilen.push('\n*Verbleib: geführte Settings und Closings ohne Ergebnis*');
   const vb = (v) => [fmtZ(v.settingsOhneErgebnis), fmtZ(v.closingsOhneErgebnis), fmtZ(v.fuAnzahl), fmtE(v.fuWert), fmtP(v.fuStattTerminAnteil)];
-  zeilen.push(tabelle(['Zeitraum', 'Settings o. E.', 'Closings o. E.', 'Follow-Ups', 'Wert FU', 'FU statt Termin'],
+  zeilen.push(tabelle(['Zeitraum', 'Settings ohne Erg.', 'Closings ohne Erg.', 'Wiedervorl.', 'Wert', 'statt Termin'],
     [['Woche', ...vb(d.verbleib.woche)], ['Monat', ...vb(d.verbleib.monat)]]));
   const je = (rolle, obj) => Object.entries(obj).filter(([n]) => TEAM.personen.some(p => p.vorname === n))
     .map(([n, x]) => [`${rolle} ${n}`, fmtZ(x.settingsOhneErgebnis), fmtZ(x.closingsOhneErgebnis), fmtZ(x.fuAnzahl), fmtE(x.fuWert), fmtZ(x.fuStattTermin)]);
   const jeZ = [...je('Setter', d.verbleib.monat.jeSetter), ...je('Closer', d.verbleib.monat.jeCloser)];
-  if (jeZ.length) zeilen.push('Je Setter und Closer (Monat)\n' + tabelle(['Person', 'Settings', 'Closings', 'FU', 'Wert', 'statt Termin'], jeZ));
+  if (jeZ.length) zeilen.push('Je Setter und Closer (Monat)\n' + tabelle(['Person', 'Settings', 'Closings', 'Wiedervorl.', 'Wert', 'statt Termin'], jeZ));
   const g = d.verbleib.woche.gesamtListe;
-  zeilen.push(`Gesamte Liste (Stand ${de(d.verbleib.stand)}): ${fmtZ(g.opportunities)} Opportunities, ${fmtE(g.wert)} Opportunity-Wert, davon ${fmtZ(g.followUpStattTermin)} „Follow-Up akzeptiert statt Termin“.`);
-  zeilen.push(`*Warum kein Ergebnis, was muss sich ändern*\n${esc(texte.team ? texte.team.verbleib : 'Text nicht erzeugt.')}`);
+  zeilen.push(`Gesamte Liste (Stand ${de(d.verbleib.stand)}): ${fmtZ(g.opportunities)} Opportunities, ${fmtE(g.wert)} Opportunity-Wert, davon ${fmtZ(g.followUpStattTermin)} „Wiedervorlage statt Termin“.\n_„Wiedervorlage statt Termin“ heißt: Entscheider und Bedarf waren im Gespräch da, trotzdem wurde kein Termin gelegt, sondern nur eine Wiedervorlage vereinbart, die mehr als 14 Tage später liegt oder gar kein Datum hat._`);
+  zeilen.push(`*Warum kein Ergebnis*\n${absatz(texte.team ? texte.team.verbleib : 'Text nicht erzeugt.')}`);
 
   const ab = d.abdeckung.woche.salesCallsJeCloser;
   zeilen.push('\n_Abdeckung Sales Calls (Woche): ' + Object.entries(ab).map(([n, x]) => `${n} ${x.mitAufnahme} von ${x.stattgefunden} mit Aufnahme`).join(' · ') + '_');
-  zeilen.push('_Details je Mitarbeiter im Thread. Firmen, Werte und Close-Links in der Verbleib-Excel im Thread. Quoten nur aus Codierungen mit hoher/mittlerer Konfidenz; Opening-Werte vor dem 31.10. sind nicht vergleichbar; Potenzial = obere Grenze, konservativ halbiert._');
+  zeilen.push('_Details je Mitarbeiter im Thread. Firmen, Werte und Close-Links in der Verbleib-Excel im Thread. Quoten nur aus Codierungen mit hoher/mittlerer Konfidenz; Opening-Werte vor dem 31.10. sind nicht vergleichbar; Potenzial „bis zu“ = Obergrenze, vorsichtig gerechnet die Hälfte._');
   return zeilen.join('\n');
 }
 
@@ -88,14 +90,15 @@ function person(p, txt, ov) {
     z.push(tabelle(['Merkmal', 'Woche', 'Vorwoche', 'Monat', 'Oktober'], mz));
     z.push('Top-3-Gründe je Bruchstelle (Woche | Monat)');
     for (const st of stufen) {
-      const g = (x) => { const s = x && x.stufen[st]; return s && s.top3.length ? s.top3.map(r => `${r.id} ${r.name} (${r.n})`).join('; ') : '–'; };
-      z.push(`• *${K.BS[st]} ${st}* — Woche: ${esc(g(p.woche))} | Monat: ${esc(g(p.monat))}`);
+      const g = (x) => { const s = x && x.stufen[st]; return s && s.top3.length ? s.top3.map(r => `${r.name} (${r.n}-mal)`).join('; ') : '–'; };
+      z.push(`• *${st}* — Woche: ${esc(g(p.woche))} | Monat: ${esc(g(p.monat))}`);
     }
   } else z.push('_Keine codierten Gespräche in Woche oder Monat._');
   if (txt) {
     z.push(`\n*Was war gut*\n${liste(txt.gut)}`);
     z.push(`*Was war schlecht*\n${liste(txt.schlecht)}`);
-    z.push(`*Größtes Potenzial für sofort mehr Umsatz*\n${esc(txt.potenzial)}`);
+    const pot = p.potenzial.woche[0] || p.potenzial.monat[0];
+    z.push(`*Größtes Potenzial für sofort mehr Umsatz*\n${pot ? hebel(pot, txt.potenzial) : esc(txt.potenzial)}`);
     z.push(`*Was muss geschult werden*\n${liste(txt.schulung)}`);
   } else z.push('_Texte nicht erzeugt._');
   return z.join('\n');

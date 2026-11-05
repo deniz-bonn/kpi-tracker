@@ -8,13 +8,13 @@ const BED = {
   a: 'a · kein nächster Schritt',
   b: 'b · Closing ohne Ergebnis',
   c: 'c · Setting ohne Ergebnis',
-  d: 'd · Follow-Up statt Termin',
+  d: 'd · Wiedervorlage statt Termin',
 };
 const BED_HILFE = {
   a: 'Status QC Follow-Up, SC/ Statt. FU, QC Terminiert oder SC Terminiert seit mehr als 5 Werktagen, ohne Statuswechsel und ohne offene datierte Aufgabe in Close',
   b: 'Aufnahme vorhanden oder Kalendertermin vergangen, Status weiter SC Terminiert',
   c: 'Aufnahme ab 60 Sekunden am Termintag, Status weiter QC Terminiert',
-  d: 'Entscheider im Gespräch und Bedarf bestätigt, aber nächster Schritt mehr als 14 Tage später oder nicht datiert (B2-13/B2-14 bzw. B5-13/B5-15)',
+  d: 'Entscheider und Bedarf waren da, trotzdem wurde kein Termin gelegt, sondern nur eine Wiedervorlage vereinbart: mehr als 14 Tage später oder ohne Datum (Termin nicht angeboten/fixiert bzw. kein Abschluss versucht)',
 };
 const de = (s) => (s ? `${s.slice(8, 10)}.${s.slice(5, 7)}.${s.slice(2, 4)}` : '—');
 const eur = (v) => (v == null ? '—' : `${Math.round(v).toLocaleString('de-DE')} €`);
@@ -81,10 +81,10 @@ export default function Verbleib() {
       <div className="flex flex-wrap gap-3">
         <Kachel label="Opportunities in der Liste" wert={g.opportunities.toLocaleString('de-DE')} />
         <Kachel label="Opportunity-Wert gesamt" wert={eur(g.wert)} />
-        <Kachel label="Follow-Up statt Termin" wert={g.followUpStattTermin} hint={BED_HILFE.d} />
+        <Kachel label="Wiedervorlage statt Termin" wert={g.followUpStattTermin} hint={BED_HILFE.d} />
         <Kachel label="Woche: Settings / Closings o. E." wert={`${kw.settingsOhneErgebnis} / ${kw.closingsOhneErgebnis}`} hint={`Woche ${de(kw.zeitraum.von)}–${de(kw.zeitraum.bis)}`} />
         <Kachel label="Monat: Settings / Closings o. E." wert={`${km.settingsOhneErgebnis} / ${km.closingsOhneErgebnis}`} />
-        <Kachel label="Monat: Wert in Follow-Ups" wert={eur(km.fuWert)} hint={`davon „statt Termin“: ${pct(km.fuStattTerminAnteil)}`} />
+        <Kachel label="Monat: Wert der Wiedervorlagen" wert={eur(km.fuWert)} hint={`davon „Wiedervorlage statt Termin“: ${pct(km.fuStattTerminAnteil)}`} />
       </div>
 
       <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -99,7 +99,7 @@ export default function Verbleib() {
           <option value="">Alle Personen</option>
           {personen.map(p => <option key={p}>{p}</option>)}
         </select>
-        <label className="flex items-center gap-1"><input type="checkbox" checked={filter.nurFu} onChange={e => setFilter(f => ({ ...f, nurFu: e.target.checked }))} /> nur „Follow-Up statt Termin“</label>
+        <label className="flex items-center gap-1"><input type="checkbox" checked={filter.nurFu} onChange={e => setFilter(f => ({ ...f, nurFu: e.target.checked }))} /> nur „Wiedervorlage statt Termin“</label>
         <input className="border border-gray-300 rounded px-2 py-1" placeholder="Firma suchen" value={filter.suche} onChange={e => setFilter(f => ({ ...f, suche: e.target.value }))} />
         <span className="text-gray-500 ml-auto">{zeilen.length} Zeilen · {eur(summe)}</span>
       </div>
@@ -123,11 +123,11 @@ export default function Verbleib() {
                 <td className="px-2 py-1.5 tabular-nums">{de(z.status_seit)}</td>
                 <td className="px-2 py-1.5 tabular-nums text-right">{z.tage_im_status}</td>
                 <td className="px-2 py-1.5 whitespace-nowrap" title={z.bedingungen.split(', ').map(b => BED_HILFE[b]).join('\n')}>
-                  {z.bedingungen}{z.follow_up_statt_termin && <span className="ml-1 text-amber-700 font-medium">FU statt Termin</span>}
+                  {z.bedingungen}{z.follow_up_statt_termin && <span className="ml-1 text-amber-700 font-medium">Wiedervorlage statt Termin</span>}
                 </td>
                 <td className="px-2 py-1.5 max-w-[180px] truncate" title={z.naechster_schritt_close || ''}>{z.naechster_schritt_close ? `${de(z.naechster_schritt_close_datum)} ${z.naechster_schritt_close}` : '—'}</td>
                 <td className="px-2 py-1.5 max-w-[200px] truncate" title={z.naechster_schritt_transkript || ''}>{z.naechster_schritt_transkript ? `${z.naechster_schritt_transkript_datum ? de(z.naechster_schritt_transkript_datum) + ' ' : ''}${z.naechster_schritt_transkript}` : '—'}</td>
-                <td className="px-2 py-1.5 max-w-[180px] truncate" title={z.grund || ''}>{z.grund_id ? `${z.grund_id} ${z.grund}` : '—'}</td>
+                <td className="px-2 py-1.5 max-w-[180px] truncate" title={z.grund || ''}>{z.grund || '—'}</td>
                 <td className="px-2 py-1.5 tabular-nums text-right whitespace-nowrap">{eur(z.opportunity_wert)}</td>
                 <td className="px-2 py-1.5"><a href={z.close_link} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Close</a></td>
               </tr>

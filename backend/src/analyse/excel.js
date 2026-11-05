@@ -4,7 +4,7 @@ const { db, PH } = require('./basis');
 const V = require('./verbleib');
 const K = require('./kennzahlen');
 
-const BED = { a: 'a) kein nächster Schritt', b: 'b) Closing ohne Ergebnis', c: 'c) Setting ohne Ergebnis', d: 'd) Follow-Up statt Termin' };
+const BED = { a: 'a) kein nächster Schritt', b: 'b) Closing ohne Ergebnis', c: 'c) Setting ohne Ergebnis', d: 'd) Wiedervorlage statt Termin' };
 const deDatum = (s) => (s ? `${s.slice(8, 10)}.${s.slice(5, 7)}.${s.slice(0, 4)}` : '');
 
 function blatt(wb, name, spalten, zeilen) {
@@ -22,14 +22,14 @@ async function verbleibXlsx(daten) {
   const ops = V.jeOpportunity(daten.verbleib.zeilen);
   const ws = blatt(wb, 'Verbleib', [
     ['Firma', 'firma', 32], ['Stufe', 'stufe', 10], ['Datum', 'datum', 12], ['Opener', 'opener', 14], ['Setter', 'setter', 14], ['Closer', 'closer', 14],
-    ['Status', 'status', 18], ['Status seit', 'seit', 12], ['Tage (Werktage)', 'tage', 10], ['Bedingung', 'bed', 26], ['Follow-Up akzeptiert statt Termin', 'fu', 14],
+    ['Status', 'status', 18], ['Status seit', 'seit', 12], ['Tage (Werktage)', 'tage', 10], ['Bedingung', 'bed', 26], ['Wiedervorlage statt Termin', 'fu', 14],
     ['Nächster Schritt laut Close', 'nsc', 34], ['Fällig (Close)', 'nscd', 12], ['Nächster Schritt laut Transkript', 'nst', 34], ['Datum (Transkript)', 'nstd', 12],
     ['Grund', 'grund', 40], ['Opportunity-Wert', 'wert', 14], ['Währung', 'wae', 8], ['Link in Close', 'link', 40], ['Opp-ID', 'opp', 30],
   ], ops.map(z => ({
     firma: z.firma, stufe: z.stufe, datum: deDatum(z.termin_datum), opener: z.opener, setter: z.setter, closer: z.closer, status: z.status_label,
     seit: deDatum(z.status_seit), tage: z.tage_im_status, bed: z.bedingungen.split(', ').map(b => BED[b]).join('; '), fu: z.follow_up_statt_termin ? 'ja' : '',
     nsc: z.naechster_schritt_close || '', nscd: deDatum(z.naechster_schritt_close_datum), nst: z.naechster_schritt_transkript || '', nstd: deDatum(z.naechster_schritt_transkript_datum),
-    grund: z.grund ? `${z.grund_id} ${z.grund}` : '', wert: z.opportunity_wert, wae: z.waehrung, link: z.close_link ? { text: 'öffnen', hyperlink: z.close_link } : '', opp: z.close_opportunity_id,
+    grund: z.grund || '', wert: z.opportunity_wert, wae: z.waehrung, link: z.close_link ? { text: 'öffnen', hyperlink: z.close_link } : '', opp: z.close_opportunity_id,
   })));
   ws.getColumn('wert').numFmt = '#,##0 €';
   ops.forEach((z, i) => { if (z.follow_up_statt_termin) ws.getRow(i + 2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF4D6' } }; });
@@ -38,10 +38,10 @@ async function verbleibXlsx(daten) {
   for (const [lab, v] of [['Woche', daten.verbleib.woche], ['Monat', daten.verbleib.monat]]) {
     kz.push({ a: lab, b: 'Settings geführt ohne Ergebnis', c: v.settingsOhneErgebnis }, { a: lab, b: 'Closings geführt ohne Ergebnis', c: v.closingsOhneErgebnis },
       { a: lab, b: 'Follow-Ups (Anzahl)', c: v.fuAnzahl }, { a: lab, b: 'Summe Opportunity-Wert in Follow-Ups (EUR)', c: v.fuWert },
-      { a: lab, b: 'Anteil „Follow-Up akzeptiert statt Termin“ (%)', c: v.fuStattTerminAnteil });
+      { a: lab, b: 'Anteil „Wiedervorlage statt Termin“ (%)', c: v.fuStattTerminAnteil });
     for (const [rolle, je] of [['Setter', v.jeSetter], ['Closer', v.jeCloser]]) for (const [n, x] of Object.entries(je)) {
       kz.push({ a: lab, b: `${rolle} ${n}: Settings / Closings ohne Ergebnis`, c: `${x.settingsOhneErgebnis} / ${x.closingsOhneErgebnis}` },
-        { a: lab, b: `${rolle} ${n}: Follow-Up-Wert (EUR), davon „statt Termin“`, c: `${x.fuWert} (${x.fuAnzahl} FU, ${x.fuStattTermin} statt Termin)` });
+        { a: lab, b: `${rolle} ${n}: Wert der Wiedervorlagen (EUR), davon „Wiedervorlage statt Termin“`, c: `${x.fuWert} (${x.fuAnzahl} Wiedervorlagen, ${x.fuStattTermin} statt Termin)` });
     }
   }
   blatt(wb, 'Kennzahlen', [['Zeitraum', 'a', 10], ['Kennzahl', 'b', 60], ['Wert', 'c', 24]], kz);

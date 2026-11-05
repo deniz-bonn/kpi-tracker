@@ -23,7 +23,7 @@ function werteFuerPerson(p) {
       w[`${kz}.${st}.calls`] = fmtZ(s.n);
       w[`${kz}.${st}.erfolg`] = `${fmtP(s.erfolgsquote)} (${s.erfolgJa} von ${s.erfolgBasis})`;
       for (const [m, v] of Object.entries(s.merkmale)) if (v) w[`${kz}.${st}.${m}`] = `${fmtP(v.quote)} (${v.ja} von ${v.basis})`;
-      s.top3.forEach((g, i) => { w[`${kz}.${st}.grund${i + 1}`] = `${g.id} ${g.name} (${g.n}×, ${fmtP(g.anteil)} der nicht erfolgreichen)`; });
+      s.top3.forEach((g, i) => { w[`${kz}.${st}.grund${i + 1}`] = `${g.name} (${g.n}-mal)`; });
     }
   }
   for (const [kz, t] of Object.entries({ W: p.tracker.woche, M: p.tracker.monat })) {
@@ -35,7 +35,8 @@ function werteFuerPerson(p) {
   for (const [kz, liste] of Object.entries({ W: p.potenzial.woche, M: p.potenzial.monat })) {
     liste.forEach((h, i) => {
       const b = `${kz}.pot${i + 1}`;
-      w[`${b}.hebel`] = h.text;
+      w[`${b}.hebel`] = h.titel;
+      w[`${b}.erklaerung`] = h.text;
       w[`${b}.pool`] = fmtZ(h.pool);
       w[`${b}.vergleichsquote`] = `${fmtP(h.vergleichsquote)} (Basis ${h.vergleichsBasis} Gespräche)`;
       w[`${b}.zusatzDeals`] = fmtZ(h.zusatzDeals);
@@ -48,14 +49,35 @@ function werteFuerPerson(p) {
   return w;
 }
 
-function rechnungText(h) {
-  if (h.stufe === 'Setting') return `${fmtZ(h.pool)} Settings × ${fmtP(h.vergleichsquote)} SC-Quote × ${fmtP(h.scZuWon)} SC-Gewinnquote × ${fmtE(h.dealWert)} Ø Deal = ${fmtE(h.umsatz)} (obere Grenze; konservativ halbiert ${fmtE(h.umsatzKonservativ)})`;
-  if (h.stufe === 'Opening') return `${fmtZ(h.pool)} Openings × ${fmtP(h.vergleichsquote)} Terminquote × ${fmtP(h.settingZuSc)} Setting→SC × ${fmtP(h.scZuWon)} SC-Gewinnquote × ${fmtE(h.dealWert)} Ø Deal = ${fmtE(h.umsatz)} (obere Grenze; konservativ halbiert ${fmtE(h.umsatzKonservativ)})`;
-  return `${fmtZ(h.pool)} Sales Calls × ${fmtP(h.vergleichsquote)} Gewinnquote mit Abschlussversuch × ${fmtE(h.dealWert)} Ø Deal = ${fmtE(h.umsatz)} (obere Grenze; konservativ halbiert ${fmtE(h.umsatzKonservativ)})`;
+/** Rechnung als einfache Schritte (fuer Mail und Slack). */
+function rechnungSchritte(h) {
+  const s = [];
+  if (h.stufe === 'Setting') {
+    s.push(`${fmtZ(h.pool)} solche Settings`);
+    s.push(`Wer den Termin anbietet, bekommt in ${fmtP(h.vergleichsquote)} der Fälle einen Sales Call → ${fmtZ(h.zusatzSc)} Sales Calls mehr`);
+    s.push(`Davon werden ${fmtP(h.scZuWon)} gewonnen → ${fmtZ(h.zusatzDeals)} Abschlüsse mehr`);
+  } else if (h.stufe === 'Opening') {
+    s.push(`${fmtZ(h.pool)} solche Erstgespräche`);
+    s.push(`Wer konkret fragt, bekommt in ${fmtP(h.vergleichsquote)} der Fälle einen Termin → ${fmtZ(h.zusatzTermine)} Termine mehr`);
+    s.push(`${fmtP(h.settingZuSc)} der Settings führen zum Sales Call, ${fmtP(h.scZuWon)} der Sales Calls werden gewonnen → ${fmtZ(h.zusatzDeals)} Abschlüsse mehr`);
+  } else {
+    s.push(`${fmtZ(h.pool)} solche Sales Calls`);
+    s.push(`Wer um die Entscheidung bittet, gewinnt ${fmtP(h.vergleichsquote)} → ${fmtZ(h.zusatzDeals)} Abschlüsse mehr`);
+  }
+  s.push(`× ${fmtE(h.dealWert)} durchschnittlicher Auftrag = bis zu ${fmtE(h.umsatz)}, vorsichtig gerechnet ${fmtE(h.umsatzKonservativ)}`);
+  return s;
 }
 
+function rechnungText(h) {
+  return rechnungSchritte(h).join(' · ');
+}
+
+
 const REGELN = `Regeln:
-- Zahlen schreibst du NIE selbst. Jede Zahl, Quote oder jeder Betrag kommt ausschliesslich als Platzhalter {{schluessel}} aus dem Woerterbuch "werte" (exakt so geschrieben). Auch keine Zahlwoerter fuer Mengen. Grund-Codes wie B2-13 sind erlaubt.
+- Zahlen schreibst du NIE selbst. Jede Zahl, Quote oder jeder Betrag kommt ausschliesslich als Platzhalter {{schluessel}} aus dem Woerterbuch "werte" (exakt so geschrieben). Auch keine Zahlwoerter fuer Mengen.
+- Gruende nur mit ihrer Bezeichnung nennen, NIE mit Codes wie B2-13 oder B6-07.
+- Einfache Sprache: kurze Hauptsaetze (hoechstens 20 Woerter), keine Schachtelsaetze, keine Einschuebe. Jeder Stichpunkt beginnt mit der Kernaussage. Keine Abkuerzungen wie QC, SC oder FU: schreibe Setting, Sales Call, Wiedervorlage.
+- Hoechstens zwei Platzhalter pro Satz.
 - Jede inhaltliche Aussage braucht mindestens einen Platzhalter als Beleg. Vergleiche Woche mit Vorwoche (V.*), Monat (M.*) und Oktober-Basis (O.*), wo es hilft.
 - Ist eine Basis klein (unter 10 Gespraeche), schreibe "dünn belegt".
 - Opening-Werte gibt es nur fuer Zeitraeume ab 31.10. (vorher nur Leads mit spaeterem Termin). Fehlt ein Opening-Wert fuer Vorwoche oder Oktober, ist er "nicht vergleichbar" — dann nicht vergleichen.
@@ -72,14 +94,14 @@ ${REGELN}
 Abschnitte:
 - gut: 2 bis 4 Stichpunkte, was gut war.
 - schlecht: 2 bis 4 Stichpunkte, was schlecht war.
-- potenzial: ein Absatz zum groessten Potenzial fuer sofort mehr Umsatz. Nimm den Hebel W.pot1 (falls fehlend M.pot1), nenne die Rechnung mit {{W.pot1.rechnung}} bzw. {{M.pot1.rechnung}} und erklaere in einem Satz, was der Hebel im Gespraech bedeutet. Gibt es keinen Hebel, sag das.
-- schulung: hoechstens drei Punkte, was geschult werden muss: jeweils was genau anders gesagt oder getan wird, woran man es im Gespraech erkennt, und welches Verhaltensmerkmal (mit Platzhalter) sich bewegen soll.`;
+- potenzial: zwei kurze Saetze zum groessten Hebel (W.pot1, falls fehlend M.pot1). Die Rechnung steht schon darueber, wiederhole sie NICHT. Satz 1: was der Mitarbeiter im Gespraech konkret anders sagt oder tut. Satz 2: woran man es merkt. Gibt es keinen Hebel, schreibe "Kein Hebel mit ausreichender Datenbasis."
+- schulung: hoechstens drei Punkte. Jeder Punkt: Thema in drei bis fuenf Woertern, Doppelpunkt, dann ein Satz was konkret anders gesagt oder getan wird, dann ein Satz mit dem aktuellen Wert des Merkmals als Platzhalter.`;
 
 const SYS_TEAM = `Du schreibst Teile eines woechentlichen Team-Reports (Vertrieb Bonn, acht Personen). Grundlage sind NUR die uebergebenen Kennzahlen.
 ${REGELN}
 Abschnitte:
-- hebel: genau drei Stichpunkte, die drei groessten Hebel fuer das Team (aus den Platzhaltern T.hebel1..3 mit Rechnung, ergaenzt um die Ziel-Kennzahl derselben Stufe gegen das November-Ziel). Gruende nur aus derselben Stufe nennen. Knapp: hoechstens drei Saetze je Hebel.
-- verbleib: ein Absatz (4 bis 6 Saetze): Warum gibt es bei den gefuehrten Settings und Closings kein Ergebnis, und was muss sich aendern. Stuetze dich auf die Verbleib-Kennzahlen und die Gruende.`;
+- hebel: genau drei Stichpunkte, je einer zu T.hebel1, T.hebel2, T.hebel3 in dieser Reihenfolge. Titel und Rechnung stehen schon im Report, wiederhole sie NICHT. Je Hebel ein Satz: was das Team konkret anders macht, und ein Satz mit der Ziel-Kennzahl derselben Stufe (T.W.<Stufe>.ziel).
+- verbleib: zwei Teile. "warum": hoechstens drei kurze Stichpunkte, warum es bei gefuehrten Settings und Closings kein Ergebnis gibt (mit den haeufigsten Gruenden V.grund*). "aendern": hoechstens drei kurze Stichpunkte, was sich aendern muss. Schreibe beide Teile in das Feld verbleib, getrennt durch eine Zeile "Was sich ändern muss:" und jeden Stichpunkt in eine eigene Zeile mit "- " am Anfang.`;
 
 const SCHEMA_PERSON = { type: 'object', additionalProperties: false, required: ['gut', 'schlecht', 'potenzial', 'schulung'],
   properties: { gut: { type: 'array', items: { type: 'string' } }, schlecht: { type: 'array', items: { type: 'string' } },
@@ -144,7 +166,7 @@ async function personText(p, warnungen) {
 
 function werteFuerTeam(d) {
   const w = {};
-  d.team.hebel.forEach((h, i) => { w[`T.hebel${i + 1}`] = h.text; w[`T.hebel${i + 1}.rechnung`] = rechnungText(h); w[`T.hebel${i + 1}.umsatz`] = fmtE(h.umsatz); });
+  d.team.hebel.forEach((h, i) => { w[`T.hebel${i + 1}`] = h.titel; w[`T.hebel${i + 1}.umsatz`] = fmtE(h.umsatz); });
   for (const [kz, liste] of Object.entries(d.team.zielKennzahlen)) {
     for (const z of liste) w[`T.${kz}.${z.stufe}.ziel`] = `${z.label}: ${fmtP(z.quote)} (${z.ja} von ${z.basis}) gegen Ziel ${fmtP(z.ziel)}`;
   }
@@ -160,13 +182,13 @@ function werteFuerTeam(d) {
   for (const [b, n] of Object.entries(g.jeBedingung)) w[`V.liste.bedingung_${b}`] = fmtZ(n);
   const gruende = {};
   for (const z of d.verbleib.zeilen) if (z.grund_id) gruende[z.grund_id] = (gruende[z.grund_id] || 0) + 1;
-  Object.entries(gruende).sort((a, b) => b[1] - a[1]).slice(0, 5).forEach(([id, n], i) => { w[`V.grund${i + 1}`] = `${id} ${K.grundName(id)} (${n}×)`; });
+  Object.entries(gruende).sort((a, b) => b[1] - a[1]).slice(0, 5).forEach(([id, n], i) => { w[`V.grund${i + 1}`] = `${K.grundName(id)} (${n}-mal)`; });
   return w;
 }
 
 async function teamText(d, warnungen) {
   const kontext = { bedingungen: { a: 'kein nächster Schritt (Status seit > 5 Werktagen, keine datierte Aufgabe)', b: 'Closing stattgefunden ohne Ergebnis',
-    c: 'Setting stattgefunden ohne Ergebnis', d: 'Follow-Up akzeptiert statt Termin (qualifizierter Lead, Wiedervorlage > 14 Tage oder undatiert)' },
+    c: 'Setting stattgefunden ohne Ergebnis', d: 'Wiedervorlage statt Termin: Entscheider und Bedarf waren da, trotzdem wurde nur eine Wiedervorlage vereinbart (spaeter als 14 Tage oder ohne Datum)' },
   zielQuelle: 'November-Ziele: ' + TEAM.november_ziele.kennzahlen.map(z => `${z.stufe} ${z.label} ${z.ziel} %`).join(', ') };
   return erzeuge(SYS_TEAM, werteFuerTeam(d), kontext, SCHEMA_TEAM, 'Text Team', warnungen);
 }
@@ -187,4 +209,4 @@ async function pruefeModelle() {
   return ids;
 }
 
-module.exports = { personText, teamText, pruefeModelle, werteFuerPerson, rechnungText, fmtP, fmtZ, fmtE, freieZiffern };
+module.exports = { personText, teamText, pruefeModelle, werteFuerPerson, rechnungText, rechnungSchritte, fmtP, fmtZ, fmtE, freieZiffern };

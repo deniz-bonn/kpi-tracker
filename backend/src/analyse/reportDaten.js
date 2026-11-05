@@ -58,7 +58,8 @@ function potenziale(rows, teamRef, { dealWert, scZuWon, settingZuSc, gewonnen })
     const ref = st('Setting', teamRef).filter(c => qual(c) && c.closing_aktiv_angeboten === 'ja');
     const q = rate(ref, c => c.erfolg === 'ja');
     if (pool.length && q != null && dealWert && scZuWon != null) out.push({ key: 'setting_closing_anbieten', stufe: 'Setting', merkmal: 'closing_aktiv_angeboten',
-      text: 'Qualifizierte Settings (Entscheider und Bedarf bestätigt) ohne aktives Closing-Angebot, die nicht zum Sales Call führten',
+      titel: 'Im Setting den Sales-Call-Termin aktiv anbieten',
+      text: 'Settings, in denen Entscheider und Bedarf da waren, aber kein Sales-Call-Termin vorgeschlagen wurde. Sie endeten ohne Sales Call.',
       pool: pool.length, vergleichsquote: r1(q * 100), vergleichsBasis: ref.length, zusatzSc: r1(pool.length * q), scZuWon: r1(scZuWon * 100),
       zusatzDeals: r1(pool.length * q * scZuWon), dealWert, umsatz: Math.round(pool.length * q * scZuWon * dealWert), umsatzKonservativ: Math.round(pool.length * q * scZuWon * dealWert / 2) });
   }
@@ -68,7 +69,8 @@ function potenziale(rows, teamRef, { dealWert, scZuWon, settingZuSc, gewonnen })
     const ref = st('Opening', teamRef).filter(c => c.abschlussfrage_gestellt === 'ja' && c.entscheider_im_gespraech === 'ja');
     const q = rate(ref, c => c.erfolg === 'ja');
     if (pool.length && q != null && dealWert && scZuWon != null && settingZuSc != null) out.push({ key: 'opening_terminfrage', stufe: 'Opening', merkmal: 'abschlussfrage_gestellt',
-      text: 'Opening-Calls ohne Termin- bzw. Abschlussfrage, die ohne Termin endeten',
+      titel: 'Im Opening konkret nach dem Termin fragen',
+      text: 'Erstgespräche, in denen nicht konkret nach einem Termin gefragt wurde. Sie endeten ohne Termin.',
       pool: pool.length, vergleichsquote: r1(q * 100), vergleichsBasis: ref.length, zusatzTermine: r1(pool.length * q), settingZuSc: r1(settingZuSc * 100), scZuWon: r1(scZuWon * 100),
       zusatzDeals: r1(pool.length * q * settingZuSc * scZuWon), dealWert, umsatz: Math.round(pool.length * q * settingZuSc * scZuWon * dealWert), umsatzKonservativ: Math.round(pool.length * q * settingZuSc * scZuWon * dealWert / 2) });
   }
@@ -78,7 +80,8 @@ function potenziale(rows, teamRef, { dealWert, scZuWon, settingZuSc, gewonnen })
     const ref = st('Closing', teamRef).filter(c => c.abschluss_aktiv_versucht === 'ja');
     const q = rate(ref, c => c.erfolg === 'ja' || gewonnen.has(c.close_opportunity_id));
     if (pool.length && q != null && dealWert) out.push({ key: 'closing_abschluss_versuchen', stufe: 'Closing', merkmal: 'abschluss_aktiv_versucht',
-      text: 'Sales Calls mit Entscheider ohne aktiven Abschlussversuch, (noch) nicht gewonnen',
+      titel: 'Im Sales Call aktiv um die Entscheidung bitten',
+      text: 'Sales Calls mit Entscheider, in denen der Closer nicht um die Entscheidung gebeten hat. Sie sind bisher nicht gewonnen.',
       pool: pool.length, vergleichsquote: r1(q * 100), vergleichsBasis: ref.length, zusatzDeals: r1(pool.length * q), dealWert, umsatz: Math.round(pool.length * q * dealWert), umsatzKonservativ: Math.round(pool.length * q * dealWert / 2) });
   }
   return out.sort((a, b) => b.umsatz - a.umsatz);
