@@ -98,6 +98,21 @@ async function sendeReport({ ziel, haupt, personen, dateien }) {
   return { channel, ts };
 }
 
+/** Kompakter Versand: eine Nachricht mit Text und mehreren Dateien (PDF + Excel). */
+async function sendeDateien({ ziel, text, dateien }) {
+  const channel = ziel.kanal || await dmKanal(ziel.emails);
+  const ids = [];
+  for (const f of dateien) {
+    const buf = Buffer.isBuffer(f.content) ? f.content : Buffer.from(f.content);
+    const u = await api('files.getUploadURLExternal', { filename: f.filename, length: String(buf.length) }, { form: true });
+    const r = await fetch(u.upload_url, { method: 'POST', body: buf });
+    if (!r.ok) throw new Error(`Slack-Upload ${f.filename}: HTTP ${r.status}`);
+    ids.push({ id: u.file_id, title: f.title || f.filename });
+  }
+  await api('files.completeUploadExternal', { files: ids, channel_id: channel, initial_comment: text });
+  return { channel };
+}
+
 async function sendeFehler(emails, text) {
   const channel = await dmKanal(emails);
   await post(channel, text);
@@ -105,4 +120,4 @@ async function sendeFehler(emails, text) {
 
 const konfiguriert = () => !!process.env.SLACK_BOT_TOKEN;
 
-module.exports = { api, dmKanal, post, datei, sendeReport, sendeFehler, teile, konfiguriert };
+module.exports = { api, dmKanal, post, datei, sendeReport, sendeDateien, sendeFehler, teile, konfiguriert };

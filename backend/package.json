@@ -19,6 +19,7 @@
     "jsonwebtoken": "^9.0.3",
     "node-cron": "^4.5.0",
     "nodemailer": "^8.0.10",
+    "pdfmake": "0.3.12",
     "pg": "^8.11.5",
     "resend": "^6.16.0"
   },

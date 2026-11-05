@@ -91,23 +91,25 @@ const REGELN = `Regeln:
 const SYS_PERSON = `Du schreibst Abschnitte eines woechentlichen Coaching-Reports fuer einen Vertriebsmitarbeiter eines B2B-Teams (Personalgewinnung, Bonn). Grundlage sind NUR die uebergebenen Kennzahlen (Tracker-KPIs gegen Tagesziel-Pace und Transkript-Codierung: Erfolgsquote je Stufe, Verhaltensmerkmale, Top-Gruende).
 Merkmale (Schluessel -> deutscher Begriff): entscheider_im_gespraech -> Entscheider im Gespraech; ma_fragte_aktiv_nach_termin -> aktiv nach Termin gefragt; naechster_schritt_mit_datum -> naechster Schritt mit Datum; abschlussfrage_gestellt -> Terminfrage gestellt (Opening/Setting); closing_aktiv_angeboten -> Closing aktiv angeboten (nur Setting); termin_verbindlich_fixiert -> Termin verbindlich fixiert (Opening/Setting); abschluss_aktiv_versucht -> Abschluss aktiv versucht (nur Closing).
 ${REGELN}
+Der Report ist ein kompaktes PDF; jeder Abschnitt ist GENAU EIN Satz mit hoechstens 22 Woertern.
 Abschnitte:
-- gut: 2 bis 4 Stichpunkte, was gut war.
-- schlecht: 2 bis 4 Stichpunkte, was schlecht war.
-- potenzial: zwei kurze Saetze zum groessten Hebel (W.pot1, falls fehlend M.pot1). Die Rechnung steht schon darueber, wiederhole sie NICHT. Satz 1: was der Mitarbeiter im Gespraech konkret anders sagt oder tut. Satz 2: woran man es merkt. Gibt es keinen Hebel, schreibe "Kein Hebel mit ausreichender Datenbasis."
-- schulung: hoechstens drei Punkte. Jeder Punkt: Thema in drei bis fuenf Woertern, Doppelpunkt, dann ein Satz was konkret anders gesagt oder getan wird, dann ein Satz mit dem aktuellen Wert des Merkmals als Platzhalter.`;
+- gut: das Wichtigste, was diese Woche gut lief, mit einem Platzhalter als Beleg.
+- schlecht: das Wichtigste, was diese Woche schlecht lief, mit einem Platzhalter als Beleg.
+- schulung: was der Mitarbeiter im Gespraech konkret anders sagen oder tun soll (eine Handlung, kein Ziel), ohne Platzhalter.`;
 
 const SYS_TEAM = `Du schreibst Teile eines woechentlichen Team-Reports (Vertrieb Bonn, acht Personen). Grundlage sind NUR die uebergebenen Kennzahlen.
 ${REGELN}
+Der Report ist ein kompaktes PDF; jeder Stichpunkt ist EIN Satz mit hoechstens 18 Woertern.
 Abschnitte:
-- hebel: genau drei Stichpunkte, je einer zu T.hebel1, T.hebel2, T.hebel3 in dieser Reihenfolge. Titel und Rechnung stehen schon im Report, wiederhole sie NICHT. Je Hebel ein Satz: was das Team konkret anders macht, und ein Satz mit der Ziel-Kennzahl derselben Stufe (T.W.<Stufe>.ziel).
-- verbleib: zwei Teile. "warum": hoechstens drei kurze Stichpunkte, warum es bei gefuehrten Settings und Closings kein Ergebnis gibt (mit den haeufigsten Gruenden V.grund*). "aendern": hoechstens drei kurze Stichpunkte, was sich aendern muss. Schreibe beide Teile in das Feld verbleib, getrennt durch eine Zeile "Was sich ändern muss:" und jeden Stichpunkt in eine eigene Zeile mit "- " am Anfang.`;
+- kernaussagen: genau drei Stichpunkte, die wichtigsten Aussagen der Woche fuer die Vertriebsleitung (Soll/Ist, Ziel-Kennzahlen, groesster Hebel). Je Stichpunkt hoechstens zwei Platzhalter. Umsatz-Hebel immer als "bis zu {{T.hebel1.umsatz}}, vorsichtig {{T.hebel1.umsatzKonservativ}}".
+- warum: genau zwei Stichpunkte, warum gefuehrte Settings und Sales Calls ohne Ergebnis bleiben (aus V.grund*).
+- aendern: genau zwei Stichpunkte, was sich konkret aendern muss (Handlungen, keine Ziele).`;
 
-const SCHEMA_PERSON = { type: 'object', additionalProperties: false, required: ['gut', 'schlecht', 'potenzial', 'schulung'],
-  properties: { gut: { type: 'array', items: { type: 'string' } }, schlecht: { type: 'array', items: { type: 'string' } },
-    potenzial: { type: 'string' }, schulung: { type: 'array', items: { type: 'string' } } } };
-const SCHEMA_TEAM = { type: 'object', additionalProperties: false, required: ['hebel', 'verbleib'],
-  properties: { hebel: { type: 'array', items: { type: 'string' } }, verbleib: { type: 'string' } } };
+const SCHEMA_PERSON = { type: 'object', additionalProperties: false, required: ['gut', 'schlecht', 'schulung'],
+  properties: { gut: { type: 'string' }, schlecht: { type: 'string' }, schulung: { type: 'string' } } };
+const SCHEMA_TEAM = { type: 'object', additionalProperties: false, required: ['kernaussagen', 'warum', 'aendern'],
+  properties: { kernaussagen: { type: 'array', items: { type: 'string' } }, warum: { type: 'array', items: { type: 'string' } },
+    aendern: { type: 'array', items: { type: 'string' } } } };
 
 const PLATZ = /\{\{\s*([^}]+?)\s*\}\}/g;
 function einsetzen(text, werte) {
@@ -152,7 +154,8 @@ async function erzeuge(system, werte, kontext, schema, label, warnungen) {
   }
   const fehlend = [];
   const ersetze = (v) => (Array.isArray(v) ? v.map(ersetze) : (() => { const e = einsetzen(v, werte); fehlend.push(...e.fehlend); return e.out; })());
-  const out = Object.fromEntries(Object.entries(r.json).map(([k, v]) => [k, ersetze(v)]));
+  const MAX = { kernaussagen: 3, warum: 2, aendern: 2 };   // Platz im PDF
+  const out = Object.fromEntries(Object.entries(r.json).map(([k, v]) => [k, ersetze(Array.isArray(v) && MAX[k] ? v.slice(0, MAX[k]) : v)]));
   if (fehlend.length) warnungen.push(`${label}: unbekannte Platzhalter ${[...new Set(fehlend)].join(', ')}`);
   return { out, usd };
 }
@@ -166,7 +169,7 @@ async function personText(p, warnungen) {
 
 function werteFuerTeam(d) {
   const w = {};
-  d.team.hebel.forEach((h, i) => { w[`T.hebel${i + 1}`] = h.titel; w[`T.hebel${i + 1}.umsatz`] = fmtE(h.umsatz); });
+  d.team.hebel.forEach((h, i) => { w[`T.hebel${i + 1}`] = h.titel; w[`T.hebel${i + 1}.umsatz`] = fmtE(h.umsatz); w[`T.hebel${i + 1}.umsatzKonservativ`] = fmtE(h.umsatzKonservativ); });
   for (const [kz, liste] of Object.entries(d.team.zielKennzahlen)) {
     for (const z of liste) w[`T.${kz}.${z.stufe}.ziel`] = `${z.label}: ${fmtP(z.quote)} (${z.ja} von ${z.basis}) gegen Ziel ${fmtP(z.ziel)}`;
   }

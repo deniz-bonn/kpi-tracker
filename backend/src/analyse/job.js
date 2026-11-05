@@ -166,10 +166,16 @@ async function reportlauf({ stichtag = heute(), von = null, bis = null, modus = 
     try { const r = await Tx.teamText(d, warnungen); team = r.out; kostenTexte += r.usd; } catch (e) { warnungen.push('Text Team: ' + e.message); }
     log(`  Texte erzeugt, ${kostenTexte.toFixed(2)} $`);
 
-    const html = require('./mailHtml').html(d, { personen, team, modus: m });
     const X = require('./excel');
     const kw = d.zeitraeume.woche.kw;
+    const pdf = await require('./pdf').erzeuge(d, { personen, team, modus: m });
+    const seiten = require('./pdf').seiten(pdf);
+    log(`  PDF erzeugt: ${seiten} Seite(n)`);
+    if (seiten > 3) warnungen.push(`PDF hat ${seiten} Seiten (Ziel: hoechstens 3)`);
+    const titel = `Vertriebsanalyse Bonn KW ${kw}${m === 'test' ? ' (Test)' : ''}`;
+    const kern = (team && team.kernaussagen) || [];
     const anh = [
+      { filename: `Vertriebsanalyse_Bonn_KW${kw}.pdf`, content: pdf },
       { filename: `Verbleib_Bonn_KW${kw}.xlsx`, content: Buffer.from(await X.verbleibXlsx(d)) },
       { filename: `Codierungen_Bonn_KW${kw}.xlsx`, content: Buffer.from(await X.codierungenXlsx(d)) },
     ];
@@ -193,14 +199,16 @@ async function reportlauf({ stichtag = heute(), von = null, bis = null, modus = 
       const betreff = TEAM.versand.betreff.replace('{kw}', kw) + (m === 'test' ? ' (Test)' : '');
       try {
         if (weg === 'slack') {
-          const st = require('./slackText').nachrichten(d, { personen, team, modus: m });
-          await require('./slack').sendeReport({
+          // Eine kurze Nachricht mit PDF und den beiden Excel-Dateien.
+          const esc = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          const text = `*${titel}*\n${kern.map(k => `• ${esc(k)}`).join('\n')}\n_Report im PDF. Firmen, Werte und Close-Links in der Excel „Verbleib“, alle ausgewerteten Gespräche in „Codierungen“._`;
+          await require('./slack').sendeDateien({
             ziel: m === 'live' ? { kanal: process.env.SLACK_KANAL_ID } : { emails: TEAM.versand.slack.test_an },
-            haupt: st.haupt, personen: st.personen,
-            dateien: [...anh.map(a => ({ filename: a.filename, content: a.content })),
-              { filename: `Vertriebsanalyse_Bonn_KW${kw}.html`, content: Buffer.from(html), title: `${betreff} (vollständiger Report, im Browser öffnen)` }],
+            text, dateien: anh,
           });
         } else {
+          const e = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+          const html = `<div style="font-family:Arial,sans-serif;font-size:14px"><p><b>${e(titel)}</b></p><ul>${kern.map(k => `<li>${e(k)}</li>`).join('')}</ul><p style="color:#555">Report im PDF-Anhang. Firmen, Werte und Close-Links in der Excel „Verbleib“, alle ausgewerteten Gespräche in „Codierungen“.</p></div>`;
           await sendEmail({ to: empf, subject: betreff, html, attachments: anh });
         }
         await db.run(`UPDATE weekly_reports SET versand_status='gesendet', versendet_am=${NOW()} WHERE id=${P(1)}`, [reportId]);
@@ -214,7 +222,6 @@ async function reportlauf({ stichtag = heute(), von = null, bis = null, modus = 
     if (process.env.ANALYSE_AUSGABE_DIR) {
       const fs = require('fs'), path = require('path');
       fs.mkdirSync(process.env.ANALYSE_AUSGABE_DIR, { recursive: true });
-      fs.writeFileSync(path.join(process.env.ANALYSE_AUSGABE_DIR, `report_KW${kw}.html`), html);
       for (const a of anh) fs.writeFileSync(path.join(process.env.ANALYSE_AUSGABE_DIR, a.filename), a.content);
     }
     return { abdeckung: d.abdeckung, kosten: kostenCod + kostenTexte, fehler: warnungen, reportId };

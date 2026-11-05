@@ -19,7 +19,8 @@ Cron läuft auf Railway automatisch (`DATABASE_URL` gesetzt). Lokal aus; mit `AN
 ## Versand
 
 - **Weg:** `team.json` → `versand.kanal` = `slack` (Standard) oder `mail`. Solange die Slack-App fehlt (`SLACK_BOT_TOKEN` nicht gesetzt), fällt der automatische Lauf auf Mail zurück und meldet das als Warnung.
-- **Slack:** Hauptbeitrag (Team, Ziel-Kennzahlen, Hebel, Verbleib) im privaten Kanal `SLACK_KANAL_ID`, je Mitarbeiter ein Thread-Beitrag, im Thread die beiden Excel-Dateien und der vollständige Report als HTML-Datei. App anlegen mit `docs/wochenanalyse-slack-app.yml`.
+- **Inhalt:** kompaktes PDF (höchstens 3 A4-Seiten: Seite 1 Team, Seiten 2–3 je Mitarbeiter ein Block) plus Excel „Verbleib“ (Firmen, Werte, Close-Links) und „Codierungen“. Mehr als 3 Seiten wird als Warnung gemeldet.
+- **Slack:** eine Nachricht mit drei Kernaussagen und den drei Dateien; live im privaten Kanal `SLACK_KANAL_ID`, Test als Direktnachricht an Deniz. App: `docs/wochenanalyse-slack-app.yml`.
 - **Modus** in `analyse_settings.versand_modus`: `test` (Standard; Slack-Direktnachricht an `versand.slack.test_an` bzw. Mail an `versand.empfaenger_test`) oder `live` (Slack-Kanal bzw. Mail an `versand.empfaenger_live`). Umschalten nur durch Superadmin: `PUT /api/admin/analyse/versand-modus {"modus":"live"}` (Audit-Log).
 - **Mail (Rückfall):** Resend (`RESEND_API_KEY`) oder SMTP; Resend stellt ohne verifizierte Domain nur an die Konto-Adresse deniz@fach-digital.de zu.
 - **Fehler** jedes Laufs: Slack-Direktnachricht an `versand.slack.fehler_an`, ohne Slack per Mail an `versand.fehler_an`.
