@@ -91,11 +91,37 @@ async function codierlauf({ von = null, bis = null, ausgeloestVon = 'cron', user
  */
 async function oppBackfill(log) {
   const { setzeSetting } = require('./basis');
-  if (await setting('opp_backfill_119', null)) return;
-  const { syncOpportunities } = require('../utils/closeSync');
-  const r = await syncOpportunities({ since: process.env.CLOSE_BACKFILL_AB || '2026-06-01', log });
-  await setzeSetting('opp_backfill_119', new Date().toISOString(), 'analyse');
-  log(`  Opportunity-Backfill (Firma/Wert): ${r.gesamt} Opportunities`);
+  if (!(await setting('opp_backfill_119', null))) {
+    const { syncOpportunities } = require('../utils/closeSync');
+    const r = await syncOpportunities({ since: process.env.CLOSE_BACKFILL_AB || '2026-06-01', log });
+    await setzeSetting('opp_backfill_119', new Date().toISOString(), 'analyse');
+    log(`  Opportunity-Backfill (Firma/Wert): ${r.gesamt} Opportunities`);
+  }
+  await oppLuecken(log);
+}
+
+/**
+ * Lueckenfueller: Opportunities, die in Terminen oder Codierungen vorkommen, aber noch keine Firma haben (seit
+ * Migration 119 nicht mehr in Close geaendert und aelter als das Backfill-Fenster), einzeln aus Close holen.
+ * Nur lesend; hoechstens 400 je Lauf; in Close geloeschte Opportunities werden uebersprungen.
+ */
+async function oppLuecken(log) {
+  const close = require('../utils/closeClient');
+  const { P: Pp } = require('./basis');
+  const ids = (await db.all(`SELECT o.id FROM close_opportunities o WHERE o.lead_name IS NULL AND (
+      EXISTS (SELECT 1 FROM termine t WHERE t.close_opportunity_id = o.id) OR EXISTS (SELECT 1 FROM call_codings c WHERE c.close_opportunity_id = o.id))
+      LIMIT 400`)).map(r => r.id);
+  if (!ids.length) return;
+  let ok = 0, weg = 0;
+  for (const id of ids) {
+    try {
+      const o = await close.get(`/opportunity/${id}/`, { _fields: 'id,lead_name,value,value_currency,value_period' });
+      await db.run(`UPDATE close_opportunities SET lead_name=${Pp(1)}, value=${Pp(2)}, value_currency=${Pp(3)}, value_period=${Pp(4)} WHERE id=${Pp(5)}`,
+        [o.lead_name ?? null, o.value != null ? Number(o.value) / 100 : null, o.value_currency ?? null, o.value_period ?? null, id]);
+      ok++;
+    } catch (e) { weg++; }
+  }
+  log(`  Opportunity-Luecken: ${ok} nachgezogen${weg ? `, ${weg} nicht abrufbar (geloescht?)` : ''}`);
 }
 
 /** Einmalig: Calls ab 01.10. spiegeln (fuer Bedingung c der Verbleib-Liste), ohne Codier-Auftraege. */
