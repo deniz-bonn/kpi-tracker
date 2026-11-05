@@ -1,0 +1,25 @@
+# Slack-App fuer den Freitagsreport der Wochenanalyse Bonn.
+# Anlegen: https://api.slack.com/apps -> "Create New App" -> "From a manifest" -> Workspace waehlen -> diesen Inhalt einfuegen.
+# Danach: "Install to Workspace" -> unter "OAuth & Permissions" den "Bot User OAuth Token" (xoxb-...) kopieren
+# und auf Railway als SLACK_BOT_TOKEN eintragen. Den Bot in den privaten Kanal einladen (/invite @Vertriebsanalyse)
+# und die Kanal-ID (Kanaldetails -> ganz unten, beginnt mit C...) als SLACK_KANAL_ID eintragen.
+display_information:
+  name: Vertriebsanalyse
+  description: Wöchentlicher Report der Vertriebsanalyse Bonn aus dem KPI-Tracker
+  background_color: "#1f4e79"
+features:
+  bot_user:
+    display_name: Vertriebsanalyse
+    always_online: false
+oauth_config:
+  scopes:
+    bot:
+      - chat:write          # Report in den Kanal schreiben
+      - files:write         # Excel-Dateien und HTML-Report anhaengen
+      - im:write            # Test und Fehlermeldungen als Direktnachricht an Deniz
+      - users:read          # Nutzer zur Mailadresse finden (fuer die Direktnachricht)
+      - users:read.email
+settings:
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false

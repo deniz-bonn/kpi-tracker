@@ -1,6 +1,7 @@
 // Lauf-Steuerung der Wochenanalyse: Codierlauf, Einsammeln, Verbleib, Wochenreport.
-// Jeder Lauf schreibt analyse_runs (Abdeckung, Fehler, Kosten, Log). Bei Fehlern eine kurze Mail NUR an
-// team.json versand.fehler_an. Sperre prozesslokal je Lauftyp (eine Railway-Instanz, wie closeSyncJob.js).
+// Jeder Lauf schreibt analyse_runs (Abdeckung, Fehler, Kosten, Log). Bei Fehlern eine kurze Nachricht NUR an Deniz
+// (Slack-Direktnachricht an versand.slack.fehler_an, sonst Mail an versand.fehler_an).
+// Versandweg des Reports: team.json versand.kanal ('slack' | 'mail'), manuell ueberschreibbar. Sperre prozesslokal je Lauftyp (eine Railway-Instanz, wie closeSyncJob.js).
 const { db, TEAM, P, NOW, heute, addTage, berichtswoche, setting, insertId, ymd } = require('./basis');
 const { sendEmail } = require('../utils/email');
 
@@ -11,6 +12,11 @@ const CODIERUNG_AB = '2026-10-31';  // erster laufender Codierzeitraum (Samstag 
 function mailKonfiguriert() { return !!(process.env.RESEND_API_KEY || process.env.SMTP_HOST); }
 
 async function fehlerMail(betreff, text) {
+  const slack = require('./slack');
+  if (slack.konfiguriert()) {
+    try { await slack.sendeFehler(TEAM.versand.slack.fehler_an, `:rotating_light: *[Vertriebsanalyse] ${betreff}*\n\`\`\`${String(text).slice(0, 2500)}\`\`\``); return; }
+    catch (e) { console.error('[analyse] Slack-Fehlermeldung fehlgeschlagen, versuche Mail:', e.message); }
+  }
   if (!mailKonfiguriert()) { console.error('[analyse] Fehlermail nicht moeglich (kein Mailversand konfiguriert):', betreff, text); return; }
   try {
     await sendEmail({ to: TEAM.versand.fehler_an, subject: `[Vertriebsanalyse] ${betreff}`,
@@ -120,12 +126,22 @@ async function verbleiblauf({ stichtag = heute(), ausgeloestVon = 'cron', user =
  * Wochenreport. modus: 'test' | 'live' | 'ohne_versand' | null (= analyse_settings.versand_modus, Standard test).
  * stichtag: Freitag der Berichtswoche (Standard heute); von/bis frei waehlbar zum Nachholen.
  */
-async function reportlauf({ stichtag = heute(), von = null, bis = null, modus = null, ausgeloestVon = 'cron', user = null } = {}) {
+async function reportlauf({ stichtag = heute(), von = null, bis = null, modus = null, kanal = null, ausgeloestVon = 'cron', user = null } = {}) {
   const m = modus || await setting('versand_modus', 'test');
+  // Slack ist der vorgesehene Weg; solange die Slack-App noch nicht installiert ist (kein SLACK_BOT_TOKEN),
+  // faellt der automatische Lauf auf Mail zurueck, statt auszufallen. Manuell erzwungenes kanal='slack' scheitert dagegen laut.
+  const gewuenscht = kanal || TEAM.versand.kanal || 'mail';
+  const weg = (!kanal && gewuenscht === 'slack' && !process.env.SLACK_BOT_TOKEN) ? 'mail' : gewuenscht;
+  const wegHinweis = weg !== gewuenscht ? 'Slack-App noch nicht eingerichtet (SLACK_BOT_TOKEN fehlt) — Versand per Mail' : null;
   return lauf('report', { ausgeloestVon, user, von: von || berichtswoche(stichtag).von, bis: bis || berichtswoche(stichtag).bis }, async ({ runId, log }) => {
     const Tx = require('./texte');
     await Tx.pruefeModelle();
-    if (m !== 'ohne_versand' && !mailKonfiguriert()) throw new Error('Kein Mailversand konfiguriert (RESEND_API_KEY oder SMTP_HOST fehlt)');
+    if (m !== 'ohne_versand') {
+      if (weg === 'slack') {
+        if (!process.env.SLACK_BOT_TOKEN) throw new Error('Slack-Versand: SLACK_BOT_TOKEN fehlt');
+        if (m === 'live' && !process.env.SLACK_KANAL_ID) throw new Error('Slack-Versand live: SLACK_KANAL_ID fehlt');
+      } else if (!mailKonfiguriert()) throw new Error('Kein Mailversand konfiguriert (RESEND_API_KEY oder SMTP_HOST fehlt)');
+    }
     const C = require('./codierung');
     await C.sammleEin({ log });
     const V = require('./verbleib');
@@ -134,7 +150,7 @@ async function reportlauf({ stichtag = heute(), von = null, bis = null, modus = 
     const d = await RD.baue({ stichtag, von, bis, log });
     log(`  Zahlen: ${d.codierung.woche} Codierungen Woche, ${d.codierung.monat} Monat, nicht codiert ${d.codierung.nichtCodiertWoche}`);
 
-    const warnungen = [];
+    const warnungen = wegHinweis ? [wegHinweis] : [];
     let kostenTexte = 0;
     const personen = {};
     let i = 0;
@@ -161,7 +177,9 @@ async function reportlauf({ stichtag = heute(), von = null, bis = null, modus = 
     const kc = await db.get(`SELECT COALESCE(SUM(kosten_usd),0) k FROM call_codings WHERE basis='laufend' AND call_datum >= ${P(1)} AND call_datum <= ${P(2)}`,
       [d.zeitraeume.woche.von, d.zeitraeume.woche.bis]);
     const kostenCod = Number(kc.k) || 0;
-    const empf = m === 'live' ? TEAM.versand.empfaenger_live : m === 'test' ? TEAM.versand.empfaenger_test : [];
+    const empf = m === 'ohne_versand' ? []
+      : weg === 'slack' ? [m === 'live' ? `Slack-Kanal ${process.env.SLACK_KANAL_ID}` : `Slack-DM ${TEAM.versand.slack.test_an.join(' / ')}`]
+      : m === 'live' ? TEAM.versand.empfaenger_live : TEAM.versand.empfaenger_test;
     const reportId = await require('./basis').insertId('weekly_reports', {
       jahr: d.zeitraeume.woche.jahr, kw, woche_von: d.zeitraeume.woche.von, woche_bis: d.zeitraeume.woche.bis, monat_von: d.zeitraeume.monat.von, monat_bis: d.zeitraeume.monat.bis,
       modus: m, empfaenger: empf.join(', '), anzahl_codiert_woche: d.codierung.woche, anzahl_codiert_monat: d.codierung.monat,
@@ -174,7 +192,17 @@ async function reportlauf({ stichtag = heute(), von = null, bis = null, modus = 
     if (m !== 'ohne_versand') {
       const betreff = TEAM.versand.betreff.replace('{kw}', kw) + (m === 'test' ? ' (Test)' : '');
       try {
-        await sendEmail({ to: empf, subject: betreff, html, attachments: anh });
+        if (weg === 'slack') {
+          const st = require('./slackText').nachrichten(d, { personen, team, modus: m });
+          await require('./slack').sendeReport({
+            ziel: m === 'live' ? { kanal: process.env.SLACK_KANAL_ID } : { emails: TEAM.versand.slack.test_an },
+            haupt: st.haupt, personen: st.personen,
+            dateien: [...anh.map(a => ({ filename: a.filename, content: a.content })),
+              { filename: `Vertriebsanalyse_Bonn_KW${kw}.html`, content: Buffer.from(html), title: `${betreff} (vollständiger Report, im Browser öffnen)` }],
+          });
+        } else {
+          await sendEmail({ to: empf, subject: betreff, html, attachments: anh });
+        }
         await db.run(`UPDATE weekly_reports SET versand_status='gesendet', versendet_am=${NOW()} WHERE id=${P(1)}`, [reportId]);
         log(`  versendet an ${empf.join(', ')}`);
       } catch (e) {

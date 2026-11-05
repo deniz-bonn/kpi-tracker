@@ -18,11 +18,12 @@ Cron läuft auf Railway automatisch (`DATABASE_URL` gesetzt). Lokal aus; mit `AN
 
 ## Versand
 
-- Modus steht in `analyse_settings.versand_modus`: `test` (Standard, nur an `versand.empfaenger_test`, derzeit deniz@fach-digital.de, solange Resend keine verifizierte Domain hat) oder `live` (die drei Empfänger aus `team.json`).
-- Umschalten nur durch Superadmin: `PUT /api/admin/analyse/versand-modus {"modus":"live"}` (Audit-Log).
-- Betreff `Vertriebsanalyse Bonn KW xx`; Mailtext ohne Kundennamen; Anhänge `Verbleib_Bonn_KWxx.xlsx` (mit Firma) und `Codierungen_Bonn_KWxx.xlsx`.
-- Mailanbieter wie der Rest der App: `RESEND_API_KEY` (bevorzugt) oder `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS`, Absender `SMTP_FROM`. Fehlt beides, bricht der Report mit Fehlermail ab statt still „gesendet“ zu melden.
-- Fehler jedes Laufs: kurze Mail nur an `versand.fehler_an` (team.json).
+- **Weg:** `team.json` → `versand.kanal` = `slack` (Standard) oder `mail`. Solange die Slack-App fehlt (`SLACK_BOT_TOKEN` nicht gesetzt), fällt der automatische Lauf auf Mail zurück und meldet das als Warnung.
+- **Slack:** Hauptbeitrag (Team, Ziel-Kennzahlen, Hebel, Verbleib) im privaten Kanal `SLACK_KANAL_ID`, je Mitarbeiter ein Thread-Beitrag, im Thread die beiden Excel-Dateien und der vollständige Report als HTML-Datei. App anlegen mit `docs/wochenanalyse-slack-app.yml`.
+- **Modus** in `analyse_settings.versand_modus`: `test` (Standard; Slack-Direktnachricht an `versand.slack.test_an` bzw. Mail an `versand.empfaenger_test`) oder `live` (Slack-Kanal bzw. Mail an `versand.empfaenger_live`). Umschalten nur durch Superadmin: `PUT /api/admin/analyse/versand-modus {"modus":"live"}` (Audit-Log).
+- **Mail (Rückfall):** Resend (`RESEND_API_KEY`) oder SMTP; Resend stellt ohne verifizierte Domain nur an die Konto-Adresse deniz@fach-digital.de zu.
+- **Fehler** jedes Laufs: Slack-Direktnachricht an `versand.slack.fehler_an`, ohne Slack per Mail an `versand.fehler_an`.
+- Keine Kundennamen im Text; Firmen, Werte und Close-Links nur in der Verbleib-Excel.
 
 ## Nachholen / manuell
 
@@ -33,7 +34,7 @@ Admin-Endpoints (Superadmin), antworten mit 202, Fortschritt unter `GET /api/adm
 | `POST /api/admin/analyse/codierung` | `{ "von": "2026-10-31", "bis": "2026-11-06" }` |
 | `POST /api/admin/analyse/einsammeln` | – |
 | `POST /api/admin/analyse/verbleib` | `{ "stichtag": "2026-11-06" }` |
-| `POST /api/admin/analyse/report` | `{ "stichtag": "2026-11-06", "modus": "test" }` oder `{ "von": "...", "bis": "...", "modus": "ohne_versand" }` |
+| `POST /api/admin/analyse/report` | `{ "stichtag": "2026-11-06", "modus": "test", "kanal": "slack" }` (kanal optional: slack/mail) oder `{ "von": "...", "bis": "...", "modus": "ohne_versand" }` |
 | `GET /api/admin/analyse/laeufe/:id` | Log eines Laufs |
 
 Kommandozeile (lokal oder `railway run`): `npm --prefix backend run analyse -- <codierung|einsammeln|verbleib|report|oktober-basis|status> [--von --bis --stichtag --modus --warten]`.

@@ -9,6 +9,7 @@ const { requireAuth, requireRole } = require('../middleware/auth');
 const { requireFeature } = require('../middleware/requireFeature');
 const { logAudit } = require('../utils/audit');
 
+const TEAM_VERSAND = () => require('../analyse/basis').TEAM.versand.kanal || 'mail';
 const datum = (v) => (v && /^\d{4}-\d{2}-\d{2}$/.test(String(v)) ? String(v) : null);
 const P = (i) => (db.dialect === 'postgres' ? `$${i}` : '?');
 
@@ -28,7 +29,8 @@ admin.get('/status', wrap(async (req, res) => {
                                   FROM weekly_reports ORDER BY erstellt_am DESC LIMIT 20`);
   // Nur ob etwas gesetzt ist — nie Werte.
   const konfiguration = { anthropic: !!process.env.ANTHROPIC_API_KEY, fireflies: !!process.env.FIREFLIES_API_KEY,
-    mail: process.env.RESEND_API_KEY ? 'resend' : process.env.SMTP_HOST ? 'smtp' : 'keiner', absender: !!process.env.SMTP_FROM };
+    mail: process.env.RESEND_API_KEY ? 'resend' : process.env.SMTP_HOST ? 'smtp' : 'keiner', absender: !!process.env.SMTP_FROM,
+    slackToken: !!process.env.SLACK_BOT_TOKEN, slackKanal: !!process.env.SLACK_KANAL_ID, versandweg: TEAM_VERSAND() };
   res.json({ versandModus: await setting('versand_modus', 'test'), konfiguration, laufend: job.status(), laeufe, batches, auftraege, reports });
 }));
 
@@ -59,8 +61,9 @@ admin.post('/verbleib', wrap(async (req, res) => {
 }));
 
 admin.post('/report', wrap(async (req, res) => {
-  const { stichtag, von, bis, modus } = req.body || {};
+  const { stichtag, von, bis, modus, kanal } = req.body || {};
   if (![undefined, null, 'test', 'live', 'ohne_versand'].includes(modus)) return res.status(400).json({ error: 'modus: test | live | ohne_versand' });
+  if (![undefined, null, 'slack', 'mail'].includes(kanal)) return res.status(400).json({ error: 'kanal: slack | mail' });
   if ((von && !datum(von)) || (bis && !datum(bis)) || (stichtag && !datum(stichtag))) return res.status(400).json({ error: 'Datumsangaben als YYYY-MM-DD' });
   if (!!von !== !!bis) return res.status(400).json({ error: 'von und bis nur gemeinsam' });
   // Live-Versand an alle drei nur, wenn er freigegeben ist (versand_modus = live).
@@ -69,7 +72,7 @@ admin.post('/report', wrap(async (req, res) => {
     return res.status(409).json({ error: 'Live-Versand ist noch nicht freigegeben (versand_modus = test).' });
   }
   starte(() => require('../analyse/job').reportlauf({ stichtag: datum(stichtag) || undefined, von: datum(von), bis: datum(bis),
-    modus: modus || null, ausgeloestVon: 'manuell', user: req.user }))(req, res);
+    modus: modus || null, kanal: kanal || null, ausgeloestVon: 'manuell', user: req.user }))(req, res);
 }));
 
 admin.put('/versand-modus', wrap(async (req, res) => {
