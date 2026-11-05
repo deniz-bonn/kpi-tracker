@@ -48,9 +48,10 @@ const starte = (fn) => (req, res) => {
 };
 
 admin.post('/codierung', wrap(async (req, res) => {
-  const { von, bis } = req.body || {};
+  const { von, bis, neuCodieren } = req.body || {};
   if ((von && !datum(von)) || (bis && !datum(bis))) return res.status(400).json({ error: 'von/bis als YYYY-MM-DD' });
-  starte(() => require('../analyse/job').codierlauf({ von: datum(von), bis: datum(bis), ausgeloestVon: 'manuell', user: req.user }))(req, res);
+  if (neuCodieren && !(datum(von) && datum(bis))) return res.status(400).json({ error: 'neuCodieren nur mit von und bis' });
+  starte(() => require('../analyse/job').codierlauf({ von: datum(von), bis: datum(bis), neuCodieren: !!neuCodieren, ausgeloestVon: 'manuell', user: req.user }))(req, res);
 }));
 
 admin.post('/einsammeln', (req, res) => starte(() => require('../analyse/job').einsammeln({ ausgeloestVon: 'manuell' }))(req, res));

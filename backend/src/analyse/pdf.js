@@ -23,7 +23,7 @@ const tabLayout = {
 };
 const tab = (kopf, zeilen, widths) => ({
   table: { headerRows: 1, widths: widths || kopf.map((_, i) => (i === 0 ? '*' : 'auto')),
-    body: [kopf.map((k, i) => ({ text: k, bold: true, alignment: i ? 'right' : 'left' })), ...zeilen.map(z => z.map((v, i) => ({ text: v == null ? '–' : String(v), alignment: i ? 'right' : 'left', noWrap: i > 0 })))] },
+    body: [kopf.map((k, i) => ({ text: k, bold: true, alignment: i ? 'right' : 'left' })), ...zeilen.map(z => z.map((v, i) => ({ text: v == null ? '–' : String(v), alignment: i ? 'right' : 'left', noWrap: i > 0 && !(String(v).includes(' · ')) })))] },
   layout: tabLayout, margin: [0, 2, 0, 6],
 });
 const h = (t) => ({ text: t, bold: true, fontSize: 11, color: BLAU, margin: [0, 8, 0, 3] });
@@ -52,6 +52,14 @@ function seiteTeam(d, texte) {
       TEAM.november_ziele.kennzahlen.map((z, i) => [z.label, fmtP(t.zielKennzahlen.woche[i].quote), fmtP(t.zielKennzahlen.monat[i].quote), fmtP(z.ziel)]))] },
   ], columnGap: 12 });
 
+  const jo = Object.entries(t.settingsJeOpener.monat).sort((a, b) => b[1].settings - a[1].settings);
+  if (jo.length) {
+    c.push(h('Woher kommen unqualifizierte Settings? (Monat, nach Opener)'));
+    c.push(tab(['Opener', 'Settings', 'qualifiziert', 'ohne Entscheider', 'ohne Bedarf', 'nicht zeitnah'],
+      jo.map(([n, x]) => [n, fmtZ(x.settings), `${fmtZ(x.qualifiziert)} (${fmtP(Math.round(1000 * x.qualifiziert / x.settings) / 10)})`, fmtZ(x.ohneEntscheider), fmtZ(x.ohneBedarf), fmtZ(x.nichtZeitnah)])));
+    c.push({ text: 'Qualifiziert = Entscheider dabei oder Teilnahme zugesagt, deckbarer Bedarf, zeitnah. Settings ohne Entscheider sind ein Fehler im Opening: Termin nur anbieten, wenn der Entscheider erreicht ist.', fontSize: 7, color: GRAU });
+  }
+
   c.push(h('Die drei größten Hebel (Monat)'));
   c.push(t.hebel.length ? tab(['Was', 'Fälle', 'Abschlüsse mehr', 'Umsatz bis zu', 'vorsichtig'],
     t.hebel.map(x => [x.titel, fmtZ(x.pool), fmtZ(x.zusatzDeals), fmtE(x.umsatz), fmtE(x.umsatzKonservativ)]), ['*', 'auto', 'auto', 'auto', 'auto'])
@@ -72,7 +80,19 @@ function seiteTeam(d, texte) {
   return c;
 }
 
-function blockPerson(p, txt, ov) {
+const anteil = (x) => (x && x.basis ? `${x.ja} von ${x.basis}` : '–');
+/** Kurzer Qualitaetswert je Stufe fuer die Tabellenspalte (Opener zusaetzlich: Herkunft ihrer Settings). */
+function qualitaetKurz(st, s, herkunft) {
+  const q = s && s.qualitaet;
+  const teile = [];
+  if (q && st === 'Opening') teile.push(`Termin ohne Entscheider ${anteil(q.terminOhneEntscheider)}`, `Bedarf festgestellt ${anteil(q.bedarfFestgestellt)}`);
+  if (q && st === 'Setting') teile.push(`qualifiziert ${anteil(q.qualifiziert)}`, `angeboten ohne Qualifizierung ${q.angebotenUnqualifiziert.ja}`);
+  if (q && st === 'Closing') teile.push(`Einwände behandelt ${anteil(q.einwaendeBehandelt)}`, `Folgetermin trotz Einwand ${anteil(q.folgeterminTrotzEinwaenden)}`);
+  if (st === 'Opening' && herkunft) teile.push(`deine Settings ohne Entscheider ${herkunft.ohneEntscheider} von ${herkunft.settings} (Monat)`);
+  return teile.join(' · ') || '–';
+}
+
+function blockPerson(p, txt, ov, herkunft) {
   const kpi = (k) => p.tracker.woche.kpis.find(x => x.key === k);
   const kpiM = (k) => p.tracker.monat.kpis.find(x => x.key === k);
   const zelle = (k) => { const w = kpi(k), m = kpiM(k); if (!w) return '–'; const f = (x) => (k === 'ae' ? fmtE(x.ist) : fmtZ(x.ist)); return `${f(w)} / ${f(m)}`; };
@@ -80,7 +100,7 @@ function blockPerson(p, txt, ov) {
   const zeilen = stufen.map(st => {
     const z = ZIEL[st]; const s = (x) => x && x.stufen && x.stufen[st];
     const vw = st === 'Opening' && !ov.vorwoche ? 'n. vergl.' : q(s(p.vorwoche));
-    return [st, q(s(p.woche)), vw, z ? `${z.label}: ${mq(s(p.woche), z.feld)}` : '–', z ? fmtP(z.ziel) : '–'];
+    return [st, q(s(p.woche)), vw, z ? `${mq(s(p.woche), z.feld)} / ${fmtP(z.ziel)}` : '–', qualitaetKurz(st, s(p.woche), herkunft)];
   });
   const pot = p.potenzial.woche[0] || p.potenzial.monat[0];
   const zeile = (label, text, farbe) => ({ text: [{ text: label + ' ', bold: true, color: farbe || '#1b1f23' }, text || '–'], margin: [0, 1, 0, 0] });
@@ -91,7 +111,7 @@ function blockPerson(p, txt, ov) {
       { columns: [{ text: `${p.vorname}`, bold: true, fontSize: 11, color: BLAU }, { text: p.rolle, alignment: 'right', color: GRAU, fontSize: 8 }], margin: [0, 3, 0, 2] },
       tab(['Woche / Monat', 'Entscheider erreicht', 'Settings gelegt', 'Sales Calls gelegt', 'Sales Calls stattgef.', 'Gewonnen', p.funktionen.includes('closer') ? 'AE' : 'AE beteiligt'],
         [['', zelle('entscheider_erreicht'), zelle('terminiert'), zelle('sc_gelegt'), zelle('sc_stattgefunden'), zelle('gewonnen'), zelle('ae')]]),
-      zeilen.length ? tab(['Stufe', 'Erfolg Woche', 'Vorwoche', 'Wichtigste Kennzahl (Woche)', 'Ziel'], zeilen, ['auto', 'auto', 'auto', '*', 'auto'])
+      zeilen.length ? tab(['Stufe', 'Erfolg Woche', 'Vorwoche', 'Kennzahl / Ziel', 'Qualität (Woche)'], zeilen, ['auto', 'auto', 'auto', 'auto', '*'])
         : { text: 'Keine ausgewerteten Gespräche in Woche oder Monat.', color: GRAU, margin: [0, 0, 0, 3] },
       zeile('+', txt && txt.gut, '#1a7f37'),
       zeile('–', txt && txt.schlecht, '#cf222e'),
@@ -103,7 +123,8 @@ function blockPerson(p, txt, ov) {
 
 /** PDF als Buffer. */
 async function erzeuge(d, texte) {
-  const personen = d.personen.map(p => blockPerson(p, texte.personen[p.vorname], d.openingVergleichbar));
+  const personen = d.personen.map(p => blockPerson(p, texte.personen[p.vorname], d.openingVergleichbar,
+    p.funktionen.includes('opener') ? d.team.settingsJeOpener.monat[p.vorname] : null));
   const doc = {
     pageSize: 'A4', pageMargins: [36, 32, 36, 32],
     defaultStyle: { font: 'Roboto', fontSize: 8.5, lineHeight: 1.15, color: '#1b1f23' },

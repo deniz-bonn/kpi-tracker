@@ -4,7 +4,7 @@
 // Paraphrase) fuer die Verbleib-Liste; alle anderen Felder und Definitionen sind unveraendert.
 const { TAXONOMIE: tax } = require('./basis');
 
-const PROMPT_VERSION = 'v2';
+const PROMPT_VERSION = 'v3';
 const TAXONOMIE_VERSION = tax.version;
 
 const RULE_IDS = new Set(['B4-02', 'B4-03', 'B4-07', 'B4-08', 'B4-09']);
@@ -22,7 +22,8 @@ const SCHEMA = {
   type: 'object', additionalProperties: false,
   required: ['stufe', 'ergebnis', 'erfolg', 'konfidenz', 'gruende', 'entscheider_im_gespraech', 'bedarf_bestaetigt', 'naechster_schritt_mit_datum',
     'ma_fragte_aktiv_nach_termin', 'abschlussfrage_gestellt', 'closing_aktiv_angeboten', 'termin_verbindlich_fixiert', 'abschluss_aktiv_versucht',
-    'warnsignale_b4', 'einzeiler', 'widerspruch_zusammenfassung', 'naechster_schritt_datum', 'naechster_schritt'],
+    'warnsignale_b4', 'einzeiler', 'widerspruch_zusammenfassung', 'naechster_schritt_datum', 'naechster_schritt',
+    'entscheider_nimmt_teil', 'bedarf_deckbar', 'zeitnah', 'einwaende_behandelt', 'folgetermin_trotz_einwaenden'],
   properties: {
     stufe: { type: 'string', enum: STUFEN }, ergebnis: { type: 'string', enum: ERGEBNISSE }, erfolg: JNA, konfidenz: KONF,
     gruende: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'freitext', 'konfidenz'],
@@ -34,6 +35,11 @@ const SCHEMA = {
     einzeiler: { type: 'string' }, widerspruch_zusammenfassung: { type: 'string', enum: ['ja', 'nein'] },
     naechster_schritt_datum: { type: 'string' },
     naechster_schritt: { type: 'string' },
+    entscheider_nimmt_teil: { type: 'string', enum: ['ja', 'nein', 'unklar', 'n.a.'] },
+    bedarf_deckbar: JNU,
+    zeitnah: JNU,
+    einwaende_behandelt: JNA,
+    folgetermin_trotz_einwaenden: JNA,
   },
 };
 
@@ -71,7 +77,14 @@ const SYSTEM = SYSTEM_OKTOBER + `
 
 NAECHSTER SCHRITT (ergaenzt ab Prompt v2, fuer alle Stufen):
 - naechster_schritt_datum: Datum des am Ende vereinbarten naechsten Kontakts (Termin, Rueckruf, Entscheidungsfrist) im Format JJJJ-MM-TT. Relative Angaben ("naechsten Dienstag", "in zwei Wochen", "Anfang Dezember" = erster Werktag des Monats) rechnest du vom Gespraechsdatum aus um. Ohne vereinbarten Zeitpunkt: leerer String. Muss zu naechster_schritt_mit_datum passen (leer genau dann, wenn dort nein steht).
-- naechster_schritt: was als naechster Schritt vereinbart wurde, paraphrasiert in hoechstens 15 Woertern, ohne Namen (z. B. "Kunde meldet sich nach interner Abstimmung", "Sales Call mit Inhaber am Termin"). Ohne naechsten Schritt: "keiner vereinbart".`;
+- naechster_schritt: was als naechster Schritt vereinbart wurde, paraphrasiert in hoechstens 15 Woertern, ohne Namen (z. B. "Kunde meldet sich nach interner Abstimmung", "Sales Call mit Inhaber am Termin"). Ohne naechsten Schritt: "keiner vereinbart".
+
+QUALIFIZIERUNG UND EINWAENDE (ergaenzt ab Prompt v3, nichts von oben geaendert):
+- entscheider_nimmt_teil: NUR wenn kein Entscheider im Gespraech ist: wurde verbindlich zugesagt, dass der Entscheider am naechsten Termin teilnimmt (ja/nein/unklar)? Ist der Entscheider selbst im Gespraech: "n.a.".
+- bedarf_deckbar: Der Kunde hat einen konkreten Bedarf, den der Dienstleister decken kann (passende Stelle/Position und Branche, Volumen passt zum Modell). nein = Bedarf passt nicht (z. B. B2-07). unklar = nicht besprochen.
+- zeitnah: Der Kunde will die Stelle zeitnah besetzen (in den naechsten Wochen bis ca. drei Monaten). nein = erst spaeter (Saison, Nachfolge in einigen Monaten, nur langfristig, aktuell voll besetzt). unklar = nicht besprochen.
+- einwaende_behandelt (nur Closing): Alle vom Kunden geaeusserten Einwaende wurden vom MA aufgegriffen und beantwortet, nicht nur angehoert. "n.a." wenn keine Einwaende geaeussert wurden oder keine Closing-Stufe.
+- folgetermin_trotz_einwaenden (nur Closing): Am Ende wurde ein Folgetermin vereinbart, obwohl noch Einwaende offen sind (Folgetermin als Ausweg statt Entscheidung). "nein" wenn ein Folgetermin ohne offene Einwaende vereinbart wurde. "n.a." wenn kein Folgetermin vereinbart wurde oder keine Closing-Stufe.`;
 
 const WOCHENTAG = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
 

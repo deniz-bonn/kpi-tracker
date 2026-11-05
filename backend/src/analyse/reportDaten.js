@@ -26,9 +26,10 @@ function stufeKompakt(s) {
   const m = s.merkmale;
   return {
     n: s.n, nBase: s.nBase, erfolgsquote: s.erfolgsquote, erfolgJa: s.erfolgJa, erfolgBasis: s.erfolgJa + s.erfolgNein,
-    merkmale: Object.fromEntries(K.MERKMALE.map(([k]) => [k, m[k].quote == null ? null : { quote: m[k].quote, ja: m[k].ja, basis: m[k].basis }])),
+    merkmale: Object.fromEntries(Object.keys(m).map(k => [k, m[k].quote == null ? null : { quote: m[k].quote, ja: m[k].ja, basis: m[k].basis }])),
     top3: s.topGruende.slice(0, 3).map(g => ({ id: g.id, name: g.name, n: g.n, anteil: g.anteil })),
     nichtErfolgreich: s.erfolgNein,
+    qualitaet: s.qualitaet,
   };
 }
 const auswahl = (a) => ({
@@ -41,7 +42,7 @@ const auswahl = (a) => ({
 });
 
 // ── Potenzial: Pool x Vergleichsquote x Ø Deal (Hypothesen wie Oktober, stats.js) ────────────
-const qual = (c) => c.entscheider_im_gespraech === 'ja' && c.bedarf_bestaetigt === 'ja';
+const qual = (c) => K.qualSetting(c);   // Entscheider dabei/zugesagt + deckbarer Bedarf + zeitnah
 const rate = (a, f) => (a.length ? a.filter(f).length / a.length : null);
 
 /**
@@ -59,18 +60,19 @@ function potenziale(rows, teamRef, { dealWert, scZuWon, settingZuSc, gewonnen })
     const q = rate(ref, c => c.erfolg === 'ja');
     if (pool.length && q != null && dealWert && scZuWon != null) out.push({ key: 'setting_closing_anbieten', stufe: 'Setting', merkmal: 'closing_aktiv_angeboten',
       titel: 'Im Setting den Sales-Call-Termin aktiv anbieten',
-      text: 'Settings, in denen Entscheider und Bedarf da waren, aber kein Sales-Call-Termin vorgeschlagen wurde. Sie endeten ohne Sales Call.',
+      text: 'Qualifizierte Settings (Entscheider dabei oder zugesagt, deckbarer Bedarf, zeitnah), in denen kein Sales-Call-Termin vorgeschlagen wurde. Sie endeten ohne Sales Call.',
       pool: pool.length, vergleichsquote: r1(q * 100), vergleichsBasis: ref.length, zusatzSc: r1(pool.length * q), scZuWon: r1(scZuWon * 100),
       zusatzDeals: r1(pool.length * q * scZuWon), dealWert, umsatz: Math.round(pool.length * q * scZuWon * dealWert), umsatzKonservativ: Math.round(pool.length * q * scZuWon * dealWert / 2) });
   }
   // Opening: keine Terminfrage (B1-09)
   {
-    const pool = st('Opening', rows).filter(c => c.abschlussfrage_gestellt === 'nein' && c.erfolg === 'nein');
+    // Termin nur anbieten, wenn der Entscheider erreicht ist -> Pool nur Openings mit Entscheider.
+    const pool = st('Opening', rows).filter(c => c.abschlussfrage_gestellt === 'nein' && c.erfolg === 'nein' && c.entscheider_im_gespraech === 'ja');
     const ref = st('Opening', teamRef).filter(c => c.abschlussfrage_gestellt === 'ja' && c.entscheider_im_gespraech === 'ja');
     const q = rate(ref, c => c.erfolg === 'ja');
     if (pool.length && q != null && dealWert && scZuWon != null && settingZuSc != null) out.push({ key: 'opening_terminfrage', stufe: 'Opening', merkmal: 'abschlussfrage_gestellt',
       titel: 'Im Opening konkret nach dem Termin fragen',
-      text: 'Erstgespräche, in denen nicht konkret nach einem Termin gefragt wurde. Sie endeten ohne Termin.',
+      text: 'Erstgespräche mit Entscheider, in denen nicht konkret nach einem Termin gefragt wurde. Sie endeten ohne Termin.',
       pool: pool.length, vergleichsquote: r1(q * 100), vergleichsBasis: ref.length, zusatzTermine: r1(pool.length * q), settingZuSc: r1(settingZuSc * 100), scZuWon: r1(scZuWon * 100),
       zusatzDeals: r1(pool.length * q * settingZuSc * scZuWon), dealWert, umsatz: Math.round(pool.length * q * settingZuSc * scZuWon * dealWert), umsatzKonservativ: Math.round(pool.length * q * settingZuSc * scZuWon * dealWert / 2) });
   }
@@ -85,6 +87,34 @@ function potenziale(rows, teamRef, { dealWert, scZuWon, settingZuSc, gewonnen })
       pool: pool.length, vergleichsquote: r1(q * 100), vergleichsBasis: ref.length, zusatzDeals: r1(pool.length * q), dealWert, umsatz: Math.round(pool.length * q * dealWert), umsatzKonservativ: Math.round(pool.length * q * dealWert / 2) });
   }
   return out.sort((a, b) => b.umsatz - a.umsatz);
+}
+
+/**
+ * Woher kommen unqualifizierte Settings? Je Opener (Close: Opportunity "Assigned to"): Settings, davon ohne
+ * Entscheider (weder dabei noch zugesagt), ohne (deckbaren) Bedarf, nicht zeitnah. Ohne Entscheider = Fehler im Opening.
+ */
+async function settingsJeOpener(rows) {
+  const { ladeTeam } = require('./team');
+  const team = await ladeTeam();
+  const st = rows.filter(c => c.stufe === 'Setting' && c.konfidenz !== 'niedrig' && c.close_opportunity_id);
+  const ids = [...new Set(st.map(c => c.close_opportunity_id))];
+  const opener = {};
+  for (let i = 0; i < ids.length; i += 500) {
+    const t = ids.slice(i, i + 500);
+    for (const o of await db.all(`SELECT id, user_id FROM close_opportunities WHERE id IN (${PH(t.length)})`, t)) opener[o.id] = o.user_id;
+  }
+  const out = {};
+  for (const c of st) {
+    const p = team.nachUser.get(opener[c.close_opportunity_id]);
+    const n = p ? p.vorname : 'andere';
+    const o = (out[n] = out[n] || { settings: 0, ohneEntscheider: 0, ohneBedarf: 0, nichtZeitnah: 0, qualifiziert: 0 });
+    o.settings++;
+    if (!K.entscheiderDa(c)) o.ohneEntscheider++;
+    if (c.bedarf_bestaetigt !== 'ja' || c.bedarf_deckbar === 'nein') o.ohneBedarf++;
+    if (c.zeitnah === 'nein') o.nichtZeitnah++;
+    if (K.qualSetting(c)) o.qualifiziert++;
+  }
+  return out;
 }
 
 /** Quote SC gelegt -> gewonnen und Setting -> SC aus dem Close-Spiegel (letzte 90 Tage, Termine der acht). */
@@ -173,7 +203,8 @@ async function baue({ stichtag, von = null, bis = null, log = () => {} }) {
     zeitraeume: Zr, oktober: OKTOBER, deal, funnel: fq,
     openingVergleichbar: { woche: openingOk(Zr.woche), vorwoche: openingOk(Zr.vorwoche), monat: openingOk(Zr.monat), oktober: false },
     team: { woche: auswahl(aW).team, vorwoche: auswahl(aV).team, monat: auswahl(aM).team, oktober: auswahl(aO).team,
-      sollIst: { woche: tW, monat: tM }, zielKennzahlen: { woche: zielKz(aW), monat: zielKz(aM), oktober: zielKz(aO) }, hebel: potTeamM.slice(0, 3) },
+      sollIst: { woche: tW, monat: tM },
+      settingsJeOpener: { woche: await settingsJeOpener(cW), monat: await settingsJeOpener(cM) }, zielKennzahlen: { woche: zielKz(aW), monat: zielKz(aM), oktober: zielKz(aO) }, hebel: potTeamM.slice(0, 3) },
     personen,
     verbleib: { stand: snap.stand, woche: vW, monat: vM, zeilen: snap.zeilen },
     codierung: { woche: cW.length, monat: cM.length, nichtCodiertWoche: offenW, nichtVollstaendig: offenW > 0 },

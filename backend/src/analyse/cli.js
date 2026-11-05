@@ -18,7 +18,7 @@ const opt = (name) => { const i = args.indexOf('--' + name); return i >= 0 ? arg
 (async () => {
   let r;
   switch (cmd) {
-    case 'codierung': r = await job.codierlauf({ von: opt('von'), bis: opt('bis'), ausgeloestVon: 'cli' }); break;
+    case 'codierung': r = await job.codierlauf({ von: opt('von'), bis: opt('bis'), neuCodieren: args.includes('--neu-codieren'), ausgeloestVon: 'cli' }); break;
     case 'einsammeln': {
       const C = require('./codierung');
       const bis = Date.now() + Number(opt('warten') || 0) * 60000;

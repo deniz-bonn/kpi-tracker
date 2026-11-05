@@ -248,14 +248,20 @@ async function sammleEin({ log = () => {} } = {}) {
         warnsignale_b4: (out.warnsignale_b4 || []).join(',') || null, widerspruch_zusammenfassung: out.widerspruch_zusammenfassung,
         naechster_schritt_datum: nsDatum, naechster_schritt_text: bereinige(out.naechster_schritt, tokens).slice(0, 200),
         einzeiler: bereinige(out.einzeiler, tokens).slice(0, 400),
+        entscheider_nimmt_teil: out.entscheider_nimmt_teil ?? null, bedarf_deckbar: out.bedarf_deckbar ?? null, zeitnah: out.zeitnah ?? null,
+        einwaende_behandelt: out.einwaende_behandelt ?? null, folgetermin_trotz_einwaenden: out.folgetermin_trotz_einwaenden ?? null,
         modell: m.model || MODELS.codierung.model, prompt_version: PR.PROMPT_VERSION, taxonomie_version: PR.TAXONOMIE_VERSION, batch_id: b.batch_id,
         input_tokens: m.usage.input_tokens || 0, output_tokens: m.usage.output_tokens || 0,
         cache_read_tokens: m.usage.cache_read_input_tokens || 0, cache_write_tokens: m.usage.cache_creation_input_tokens || 0,
         kosten_usd: Math.round(usd * 1e5) / 1e5,
       };
       const cols = Object.keys(row);
-      await db.run(`INSERT INTO call_codings (${cols.join(',')}) VALUES (${PH(cols.length)}) ON CONFLICT (quelle, quell_id) DO NOTHING`, cols.map(c => row[c]));
-      await db.run(`UPDATE codier_auftraege SET status='fertig', namen_tmp=NULL, letzter_fehler=NULL, aktualisiert_am=${NOW()} WHERE id=${P(1)}`, [a.id]);
+      // Normal genau einmal; bei Nachcodierung (ersetzen) wird die bestehende Codierung ueberschrieben.
+      const konflikt = istWahr(a.ersetzen)
+        ? `DO UPDATE SET ${cols.filter(c => !['quelle', 'quell_id'].includes(c)).map(c => `${c}=EXCLUDED.${c}`).join(', ')}, codiert_am=${NOW()}`
+        : 'DO NOTHING';
+      await db.run(`INSERT INTO call_codings (${cols.join(',')}) VALUES (${PH(cols.length)}) ON CONFLICT (quelle, quell_id) ${konflikt}`, cols.map(c => row[c]));
+      await db.run(`UPDATE codier_auftraege SET status='fertig', namen_tmp=NULL, letzter_fehler=NULL, ersetzen=${B(false)}, aktualisiert_am=${NOW()} WHERE id=${P(1)}`, [a.id]);
       if (a.quelle === 'fireflies') {
         await db.run(`UPDATE ff_meetings SET mitarbeiter=${P(1)}, employee_id=${P(2)} WHERE id=${P(3)}`, [a.mitarbeiter, a.employee_id, a.quell_id]);
       }
@@ -273,6 +279,21 @@ async function sammleEin({ log = () => {} } = {}) {
   return { gesammelt, codiert, fehlgeschlagen, kostenUsd, offen };
 }
 
+/**
+ * Nachcodierung nach einem Prompt-Wechsel: alle laufenden Codierungen im Zeitraum mit aelterer Prompt-Version
+ * werden erneut eingereicht und beim Einsammeln ueberschrieben. Die Oktober-Basis bleibt unveraendert.
+ */
+async function nachcodieren({ von, bis, log = () => {} }) {
+  const r = await db.run(
+    `UPDATE codier_auftraege SET status='offen', versuche=0, ersetzen=${B(true)}, letzter_fehler=NULL, aktualisiert_am=${NOW()}
+      WHERE status='fertig' AND EXISTS (SELECT 1 FROM call_codings cc WHERE cc.quelle = codier_auftraege.quelle AND cc.quell_id = codier_auftraege.quell_id
+        AND cc.basis='laufend' AND cc.call_datum >= ${P(1)} AND cc.call_datum <= ${P(2)} AND COALESCE(cc.prompt_version,'') <> ${P(3)})`,
+    [von, bis, PR.PROMPT_VERSION]);
+  const n = Number(r.rowCount ?? r.changes ?? 0);
+  log(`  Nachcodierung: ${n} Codierungen ${von}–${bis} auf Prompt ${PR.PROMPT_VERSION} vorgemerkt`);
+  return n;
+}
+
 /** Anzahl Auftraege, die (noch) nicht codiert sind, im Zeitraum. */
 async function nochOffen(von, bis) {
   const r = await db.get(
@@ -281,4 +302,4 @@ async function nochOffen(von, bis) {
   return Number(r?.n || 0);
 }
 
-module.exports = { sammleKandidaten, reicheEin, sammleEin, nochOffen, bereinige, anthropic, istWahr };
+module.exports = { sammleKandidaten, reicheEin, sammleEin, nochOffen, nachcodieren, bereinige, anthropic, istWahr };

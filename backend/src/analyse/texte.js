@@ -24,6 +24,7 @@ function werteFuerPerson(p) {
       w[`${kz}.${st}.erfolg`] = `${fmtP(s.erfolgsquote)} (${s.erfolgJa} von ${s.erfolgBasis})`;
       for (const [m, v] of Object.entries(s.merkmale)) if (v) w[`${kz}.${st}.${m}`] = `${fmtP(v.quote)} (${v.ja} von ${v.basis})`;
       s.top3.forEach((g, i) => { w[`${kz}.${st}.grund${i + 1}`] = `${g.name} (${g.n}-mal)`; });
+      for (const [k, v] of Object.entries(s.qualitaet || {})) if (v && v.basis) w[`${kz}.${st}.q.${k}`] = `${v.ja} von ${v.basis}`;
     }
   }
   for (const [kz, t] of Object.entries({ W: p.tracker.woche, M: p.tracker.monat })) {
@@ -89,7 +90,9 @@ const REGELN = `Regeln:
 - Fehlen Daten (k. A.), sag das, statt etwas zu erfinden.`;
 
 const SYS_PERSON = `Du schreibst Abschnitte eines woechentlichen Coaching-Reports fuer einen Vertriebsmitarbeiter eines B2B-Teams (Personalgewinnung, Bonn). Grundlage sind NUR die uebergebenen Kennzahlen (Tracker-KPIs gegen Tagesziel-Pace und Transkript-Codierung: Erfolgsquote je Stufe, Verhaltensmerkmale, Top-Gruende).
-Merkmale (Schluessel -> deutscher Begriff): entscheider_im_gespraech -> Entscheider im Gespraech; ma_fragte_aktiv_nach_termin -> aktiv nach Termin gefragt; naechster_schritt_mit_datum -> naechster Schritt mit Datum; abschlussfrage_gestellt -> Terminfrage gestellt (Opening/Setting); closing_aktiv_angeboten -> Closing aktiv angeboten (nur Setting); termin_verbindlich_fixiert -> Termin verbindlich fixiert (Opening/Setting); abschluss_aktiv_versucht -> Abschluss aktiv versucht (nur Closing).
+QUALIFIZIERUNG (Vorgabe der Vertriebsleitung): Im Opening wird ein Termin nur angeboten, wenn der Entscheider erreicht ist; Bedarf festzustellen ist ein Plus. Im Setting wird ein Closing-Termin nur angeboten, wenn der Lead qualifiziert ist: Entscheider dabei oder Teilnahme zugesagt, deckbarer Bedarf, zeitnahe Besetzung. Viele Settings ohne Entscheider sind ein Fehler im Opening, nicht im Setting. Im Sales Call soll der Closer den Abschluss suchen, wenn der Entscheider dabei ist, Einwaende behandeln und einen Folgetermin nur legen, wenn keine Einwaende mehr offen sind; ein Folgetermin als Ausweg wird oft zum No-Show. Kritisiere nie ein fehlendes Angebot bei unqualifizierten Gespraechen.
+Kennzahlen mit _qual zaehlen nur dort, wo das Verhalten sinnvoll ist (Terminfrage nur mit Entscheider, Closing-Angebot nur bei qualifiziertem Setting, Abschlussversuch nur mit Entscheider). Nutze fuer Bewertungen IMMER die _qual-Kennzahlen. Qualitaets-Werte (q.*): terminOhneEntscheider, bedarfFestgestellt, qualifiziert, ohneEntscheider, ohneBedarf, nichtZeitnah, angebotenUnqualifiziert, einwaendeBehandelt, folgeterminTrotzEinwaenden.
+Merkmale (Schluessel -> deutscher Begriff): abschlussfrage_gestellt_qual -> Terminfrage bei erreichtem Entscheider; closing_aktiv_angeboten_qual -> Closing angeboten bei qualifiziertem Setting; abschluss_aktiv_versucht_qual -> Abschluss versucht mit Entscheider; entscheider_im_gespraech -> Entscheider im Gespraech; ma_fragte_aktiv_nach_termin -> aktiv nach Termin gefragt; naechster_schritt_mit_datum -> naechster Schritt mit Datum; abschlussfrage_gestellt -> Terminfrage gestellt (Opening/Setting); closing_aktiv_angeboten -> Closing aktiv angeboten (nur Setting); termin_verbindlich_fixiert -> Termin verbindlich fixiert (Opening/Setting); abschluss_aktiv_versucht -> Abschluss aktiv versucht (nur Closing).
 ${REGELN}
 Der Report ist ein kompaktes PDF; jeder Abschnitt ist GENAU EIN Satz mit hoechstens 22 Woertern.
 Abschnitte:
@@ -98,6 +101,7 @@ Abschnitte:
 - schulung: was der Mitarbeiter im Gespraech konkret anders sagen oder tun soll (eine Handlung, kein Ziel), ohne Platzhalter.`;
 
 const SYS_TEAM = `Du schreibst Teile eines woechentlichen Team-Reports (Vertrieb Bonn, acht Personen). Grundlage sind NUR die uebergebenen Kennzahlen.
+Qualifizierung: Closing-Termin nur bei qualifiziertem Setting (Entscheider dabei oder zugesagt, deckbarer Bedarf, zeitnah); Termin im Opening nur mit Entscheider; viele Settings ohne Entscheider (T.opener.*) sind ein Fehler im Opening. Folgetermine nur ohne offene Einwaende.
 ${REGELN}
 Der Report ist ein kompaktes PDF; jeder Stichpunkt ist EIN Satz mit hoechstens 18 Woertern.
 Abschnitte:
@@ -180,6 +184,7 @@ function werteFuerTeam(d) {
     w[`V.${kz}.fuAnzahl`] = fmtZ(v.fuAnzahl);
     w[`V.${kz}.fuStattTerminAnteil`] = fmtP(v.fuStattTerminAnteil);
   }
+  for (const [name, x] of Object.entries(d.team.settingsJeOpener.monat || {})) w[`T.opener.${name}`] = `${x.settings} Settings im Monat, davon ${x.ohneEntscheider} ohne Entscheider, ${x.ohneBedarf} ohne Bedarf, ${x.nichtZeitnah} nicht zeitnah`;
   const g = d.verbleib.woche.gesamtListe;
   w['V.liste.opportunities'] = fmtZ(g.opportunities); w['V.liste.wert'] = fmtE(g.wert); w['V.liste.followUpStattTermin'] = fmtZ(g.followUpStattTermin);
   for (const [b, n] of Object.entries(g.jeBedingung)) w[`V.liste.bedingung_${b}`] = fmtZ(n);

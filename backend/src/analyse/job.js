@@ -61,7 +61,7 @@ async function codierStart() {
 }
 
 /** Codierlauf: Close-Sync-Delta, Calls/Fireflies spiegeln, Kandidaten anlegen, Batch einreichen. */
-async function codierlauf({ von = null, bis = null, ausgeloestVon = 'cron', user = null } = {}) {
+async function codierlauf({ von = null, bis = null, ausgeloestVon = 'cron', user = null, neuCodieren = false } = {}) {
   const v = von || await codierStart();
   const b = bis || heute();
   return lauf('codierung', { ausgeloestVon, user, von: v, bis: b }, async ({ runId, log }) => {
@@ -75,6 +75,7 @@ async function codierlauf({ von = null, bis = null, ausgeloestVon = 'cron', user
     const C = require('./codierung');
     await C.sammleEin({ log });                          // fertige Batches vorher einsammeln
     const k = await C.sammleKandidaten({ von: v, bis: b, log });
+    if (neuCodieren) await C.nachcodieren({ von: v, bis: b, log });
     const e = await C.reicheEin({ runId, log });
     const fehler = [];
     if (e.fehler) fehler.push(`${e.fehler} Auftraege konnten nicht aufgebaut werden (Wiederholung beim naechsten Lauf)`);

@@ -20,6 +20,10 @@ const MERKMALE = [
   ['termin_verbindlich_fixiert', 'Termin verbindlich fixiert'],
   ['abschluss_aktiv_versucht', 'Abschluss aktiv versucht'],
 ];
+// Qualifizierung (Vorgabe Deniz 05.11.2026). Felder ab Prompt v3; bei aelteren Codierungen fehlen
+// Teilnahme-Zusage, Deckbarkeit und Zeitnaehe (null) und zaehlen nicht als Ausschluss.
+const entscheiderDa = (c) => c.entscheider_im_gespraech === 'ja' || c.entscheider_nimmt_teil === 'ja';
+const qualSetting = (c) => entscheiderDa(c) && c.bedarf_bestaetigt === 'ja' && c.bedarf_deckbar !== 'nein' && c.zeitnah !== 'nein';
 const grundName = (id) => (id === 'SONSTIG' ? 'Sonstiger Grund (Freitext)' : (INFO[id] || {}).name || id);
 
 /** Codierungen laden (Berlin-Datum, inklusive). basis: 'laufend' | 'oktober' | null (beide). */
@@ -68,6 +72,24 @@ function stat(list, stufe, gewonnen = new Set()) {
   const s = stufe === 'Closing' ? b.filter(c => c.erfolg === 'ja' || won(c)) : b.filter(c => c.erfolg === 'ja');
   const jn = (k) => { const ja = b.filter(c => c[k] === 'ja').length, nein = b.filter(c => c[k] === 'nein').length; return { ja, nein, basis: ja + nein, quote: pct(ja, ja + nein) }; };
   const anteil = (k) => { const ja = b.filter(c => c[k] === 'ja').length; return { ja, basis: b.length, quote: pct(ja, b.length) }; };
+  const jnAuf = (liste, k) => { const ja = liste.filter(c => c[k] === 'ja').length, nein = liste.filter(c => c[k] === 'nein').length; return { ja, nein, basis: ja + nein, quote: pct(ja, ja + nein) }; };
+  const zahlAuf = (n, basis) => ({ ja: n, basis, quote: pct(n, basis) });
+  const mitEntscheider = b.filter(c => c.entscheider_im_gespraech === 'ja');
+  let qualitaet = null;
+  if (stufe === 'Opening') {
+    const termine = b.filter(c => c.erfolg === 'ja');
+    qualitaet = { terminOhneEntscheider: zahlAuf(termine.filter(c => c.entscheider_im_gespraech !== 'ja').length, termine.length),
+      bedarfFestgestellt: zahlAuf(mitEntscheider.filter(c => c.bedarf_bestaetigt === 'ja').length, mitEntscheider.length) };
+  } else if (stufe === 'Setting') {
+    const q = b.filter(qualSetting), nq = b.filter(c => !qualSetting(c));
+    qualitaet = { qualifiziert: zahlAuf(q.length, b.length),
+      ohneEntscheider: zahlAuf(b.filter(c => !entscheiderDa(c)).length, b.length),
+      ohneBedarf: zahlAuf(b.filter(c => c.bedarf_bestaetigt !== 'ja' || c.bedarf_deckbar === 'nein').length, b.length),
+      nichtZeitnah: zahlAuf(b.filter(c => c.zeitnah === 'nein').length, b.length),
+      angebotenUnqualifiziert: zahlAuf(nq.filter(c => c.closing_aktiv_angeboten === 'ja').length, nq.length) };
+  } else if (stufe === 'Closing') {
+    qualitaet = { einwaendeBehandelt: jnAuf(b, 'einwaende_behandelt'), folgeterminTrotzEinwaenden: jnAuf(b, 'folgetermin_trotz_einwaenden') };
+  }
   const r = {};
   for (const c of f) for (const g of c.gruende.slice(0, 2)) {
     if (g.konfidenz === 'niedrig') continue;
@@ -89,7 +111,13 @@ function stat(list, stufe, gewonnen = new Set()) {
       closing_aktiv_angeboten: jn('closing_aktiv_angeboten'),
       termin_verbindlich_fixiert: jn('termin_verbindlich_fixiert'),
       abschluss_aktiv_versucht: jn('abschluss_aktiv_versucht'),
+      // Quoten nur dort, wo das Verhalten sinnvoll ist: Terminfrage nur mit Entscheider, Closing-Angebot nur bei
+      // qualifiziertem Setting, Abschlussversuch nur mit Entscheider im Sales Call.
+      abschlussfrage_gestellt_qual: jnAuf(mitEntscheider, 'abschlussfrage_gestellt'),
+      closing_aktiv_angeboten_qual: jnAuf(b.filter(qualSetting), 'closing_aktiv_angeboten'),
+      abschluss_aktiv_versucht_qual: jnAuf(mitEntscheider, 'abschluss_aktiv_versucht'),
     },
+    qualitaet,
     redeanteil: avg(b.map(c => Number(c.redeanteil_ma)).filter(x => !isNaN(x) && x > 0)),
     dauerMin: avg(b.map(c => (Number(c.dauer_sek) || 0) / 60)),
     topGruende: top,
@@ -125,4 +153,4 @@ async function auswerten(rows, stichtag) {
   return { personen, team, gewonnen: [...gewonnen] };
 }
 
-module.exports = { ladeCodings, gewonneneOpps, stat, auswerten, STUFEN, BS, MERKMALE, grundName, INFO, base };
+module.exports = { ladeCodings, gewonneneOpps, stat, auswerten, STUFEN, BS, MERKMALE, grundName, INFO, base, qualSetting, entscheiderDa };

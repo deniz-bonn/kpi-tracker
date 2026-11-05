@@ -149,24 +149,24 @@
     "max_codierversuche": 3
   },
   "november_ziele": {
-    "_hinweis": "Eine Kennzahl je Stufe, Quote in Prozent der Hauptquote (Konfidenz hoch/mittel). Terminfrage = Feld abschlussfrage_gestellt (B1-09 invers).",
+    "_hinweis": "Eine Kennzahl je Stufe, Quote nur dort, wo das Verhalten sinnvoll ist (Vorgabe 05.11.2026): Terminfrage nur bei erreichtem Entscheider; Closing-Angebot nur bei qualifiziertem Setting (Entscheider dabei oder Teilnahme zugesagt, deckbarer Bedarf, zeitnah); Abschlussversuch nur mit Entscheider im Sales Call.",
     "kennzahlen": [
       {
         "stufe": "Opening",
-        "feld": "abschlussfrage_gestellt",
-        "label": "Terminfrage gestellt",
+        "feld": "abschlussfrage_gestellt_qual",
+        "label": "Terminfrage (Entscheider erreicht)",
         "ziel": 90
       },
       {
         "stufe": "Setting",
-        "feld": "closing_aktiv_angeboten",
-        "label": "Closing aktiv angeboten",
+        "feld": "closing_aktiv_angeboten_qual",
+        "label": "Closing angeboten (qualifiziert)",
         "ziel": 70
       },
       {
         "stufe": "Closing",
-        "feld": "abschluss_aktiv_versucht",
-        "label": "Abschluss aktiv versucht",
+        "feld": "abschluss_aktiv_versucht_qual",
+        "label": "Abschluss versucht (Entscheider dabei)",
         "ziel": 50
       },
       {
