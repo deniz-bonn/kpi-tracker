@@ -158,7 +158,7 @@ async function reportlauf({ stichtag = heute(), von = null, bis = null, modus = 
     const worker = async () => {
       while (i < d.personen.length) {
         const p = d.personen[i++];
-        try { const r = await Tx.personText(p, warnungen); personen[p.vorname] = r.out; kostenTexte += r.usd; }
+        try { const r = await Tx.personText(p, warnungen, d.team.verpasst.woche); personen[p.vorname] = r.out; kostenTexte += r.usd; }
         catch (e) { warnungen.push(`Text ${p.vorname}: ${e.message}`); }
       }
     };

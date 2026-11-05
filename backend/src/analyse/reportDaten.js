@@ -135,6 +135,73 @@ async function settingsJeOpener(_rows, zeitraum) {
   return out;
 }
 
+// ── Verpasste Chancen (Vorgabe Deniz 05.11.2026) ─────────────────────────────────────────
+// Setting: qualifiziert (Entscheider dabei/zugesagt, Bedarf da und deckbar, zeitnah), trotzdem kein Sales Call und
+//   auch spaeter keiner gelegt, keine Absage — und der Grund liegt beim Setter (Termin nicht angeboten, nicht fixiert
+//   oder Einwand nicht behandelt -> Wiedervorlage akzeptiert).
+// Closing: closebar (Entscheider im Call, Bedarf da und deckbar, zeitnah), nicht gewonnen — und der Grund liegt beim
+//   Closer (kein Abschlussversuch, Einwaende nicht behandelt, Folgetermin trotz offener Einwaende, Angebot nur
+//   nachgesendet, kein Schritt mit Datum, Bedenkzeit trotz Entscheider).
+const SETTER_GRUENDE = new Set(['B2-12', 'B2-13', 'B2-14']);
+const CLOSER_GRUENDE = new Set(['B5-02', 'B5-13', 'B5-14', 'B5-15']);
+const gruendeVon = (c) => [c.grund1_id, c.grund2_id].filter(Boolean);
+const closebar = (c) => c.entscheider_im_gespraech === 'ja' && c.bedarf_bestaetigt === 'ja' && c.bedarf_deckbar !== 'nein' && c.zeitnah !== 'nein';
+const setterFehler = (c) => c.closing_aktiv_angeboten === 'nein' || c.termin_verbindlich_fixiert === 'nein' || gruendeVon(c).some(g => SETTER_GRUENDE.has(g));
+const closerFehler = (c) => c.abschluss_aktiv_versucht === 'nein' || c.einwaende_behandelt === 'nein' || c.folgetermin_trotz_einwaenden === 'ja'
+  || gruendeVon(c).some(g => CLOSER_GRUENDE.has(g));
+const linkVon = (c) => (c.quelle === 'fireflies' ? `https://app.fireflies.ai/view/${c.quell_id}` : (c.close_lead_id ? `https://app.close.com/lead/${c.close_lead_id}/` : null));
+
+async function verpassteChancen(rows, gewonnen, { beispiele = 3 } = {}) {
+  const { ladeTeam } = require('./team');
+  const team = await ladeTeam();
+  const vorname = (c) => (team.nachName(c.mitarbeiter) || {}).vorname || c.mitarbeiter;
+  const b = rows.filter(c => c.konfidenz !== 'niedrig');
+  // Nach dem Setting doch noch ein Sales Call gelegt? Dann nicht verpasst.
+  const settings = b.filter(c => c.stufe === 'Setting' && K.qualSetting(c));
+  const oppIds = [...new Set([...settings, ...b.filter(c => c.stufe === 'Closing')].map(c => c.close_opportunity_id).filter(Boolean))];
+  const scSpaeter = {}, opp = {};
+  for (let i = 0; i < oppIds.length; i += 500) {
+    const t = oppIds.slice(i, i + 500);
+    for (const r of await db.all(`SELECT close_opportunity_id, gelegt_am FROM termine WHERE art='closing' AND close_opportunity_id IN (${PH(t.length)})`, t))
+      (scSpaeter[r.close_opportunity_id] = scSpaeter[r.close_opportunity_id] || []).push(ymd(r.gelegt_am));
+    for (const o of await db.all(`SELECT id, lead_id, lead_name, value, value_currency FROM close_opportunities WHERE id IN (${PH(t.length)})`, t)) opp[o.id] = o;
+  }
+  const beispiel = (c, warum) => {
+    const o = opp[c.close_opportunity_id] || {};
+    return { datum: c.call_datum, mitarbeiter: vorname(c), firma: o.lead_name || '(ohne Opportunity)', wert: o.value != null ? Number(o.value) : null,
+      waehrung: o.value_currency || 'EUR', link: linkVon({ ...c, close_lead_id: c.close_lead_id || o.lead_id }), was: c.einzeiler || '', warum };
+  };
+  const jePerson = (liste, verpasst) => {
+    const out = {};
+    for (const c of liste) { const n = vorname(c); const x = (out[n] = out[n] || { basis: 0, verpasst: 0 }); x.basis++; }
+    for (const c of verpasst) out[vorname(c)].verpasst++;
+    for (const x of Object.values(out)) x.quote = pct(x.verpasst, x.basis);
+    return out;
+  };
+  // Je Lead nur ein Beispiel (der juengste Call), dann nach Opportunity-Wert und Datum.
+  const sortiere = (a) => {
+    const jeLead = new Map();
+    for (const x of [...a].sort((p1, p2) => (p2.datum < p1.datum ? -1 : 1))) { const k = x.firma + '|' + x.link; if (!jeLead.has(k)) jeLead.set(k, x); }
+    return [...jeLead.values()].sort((x, y) => (y.wert || 0) - (x.wert || 0) || (y.datum < x.datum ? -1 : 1));
+  };
+
+  const setVerpasst = settings.filter(c => c.erfolg === 'nein' && !['Absage', 'Nicht durchgeführt'].includes(c.ergebnis) && setterFehler(c)
+    && !(scSpaeter[c.close_opportunity_id] || []).some(d => d >= c.call_datum));
+  const setGrund = (c) => [c.closing_aktiv_angeboten === 'nein' ? 'Termin nicht angeboten' : null, c.termin_verbindlich_fixiert === 'nein' ? 'nicht fixiert' : null,
+    gruendeVon(c).includes('B2-12') ? 'Einwand nicht behandelt' : null].filter(Boolean).join(', ') || 'Wiedervorlage statt Termin';
+  const closings = b.filter(c => c.stufe === 'Closing' && closebar(c));
+  const clVerpasst = closings.filter(c => c.erfolg !== 'ja' && !gewonnen.has(c.close_opportunity_id) && closerFehler(c));
+  const clGrund = (c) => [c.abschluss_aktiv_versucht === 'nein' ? 'kein Abschlussversuch' : null, c.einwaende_behandelt === 'nein' ? 'Einwände nicht behandelt' : null,
+    c.folgetermin_trotz_einwaenden === 'ja' ? 'Folgetermin trotz Einwand' : null, gruendeVon(c).includes('B5-14') ? 'Angebot nur nachgesendet' : null,
+    gruendeVon(c).includes('B5-15') ? 'kein Schritt mit Datum' : null].filter(Boolean).join(', ') || 'Bedenkzeit akzeptiert';
+  return {
+    setting: { basis: settings.length, verpasst: setVerpasst.length, quote: pct(setVerpasst.length, settings.length), jePerson: jePerson(settings, setVerpasst),
+      beispiele: sortiere(setVerpasst.map(c => beispiel(c, setGrund(c)))).slice(0, beispiele) },
+    closing: { basis: closings.length, verpasst: clVerpasst.length, quote: pct(clVerpasst.length, closings.length), jePerson: jePerson(closings, clVerpasst),
+      beispiele: sortiere(clVerpasst.map(c => beispiel(c, clGrund(c)))).slice(0, beispiele) },
+  };
+}
+
 /** Quote SC gelegt -> gewonnen und Setting -> SC aus dem Close-Spiegel (letzte 90 Tage, Termine der acht). */
 async function funnelQuoten(stichtag) {
   const von = addTage(stichtag, -90);
@@ -222,7 +289,8 @@ async function baue({ stichtag, von = null, bis = null, log = () => {} }) {
     openingVergleichbar: { woche: openingOk(Zr.woche), vorwoche: openingOk(Zr.vorwoche), monat: openingOk(Zr.monat), oktober: false },
     team: { woche: auswahl(aW).team, vorwoche: auswahl(aV).team, monat: auswahl(aM).team, oktober: auswahl(aO).team,
       sollIst: { woche: tW, monat: tM },
-      settingsJeOpener: { woche: await settingsJeOpener(cW, Zr.woche), monat: await settingsJeOpener(cM, Zr.monat) }, zielKennzahlen: { woche: zielKz(aW), monat: zielKz(aM), oktober: zielKz(aO) }, hebel: potTeamM.slice(0, 3) },
+      settingsJeOpener: { woche: await settingsJeOpener(cW, Zr.woche), monat: await settingsJeOpener(cM, Zr.monat) }, zielKennzahlen: { woche: zielKz(aW), monat: zielKz(aM), oktober: zielKz(aO) }, hebel: potTeamM.slice(0, 3),
+      verpasst: { woche: await verpassteChancen(cW, gewonnen), monat: await verpassteChancen(cM, gewonnen, { beispiele: 0 }) } },
     personen,
     verbleib: { stand: snap.stand, woche: vW, monat: vM, zeilen: snap.zeilen },
     codierung: { woche: cW.length, monat: cM.length, nichtCodiertWoche: offenW, nichtVollstaendig: offenW > 0 },

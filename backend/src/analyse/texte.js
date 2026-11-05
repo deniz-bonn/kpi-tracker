@@ -91,7 +91,7 @@ const REGELN = `Regeln:
 
 const SYS_PERSON = `Du schreibst Abschnitte eines woechentlichen Coaching-Reports fuer einen Vertriebsmitarbeiter eines B2B-Teams (Personalgewinnung, Bonn). Grundlage sind NUR die uebergebenen Kennzahlen (Tracker-KPIs gegen Tagesziel-Pace und Transkript-Codierung: Erfolgsquote je Stufe, Verhaltensmerkmale, Top-Gruende).
 QUALIFIZIERUNG (Vorgabe der Vertriebsleitung): Im Opening wird ein Termin nur angeboten, wenn der Entscheider erreicht ist; Bedarf festzustellen ist ein Plus. Im Setting wird ein Closing-Termin nur angeboten, wenn der Lead qualifiziert ist: Entscheider dabei oder Teilnahme zugesagt, deckbarer Bedarf, zeitnahe Besetzung. Viele Settings ohne Entscheider sind ein Fehler im Opening, nicht im Setting. Im Sales Call soll der Closer den Abschluss suchen, wenn der Entscheider dabei ist, Einwaende behandeln und einen Folgetermin nur legen, wenn keine Einwaende mehr offen sind; ein Folgetermin als Ausweg wird oft zum No-Show. Kritisiere nie ein fehlendes Angebot bei unqualifizierten Gespraechen.
-Kennzahlen mit _qual zaehlen nur dort, wo das Verhalten sinnvoll ist (Terminfrage nur mit Entscheider, Closing-Angebot nur bei qualifiziertem Setting, Abschlussversuch nur mit Entscheider). Nutze fuer Bewertungen IMMER die _qual-Kennzahlen. Qualitaets-Werte (q.*): terminOhneEntscheider, bedarfFestgestellt, qualifiziert, ohneEntscheider, ohneBedarf, nichtZeitnah, angebotenUnqualifiziert, einwaendeBehandelt, folgeterminTrotzEinwaenden.
+Kennzahlen mit _qual zaehlen nur dort, wo das Verhalten sinnvoll ist (Terminfrage nur mit Entscheider, Closing-Angebot nur bei qualifiziertem Setting, Abschlussversuch nur mit Entscheider). Nutze fuer Bewertungen IMMER die _qual-Kennzahlen. Wichtigste Kennzahl fuer Setter ist W.verpasst.setting (qualifizierte Settings ohne Termin durch Setter-Fehler), fuer Closer W.verpasst.closing (closebare Sales Calls nicht abgeschlossen durch Closer-Fehler); ist sie groesser null, gehoert sie in den Satz "schlecht". Qualitaets-Werte (q.*): terminOhneEntscheider, bedarfFestgestellt, qualifiziert, ohneEntscheider, ohneBedarf, nichtZeitnah, angebotenUnqualifiziert, einwaendeBehandelt, folgeterminTrotzEinwaenden.
 Merkmale (Schluessel -> deutscher Begriff): abschlussfrage_gestellt_qual -> Terminfrage bei erreichtem Entscheider; closing_aktiv_angeboten_qual -> Closing angeboten bei qualifiziertem Setting; abschluss_aktiv_versucht_qual -> Abschluss versucht mit Entscheider; entscheider_im_gespraech -> Entscheider im Gespraech; ma_fragte_aktiv_nach_termin -> aktiv nach Termin gefragt; naechster_schritt_mit_datum -> naechster Schritt mit Datum; abschlussfrage_gestellt -> Terminfrage gestellt (Opening/Setting); closing_aktiv_angeboten -> Closing aktiv angeboten (nur Setting); termin_verbindlich_fixiert -> Termin verbindlich fixiert (Opening/Setting); abschluss_aktiv_versucht -> Abschluss aktiv versucht (nur Closing).
 ${REGELN}
 Der Report ist ein kompaktes PDF; jeder Abschnitt ist GENAU EIN Satz mit hoechstens 22 Woertern.
@@ -105,7 +105,7 @@ Qualifizierung: Closing-Termin nur bei qualifiziertem Setting (Entscheider dabei
 ${REGELN}
 Der Report ist ein kompaktes PDF; jeder Stichpunkt ist EIN Satz mit hoechstens 18 Woertern.
 Abschnitte:
-- kernaussagen: genau drei Stichpunkte, die wichtigsten Aussagen der Woche fuer die Vertriebsleitung (Soll/Ist, Ziel-Kennzahlen, groesster Hebel). Je Stichpunkt hoechstens zwei Platzhalter. Umsatz-Hebel immer als "bis zu {{T.hebel1.umsatz}}, vorsichtig {{T.hebel1.umsatzKonservativ}}".
+- kernaussagen: genau drei Stichpunkte, die wichtigsten Aussagen der Woche fuer die Vertriebsleitung (Soll/Ist, verpasste Termine T.verpasst.setting und verpasste Abschluesse T.verpasst.closing, groesster Hebel). Je Stichpunkt hoechstens zwei Platzhalter. Umsatz-Hebel immer als "bis zu {{T.hebel1.umsatz}}, vorsichtig {{T.hebel1.umsatzKonservativ}}".
 - warum: genau zwei Stichpunkte, warum gefuehrte Settings und Sales Calls ohne Ergebnis bleiben (aus V.grund*).
 - aendern: genau zwei Stichpunkte, was sich konkret aendern muss (Handlungen, keine Ziele).`;
 
@@ -164,8 +164,13 @@ async function erzeuge(system, werte, kontext, schema, label, warnungen) {
   return { out, usd };
 }
 
-async function personText(p, warnungen) {
+async function personText(p, warnungen, verpasst = null) {
   const werte = werteFuerPerson(p);
+  if (verpasst) {
+    const s = verpasst.setting.jePerson[p.vorname], c = verpasst.closing.jePerson[p.vorname];
+    if (s) werte['W.verpasst.setting'] = `${s.verpasst} von ${s.basis} qualifizierten Settings ohne Termin (Setter hat keinen Termin angeboten oder fixiert)`;
+    if (c) werte['W.verpasst.closing'] = `${c.verpasst} von ${c.basis} closebaren Sales Calls nicht abgeschlossen (kein Abschlussversuch, Einwaende offen oder Folgetermin als Ausweg)`;
+  }
   const kontext = { vorname: p.vorname, rolle: p.rolle, funktionen: p.funktionen, legende: LABEL_P,
     stufenMitDaten: { woche: Object.keys((p.woche || {}).stufen || {}), monat: Object.keys((p.monat || {}).stufen || {}) } };
   return erzeuge(SYS_PERSON, werte, kontext, SCHEMA_PERSON, 'Text ' + p.vorname, warnungen);
@@ -174,9 +179,9 @@ async function personText(p, warnungen) {
 function werteFuerTeam(d) {
   const w = {};
   d.team.hebel.forEach((h, i) => { w[`T.hebel${i + 1}`] = h.titel; w[`T.hebel${i + 1}.umsatz`] = fmtE(h.umsatz); w[`T.hebel${i + 1}.umsatzKonservativ`] = fmtE(h.umsatzKonservativ); });
-  for (const [kz, liste] of Object.entries(d.team.zielKennzahlen)) {
-    for (const z of liste) w[`T.${kz}.${z.stufe}.ziel`] = `${z.label}: ${fmtP(z.quote)} (${z.ja} von ${z.basis}) gegen Ziel ${fmtP(z.ziel)}`;
-  }
+  const vp = d.team.verpasst.woche;
+  w['T.verpasst.setting'] = `${vp.setting.verpasst} von ${vp.setting.basis} qualifizierten Settings ohne Termin`;
+  w['T.verpasst.closing'] = `${vp.closing.verpasst} von ${vp.closing.basis} closebaren Sales Calls nicht abgeschlossen`;
   for (const [kz, v] of Object.entries({ W: d.verbleib.woche, M: d.verbleib.monat })) {
     w[`V.${kz}.settingsOhneErgebnis`] = fmtZ(v.settingsOhneErgebnis);
     w[`V.${kz}.closingsOhneErgebnis`] = fmtZ(v.closingsOhneErgebnis);
