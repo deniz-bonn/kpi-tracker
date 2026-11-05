@@ -168,12 +168,12 @@ async function verpassteChancen(rows, gewonnen, { beispiele = 3 } = {}) {
   }
   // Ohne Opportunity an der Codierung (z. B. Lead im Close-Spiegel ohne Opportunity): Firma ueber den Lead nachschlagen —
   // juengste Opportunity des Leads, sonst Lead-Name aus close_leads, sonst aus Close direkt.
-  const ohneOpp = [...new Set(b.filter(c => !opp[c.close_opportunity_id] && c.close_lead_id).map(c => c.close_lead_id))];
+  const ohneOpp = [...new Set(b.filter(c => !(opp[c.close_opportunity_id] && opp[c.close_opportunity_id].lead_name) && c.close_lead_id).map(c => c.close_lead_id))];
   const lead = {};
   for (let i = 0; i < ohneOpp.length; i += 500) {
     const t = ohneOpp.slice(i, i + 500);
     for (const o of await db.all(`SELECT id, lead_id, lead_name, value, value_currency, date_created FROM close_opportunities WHERE lead_id IN (${PH(t.length)})
-                                   ORDER BY date_created`, t)) lead[o.lead_id] = o;            // juengste gewinnt
+                                   AND lead_name IS NOT NULL ORDER BY date_created`, t)) lead[o.lead_id] = o;            // juengste mit Firma gewinnt
     for (const l of await db.all(`SELECT id, display_name FROM close_leads WHERE id IN (${PH(t.length)})`, t))
       if (!lead[l.id]) lead[l.id] = { lead_id: l.id, lead_name: l.display_name };
   }
@@ -185,7 +185,8 @@ async function verpassteChancen(rows, gewonnen, { beispiele = 3 } = {}) {
     }
   }
   const beispiel = (c, warum) => {
-    const o = opp[c.close_opportunity_id] || lead[c.close_lead_id] || {};
+    const o1 = opp[c.close_opportunity_id] || {}, o2 = lead[c.close_lead_id] || {};
+    const o = { ...o2, ...Object.fromEntries(Object.entries(o1).filter(([, v]) => v != null)) };
     return { datum: c.call_datum, mitarbeiter: vorname(c), firma: o.lead_name || '(Firma unbekannt)', wert: o.value != null ? Number(o.value) : null,
       waehrung: o.value_currency || 'EUR', link: linkVon({ ...c, close_lead_id: c.close_lead_id || o.lead_id }), was: c.einzeiler || '', warum };
   };

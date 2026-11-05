@@ -71,6 +71,7 @@ async function codierlauf({ von = null, bis = null, ausgeloestVon = 'cron', user
     const d = await syncDelta({ log }).catch(e => ({ fehler: e.message }));
     if (d && d.fehler) log('  Close-Delta fehlgeschlagen (naechtlicher Volllauf 01:15 holt es nach): ' + d.fehler);
     await einmaligBackfill(log);
+    await oppBackfill(log);
     await oktoberBasisEinmalig(log);
     const C = require('./codierung');
     await C.sammleEin({ log });                          // fertige Batches vorher einsammeln
@@ -82,6 +83,19 @@ async function codierlauf({ von = null, bis = null, ausgeloestVon = 'cron', user
     const abd = await require('./reportDaten').abdeckungKurz({ von: v, bis: b });
     return { abdeckung: { ...abd, kandidaten: k, eingereicht: e }, fehler };
   });
+}
+
+/**
+ * Einmalig: alle Opportunities ab CLOSE_BACKFILL_AB neu spiegeln, damit Firma (lead_name) und Wert (value) auch bei
+ * Opportunities gesetzt sind, die sich seit Migration 119 nicht mehr geaendert haben. Nur lesend gegenueber Close.
+ */
+async function oppBackfill(log) {
+  const { setzeSetting } = require('./basis');
+  if (await setting('opp_backfill_119', null)) return;
+  const { syncOpportunities } = require('../utils/closeSync');
+  const r = await syncOpportunities({ since: process.env.CLOSE_BACKFILL_AB || '2026-06-01', log });
+  await setzeSetting('opp_backfill_119', new Date().toISOString(), 'analyse');
+  log(`  Opportunity-Backfill (Firma/Wert): ${r.gesamt} Opportunities`);
 }
 
 /** Einmalig: Calls ab 01.10. spiegeln (fuer Bedingung c der Verbleib-Liste), ohne Codier-Auftraege. */
@@ -117,6 +131,7 @@ async function einsammeln({ ausgeloestVon = 'cron' } = {}) {
 
 async function verbleiblauf({ stichtag = heute(), ausgeloestVon = 'cron', user = null } = {}) {
   return lauf('verbleib', { ausgeloestVon, user, von: stichtag, bis: stichtag }, async ({ log }) => {
+    await oppBackfill(log);
     const V = require('./verbleib');
     const r = await V.berechne({ stichtag, log });
     return { abdeckung: { zeilen: r.zeilen.length, opportunities: new Set(r.zeilen.map(z => z.close_opportunity_id)).size } };
@@ -145,6 +160,7 @@ async function reportlauf({ stichtag = heute(), von = null, bis = null, modus = 
     }
     const C = require('./codierung');
     await C.sammleEin({ log });
+    await oppBackfill(log);
     const V = require('./verbleib');
     await V.berechne({ stichtag, log });                  // frischer Stand zum Versand
     const RD = require('./reportDaten');
