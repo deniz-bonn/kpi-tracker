@@ -10,7 +10,7 @@ import { celebrateWin, shouldCelebrate } from '../components/Celebration';
 import { useAuth } from '../context/AuthContext';
 import { KEIN_ANGEBOT_GRUENDE, GRUND_LABEL, INFO_TEXTE, hatAngebot, istKeinAngebot,
          rollenStats, klassischeKpis, callStats, dealFilterPred, zeitraumVorTracking, KEIN_ANGEBOT_HINWEIS,
-         QUELLEN, quellenStats, dienstleistungStats, dlVon } from '../utils/nkConstants';
+         QUELLEN, quellenStats, dienstleistungStats, dlVon, gzgStats } from '../utils/nkConstants';
 import NkMonatsvergleich from '../components/NkMonatsvergleich';
 import QuellenTabelle from '../components/QuellenTabelle';
 import InfoPopover from '../components/InfoPopover';
@@ -24,6 +24,7 @@ const STANDORTE = ['Bonn', 'Braunschweig', 'Österreich', 'Schweiz'];
 
 const DIENSTLEISTUNGEN_NK = ['RaaS', 'RaaS Kleinkunde', 'Performance Recruiting', 'Akutsuche', 'Konstantsuche'];
 const AUTO_VL_OPTS = ['Ja', 'Nein'];
+const GZG_AB_DE = '04.11.2026';   // Start der Pflichtangabe Geld-zurück-Garantie (Migration 120)
 const ABGERECHNET_OPTS = ['Nein', 'Ja', 'On Hold'];
 
 
@@ -135,6 +136,11 @@ export default function DealsNK() {
     // beim Bearbeiten alter Deals weiterhin nur bei Gewonnen, damit Altbestand ohne Angabe speicherbar bleibt.
     { name: 'dienstleistung', label: 'Dienstleistung',            type: 'select', options: DIENSTLEISTUNGEN_NK, show: mitAngebot,
       required: f => f.status === 'Gewonnen' || (modal?.mode === 'create' && mitAngebot(f)) },
+    // Pflicht bei jedem NEUEN Angebot (Server prueft mit). Altbestand ohne Angabe bleibt beim
+    // Bearbeiten speicherbar; ist der Wert einmal gesetzt, bleibt er Pflicht.
+    { name: 'geld_zurueck_garantie', label: 'Beinhaltet das Angebot eine Geld-zurück-Garantie?', type: 'select',
+      options: [{ value: 'Ja', label: 'Ja' }, { value: 'Nein', label: 'Nein' }], show: mitAngebot,
+      required: f => mitAngebot(f) && (modal?.mode === 'create' || !!modal?.data?.geld_zurueck_garantie) },
     { name: 'closer_id', label: 'Closer', type: 'select', options: closerOptions },
     { name: 'opener_id', label: 'Opener', type: 'select', options: openerOptions },
     { name: 'setter_id', label: 'Setter', type: 'select', options: setterOptions },
@@ -226,6 +232,19 @@ export default function DealsNK() {
   // ── Angebotsquote & bereinigte Closing Rate (Basis: ALLE Closing Calls) ──
   // Call-basierte Quoten — Rechnung in nkConstants.js (callStats), siehe klassischeKpis.
   const angebotStats = useMemo(() => callStats(calls), [calls]);
+  // Geld-zurück-Garantie — angebotsbasiert, nur Angebote MIT Angabe zaehlen in die Anteile.
+  const gzg = useMemo(() => gzgStats(angebote), [angebote]);
+  const gzgCloser = useMemo(() => {
+    const m = new Map();
+    for (const d of angebote) {
+      if (!d.closer_id) continue;
+      const e = m.get(d.closer_id) || { name: d.closer_name, ja: 0, nein: 0, gewJa: 0, gewNein: 0 };
+      if (d.geld_zurueck_garantie === 'Ja') { e.ja++; if (d.status === 'Gewonnen') e.gewJa++; }
+      if (d.geld_zurueck_garantie === 'Nein') { e.nein++; if (d.status === 'Gewonnen') e.gewNein++; }
+      m.set(d.closer_id, e);
+    }
+    return [...m.values()].filter(e => e.ja + e.nein > 0).sort((a, b) => b.ja - a.ja || (b.ja + b.nein) - (a.ja + a.nein));
+  }, [angebote]);
   // Quoten je Leadquelle — dieselben Funktionen je Quelle, Gesamtzeile = Seitenzahlen.
   const quellenTab = useMemo(() => quellenStats(calls, aeEur), [calls]);
   // Abschlussquote je Dienstleistung — angebotsbasiert; Klick auf eine Zeile setzt den Filter.
@@ -435,6 +454,47 @@ export default function DealsNK() {
                   <div className="font-bold text-gray-900 text-sm">{val}</div>
                 </div>
               ))}
+            </div>
+
+            {/* Geld-zurück-Garantie (Pflichtangabe je Angebot seit 04.11.2026) */}
+            <div className="rounded-lg border border-gray-200 overflow-x-auto">
+              <div className="bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-500 flex items-center">
+                Geld-zurück-Garantie
+                <InfoPopover label="Geld-zurück-Garantie" text={`Pflichtangabe bei jedem neuen Angebot seit ${GZG_AB_DE}. Anteile und Quoten rechnen nur mit Angeboten, bei denen Ja oder Nein erfasst ist; ältere Angebote ohne Angabe stehen separat als „ohne Angabe“. Abschlussquote = Gewonnen ÷ Angebote der Gruppe.`} />
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 p-3">
+                {[
+                  ['mit Garantie', gzg.erfasst ? `${gzg.ja} · ${gzg.anteilJa.toFixed(1)}%` : '—'],
+                  ['ohne Garantie', gzg.erfasst ? `${gzg.nein} · ${(100 - gzg.anteilJa).toFixed(1)}%` : '—'],
+                  ['Abschlussquote mit', gzg.rateJa == null ? '—' : `${gzg.rateJa.toFixed(1)}% (${gzg.gewJa}/${gzg.ja})`],
+                  ['Abschlussquote ohne', gzg.rateNein == null ? '—' : `${gzg.rateNein.toFixed(1)}% (${gzg.gewNein}/${gzg.nein})`],
+                  ['ohne Angabe (Altbestand)', String(gzg.ohneAngabe)],
+                ].map(([label, val]) => (
+                  <div key={label} className="rounded-lg bg-gray-50 border border-gray-100 px-3 py-2">
+                    <div className="text-[11px] text-gray-500">{label}</div>
+                    <div className="font-bold text-gray-900 text-sm">{val}</div>
+                  </div>
+                ))}
+              </div>
+              {gzgCloser.length > 0 && (
+                <table className="w-full text-xs">
+                  <thead><tr className="text-gray-400 border-y border-gray-100">
+                    <th className="px-3 py-1.5 text-left">Closer</th><th className="px-3 py-1.5 text-right">Angebote mit Angabe</th>
+                    <th className="px-3 py-1.5 text-right">mit Garantie</th><th className="px-3 py-1.5 text-right">Anteil</th>
+                    <th className="px-3 py-1.5 text-right">Quote mit</th><th className="px-3 py-1.5 text-right">Quote ohne</th>
+                  </tr></thead>
+                  <tbody>{gzgCloser.map(c => (
+                    <tr key={c.name || 'x'} className="border-b border-gray-50 last:border-0">
+                      <td className="px-3 py-1.5 text-gray-800">{c.name || '—'}</td>
+                      <td className="px-3 py-1.5 text-right text-gray-700">{c.ja + c.nein}</td>
+                      <td className="px-3 py-1.5 text-right text-gray-700">{c.ja}</td>
+                      <td className="px-3 py-1.5 text-right font-semibold text-gray-900">{(c.ja / (c.ja + c.nein) * 100).toFixed(0)}%</td>
+                      <td className="px-3 py-1.5 text-right text-gray-700">{c.ja ? `${(c.gewJa / c.ja * 100).toFixed(0)}%` : '—'}</td>
+                      <td className="px-3 py-1.5 text-right text-gray-700">{c.nein ? `${(c.gewNein / c.nein * 100).toFixed(0)}%` : '—'}</td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+              )}
             </div>
 
             <div className="rounded-lg border border-gray-200 overflow-x-auto">

@@ -184,6 +184,11 @@ router.get('/:id', wrap(async (req, res) => {
   res.json(await enrichDealsEur(row));
 }));
 
+// Geld-zurück-Garantie (Migration 120): 'Ja' | 'Nein' | null. Leere Eingabe = null.
+const gzgWert = (v) => (v === 'Ja' || v === 'Nein' ? v : null);
+const GZG_FEHLER = 'Geld-zurück-Garantie: bitte Ja oder Nein angeben (Pflicht bei jedem Angebot).';
+const gzgUngueltig = (v) => v != null && v !== '' && v !== 'Ja' && v !== 'Nein';
+
 router.post('/', wrap(async (req, res) => {
   // Fallback: wenn kein Closer gewählt und kein Admin, eigenen Account setzen
   const body = { ...req.body };
@@ -196,12 +201,15 @@ router.post('/', wrap(async (req, res) => {
   if (guardErr) return res.status(400).json({ error: guardErr });
   const keinAngebot = istKeinAngebot(body);
   if (keinAngebot) { body.status = 'Verloren'; body.angebotswert = null; body.ae_wert = null; body.laufzeit_monate = null; }
+  // Pflicht bei jedem neuen Angebot — nicht nur im Browser (sonst umgeht jeder andere Weg die Regel).
+  if (gzgUngueltig(body.geld_zurueck_garantie)) return res.status(400).json({ error: GZG_FEHLER });
+  if (!keinAngebot && !gzgWert(body.geld_zurueck_garantie)) return res.status(400).json({ error: GZG_FEHLER });
 
   const { gewonnen_datum, gewonnen_monat } = resolveGewonnenFelder(body);
   const fields = ['datum','monat','company_id','closer_id','opener_id','setter_id','quelle','kunde',
     'angebotsnummer','dienstleistung','angebotswert','laufzeit_monate','status','ae_wert','kommentar',
     'automatische_verlaengerung','abgerechnet','kundennummer','gewonnen_datum','gewonnen_monat',
-    'angebot_erstellt','kein_angebot_grund','kein_angebot_grund_text'];
+    'angebot_erstellt','kein_angebot_grund','kein_angebot_grund_text','geld_zurueck_garantie'];
   const values = fields.map(f => {
     if (f === 'gewonnen_datum') return gewonnen_datum;
     if (f === 'gewonnen_monat') return gewonnen_monat;
@@ -209,6 +217,7 @@ router.post('/', wrap(async (req, res) => {
     if (f === 'angebot_erstellt') return db.dialect === 'postgres' ? !keinAngebot : (keinAngebot ? 0 : 1);
     if (f === 'kein_angebot_grund') return keinAngebot ? (body.kein_angebot_grund ?? null) : null;
     if (f === 'kein_angebot_grund_text') return keinAngebot ? (body.kein_angebot_grund_text ?? null) : null;
+    if (f === 'geld_zurueck_garantie') return keinAngebot ? null : gzgWert(body.geld_zurueck_garantie);
     return body[f] ?? null;
   });
 
@@ -246,12 +255,17 @@ router.put('/:id', wrap(async (req, res) => {
   // Override durch den REGULÄREN Zustand: status=Verloren + ae/angebotswert NULL. syncAeGesamtNK und
   // provisionSync laufen unten mit (row, existing) -> AE-Ausbuchung + Provisions-Storno wie bei manuellem Wechsel.
   if (keinAngebot) { body.status = 'Verloren'; body.angebotswert = null; body.ae_wert = null; body.laufzeit_monate = null; }
+  // Geld-zurück-Garantie: nicht mitgesendet -> bestehenden Wert behalten. Altbestand ohne Angabe
+  // bleibt speicherbar; ein einmal erfasster Wert laesst sich aendern, aber nicht wieder leeren.
+  if (body.geld_zurueck_garantie === undefined && existing) body.geld_zurueck_garantie = existing.geld_zurueck_garantie;
+  if (gzgUngueltig(body.geld_zurueck_garantie)) return res.status(400).json({ error: GZG_FEHLER });
+  if (!keinAngebot && existing?.geld_zurueck_garantie && !gzgWert(body.geld_zurueck_garantie)) return res.status(400).json({ error: GZG_FEHLER });
 
   const { gewonnen_datum, gewonnen_monat } = resolveGewonnenFelder(body, existing);
   const fields = ['datum','monat','company_id','closer_id','opener_id','setter_id','quelle','kunde',
     'angebotsnummer','dienstleistung','angebotswert','laufzeit_monate','status','ae_wert','kommentar',
     'automatische_verlaengerung','abgerechnet','kundennummer','gewonnen_datum','gewonnen_monat',
-    'angebot_erstellt','kein_angebot_grund','kein_angebot_grund_text'];
+    'angebot_erstellt','kein_angebot_grund','kein_angebot_grund_text','geld_zurueck_garantie'];
   const values = fields.map(f => {
     if (f === 'gewonnen_datum') return gewonnen_datum;
     if (f === 'gewonnen_monat') return gewonnen_monat;
@@ -259,6 +273,7 @@ router.put('/:id', wrap(async (req, res) => {
     if (f === 'angebot_erstellt') return db.dialect === 'postgres' ? !keinAngebot : (keinAngebot ? 0 : 1);
     if (f === 'kein_angebot_grund') return keinAngebot ? (body.kein_angebot_grund ?? null) : null;
     if (f === 'kein_angebot_grund_text') return keinAngebot ? (body.kein_angebot_grund_text ?? null) : null;
+    if (f === 'geld_zurueck_garantie') return keinAngebot ? null : gzgWert(body.geld_zurueck_garantie);
     return body[f] ?? null;
   });
 

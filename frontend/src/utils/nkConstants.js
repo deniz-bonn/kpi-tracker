@@ -169,6 +169,29 @@ export function callStats(calls) {
   };
 }
 
+// ── Geld-zurück-Garantie (Migration 120) ─────────────────────────────────────
+// Pflicht bei jedem neuen Angebot seit 04.11.2026. Altbestand hat keine Angabe (null) und
+// zaehlt deshalb in KEINEN Anteil — sonst saehe die Quote kuenstlich niedrig aus.
+/**
+ * @param angebote nur Deals MIT Angebot (hatAngebot)
+ * @returns { erfasst, ja, nein, offenOhne, anteilJa, rateJa, rateNein, gewJa, gewNein }
+ *   anteilJa = Ja ÷ erfasste Angebote; rateJa/rateNein = Gewonnen ÷ Angebote der Gruppe
+ *   (Basis klassische Closing Rate, nur Angebote mit Angabe).
+ */
+export function gzgStats(angebote) {
+  const ja   = angebote.filter(d => d.geld_zurueck_garantie === 'Ja');
+  const nein = angebote.filter(d => d.geld_zurueck_garantie === 'Nein');
+  const erfasst = ja.length + nein.length;
+  const gew = (l) => l.filter(d => d.status === 'Gewonnen').length;
+  const pct = (n, d) => (d > 0 ? n / d * 100 : null);
+  return {
+    erfasst, ja: ja.length, nein: nein.length, ohneAngabe: angebote.length - erfasst,
+    anteilJa: pct(ja.length, erfasst),
+    gewJa: gew(ja), gewNein: gew(nein),
+    rateJa: pct(gew(ja), ja.length), rateNein: pct(gew(nein), nein.length),
+  };
+}
+
 // ── Leadquellen ──────────────────────────────────────────────────────────────
 // EINE Liste fuer Formular, Filter und Auswertung. deals_nk.quelle ist seit Migration 006
 // Freitext ohne CHECK — eine neue Quelle kostet nur diesen Eintrag.
