@@ -21,6 +21,7 @@ const ALL_NAV = [
   { to: '/meine-provision',     label: 'Meine Provision',       icon: '💰', feature: 'meine_provision' },
   { to: '/provisionen',         label: 'Provisionen',           icon: '🧾', feature: 'provisionen_admin' },
   { to: '/show-rates',          label: 'Show Rates (Close)',   icon: '📞', feature: 'show_rates_close' },
+  { to: '/verbleib',            label: 'Verbleib (Analyse)',   icon: '🧭', feature: 'vertriebsanalyse' },
   { to: '/mitarbeiter',         label: 'Mitarbeiter',           icon: '👥', feature: 'mitarbeiter_verwaltung' },
   { to: '/live-board',          label: 'Live-Board',            icon: '📺', feature: 'live_board' },
   { to: '/einstellungen',       label: 'Einstellungen',         icon: '⚙️',  roles: ['admin','superadmin','nk_vertrieb','bk_vertrieb','backoffice'] },
@@ -37,7 +38,7 @@ const ROLE_LABELS = {
 
 export default function Layout() {
   const { user, logout, canSeeKpiBeta, canSeeBestenliste, canSeeProvisionen, canSeeProvisionenAdmin,
-          canSeeShowRates, canSeeMeinDashboard, canSeeMeineProvision, canManageEmployees, canManageUsers,
+          canSeeShowRates, canSeeVerbleib, canSeeMeinDashboard, canSeeMeineProvision, canManageEmployees, canManageUsers,
           canSeeLiveBoard, canPflegeBoardZiele } = useAuth();
   const navigate = useNavigate();
   const [company, setCompany]     = useState('');
@@ -50,6 +51,7 @@ export default function Layout() {
     if (n.feature === 'provisionen') return canSeeProvisionen;
     if (n.feature === 'provisionen_admin') return canSeeProvisionenAdmin;
     if (n.feature === 'show_rates_close') return canSeeShowRates;
+    if (n.feature === 'vertriebsanalyse') return canSeeVerbleib;
     if (n.feature === 'mein_dashboard') return canSeeMeinDashboard;
     if (n.feature === 'meine_provision') return canSeeMeineProvision;
     if (n.feature === 'mitarbeiter_verwaltung') return canManageEmployees;

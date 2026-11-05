@@ -68,8 +68,12 @@ app.use('/api/api-tokens',     require('./routes/api_tokens'));  // requireAuth 
 app.use('/api/ext/v1',         require('./routes/ext_v1'));
 // Live-Board (/board): Session mit Feature 'live_board' ODER Display-Token (Scope board:read) — Zugang in routes/board.js
 app.use('/api/board',          require('./routes/board'));
+// Wochenanalyse Bonn (Transkript-Codierung, Verbleib-Liste, Freitagsreport) — src/analyse/
+app.use('/api/admin/analyse',  require('./routes/analyse').admin);     // nur Superadmin
+app.use('/api/verbleib',       require('./routes/analyse').verbleib);  // Feature 'vertriebsanalyse'
 const { router: backupRouter, generateBackup, storeAutoBackup } = require('./routes/backup');
 const cron = require('node-cron');
+require('./analyse/job').registriereCron(cron);
 app.use('/api/backup',         backupRouter);                   // requireAuth + requireRole inside
 // Daily auto-backup at 23:00 Berlin time — generates backup + sends it via email
 cron.schedule('0 23 * * *', async () => {

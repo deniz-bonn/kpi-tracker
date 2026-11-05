@@ -584,4 +584,4 @@ async function sendBackupEmail(backupData) {
   }
 }
 
-module.exports = { sendInvite, sendPasswordReset, sendDailyDashboard, sendDailyKpi, sendBackupEmail, testEmailConnection, buildKpiHtml, buildDashboardHtml };
+module.exports = { sendInvite, sendPasswordReset, sendDailyDashboard, sendDailyKpi, sendBackupEmail, testEmailConnection, buildKpiHtml, buildDashboardHtml, sendEmail };

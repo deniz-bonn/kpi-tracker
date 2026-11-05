@@ -30,6 +30,7 @@ const CONTROLLED_FEATURES = [
   { key: 'meine_provision', label: 'Meine Provision', desc: 'Eigener Kontoauszug je Abrechnungszeitraum' },
   { key: 'meine_provision_kontrolle', label: 'Meine Provision — Kontroll-Sicht', desc: '„Aus der Sicht von …": öffnet die Provisionssicht ANDERER freigeschalteter Personen. Superadmin immer.' },
   { key: 'show_rates_close', label: 'Show Rates (Close)', desc: 'Opener-/Setter-Show-Rates aus den Close-Statusdaten (Beta)' },
+  { key: 'vertriebsanalyse', label: 'Verbleib (Wochenanalyse Bonn)', desc: 'Liste der geführten Settings und Closings ohne Ergebnis, mit Firma, Wert und Link in Close. Täglich aktualisiert.' },
   { key: 'mein_dashboard', label: 'Mein Dashboard', desc: 'Persönliche Startseite je Vertriebler: Provision, eigene Deals, Forecast, Incentive (Beta)' },
   { key: 'kontrolle_alle_mitarbeiter', label: 'Kontroll-Sicht: alle Mitarbeiter', desc: 'Erweitert BEIDE Kontroll-Sichten auf alle Mitarbeiter mit NK-Beteiligung oder Incentive-Ziel — auch ohne Nutzerkonto. Ohne dieses Flag sieht ein Kontrolleur nur die freigeschalteten Personen. Superadmin immer.' },
   { key: 'mein_dashboard_kontrolle', label: 'Mein Dashboard — Kontroll-Sicht', desc: 'Team-Überblick und „Aus der Sicht von …": öffnet Provisions- und Incentive-Daten ANDERER freigeschalteter Personen. Superadmin immer.' },

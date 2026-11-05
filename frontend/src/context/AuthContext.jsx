@@ -122,6 +122,7 @@ export function AuthProvider({ children }) {
   const canSeeProvisionen = isSuperAdmin || roleHasFeature('provisionen') || userHasFeature('provisionen');
   // Show Rates (Close): out-of-the-box nur Superadmin; weitere via Rolle oder Einzel-Freischaltung.
   const canSeeShowRates = isSuperAdmin || roleHasFeature('show_rates_close') || userHasFeature('show_rates_close');
+  const canSeeVerbleib = isSuperAdmin || roleHasFeature('vertriebsanalyse') || userHasFeature('vertriebsanalyse');
   // Mein Dashboard (Beta): out-of-the-box nur Superadmin; weitere via Rolle oder Einzel-Freischaltung.
   // Einheitliches Muster je Bereich: Nutzer-Sicht (eigene Daten) + Kontroll-Sicht (Fremdsicht).
   const hat = (k) => isSuperAdmin || roleHasFeature(k) || userHasFeature(k);
@@ -152,7 +153,7 @@ export function AuthProvider({ children }) {
       isSuperAdmin, isAdmin, isBackoffice, isVertriebsleitung,
       canSeeNK, canSeeBK, canSeeVL, canSeeAdmin, canSeeAll,
       canSeeKpiBeta, canSeeBackup, canSeeBestenliste,
-      canSeeProvisionen, canSeeProvisionenAdmin, canSeeShowRates,
+      canSeeProvisionen, canSeeProvisionenAdmin, canSeeShowRates, canSeeVerbleib,
       canSeeMeinDashboard, canSeeMeinDashboardKontrolle,
       canSeeMeineProvision, canSeeMeineProvisionKontrolle,
       canManageEmployees, canManageUsers, verwaltung,

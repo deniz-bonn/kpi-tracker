@@ -155,12 +155,15 @@ async function syncOpportunities({ since, log = () => {} } = {}) {
 
   const rows = await close.getAll('/opportunity/', { date_updated__gte: von }, { max: 50000, limit: 100 });
   log(`  opportunities: ${rows.length} ab ${von}`);
-  const cols = 'id,lead_id,status_id,status_label,pipeline_name,user_id,user_name,created_by,created_by_name,setter_user_id,closer_user_id,date_created,date_updated';
+  // lead_name/value/value_currency/value_period seit Migration 119 (Wochenanalyse: Firma und Wert
+  // in der Verbleib-Liste). Close liefert value in Cent.
+  const cols = 'id,lead_id,status_id,status_label,pipeline_name,user_id,user_name,created_by,created_by_name,setter_user_id,closer_user_id,date_created,date_updated,lead_name,value,value_currency,value_period';
   const upd = cols.split(',').slice(1).map(c => `${c}=EXCLUDED.${c}`).join(', ') + `, synced_at=${NOW()}`;
   for (const o of rows) {
     const vals = [o.id, o.lead_id ?? null, o.status_id ?? null, o.status_label ?? null,
       o.pipeline_name ?? null, o.user_id ?? null, o.user_name ?? null, o.created_by ?? null,
-      o.created_by_name ?? null, wert(o, setterCf), wert(o, closerCf), o.date_created, o.date_updated];
+      o.created_by_name ?? null, wert(o, setterCf), wert(o, closerCf), o.date_created, o.date_updated,
+      o.lead_name ?? null, o.value != null ? Number(o.value) / 100 : null, o.value_currency ?? null, o.value_period ?? null];
     const ph = vals.map((_, i) => P(i + 1)).join(',');
     await db.run(`INSERT INTO close_opportunities (${cols}) VALUES (${ph}) ON CONFLICT (id) DO UPDATE SET ${upd}`, vals);
   }

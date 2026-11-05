@@ -1,0 +1,196 @@
+{
+  "_hinweis": "Team-Abgrenzung der Wochenanalyse Bonn. Nur diese acht Personen werden codiert und ausgewertet. Close-Benutzer werden ueber den Namen gefunden; weitere Close-Benutzer derselben Person stehen in close_namen. Fireflies: der Mitarbeiter wird aus den Sprecherlabels bestimmt (Julius nimmt ueber das Konto von Tobias auf).",
+  "version": "2026-11-04",
+  "standort": "Bonn",
+  "personen": [
+    {
+      "name": "Markus Bauer",
+      "vorname": "Markus",
+      "rolle": "Hybrid, Opener und Setter",
+      "funktionen": [
+        "opener",
+        "setter"
+      ],
+      "close_namen": [
+        "Markus Bauer"
+      ],
+      "sprecher_muster": "\\bbauer\\b"
+    },
+    {
+      "name": "Andreas Buharin",
+      "vorname": "Andreas",
+      "rolle": "Hybrid, Opener und Setter",
+      "funktionen": [
+        "opener",
+        "setter"
+      ],
+      "close_namen": [
+        "Andreas Buharin"
+      ],
+      "sprecher_muster": "buharin"
+    },
+    {
+      "name": "Brian Groten",
+      "vorname": "Brian",
+      "rolle": "Opener, teilweise Setter",
+      "funktionen": [
+        "opener",
+        "setter"
+      ],
+      "close_namen": [
+        "Brian Groten"
+      ],
+      "sprecher_muster": "groten"
+    },
+    {
+      "name": "Mikail Kotaman",
+      "vorname": "Mikail",
+      "rolle": "Opener",
+      "funktionen": [
+        "opener"
+      ],
+      "close_namen": [
+        "Mikail Kotaman"
+      ],
+      "close_emails": [
+        "mikail.kotaman@fach-digial.de"
+      ],
+      "sprecher_muster": "kotaman"
+    },
+    {
+      "name": "Dominik Bous",
+      "vorname": "Dominik",
+      "rolle": "Opener",
+      "funktionen": [
+        "opener"
+      ],
+      "close_namen": [
+        "Dominik Bous"
+      ],
+      "sprecher_muster": "\\bbous\\b"
+    },
+    {
+      "name": "Clemens Näkel",
+      "vorname": "Clemens",
+      "rolle": "Setter",
+      "funktionen": [
+        "setter"
+      ],
+      "close_namen": [
+        "Clemens Näkel"
+      ],
+      "sprecher_muster": "n[aä]e?kel"
+    },
+    {
+      "name": "Julius Kawka",
+      "vorname": "Julius",
+      "rolle": "Closer",
+      "funktionen": [
+        "closer"
+      ],
+      "close_namen": [
+        "Julius Kawka"
+      ],
+      "sprecher_muster": "kawka"
+    },
+    {
+      "name": "Tobias Böttcher",
+      "vorname": "Tobias",
+      "rolle": "Closer",
+      "funktionen": [
+        "closer"
+      ],
+      "close_namen": [
+        "Tobias Böttcher"
+      ],
+      "sprecher_muster": "b[oö]e?ttcher"
+    }
+  ],
+  "intern_sprecher_muster": "n[aä]e?kel|b[oö]e?ttcher|kawka|bauer|buharin|groten|kotaman|bous|zocher|murciano|friedl|braun|akpinar|kaporse|probe woche|alo\\b",
+  "intern_domains": [
+    "hioffice.com",
+    "high-office.com",
+    "fach-digital.de",
+    "fach-digial.de",
+    "jann-kaporse.de",
+    "morawitzconsulting.at",
+    "lk-recruiting.com",
+    "risem.ch"
+  ],
+  "fireflies_titel": {
+    "_hinweis": "Klassifikation wie Oktober (ff/classify.js). SC = Sales Call, wird codiert. Zweifel nur codiert, wenn Host t.boettcher, externe Teilnehmer und kein Willkommensgespraech.",
+    "sc": [
+      "einstellungsgarantie",
+      "^hioffice cloud",
+      "^hioffice\\s*[-–|]"
+    ],
+    "intern": [
+      "schulung",
+      "aufteiler",
+      "marketing",
+      "morgen",
+      "abend",
+      "onboarding",
+      "pm[- ]call",
+      "first[- ]match",
+      "weekly",
+      "team",
+      "x jkbub",
+      "\\bx\\b.*\\bx\\b"
+    ],
+    "zweifel_host": "t.boettcher",
+    "zweifel_ausschluss": "willkommen"
+  },
+  "regeln": {
+    "min_dauer_sek": 60,
+    "kein_schritt_werktage": 5,
+    "wiedervorlage_max_tage": 14,
+    "ff_zuordnung_tage": 1,
+    "max_codierversuche": 3
+  },
+  "november_ziele": {
+    "_hinweis": "Eine Kennzahl je Stufe, Quote in Prozent der Hauptquote (Konfidenz hoch/mittel). Terminfrage = Feld abschlussfrage_gestellt (B1-09 invers).",
+    "kennzahlen": [
+      {
+        "stufe": "Opening",
+        "feld": "abschlussfrage_gestellt",
+        "label": "Terminfrage gestellt",
+        "ziel": 90
+      },
+      {
+        "stufe": "Setting",
+        "feld": "closing_aktiv_angeboten",
+        "label": "Closing aktiv angeboten",
+        "ziel": 70
+      },
+      {
+        "stufe": "Closing",
+        "feld": "abschluss_aktiv_versucht",
+        "label": "Abschluss aktiv versucht",
+        "ziel": 50
+      },
+      {
+        "stufe": "Nachfassung",
+        "feld": "naechster_schritt_mit_datum",
+        "label": "Nächster Schritt mit Datum",
+        "ziel": 60
+      }
+    ]
+  },
+  "versand": {
+    "_hinweis": "modus wird NICHT hier umgeschaltet, sondern in der Tabelle analyse_settings (Schluessel versand_modus), damit der Wechsel auf live eine bewusste Freigabe ist. Standard ist test.",
+    "empfaenger_live": [
+      "d.akpinar@hioffice.com",
+      "t.boettcher@hioffice.com",
+      "m.scheller@hioffice.com"
+    ],
+    "empfaenger_test": [
+      "d.akpinar@hioffice.com"
+    ],
+    "fehler_an": [
+      "d.akpinar@hioffice.com"
+    ],
+    "betreff": "Vertriebsanalyse Bonn KW {kw}"
+  },
+  "_hinweis_sprecher": "Sprecher-Muster nur ueber Nachnamen (wie Oktober): Vornamen allein koennten Kunden treffen."
+}

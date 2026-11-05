@@ -22,6 +22,7 @@ import MeineProvision from './pages/MeineProvision';
 import Provisionen from './pages/Provisionen';
 import Auswertung from './pages/Auswertung';
 import ShowRates from './pages/ShowRates';
+import Verbleib from './pages/Verbleib';
 import Settings from './pages/Settings';
 import Board from './pages/Board';
 import LiveBoardAdmin from './pages/LiveBoardAdmin';
@@ -34,7 +35,7 @@ const ROLES = {
 
 // Inner component so useAuth() works (AuthProvider wraps it)
 function AppRoutes() {
-  const { canSeeKpiBeta, canSeeBestenliste, canSeeProvisionen, canSeeProvisionenAdmin, canSeeShowRates,
+  const { canSeeKpiBeta, canSeeBestenliste, canSeeProvisionen, canSeeProvisionenAdmin, canSeeShowRates, canSeeVerbleib,
           canSeeMeinDashboard, canSeeMeineProvision, canManageEmployees, canSeeLiveBoard, canPflegeBoardZiele } = useAuth();
 
   return (
@@ -128,6 +129,11 @@ function AppRoutes() {
         <Route path="show-rates" element={
           <ProtectedRoute canAccess={canSeeShowRates}>
             <ShowRates />
+          </ProtectedRoute>
+        } />
+        <Route path="verbleib" element={
+          <ProtectedRoute canAccess={canSeeVerbleib}>
+            <Verbleib />
           </ProtectedRoute>
         } />
         <Route path="mitarbeiter" element={

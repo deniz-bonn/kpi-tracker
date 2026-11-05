@@ -302,3 +302,9 @@ export const exportApi = {
     URL.revokeObjectURL(a.href);
   },
 };
+
+// Wochenanalyse Bonn: Verbleib-Liste (Feature 'vertriebsanalyse'), taeglich aktualisiert.
+export const verbleibApi = {
+  liste:  (stand) => api.get('/verbleib', { params: stand ? { stand } : {} }).then(r => r.data),
+  export: (stand) => api.get('/verbleib/export.xlsx', { params: stand ? { stand } : {}, responseType: 'blob' }).then(r => r.data),
+};
