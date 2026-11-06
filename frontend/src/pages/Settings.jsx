@@ -328,11 +328,11 @@ function ProvisionConfigSection() {
           <div className="font-semibold">Team-Staffel Bonn (Bonn-AE im Kalendermonat)</div>
           {teamStaffel.map((v) => (
             <div key={v.gueltig_ab}>
-              Ab Zeitraum {v.gueltig_ab.slice(8, 10)}.{v.gueltig_ab.slice(5, 7)}.{v.gueltig_ab.slice(0, 4)}:{' '}
+              Ab {v.gueltig_ab.slice(8, 10)}.{v.gueltig_ab.slice(5, 7)}.{v.gueltig_ab.slice(0, 4)}:{' '}
               {v.stufen.map((st, i) => `${i === 0 ? `bis ${(v.stufen[1]?.ab ?? 0).toLocaleString('de-DE')} €` : `ab ${st.ab.toLocaleString('de-DE')} €`} → ${String(st.satz).replace('.', ',')} %`).join(' · ')}
             </div>
           ))}
-          <div className="text-indigo-700/80">Für Deals ab diesem Zeitraum gilt diese Stufentabelle; die Felder „Team Stufe 1/2“ oben wirken nur für Zeiträume davor.</div>
+          <div className="text-indigo-700/80">Gilt je Kalendermonat ab diesem Datum (für alle Bonner Deals des Monats); die Felder „Team Stufe 1/2“ oben wirken nur für Monate davor.</div>
         </div>
       )}
       <div className="flex items-center gap-3">
