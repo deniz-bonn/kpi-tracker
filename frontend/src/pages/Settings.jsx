@@ -249,6 +249,8 @@ function ProvisionConfigSection() {
   const [savedOk, setSavedOk] = useState(false);
   const { data: configs = [], isLoading } = useQuery({ queryKey: ['prov-config'], queryFn: provisionenApi.config });
   const { data: employees = [] } = useQuery({ queryKey: ['employees'], queryFn: () => employeesApi.list() });
+  // Team-Staffel Bonn ab Migration 123 als Stufentabelle; die Felder team_s1..s3 gelten nur davor.
+  const { data: teamStaffel = [] } = useQuery({ queryKey: ['prov-team-staffel'], queryFn: provisionenApi.teamStaffel });
 
   // Kein Bonn-Rueckfall mehr: fand sich fuer einen Kreis keine Config, zeigte das Formular
   // stillschweigend die BONNER Saetze unter fremder Ueberschrift — und speicherte sie zurueck.
@@ -321,6 +323,18 @@ function ProvisionConfigSection() {
           {numField('team_s3', 'Team % > Stufe 2')}
         </>)}
       </div>
+      {kreis === 'bonn' && teamStaffel.length > 0 && (
+        <div className="rounded-xl border border-indigo-200 bg-indigo-50/50 px-3 py-2 text-xs text-indigo-900 space-y-1">
+          <div className="font-semibold">Team-Staffel Bonn (Bonn-AE im Kalendermonat)</div>
+          {teamStaffel.map((v) => (
+            <div key={v.gueltig_ab}>
+              Ab Zeitraum {v.gueltig_ab.slice(8, 10)}.{v.gueltig_ab.slice(5, 7)}.{v.gueltig_ab.slice(0, 4)}:{' '}
+              {v.stufen.map((st, i) => `${i === 0 ? `bis ${(v.stufen[1]?.ab ?? 0).toLocaleString('de-DE')} €` : `ab ${st.ab.toLocaleString('de-DE')} €`} → ${String(st.satz).replace('.', ',')} %`).join(' · ')}
+            </div>
+          ))}
+          <div className="text-indigo-700/80">Für Deals ab diesem Zeitraum gilt diese Stufentabelle; die Felder „Team Stufe 1/2“ oben wirken nur für Zeiträume davor.</div>
+        </div>
+      )}
       <div className="flex items-center gap-3">
         <button onClick={() => saveMut.mutate(form)} disabled={!canSave || saveMut.isPending}
           className={`text-sm px-4 py-1.5 rounded text-white ${savedOk ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-500'} disabled:opacity-50`}>

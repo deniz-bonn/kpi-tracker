@@ -95,6 +95,40 @@ async function staffelSatz(kreis, rolle, monatsAe, gueltigBis) {
   for (const r of rows) if (monatsAe >= Number(r.ab_betrag)) s = Number(r.satz);
   return s;
 }
+// ── Team-Staffel Bonn ─────────────────────────────────────────────────────────
+// Ab Migration 123 (gueltig ab Zeitraum 21.10.2026) stehen die Stufen in provision_staffel
+// (kreis 'bonn', rolle 'team'), davor gilt die Dreistufen-Staffel aus provision_config
+// (team_s1..team_s3). Massgeblich ist der ABRECHNUNGSZEITRAUM des einzelnen Deals: so bleiben
+// Deals aus bereits abgerechneten Zeitraeumen unberuehrt, auch wenn sie im selben Kalendermonat
+// liegen wie Deals nach der Umstellung. Version = juengstes gueltig_ab <= Periodenbeginn.
+async function teamStufen(periodeVon) {
+  const v = await db.get(`SELECT MAX(gueltig_ab) g FROM provision_staffel WHERE kreis='bonn' AND rolle='team' AND gueltig_ab <= ${q1(1)}`, [periodeVon]);
+  if (!v?.g) return null;
+  const rows = await db.all(`SELECT ab_betrag, satz FROM provision_staffel WHERE kreis='bonn' AND rolle='team' AND gueltig_ab=${q1(1)} ORDER BY ab_betrag ASC`, [v.g]);
+  return rows.map(r => ({ ab: Number(r.ab_betrag), satz: Number(r.satz) }));
+}
+// Satz, Grundsatz (der bei Gewinn gebuchte Team-Anteil) und naechste Stufe fuer eine Monats-AE.
+// Neue Stufen: Grenze zaehlt zur hoeheren Stufe (ab_betrag <= AE). Alte Spalten: unveraendert "bis".
+function teamSatzAus(cfg, stufen, ae) {
+  if (stufen && stufen.length) {
+    let satz = 0, next = null;
+    for (const st of stufen) { if (ae >= st.ab) satz = st.satz; else { next = st; break; } }
+    const basis = stufen[0].ab <= 0 ? stufen[0].satz : 0;
+    return { satz, basis, nextAb: next ? next.ab : null, nextSatz: next ? next.satz : null, stufen };
+  }
+  const s1b = Number(cfg.team_s1_bis), s2b = Number(cfg.team_s2_bis);
+  const satz = ae <= s1b ? Number(cfg.team_s1) : ae <= s2b ? Number(cfg.team_s2) : Number(cfg.team_s3);
+  return { satz, basis: Number(cfg.team_s1),
+    nextAb: ae <= s1b ? s1b : ae <= s2b ? s2b : null,
+    nextSatz: ae <= s1b ? Number(cfg.team_s2) : ae <= s2b ? Number(cfg.team_s3) : null,
+    stufen: [{ ab: 0, satz: Number(cfg.team_s1) }, { ab: s1b, satz: Number(cfg.team_s2), ueber: true }, { ab: s2b, satz: Number(cfg.team_s3), ueber: true }] };
+}
+async function teamRegelFuer(periodeVon) {
+  const cfg = await configFor(periodeVon, 'bonn');
+  if (!cfg) return null;
+  return { cfg, stufen: await teamStufen(periodeVon) };
+}
+
 // deal_quelle ('nk'|'bk'|'vl') ist Pflichtbestandteil JEDER Buchung: deal_id allein ist seit dem
 // BK-Kreis nicht mehr eindeutig. Default 'nk', damit alle bestehenden NK-Aufrufer unveraendert bleiben.
 async function insertBuchung(b) {
@@ -156,7 +190,10 @@ async function positionenFor(deal, gd) {
   }
   if (cId && cK === 'bonn') {                                 // Team nur fuer Bonn-Closer
     const cfg = await cfgK('bonn');
-    if (cfg && cfg.team_empfaenger_id) out.push({ emp: +cfg.team_empfaenger_id, rolle: 'team', kreis: 'bonn', satz: +cfg.team_s1, besch: `Team Bonn (${fmtPct(cfg.team_s1)})`, isTeam: true });
+    if (cfg && cfg.team_empfaenger_id) {
+      const basis = teamSatzAus(cfg, await teamStufen(periodFor(gd, 'bonn').von), 0).basis;
+      out.push({ emp: +cfg.team_empfaenger_id, rolle: 'team', kreis: 'bonn', satz: basis, besch: `Team Bonn (${fmtPct(basis)})`, isTeam: true });
+    }
   }
   return out;
 }
@@ -328,19 +365,24 @@ async function aktualisiereCloserStaffel(closerId, km, stichtag) {
 }
 
 // LIVE-Team-Staffel (nur Bonn). SATZ aus vollem Bonn-Kalendermonat; Delta je Bonn-Modul-Deal.
+// Welche Staffel (und welcher Empfaenger) gilt, bestimmt der Abrechnungszeitraum JE DEAL (siehe teamStufen).
 async function aktualisiereTeamStaffel(km, stichtag) {
-  const cfg = await configFor(km + '-28', 'bonn'); if (!cfg || !cfg.team_empfaenger_id) return;
-  const empf = +cfg.team_empfaenger_id, goLive = await goLiveDatum('bonn'), today = stichtag || heute();
+  const goLive = await goLiveDatum('bonn'), today = stichtag || heute();
   const bonnAeVoll = await bonnMonatsAe(km);
-  const finalSatz = bonnAeVoll <= Number(cfg.team_s1_bis) ? Number(cfg.team_s1)
-    : bonnAeVoll <= Number(cfg.team_s2_bis) ? Number(cfg.team_s2) : Number(cfg.team_s3);
-  const extra = finalSatz - Number(cfg.team_s1);
   const deals = await db.all(
     `SELECT d.id, d.ae_wert, d.gewonnen_datum, d.kunde FROM deals_nk d JOIN employees e ON e.id=d.closer_id
       WHERE d.status='Gewonnen' AND ${ymExpr('d.gewonnen_datum')}=${q1(1)} AND ${ymdExpr('d.gewonnen_datum')} >= ${q1(2)} AND e.standort='Bonn'`,
     [km, goLive]);
+  const regeln = {};
   for (const d of deals) {
     const gd = toYmd(d.gewonnen_datum); if (!gd) continue;
+    const pv = periodFor(gd, 'bonn').von;
+    if (!(pv in regeln)) regeln[pv] = await teamRegelFuer(pv);
+    const regel = regeln[pv];
+    if (!regel || !regel.cfg.team_empfaenger_id) continue;
+    const empf = +regel.cfg.team_empfaenger_id;
+    const { satz: finalSatz, basis } = teamSatzAus(regel.cfg, regel.stufen, bonnAeVoll);
+    const extra = round2(finalSatz - basis);
     const ae = Number(d.ae_wert) || 0, want = round2(ae * extra / 100);
     const have = round2(Number((await db.get(
       `SELECT COALESCE(SUM(betrag),0) b FROM provision_buchungen WHERE deal_id=${q1(1)} AND deal_quelle='nk' AND employee_id=${q1(2)} AND rolle='team' AND typ IN ('team_upgrade','team_nachtrag')`,
@@ -351,11 +393,14 @@ async function aktualisiereTeamStaffel(km, stichtag) {
     await insertBuchung({ zeitraum_id: ziel.id, employee_id: empf, deal_id: d.id, rolle: 'team',
       typ: offen ? 'team_upgrade' : 'team_nachtrag', satz: extra, bemessungsgrundlage: ae, betrag: diff, kalendermonat: km, gewonnen_datum: gd,
       beschreibung: extra > 0
-        ? `Team-Staffel ${km}: Bonn-Monats-AE ${fmtEur(bonnAeVoll)} → ${fmtPct(finalSatz)} (+${fmtPct(extra)}) · Delta auf vergütete Basis · ${d.kunde || ''}`.trim()
+        ? `Team-Staffel ${km}: Bonn-Monats-AE ${fmtEur(bonnAeVoll)} → ${fmtPct(finalSatz)} (+${fmtPct(extra)}) · Delta auf vergütete Basis${diff < 0 ? ' · Anpassung nach unten auf den aktuellen Satz' : ''} · ${d.kunde || ''}`.trim()
         : `Team-Staffel-Rücknahme ${km}: Bonn-Monats-AE ${fmtEur(bonnAeVoll)} → ${fmtPct(finalSatz)} · ${d.kunde || ''}`.trim(),
       idem_key: null });
   }
-  await storniereAltAggregat(empf, 'team', km, ['team_upgrade', 'team_nachtrag'], (await offenerZeitraumAm(today, 'bonn')).id);
+  const cfgKm = await configFor(km + '-28', 'bonn');
+  if (cfgKm && cfgKm.team_empfaenger_id) {
+    await storniereAltAggregat(+cfgKm.team_empfaenger_id, 'team', km, ['team_upgrade', 'team_nachtrag'], (await offenerZeitraumAm(today, 'bonn')).id);
+  }
 }
 
 // LIVE-AT-Staffel (Opener/Setter). SATZ aus dem Monats-AE des Beteiligten in DER Rolle; Delta je Deal.
@@ -430,13 +475,15 @@ async function staffelStatus(km) {
       satz: above ? Number(cfg.closer_hoch) : Number(cfg.closer_basis), basis: Number(cfg.closer_basis), hoch: Number(cfg.closer_hoch),
       schwelle, restBisNext: above ? 0 : round2(schwelle - ae), erreichtAm: above ? await datumSchwelle(r.id, km, schwelle) : null });
   }
-  if (cfgBonn && cfgBonn.team_empfaenger_id) {
-    const bonnAe = await bonnMonatsAe(km), s1b = Number(cfgBonn.team_s1_bis), s2b = Number(cfgBonn.team_s2_bis);
-    const satz = bonnAe <= s1b ? Number(cfgBonn.team_s1) : bonnAe <= s2b ? Number(cfgBonn.team_s2) : Number(cfgBonn.team_s3);
-    const nextThresh = bonnAe <= s1b ? s1b : bonnAe <= s2b ? s2b : null;
-    const nextSatz = bonnAe <= s1b ? Number(cfgBonn.team_s2) : bonnAe <= s2b ? Number(cfgBonn.team_s3) : null;
-    const emp = await db.get(`SELECT name FROM employees WHERE id=${q1(1)}`, [cfgBonn.team_empfaenger_id]);
-    out.team = { employee_id: +cfgBonn.team_empfaenger_id, name: emp?.name, monthAe: round2(bonnAe), satz, restBisNext: nextThresh ? round2(nextThresh - bonnAe) : 0, nextSatz };
+  // Team: Regel des Abrechnungszeitraums, in dem der Monat (bzw. im laufenden Monat: heute) liegt.
+  const tStich = km === heute().slice(0, 7) ? heute() : km + '-28';
+  const tRegel = await teamRegelFuer(periodFor(tStich, 'bonn').von);
+  if (tRegel && tRegel.cfg.team_empfaenger_id) {
+    const bonnAe = await bonnMonatsAe(km);
+    const t = teamSatzAus(tRegel.cfg, tRegel.stufen, bonnAe);
+    const emp = await db.get(`SELECT name FROM employees WHERE id=${q1(1)}`, [tRegel.cfg.team_empfaenger_id]);
+    out.team = { employee_id: +tRegel.cfg.team_empfaenger_id, name: emp?.name, monthAe: round2(bonnAe), satz: t.satz,
+      restBisNext: t.nextAb != null ? round2(Math.max(0, t.nextAb - bonnAe)) : 0, nextSatz: t.nextSatz, stufen: t.stufen };
   }
   // AT-Opener/Setter-Staffel (Monats-AE des Beteiligten je Rolle + aktuelle Stufe + Rest bis naechste).
   if (await configFor(km + '-28', 'oesterreich')) {
@@ -668,7 +715,7 @@ module.exports = {
   backfillLaufend, projektionLaufend, abschliesseZeitraum, staffelStatus, atCloserOhneVl,
   closerMonatsAe, bonnMonatsAe, periodFor, labelFor, labelForKreis, kalendermonatFor,
   configFor, getOrCreateZeitraum, kreisFor, goLiveDatum, staffelSatz,
-  resolveZeitraum, detailFor,
+  resolveZeitraum, detailFor, teamStufen, teamSatzAus, teamRegelFuer,
   // Ledger-Primitive, geteilt mit utils/provisionenBk.js. Bewusst exportiert statt dort
   // nachgebaut: es soll genau EINE Stelle geben, die in provision_buchungen schreibt, und
   // genau EINE, die Zeitraeume anlegt — sonst driften Kontoauszug und Abschluss auseinander.

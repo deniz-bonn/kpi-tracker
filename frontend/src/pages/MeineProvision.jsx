@@ -12,10 +12,12 @@ import Kontoauszug, { TYP_LABEL, TYP_COLOR } from '../components/Kontoauszug';
 
 const fmtDate = (d) => (d ? `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}` : '—');
 const fmtPct = (n) => String(n ?? 0).replace('.', ',') + ' %';
+const fmtTag = (ts) => (ts ? new Date(ts).toLocaleDateString('de-DE', { timeZone: 'Europe/Berlin', day: '2-digit', month: '2-digit', year: 'numeric' }) : '—');
+const euroCent = (n) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(n) || 0);
 const betragCls = (n) => (Number(n) < 0 ? 'text-rose-600' : 'text-gray-900');
 
 // Dezenter Fortschrittsbalken zur nächsten Staffelstufe (Motivations-Element).
-function StaffelBar({ label, satz, monthAe, restBisNext, nextSatz, erreichtAm }) {
+function StaffelBar({ label, satz, monthAe, restBisNext, nextSatz, erreichtAm, stufen }) {
   const maxReached = !(restBisNext > 0) || nextSatz == null;
   const ziel = maxReached ? monthAe : monthAe + restBisNext;
   const prog = ziel > 0 ? Math.min(100, Math.round((monthAe / ziel) * 100)) : (maxReached ? 100 : 0);
@@ -33,6 +35,20 @@ function StaffelBar({ label, satz, monthAe, restBisNext, nextSatz, erreichtAm })
         {' · '}Monats-AE {formatEuro(monthAe)}
         {erreichtAm ? ` · Schwelle am ${fmtDate(erreichtAm)} erreicht` : ''}
       </div>
+      {/* Alle Stufen auf einen Blick (Team-Staffel); die aktuelle ist hervorgehoben. */}
+      {stufen?.length > 1 && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {stufen.map((st, i) => {
+            const aktiv = Number(st.satz) === Number(satz);   // Saetze steigen streng, also eindeutig
+            const text = i === 0 ? `bis ${formatEuro(stufen[1].ab)}` : `${st.ueber ? 'über' : 'ab'} ${formatEuro(st.ab)}`;
+            return (
+              <span key={i} className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${aktiv ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-500 border border-indigo-100'}`}>
+                {text} → {fmtPct(st.satz)}
+              </span>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -57,6 +73,11 @@ export default function MeineProvision() {
   const meKreis = data?.kreis;                                   // eigener Abrechnungskreis
   const zeitraeumeF = zeitraeume.filter((z) => !meKreis || z.kreis === meKreis);
   const zyklusText = kreisZyklus(meKreis);
+  // Provisionsabzuege (Superadmin): verdient = Summe ohne Abzuege, Auszahlung = Summe.
+  const abzugZeilen = buchungen.filter((b) => b.rolle === 'abzug');
+  const abzugSumme = Math.round(((perTyp.abzug || 0) + (perTyp.abzug_storno || 0)) * 100) / 100;
+  const hatAbzug = abzugZeilen.length > 0;
+  const verdient = Math.round(((data?.summe || 0) - abzugSumme) * 100) / 100;
 
   const auswahl = sicht?.fremdsicht_erlaubt ? (
     <div className="flex items-center gap-2">
@@ -132,10 +153,32 @@ export default function MeineProvision() {
         <>
           {/* Summe */}
           <div className="rounded-2xl bg-gradient-to-br from-indigo-600 to-indigo-700 text-white p-5 shadow-sm">
-            <div className="text-xs font-medium uppercase tracking-wide text-indigo-200">Provision im Zeitraum{data?.zeitraum ? ` ${data.zeitraum.label}` : ''}</div>
+            <div className="text-xs font-medium uppercase tracking-wide text-indigo-200">{hatAbzug ? 'Auszahlung' : 'Provision'} im Zeitraum{data?.zeitraum ? ` ${data.zeitraum.label}` : ''}</div>
             <div className="text-3xl font-bold mt-1">{formatEuro(data?.summe || 0)}</div>
+            {hatAbzug && (
+              <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-indigo-100">
+                <span>Provision verdient <b className="text-white">{formatEuro(verdient)}</b></span>
+                <span>Abzüge <b className="text-white">{euroCent(abzugSumme)}</b></span>
+              </div>
+            )}
             {data?.zeitraum?.status === 'abgeschlossen' && <div className="text-xs text-indigo-200 mt-1">Zeitraum abgeschlossen</div>}
           </div>
+
+          {/* Abzuege mit Datum und Begruendung — 1:1 so, wie der Superadmin sie eingetragen hat. */}
+          {abzugZeilen.length > 0 && (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50/60 p-4">
+              <div className="text-sm font-semibold text-rose-900 mb-2">Abzüge in diesem Zeitraum</div>
+              <ul className="space-y-2">
+                {abzugZeilen.map((b) => (
+                  <li key={b.id} className="flex flex-col sm:flex-row sm:items-baseline gap-x-3 text-sm">
+                    <span className="whitespace-nowrap text-rose-800/80 w-24">{fmtTag(b.created_at)}</span>
+                    <span className={`whitespace-nowrap font-bold w-28 ${Number(b.betrag) < 0 ? 'text-rose-700' : 'text-emerald-700'}`}>{euroCent(b.betrag)}</span>
+                    <span className="text-gray-800 break-words">{b.typ === 'abzug_storno' ? b.beschreibung : <>Begründung: {b.beschreibung}</>}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Live-Staffel (aktueller Kalendermonat) */}
           {(data?.staffel || data?.teamStaffel) && (
@@ -147,7 +190,7 @@ export default function MeineProvision() {
               )}
               {data.teamStaffel && (
                 <StaffelBar label="Team-Staffel (Bonn)" satz={data.teamStaffel.satz} monthAe={data.teamStaffel.monthAe}
-                  restBisNext={data.teamStaffel.restBisNext} nextSatz={data.teamStaffel.nextSatz} />
+                  restBisNext={data.teamStaffel.restBisNext} nextSatz={data.teamStaffel.nextSatz} stufen={data.teamStaffel.stufen} />
               )}
             </div>
           )}

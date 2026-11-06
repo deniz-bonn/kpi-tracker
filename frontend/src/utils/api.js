@@ -202,6 +202,12 @@ export const provisionenApi = {
   backfillDry: (kreis)          => api.get('/provisionen/admin/backfill/projektion', { params: kreis ? { kreis } : {} }).then(r => r.data),
   backfillRun: (kreis)          => api.post('/provisionen/admin/backfill', { kreis }).then(r => r.data),
   abschluss:   (id)             => api.post(`/provisionen/admin/zeitraeume/${id}/abschluss`).then(r => r.data),
+  teamStaffel: ()               => api.get('/provisionen/config/team-staffel').then(r => r.data),
+  // Provisionsabzuege (nur Superadmin)
+  abzuege:          ()              => api.get('/provisionen/admin/abzuege').then(r => r.data),
+  abzugZeitraeume:  (employeeId)    => api.get(`/provisionen/admin/abzuege/zeitraeume/${employeeId}`).then(r => r.data),
+  abzugBuchen:      (d)             => api.post('/provisionen/admin/abzuege', d).then(r => r.data),
+  abzugZuruecknehmen: (id)          => api.post(`/provisionen/admin/abzuege/${id}/zuruecknehmen`).then(r => r.data),
   // Ein Zeitraum (ein Kreis) bzw. ein Monat ueber alle Kalendermonats-Kreise. Gleicher
   // Download-Pfad, damit der Dateiname immer vom Server kommt.
   exportCsv:      (id)    => ladeCsv(`/api/provisionen/admin/zeitraeume/${id}/export.csv`),

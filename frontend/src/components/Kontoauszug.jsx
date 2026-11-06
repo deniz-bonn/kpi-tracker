@@ -13,6 +13,8 @@ export const TYP_LABEL = {
   // Bestandskundenvertrieb. OHNE Eintrag rendert der Badge unten den ROHEN Schluessel
   // ('bk_upsell') — still, ohne Fehler, in Admin-Detail, Meine Provision UND Mein Dashboard.
   bk_upsell: 'Upsell 3 %', bk_verlaengerung: 'Verlängerung 2 %',
+  // Manuelle Provisionsabzuege (Superadmin) — Begruendung steht in der Beschreibung.
+  abzug: 'Abzug', abzug_storno: 'Abzug zurückgenommen',
 };
 export const TYP_COLOR = {
   deal_gewonnen: 'text-emerald-700 bg-emerald-50', team_provision: 'text-sky-700 bg-sky-50',
@@ -23,14 +25,19 @@ export const TYP_COLOR = {
   at_opener_staffel: 'text-indigo-700 bg-indigo-50', at_opener_nachtrag: 'text-indigo-700 bg-indigo-50',
   at_setter_staffel: 'text-cyan-700 bg-cyan-50', at_setter_nachtrag: 'text-cyan-700 bg-cyan-50',
   bk_upsell: 'text-emerald-700 bg-emerald-50', bk_verlaengerung: 'text-lime-700 bg-lime-50',
+  abzug: 'text-white bg-rose-600', abzug_storno: 'text-gray-700 bg-gray-100',
 };
-const ROLLE_LABEL = { opener: 'Opener', setter: 'Setter', closer: 'Closer', opener_setter: 'Opener+Setter', team: 'Team', kam: 'KAM' };
+const ROLLE_LABEL = { opener: 'Opener', setter: 'Setter', closer: 'Closer', opener_setter: 'Opener+Setter', team: 'Team', kam: 'KAM', abzug: '—' };
 const fmtDate = (d) => (d ? `${d.slice(8, 10)}.${d.slice(5, 7)}.${d.slice(0, 4)}` : '—');
 // Buchungen des Bestandskundenvertriebs rechnen auf der Achse gewonnen_MONAT, tragen also
 // bewusst kein gewonnen_datum. Statt einer Spalte voller Striche zeigen wir dort den
 // Abrechnungsmonat aus `kalendermonat` — die Achse, auf der die Zeile tatsaechlich haengt.
 const fmtWann = (b) => {
   if (b.gewonnen_datum) return fmtDate(b.gewonnen_datum);
+  // Abzuege haengen an keinem Deal — gezeigt wird der Tag der Buchung.
+  if (b.rolle === 'abzug' && b.created_at) {
+    return new Date(b.created_at).toLocaleDateString('de-DE', { timeZone: 'Europe/Berlin', day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
   // Format MM.JJJJ statt "September 2026": die Spalte ist auf TT.MM.JJJJ bemessen, ein
   // ausgeschriebener Monatsname wird darin abgeschnitten ("September 20" liest sich wie ein Jahr).
   const km = String(b.kalendermonat || '');

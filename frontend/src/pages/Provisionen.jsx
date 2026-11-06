@@ -144,6 +144,115 @@ function BackfillPanel({ kreis, kreisLabel, onDone }) {
   );
 }
 
+// Provisionsabzuege (nur Superadmin). Jeder Abzug wird eine eigene Zeile im Kontoauszug des
+// Mitarbeiters — mit Begruendung, sichtbar in "Meine Provision". Kein Loeschen: ein falscher
+// Abzug wird zurueckgenommen (Gegenbuchung), beide Zeilen bleiben nachvollziehbar stehen.
+const fmtTag = (ts) => (ts ? new Date(ts).toLocaleDateString('de-DE', { timeZone: 'Europe/Berlin', day: '2-digit', month: '2-digit', year: 'numeric' }) : '—');
+const euroCent = (n) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(n) || 0);
+
+function AbzuegePanel({ onChange }) {
+  const qc = useQueryClient();
+  const [offen, setOffen] = useState(false);
+  const [emp, setEmp] = useState('');
+  const [zid, setZid] = useState('');
+  const [betrag, setBetrag] = useState('');
+  const [grund, setGrund] = useState('');
+  const [ok, setOk] = useState('');
+  const { data, isLoading } = useQuery({ queryKey: ['prov-abzuege'], queryFn: provisionenApi.abzuege, enabled: offen });
+  const { data: zr } = useQuery({
+    queryKey: ['prov-abzug-zeitraeume', emp], queryFn: () => provisionenApi.abzugZeitraeume(emp), enabled: offen && !!emp,
+  });
+  useEffect(() => { setZid(zr?.laufend_id ? String(zr.laufend_id) : (zr?.zeitraeume?.[0]?.id ? String(zr.zeitraeume[0].id) : '')); }, [zr]);
+  const fertig = () => { qc.invalidateQueries({ queryKey: ['prov-abzuege'] }); qc.invalidateQueries({ queryKey: ['prov-emp'] }); onChange?.(); };
+  const buchen = useMutation({
+    mutationFn: () => provisionenApi.abzugBuchen({ employee_id: Number(emp), zeitraum_id: Number(zid), betrag, begruendung: grund }),
+    onSuccess: (row) => { setOk(`Abzug über ${euroCent(Math.abs(row.betrag))} gebucht.`); setBetrag(''); setGrund(''); fertig(); },
+  });
+  const zurueck = useMutation({ mutationFn: (id) => provisionenApi.abzugZuruecknehmen(id), onSuccess: fertig });
+  const personen = data?.personen || [];
+  const abzuege = data?.abzuege || [];
+  const betragZahl = Number(String(betrag).replace(',', '.'));
+  const kannBuchen = emp && zid && betragZahl > 0 && grund.trim().length >= 5 && !buchen.isPending;
+  const name = personen.find((p) => String(p.id) === String(emp))?.name || '';
+  const zLabel = (zr?.zeitraeume || []).find((z) => String(z.id) === String(zid))?.label || '';
+  const inp = 'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800';
+
+  return (
+    <div className="rounded-2xl border border-rose-200 bg-rose-50/40">
+      <button onClick={() => setOffen((o) => !o)} className="w-full flex items-center justify-between px-4 py-3 text-left">
+        <span className="text-sm font-semibold text-rose-900">➖ Provisionsabzüge <span className="text-xs font-normal text-rose-700">(nur Superadmin · erscheinen mit Begründung im Kontoauszug des Mitarbeiters)</span></span>
+        <span className="text-rose-700 text-sm">{offen ? '▲' : '▼'}</span>
+      </button>
+      {offen && (
+        <div className="px-4 pb-4 space-y-4">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <label className="block"><span className="text-xs text-gray-500">Mitarbeiter</span>
+              <select value={emp} onChange={(e) => { setEmp(e.target.value); setOk(''); }} className={inp}>
+                <option value="">— auswählen —</option>
+                {personen.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.standort})</option>)}
+              </select></label>
+            <label className="block"><span className="text-xs text-gray-500">Abrechnungszeitraum</span>
+              <select value={zid} onChange={(e) => setZid(e.target.value)} disabled={!emp} className={inp}>
+                {(zr?.zeitraeume || []).map((z) => <option key={z.id} value={z.id}>{z.label}{String(z.id) === String(zr?.laufend_id) ? ' (laufend)' : ''}</option>)}
+              </select></label>
+            <label className="block"><span className="text-xs text-gray-500">Abzug in €</span>
+              <input type="number" min="0.01" step="0.01" value={betrag} onChange={(e) => setBetrag(e.target.value)} placeholder="z. B. 250" className={inp} /></label>
+          </div>
+          <label className="block"><span className="text-xs text-gray-500">Begründung (sieht der Mitarbeiter genau so in seiner Abrechnung)</span>
+            <textarea value={grund} onChange={(e) => setGrund(e.target.value)} rows={2} maxLength={500}
+              placeholder="z. B. Storno Kunde XY nach Abrechnung — Provision aus Zeitraum 21.09.–20.10. zurückgefordert" className={inp} /></label>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => { if (window.confirm(`Abzug buchen?\n\n${name}\n${euroCent(betragZahl)} im Zeitraum ${zLabel}\nBegründung: ${grund.trim()}`)) { setOk(''); buchen.mutate(); } }}
+              disabled={!kannBuchen}
+              className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-bold text-white hover:bg-rose-700 disabled:opacity-40">
+              {buchen.isPending ? 'Buche…' : 'Abzug buchen'}
+            </button>
+            {!kannBuchen && !buchen.isPending && <span className="text-xs text-gray-400">Mitarbeiter, Betrag und Begründung (min. 5 Zeichen) angeben</span>}
+            {buchen.isError && <span className="text-xs text-rose-700">{buchen.error?.response?.data?.error || 'Buchen fehlgeschlagen'}</span>}
+            {ok && <span className="text-xs font-semibold text-emerald-700">{ok}</span>}
+          </div>
+
+          <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+            <div className="px-4 py-2 text-xs font-semibold text-gray-500 bg-gray-50">Gebuchte Abzüge</div>
+            {isLoading ? <div className="p-4 text-sm text-gray-400">Lädt…</div> : abzuege.length === 0 ? (
+              <div className="p-4 text-sm text-gray-400">Noch keine Abzüge.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead><tr className="text-left text-xs text-gray-400 border-b border-gray-100">
+                    <th className="px-4 py-2 font-medium">Datum</th><th className="px-3 py-2 font-medium">Mitarbeiter</th>
+                    <th className="px-3 py-2 font-medium">Zeitraum</th><th className="px-3 py-2 font-medium">Begründung</th>
+                    <th className="px-3 py-2 font-medium text-right">Betrag</th><th className="px-4 py-2 font-medium text-right"></th>
+                  </tr></thead>
+                  <tbody>
+                    {abzuege.map((a) => (
+                      <tr key={a.id} className={`border-b border-gray-50 last:border-0 align-top ${a.zurueckgenommen ? 'text-gray-400' : ''}`}>
+                        <td className="px-4 py-2 whitespace-nowrap">{fmtTag(a.created_at)}</td>
+                        <td className="px-3 py-2 whitespace-nowrap font-medium">{a.name}</td>
+                        <td className="px-3 py-2 whitespace-nowrap">{a.zeitraum}</td>
+                        <td className="px-3 py-2 break-words">{a.beschreibung}</td>
+                        <td className={`px-3 py-2 text-right whitespace-nowrap font-semibold ${a.zurueckgenommen ? 'line-through' : 'text-rose-600'}`}>{euroCent(a.betrag)}</td>
+                        <td className="px-4 py-2 text-right whitespace-nowrap">
+                          {a.zurueckgenommen
+                            ? <span className="text-xs">zurückgenommen {fmtTag(a.storno_am)}</span>
+                            : <button onClick={() => { if (window.confirm(`Abzug zurücknehmen?\n\n${a.name}: ${euroCent(a.betrag)}\n„${a.beschreibung}"\n\nEs wird eine Gegenbuchung im laufenden Zeitraum angelegt; beide Zeilen bleiben im Kontoauszug sichtbar.`)) zurueck.mutate(a.id); }}
+                                disabled={zurueck.isPending} className="text-xs font-semibold text-indigo-600 hover:underline disabled:opacity-50">Zurücknehmen</button>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {zurueck.isError && <div className="px-4 py-2 text-xs text-rose-700">{zurueck.error?.response?.data?.error || 'Zurücknehmen fehlgeschlagen'}</div>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Provisionen() {
   const { isSuperAdmin } = useAuth();
   const qc = useQueryClient();
@@ -283,6 +392,8 @@ export default function Provisionen() {
           {exportErr && <span className="text-xs text-rose-600">{exportErr}</span>}
         </div>
       )}
+
+      {isSuperAdmin && <AbzuegePanel onChange={() => qc.invalidateQueries({ queryKey: ['prov-overview'] })} />}
 
       {isSuperAdmin && <BackfillPanel kreis={kreis} kreisLabel={kreisMeta.label} onDone={() => { qc.invalidateQueries({ queryKey: ['prov-overview'] }); qc.invalidateQueries({ queryKey: ['prov-zeitraeume'] }); }} />}
 

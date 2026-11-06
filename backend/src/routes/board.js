@@ -187,8 +187,10 @@ async function provisionsSichten(stichtag, ausgeblendet = new Set()) {
 
   // Rollen-Sichten. 'opener_setter' (Pauschale: dieselbe Person war Opener UND Setter) gehoert in
   // beide Listen. 'team' (Teamprovision der Vertriebsleitung) zaehlt in KEINE Sicht.
+  // 'abzug' (manuelle Provisionsabzuege mit Begruendung) ist Privatsache und gehoert nicht an den
+  // Fernseher — sonst liesse sich ein Abzug am Ranking ablesen ("kein Pranger").
   const SICHT = {
-    alle:   (r) => r !== 'team',
+    alle:   (r) => r !== 'team' && r !== 'abzug',
     opener: (r) => r === 'opener' || r === 'opener_setter',
     setter: (r) => r === 'setter' || r === 'opener_setter',
     closer: (r) => r === 'closer',

@@ -9,6 +9,7 @@ const { logAudit } = require('../utils/audit');
 const { projektionLaufend, backfillLaufend, abschliesseZeitraum, staffelStatus, kreisFor,
         resolveZeitraum, detailFor, labelForKreis } = require('../utils/provisionen');
 const { projektionBk, backfillBk, KREIS: BK_KREIS } = require('../utils/provisionenBk');
+const { abzugPersonen, abzugZeitraeume, bucheAbzug, nimmAbzugZurueck, abzugListe, AbzugFehler } = require('../utils/provisionsAbzuege');
 const { KREIS_KEYS, NK_KREISE, KALENDERMONAT_KREISE, istKreis, kreisInfo, labelFuer } = require('../utils/kreise');
 const { gruppeVonEmp } = require('../utils/rollen');
 const { provisionsKreise, provisionsSicht, staffelFuerKreise } = require('../utils/provisionsZugriff');
@@ -233,6 +234,49 @@ router.put('/config/:gueltig_ab', requireRole('superadmin'), nurAdminFeature, wr
   res.json(await db.get(`SELECT * FROM provision_config WHERE kreis=${ph(1)} AND gueltig_ab=${ph(2)}`, [kreis, g]));
 }));
 
+// ── Team-Staffel Bonn (Anzeige in den Einstellungen): Stufen je Gueltigkeitsbeginn ──
+router.get('/config/team-staffel', provisionsSicht, wrap(async (req, res) => {
+  if (!req.provKreise.includes('bonn')) return res.json([]);
+  const rows = await db.all(`SELECT gueltig_ab, ab_betrag, satz FROM provision_staffel WHERE kreis='bonn' AND rolle='team' ORDER BY gueltig_ab DESC, ab_betrag ASC`);
+  const m = new Map();
+  for (const r of rows) {
+    if (!m.has(r.gueltig_ab)) m.set(r.gueltig_ab, []);
+    m.get(r.gueltig_ab).push({ ab: num(r.ab_betrag), satz: num(r.satz) });
+  }
+  res.json([...m].map(([gueltig_ab, stufen]) => ({ gueltig_ab, stufen })));
+}));
+
+// ── Provisionsabzuege (NUR Superadmin) — utils/provisionsAbzuege.js ──
+// Erscheinen als eigene Zeile mit Begruendung im Kontoauszug des Mitarbeiters.
+const nurSuperadmin = requireRole('superadmin');
+const abzugFehler = (res, e) => {
+  if (e instanceof AbzugFehler) return res.status(e.status).json({ error: e.message });
+  throw e;
+};
+router.get('/admin/abzuege', nurSuperadmin, wrap(async (req, res) => {
+  res.json({ abzuege: await abzugListe(), personen: await abzugPersonen() });
+}));
+router.get('/admin/abzuege/zeitraeume/:employeeId', nurSuperadmin, wrap(async (req, res) => {
+  try { res.json(await abzugZeitraeume(req.params.employeeId)); } catch (e) { abzugFehler(res, e); }
+}));
+router.post('/admin/abzuege', nurSuperadmin, wrap(async (req, res) => {
+  const f = req.body || {};
+  try {
+    const row = await bucheAbzug({ employeeId: f.employee_id, zeitraumId: f.zeitraum_id, betrag: f.betrag, begruendung: f.begruendung });
+    await logAudit({ user: req.user, action: 'abzug', entityType: 'provision_buchung', entityId: row?.id,
+      newData: { employee_id: row?.employee_id, zeitraum_id: row?.zeitraum_id, betrag: row?.betrag, begruendung: row?.beschreibung } });
+    res.status(201).json(row);
+  } catch (e) { abzugFehler(res, e); }
+}));
+router.post('/admin/abzuege/:id/zuruecknehmen', nurSuperadmin, wrap(async (req, res) => {
+  try {
+    const row = await nimmAbzugZurueck(req.params.id);
+    await logAudit({ user: req.user, action: 'abzug_zuruecknehmen', entityType: 'provision_buchung', entityId: Number(req.params.id),
+      newData: { storno_id: row?.id, betrag: row?.betrag, zeitraum_id: row?.zeitraum_id } });
+    res.json(row);
+  } catch (e) { abzugFehler(res, e); }
+}));
+
 // ── Zeitraum abschliessen (NUR Superadmin): einfrieren + Folgeperiode ──
 router.post('/admin/zeitraeume/:id/abschluss', requireRole('superadmin'), nurAdminFeature, wrap(async (req, res) => {
   const r = await abschliesseZeitraum(Number(req.params.id), req.user.id);
@@ -256,6 +300,7 @@ const SPALTE = {
   team_provision: 'Team', team_upgrade: 'Team-Staffel', team_nachtrag: 'Team-Staffel',
   bk_upsell: 'Upsell 3 %', bk_verlaengerung: 'Verlängerung 2 %',     // Bestandskundenvertrieb
   korrektur: 'Korrektur', storno: 'Storno',
+  abzug: 'Abzüge', abzug_storno: 'Abzüge',                            // manuelle Provisionsabzuege
 };
 // Spalten der NK-Kreise — unveraendert in Bestand UND REIHENFOLGE. Die BK-Spalten werden nur
 // dort angehaengt, wo tatsaechlich BK-Buchungen drinstehen. Grund: der Steuerberater arbeitet
@@ -265,9 +310,12 @@ const SPALTEN_NK = ['Gewonnen', 'Opener-Fix', 'Opener-Staffel', 'Setter-Staffel'
   'Team', 'Team-Staffel', 'Korrektur', 'Storno'];
 const SPALTEN_BK = ['Upsell 3 %', 'Verlängerung 2 %'];
 // Die Satz-Spalten stehen VOR Korrektur/Storno, damit die Aufschluesselung zusammenhaengt.
-const spaltenFuer = (mitBk) => mitBk
-  ? [...SPALTEN_NK.slice(0, -2), ...SPALTEN_BK, ...SPALTEN_NK.slice(-2)]
-  : SPALTEN_NK;
+// 'Abzüge' wird wie die BK-Spalten nur angehaengt, wenn im Export tatsaechlich ein Abzug steht —
+// ganz hinten vor der Summe, damit die bisherigen Spaltenpositionen fuer das Template gleich bleiben.
+const spaltenFuer = (mitBk, mitAbzug = false) => [
+  ...(mitBk ? [...SPALTEN_NK.slice(0, -2), ...SPALTEN_BK, ...SPALTEN_NK.slice(-2)] : SPALTEN_NK),
+  ...(mitAbzug ? ['Abzüge'] : []),
+];
 
 const esc = v => { const s = String(v ?? ''); return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
 const fmtCsv = n => (Number(n) || 0).toFixed(2).replace('.', ',');           // deutsches Dezimalkomma
@@ -292,7 +340,7 @@ async function exportZeilen(zeitraeume) {
 }
 
 function csvAntwort(res, zeilen, { mitKreis = false, dateiname, mitBk = false }) {
-  const SPALTEN = spaltenFuer(mitBk);
+  const SPALTEN = spaltenFuer(mitBk, zeilen.some(e => 'Abzüge' in e.spalten));
   const header = ['Mitarbeiter', 'Standort', ...(mitKreis ? ['Kreis'] : []), 'Zeitraum', ...SPALTEN, 'Summe'];
   const lines = [header.join(';')];
   for (const e of zeilen) {
